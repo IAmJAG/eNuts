@@ -1,0 +1,316 @@
+{
+    "Name": "eNuts",
+    "actionStack": {
+        "00000000": null,
+        "00050000": {
+            "action": 5,
+            "arguments": [
+                {
+                    "x": 0.921875,
+                    "y": 0.03355704697986577,
+                    "width": 0.03515625,
+                    "height": 0.07550335570469799,
+                    "__type__": "fluxCore.geometry.Rectangle"
+                }
+            ],
+            "__type__": "eNuts.data.IntentAction"
+        },
+        "00050001": {
+            "action": 5,
+            "arguments": [
+                {
+                    "x": 0.923828125,
+                    "y": 0.025167785234899327,
+                    "width": 0.0234375,
+                    "height": 0.050335570469798654,
+                    "__type__": "fluxCore.geometry.Rectangle"
+                }
+            ],
+            "__type__": "eNuts.data.IntentAction"
+        },
+        "00050002": {
+            "action": 5,
+            "arguments": [
+                {
+                    "x": 0.05078125,
+                    "y": 0.025167785234899327,
+                    "width": 0.0234375,
+                    "height": 0.07130872483221476,
+                    "__type__": "fluxCore.geometry.Rectangle"
+                }
+            ],
+            "__type__": "eNuts.data.IntentAction"
+        },
+        "00050003": {
+            "action": 5,
+            "arguments": [
+                {
+                    "x": 0.921875,
+                    "y": 0.03355704697986577,
+                    "width": 0.03515625,
+                    "height": 0.07550335570469799,
+                    "__type__": "fluxCore.geometry.Rectangle"
+                }
+            ],
+            "__type__": "eNuts.data.IntentAction"
+        },
+        "00050004": {
+            "action": 5,
+            "arguments": [
+                {
+                    "x": 0.923828125,
+                    "y": 0.025167785234899327,
+                    "width": 0.0234375,
+                    "height": 0.050335570469798654,
+                    "__type__": "fluxCore.geometry.Rectangle"
+                }
+            ],
+            "__type__": "eNuts.data.IntentAction"
+        },
+        "00050005": {
+            "action": 5,
+            "arguments": [
+                {
+                    "x": 0.05078125,
+                    "y": 0.025167785234899327,
+                    "width": 0.0234375,
+                    "height": 0.07130872483221476,
+                    "__type__": "fluxCore.geometry.Rectangle"
+                }
+            ],
+            "__type__": "eNuts.data.IntentAction"
+        },
+        "00050006": {
+            "action": 5,
+            "arguments": [
+                {
+                    "x": 0.95703125,
+                    "y": 0.7634228187919463,
+                    "width": 0.03515625,
+                    "height": 0.07550335570469799,
+                    "__type__": "fluxCore.geometry.Rectangle"
+                }
+            ],
+            "__type__": "eNuts.data.IntentAction"
+        },
+        "00050007": {
+            "action": 5,
+            "arguments": [
+                {
+                    "x": 0.921875,
+                    "y": 0.03355704697986577,
+                    "width": 0.03515625,
+                    "height": 0.07550335570469799,
+                    "__type__": "fluxCore.geometry.Rectangle"
+                }
+            ],
+            "__type__": "eNuts.data.IntentAction"
+        },
+        "00050008": {
+            "action": 5,
+            "arguments": [
+                {
+                    "x": 0.923828125,
+                    "y": 0.025167785234899327,
+                    "width": 0.0234375,
+                    "height": 0.050335570469798654,
+                    "__type__": "fluxCore.geometry.Rectangle"
+                }
+            ],
+            "__type__": "eNuts.data.IntentAction"
+        },
+        "00050009": {
+            "action": 5,
+            "arguments": [
+                {
+                    "x": 0.05078125,
+                    "y": 0.025167785234899327,
+                    "width": 0.0234375,
+                    "height": 0.07130872483221476,
+                    "__type__": "fluxCore.geometry.Rectangle"
+                }
+            ],
+            "__type__": "eNuts.data.IntentAction"
+        },
+        "0005000a": {
+            "action": 5,
+            "arguments": [
+                {
+                    "x": 0.95703125,
+                    "y": 0.16359060402684564,
+                    "width": 0.03515625,
+                    "height": 0.07550335570469799,
+                    "__type__": "fluxCore.geometry.Rectangle"
+                }
+            ],
+            "__type__": "eNuts.data.IntentAction"
+        }
+    },
+    "intentStack": {
+        "000000000000": {
+            "description": "HOME MENU",
+            "actions": [
+                null,
+                {
+                    "action": 5,
+                    "arguments": [
+                        {
+                            "x": 0.921875,
+                            "y": 0.03355704697986577,
+                            "width": 0.03515625,
+                            "height": 0.07550335570469799,
+                            "__type__": "fluxCore.geometry.Rectangle"
+                        }
+                    ],
+                    "__type__": "eNuts.data.IntentAction"
+                },
+                {
+                    "action": 5,
+                    "arguments": [
+                        {
+                            "x": 0.923828125,
+                            "y": 0.025167785234899327,
+                            "width": 0.0234375,
+                            "height": 0.050335570469798654,
+                            "__type__": "fluxCore.geometry.Rectangle"
+                        }
+                    ],
+                    "__type__": "eNuts.data.IntentAction"
+                },
+                {
+                    "action": 5,
+                    "arguments": [
+                        {
+                            "x": 0.05078125,
+                            "y": 0.025167785234899327,
+                            "width": 0.0234375,
+                            "height": 0.07130872483221476,
+                            "__type__": "fluxCore.geometry.Rectangle"
+                        }
+                    ],
+                    "__type__": "eNuts.data.IntentAction"
+                }
+            ],
+            "__type__": "eNuts.data.Intent"
+        },
+        "000100000000": {
+            "description": "Go to settings",
+            "actions": [
+                null,
+                {
+                    "action": 5,
+                    "arguments": [
+                        {
+                            "x": 0.921875,
+                            "y": 0.03355704697986577,
+                            "width": 0.03515625,
+                            "height": 0.07550335570469799,
+                            "__type__": "fluxCore.geometry.Rectangle"
+                        }
+                    ],
+                    "__type__": "eNuts.data.IntentAction"
+                },
+                {
+                    "action": 5,
+                    "arguments": [
+                        {
+                            "x": 0.923828125,
+                            "y": 0.025167785234899327,
+                            "width": 0.0234375,
+                            "height": 0.050335570469798654,
+                            "__type__": "fluxCore.geometry.Rectangle"
+                        }
+                    ],
+                    "__type__": "eNuts.data.IntentAction"
+                },
+                {
+                    "action": 5,
+                    "arguments": [
+                        {
+                            "x": 0.05078125,
+                            "y": 0.025167785234899327,
+                            "width": 0.0234375,
+                            "height": 0.07130872483221476,
+                            "__type__": "fluxCore.geometry.Rectangle"
+                        }
+                    ],
+                    "__type__": "eNuts.data.IntentAction"
+                },
+                {
+                    "action": 5,
+                    "arguments": [
+                        {
+                            "x": 0.95703125,
+                            "y": 0.7634228187919463,
+                            "width": 0.03515625,
+                            "height": 0.07550335570469799,
+                            "__type__": "fluxCore.geometry.Rectangle"
+                        }
+                    ],
+                    "__type__": "eNuts.data.IntentAction"
+                }
+            ],
+            "__type__": "eNuts.data.Intent"
+        },
+        "000200000000": {
+            "description": "Go to MAIL",
+            "actions": [
+                null,
+                {
+                    "action": 5,
+                    "arguments": [
+                        {
+                            "x": 0.921875,
+                            "y": 0.03355704697986577,
+                            "width": 0.03515625,
+                            "height": 0.07550335570469799,
+                            "__type__": "fluxCore.geometry.Rectangle"
+                        }
+                    ],
+                    "__type__": "eNuts.data.IntentAction"
+                },
+                {
+                    "action": 5,
+                    "arguments": [
+                        {
+                            "x": 0.923828125,
+                            "y": 0.025167785234899327,
+                            "width": 0.0234375,
+                            "height": 0.050335570469798654,
+                            "__type__": "fluxCore.geometry.Rectangle"
+                        }
+                    ],
+                    "__type__": "eNuts.data.IntentAction"
+                },
+                {
+                    "action": 5,
+                    "arguments": [
+                        {
+                            "x": 0.05078125,
+                            "y": 0.025167785234899327,
+                            "width": 0.0234375,
+                            "height": 0.07130872483221476,
+                            "__type__": "fluxCore.geometry.Rectangle"
+                        }
+                    ],
+                    "__type__": "eNuts.data.IntentAction"
+                },
+                {
+                    "action": 5,
+                    "arguments": [
+                        {
+                            "x": 0.95703125,
+                            "y": 0.16359060402684564,
+                            "width": 0.03515625,
+                            "height": 0.07550335570469799,
+                            "__type__": "fluxCore.geometry.Rectangle"
+                        }
+                    ],
+                    "__type__": "eNuts.data.IntentAction"
+                }
+            ],
+            "__type__": "eNuts.data.Intent"
+        }
+    },
+    "__type__": "eNuts.data.GameInfo"
+}

@@ -1,0 +1,223 @@
+/* Material-inspired theme */
+
+QMainWindow {
+    background-color: #fafafa;
+}
+
+QFrame#BOTTOM_BAR {
+    background-color: #ffffff;
+    border-top: 2px solid #e0e0e0;
+}
+
+QFrame#SIDE_BAR {
+    background-color: #ffffff;
+    border-right: 2px solid #e0e0e0;
+}
+
+QPushButton {
+    background-color: #ffffff;
+    color: #212121;
+    border: 1px solid #dddddd;
+    padding: 6px 15px;
+    border-radius: 2px;
+    font-size: 12px;
+    font-family: "Roboto", "Segoe UI", "Arial", sans-serif;
+}
+
+QPushButton:hover {
+    background-color: #f5f5f5;
+    color: #212121;
+    border: 1px solid #bdbdbd;
+}
+
+QPushButton:pressed {
+    background-color: #e3f2fd;
+    border: 1px solid #90caf9;
+}
+
+QPushButton:checked {
+    background-color: #3f51b5;
+    color: #ffffff;
+    border: 1px solid #303f9f;
+    font-weight: bold;
+}
+
+QPushButton:checked:hover {
+    background-color: #303f9f;
+}
+
+QPushButton#BTN_CLOSE:pressed {
+    background-color: #f44336;
+    color: white;
+    border: 1px solid #d32f2f;
+}
+
+QPushButton#BTN_MENU {
+    background-color: #ffffff;
+    color: #3f51b5;
+    border: 1px solid #dddddd;
+    padding: 6px 15px;
+    border-radius: 2px;
+    font-size: 12px;
+    font-family: "Roboto", "Segoe UI", "Arial", sans-serif;
+    text-align: left;
+    padding-left: 10px;
+}
+
+QPushButton#BTN_MENU:hover {
+    background-color: #3f51b5;
+    color: white;
+    border: 1px solid #3f51b5;
+}
+
+QPushButton#BTN_MENU:pressed {
+    background-color: #f44336;
+    color: white;
+    border: 1px solid #d32f2f;
+}
+
+QPushButton#BTN_MENU:checked {
+    background-color: #3f51b5;
+    color: #ffffff;
+    border: 1px solid #303f9f;
+    font-weight: bold;
+}
+
+QDialog {
+    background-color: #fafafa;
+    color: #212121;
+}
+
+QDialog QPushButton {
+    min-width: 80px;
+}
+
+QDialog QPushButton#BTN_OK {
+    background-color: #3f51b5;
+    color: white;
+    border: 1px solid #3f51b5;
+}
+
+QDialog QPushButton#BTN_OK:hover {
+    background-color: #303f9f;
+}
+
+QDialog QPushButton#BTN_OK:pressed {
+    background-color: #283593;
+}
+
+QDialog QPushButton#BTN_CANCEL {
+    background-color: #ffffff;
+    color: #424242;
+    border: 1px solid #dddddd;
+}
+
+QDialog QPushButton#BTN_CANCEL:hover {
+    background-color: #eeeeee;
+    color: #212121;
+}
+
+QDialog QPushButton#BTN_CANCEL:pressed {
+    background-color: #e0e0e0;
+}
+
+QDialog QLabel {
+    color: #424242;
+    font-size: 12px;
+    padding: 0px 0px;
+    margin: 0px 0px 0px 0px;
+}
+
+QLabel[isTitle="true"] {
+    color: #303f9f;
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 8px;
+    padding-bottom: 2px;
+}
+
+QLabel[isHeader="true"] {
+    color: #7b1fa2;
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 8px;
+    padding-bottom: 2px;
+    qproperty-alignment: 'AlignCenter';
+    border: 1px solid #bdbdbd;
+}
+
+QDialog QLineEdit {
+    background-color: #ffffff;
+    color: #212121;
+    border: 1px solid #bdbdbd;
+    padding: 6px 8px;
+    border-radius: 2px;
+    selection-background-color: #3f51b5;
+}
+
+QDialog QLineEdit:focus {
+    border: 1px solid #3f51b5;
+}
+
+QDialog QLineEdit:hover {
+    border: 1px solid #757575;
+}
+
+QDialog QComboBox {
+    background-color: #ffffff;
+    color: #212121;
+    border: 1px solid #bdbdbd;
+    padding: 6px 8px;
+    border-radius: 2px;
+    min-width: 100px;
+}
+
+QDialog QComboBox:hover {
+    border: 1px solid #757575;
+}
+
+QDialog QComboBox:focus {
+    border: 1px solid #3f51b5;
+}
+
+QDialog QComboBox::drop-down {
+    border: none;
+    width: 20px;
+}
+
+QDialog QComboBox::down-arrow {
+    image: none;
+    width: 0px;
+    height: 0px;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid #616161;
+}
+
+QDialog QComboBox QAbstractItemView {
+    background-color: #ffffff;
+    color: #212121;
+    border: 1px solid #bdbdbd;
+    selection-background-color: #3f51b5;
+    selection-color: #ffffff;
+}
+
+QDialog QRadioButton {
+    color: #424242;
+    spacing: 8px;
+}
+
+QDialog QRadioButton:hover {
+    color: #303f9f;
+}
+
+QDialog QWidget#WD_MODE_SELECTION {
+    border: 1px solid #bdbdbd;
+    border-radius: 4px;
+    background-color: #ffffff;
+    margin: 0px 0px 4px 0px;
+}
+
+QDialog QWidget#WD_MODE_SELECTION QRadioButton {
+    padding: 2px 2px;
+}

@@ -1,0 +1,99 @@
+/* eNuts — dark theme */
+
+QMainWindow,
+QWidget {
+    background: #181818;
+    color: #d4d4d4;
+    font-family: "Segoe UI", "Arial", sans-serif;
+    font-size: 12px;
+}
+
+#SIDE_BAR {
+    background: #202020;
+    border-right: 1px solid #303030;
+}
+
+#BOTTOM_BAR {
+    background: #202020;
+    border-top: 1px solid #303030;
+}
+
+#SIDE_BAR QPushButton,
+#BOTTOM_BAR QPushButton {
+    background: transparent;
+    color: #b8b8b8;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    padding: 7px 10px;
+}
+
+#SIDE_BAR QPushButton {
+    text-align: left;
+}
+
+#BOTTOM_BAR QPushButton {
+    background: #292929;
+    border-color: #383838;
+    color: #c8c8c8;
+    padding: 5px 12px;
+    text-align: center;
+}
+
+#SIDE_BAR QPushButton:hover,
+#BOTTOM_BAR QPushButton:hover {
+    background: #333333;
+    color: #eeeeee;
+    border-color: #484848;
+}
+
+#SIDE_BAR QPushButton:pressed,
+#BOTTOM_BAR QPushButton:pressed {
+    background: #303030;
+}
+
+#SIDE_BAR QPushButton:checked {
+    background: #2d3945;
+    color: #ffffff;
+    border-color: #3d5368;
+}
+
+#SIDE_BAR QPushButton:checked:hover {
+    background: #344554;
+}
+
+#SIDE_BAR QPushButton:disabled,
+#BOTTOM_BAR QPushButton:disabled {
+    color: #666666;
+    background: transparent;
+    border-color: transparent;
+}
+
+#BOTTOM_BAR QPushButton:pressed {
+    background: #0078d4;
+    border-color: #0078d4;
+    color: #ffffff;
+}
+
+QPushButton#CONTEXT_BACK { font-weight: 600; }
+QPushButton#ADD_DEVICE { color: #75bdf5; }
+QPushButton#ADD_DEVICE:hover { background: #263746; color: #ffffff; }
+
+QListWidget { background: transparent; border: none; outline: none; padding: 4px 0; }
+QListWidget::item { color: #b8b8b8; padding: 7px 10px; border-radius: 4px; }
+QListWidget::item:hover { background: #2a2a2a; color: #eeeeee; }
+QListWidget::item:selected { background: #2d3945; color: #ffffff; }
+
+QLabel#PAGE_TITLE { color: #f0f0f0; font-size: 20px; font-weight: 600; }
+QLabel#WORKSPACE_DESCRIPTION { color: #999999; }
+QLabel#WORKSPACE_SECTION_TITLE { color: #d8d8d8; font-size: 14px; font-weight: 600; }
+
+QFrame#TRAINING_STAT_CARD,
+QFrame#TRAINING_DEVICE_CARD { background: #202020; border: 1px solid #303030; border-radius: 6px; }
+QFrame#TRAINING_STAT_CARD:hover,
+QFrame#TRAINING_DEVICE_CARD:hover { border-color: #3d5368; }
+
+QLabel#TRAINING_STAT_VALUE { color: #f0f0f0; font-size: 22px; font-weight: 600; }
+QLabel#TRAINING_STAT_LABEL { color: #888888; font-size: 10px; font-weight: 600; }
+QLabel#TRAINING_DEVICE_NAME { color: #eeeeee; font-size: 14px; font-weight: 600; }
+QLabel#TRAINING_DEVICE_KIND { color: #888888; }
+QLabel#TRAINING_DEVICE_STATUS { color: #75bdf5; font-size: 11px; }

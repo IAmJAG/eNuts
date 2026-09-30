@@ -1,0 +1,82 @@
+{
+"files.exclude": {
+        "**/__pycache__": true,
+        "**/.mypy_cache": false,
+        "**/*.egg-info": false,
+        "**/setup.py": false,
+        "**/.stubs": false,
+        "**/logs": true,
+        "**/_tests": true,
+        "**/.ruff_cache": true,
+        "readme.md": false,
+        "requirements.txt": false,
+        ".env": false,
+        ".gitignore": false,
+        ".fff": true,
+        ".ff": true,
+        ".f": true,        
+    },        
+    "terminal.integrated.env.windows": {
+        "PYTHONPATH": "${workspaceFolder}\\src;${workspaceFolder}"
+    },
+
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "editor.formatOnSave": false,
+        "editor.formatOnType": true,
+        "editor.formatOnPaste": true,
+        "editor.rulers": [
+            180
+        ],
+        "editor.codeActionsOnSave": {
+            "source.fixAll.ruff": "always",
+            "source.organizeImports": "always",
+        },
+    },
+    "python.analysis.stubPath": "./typings",
+    "python.analysis.useLibraryCodeForTypes": true,
+    "python.analysis.extraPaths": [
+        "./src/_modules",
+    ], // for intellisense
+
+    "python.languageServer": "Pylance",
+    
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportRedeclaration": "none",
+        "reportAssignmentType": "none",
+        "reportAttributeAccessIssue": "none",
+        "reportOptionalCall": "none",
+        "reportReturnType": "none",
+        "reportInvalidTypeVarUse": "none",
+        "reportOptionalMemberAccess": "none",
+        "reportCallIssue": "none",
+        "reportArgumentType": "none",
+        "reportOptionalSubscript": "none",
+        "reportWildcardImportFromLibrary": "none",
+        "typeCheckingMode": "off",
+        "reportMissingModuleSource": "none",
+        "reportInvalidTypeForm":"none"
+    },
+
+    "ruff.enable": true,
+    "ruff.organizeImports": true,
+    // "ruff.lineLength": 180, // disabled in lint.ignore
+    "ruff.lint.ignore": [
+        // "F401", // imported but unused
+        "F403", // unable to detect undefined names
+        "F405", // may be undefined, or defined from star imports
+        "F401", // imported but unused; consider removing, adding to `__all__`, or using a redundant alias        
+        "F811", // redefined-while-unused
+        "F821", // undefined-name"
+        "F841", // Variable not accessed       
+        "E402", // Module level import not at top of file
+        "E501", // Standard "Line length" violation
+        "E701", // multiple-statements-on-one-line-colon
+        "E712", // true-false-comparison        
+    ],
+
+    "workbench.colorTheme": "Dark+",
+    "workbench.externalBrowser": "chrome",
+    "python.defaultInterpreterPath": "..\\venv\\.REFLEX",
+
+}

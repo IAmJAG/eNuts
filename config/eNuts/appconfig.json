@@ -1,0 +1,11 @@
+{
+    "sections": {},
+    "title": "eNuts",
+    "company": "jAG",
+    "applicationId": "JAG-ENUTS",
+    "icon": "logo",
+    "style": "ironman",
+    "LDPath": "D:/LDPlayer/",
+    "assetFolder": null,
+    "__type__": "eNuts.configuration.eNutsConfiguration"
+}

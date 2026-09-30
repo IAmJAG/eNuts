@@ -1,0 +1,13 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "main",
+            "type": "debugpy",
+            "request": "launch",
+            "program": ".\\src\\main.py",
+            "args": ["--clean", "--module", "eNuts", "--app", "main"],
+            "console": "integratedTerminal",
+        }
+    ]
+}
