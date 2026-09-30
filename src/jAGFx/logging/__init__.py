@@ -1,5 +1,5 @@
 # ==================================================================================
-from .__logging import critical, debug, error, fatal, info, verbose, warning
+from .__logging import VERBOSE, critical, debug, error, fatal, info, verbose, warning
 from .__utilities import (
     addFileHandler,
     removeFileHandler,
@@ -13,6 +13,7 @@ __all__ = [
     "setNamespaceLevel",
     "setupLogging",
     "addFileHandler",
+    "VERBOSE"
     "verbose",
     "debug",
     "info",    

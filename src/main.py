@@ -7,8 +7,12 @@ from sys import argv
 import __monkeyPatch
 
 # ==================================================================================================
+from jAGFx.logging import VERBOSE
 from utilities import launchModule
 
+# ==================================================================================================
+LOG_LEVEL: int = VERBOSE
+# ==================================================================================================
 
 # ==================================================================================================
 def _program(module: str, app: str, clean: bool = False, *args, **kwargs):
@@ -28,8 +32,8 @@ def _program(module: str, app: str, clean: bool = False, *args, **kwargs):
 
 # ==================================================================================================
 def program(args: list = argv):
-    setupLogging("", DEBUG)
-    addFileHandler("reflex", DEBUG)
+    setupLogging("", LOG_LEVEL)
+    addFileHandler("eNuts", LOG_LEVEL)
     debug(f"Current module namespace: {__name__}")
     lArgs, lKWArgs = ProcessArguments(args)
     return _program(*lArgs, **lKWArgs)
