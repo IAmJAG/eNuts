@@ -12,7 +12,7 @@ from jAGQt.window import MainWindowBase
 
 # ==================================================================================
 from ...configuration import ApplicationInformation
-from ..widgets import EvolvingNeuralOrb
+from ..widgets import EvolvingNeuralBrain
 
 # ==================================================================================
 C_MORPH_METHODS: tuple[str, ...] = (
@@ -37,31 +37,28 @@ C_MORPH_METHODS: tuple[str, ...] = (
     "InitializeInfo"
 )
 class MainWindow(MainWindowBase, ApplicationInformation):
-    """Main window with EvolvingNeuralOrb as a background layer.
+    """Main window with EvolvingNeuralBrain as a background layer.
 
-    The orb is NOT a layout item. It fills the central widget behind content:
-    - layout empty  → orb shown + running
-    - content added → orb paused + hidden
-    - content cleared → orb shown + running again
+    The brain is NOT a layout item. It fills the central widget behind content:
+    - layout empty  → brain shown + running
+    - content added → brain paused + hidden
+    - content cleared → brain shown + running again
     """
 
     def __init__(self, *args, **kwargs) -> None:
-        self._orbWidget: EvolvingNeuralOrb | None = None
+        self._orbWidget: EvolvingNeuralBrain | None = None
         self._orbSyncing: bool = False
         self._hookedLayoutId: int | None = None
         super().__init__("ENUTS_WINDOW", frameless=False, *args, **kwargs)
 
-        # Track resize on the window itself and the central host
         self.installEventFilter(self)
         self._ensureOrbBackground()
         self._syncOrbWithLayout()
 
-    # ------------------------------------------------------------------ host surface
     def _hostWidget(self) -> QWidget:
         lCentral = self.centralWidget()
         return lCentral if lCentral is not None else self
 
-    # ------------------------------------------------------------------ layout helpers
     def _resolveLayout(self) -> QLayout | None:
         lLayout: QLayout | None = getattr(self, "_layout", None)
         if lLayout is None:
@@ -86,8 +83,7 @@ class MainWindow(MainWindowBase, ApplicationInformation):
     def _contentWidgetCount(self, layout: QLayout) -> int:
         return len(self._iterLayoutWidgets(layout))
 
-    # ------------------------------------------------------------------ orb background
-    def _ensureOrbBackground(self) -> EvolvingNeuralOrb:
+    def _ensureOrbBackground(self) -> EvolvingNeuralBrain:
         lHost = self._hostWidget()
         if self._orbWidget is not None:
             if self._orbWidget.parent() is not lHost:
@@ -95,8 +91,8 @@ class MainWindow(MainWindowBase, ApplicationInformation):
                 lHost.installEventFilter(self)
             return self._orbWidget
 
-        lOrb = EvolvingNeuralOrb(parent=lHost)
-        lOrb.setObjectName("EvolvingNeuralOrbBackground")
+        lOrb = EvolvingNeuralBrain(parent=lHost)
+        lOrb.setObjectName("EvolvingNeuralBrainBackground")
         lOrb.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
         lOrb.lower()
         lOrb.hide()
@@ -110,7 +106,6 @@ class MainWindow(MainWindowBase, ApplicationInformation):
         if self._orbWidget is None:
             return
         lHost = self._hostWidget()
-        # Use the host's full rect so maximize / normal resize both fill correctly
         lRect = lHost.rect()
         if lRect.width() < 1 or lRect.height() < 1:
             return
@@ -146,7 +141,6 @@ class MainWindow(MainWindowBase, ApplicationInformation):
         finally:
             self._orbSyncing = False
 
-    # ------------------------------------------------------------------ layout morph hooks
     def _wrapMorphMethod(self, layout: QLayout, methodName: str) -> None:
         lOriginal: Callable | None = getattr(layout, methodName, None)
         if lOriginal is None or not callable(lOriginal):
@@ -177,7 +171,6 @@ class MainWindow(MainWindowBase, ApplicationInformation):
         layout._eNutsMorphHooked = True  # type: ignore[attr-defined]
         self._hookedLayoutId = lLayoutId
 
-    # ------------------------------------------------------------------ events
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:
         if self._orbWidget is not None:
             lType = event.type()
@@ -189,7 +182,6 @@ class MainWindow(MainWindowBase, ApplicationInformation):
                 if watched is self or watched is self._hostWidget():
                     self._fitOrbToHost()
             elif lType == QEvent.Type.WindowStateChange and watched is self:
-                # Maximize / restore / fullscreen
                 self._fitOrbToHost()
         return super().eventFilter(watched, event)
 
@@ -208,7 +200,6 @@ class MainWindow(MainWindowBase, ApplicationInformation):
         self._syncOrbWithLayout()
         self._fitOrbToHost()
 
-    # ------------------------------------------------------------------ Layout property
     @property
     def Layout(self) -> QBoxLayout:
         lLayout = self._resolveLayout()
