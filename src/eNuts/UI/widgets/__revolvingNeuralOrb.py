@@ -5,7 +5,7 @@ from math import cos, pi, sin
 from typing import Optional
 
 # ==================================================================================
-from PySide6.QtCore import QTimer, Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from PySide6.QtWidgets import QWidget
