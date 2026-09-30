@@ -1,0 +1,16 @@
+# ==================================================================================
+from typing import Protocol, runtime_checkable
+
+
+# ==================================================================================
+@runtime_checkable
+class iENUTSConfiguration[T: iENUTSConfiguration](Protocol): 
+    @property
+    def LDPath(self): ...
+    @property
+    def styleSheet(self): ...
+    @property
+    def assetFolder(self): ...
+
+    def save(self, path=None) -> T: ...
+    def load(self, path=None) -> T: ...

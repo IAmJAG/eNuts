@@ -37,7 +37,7 @@ DEF_FILE_FORMATTER: Dict[str, Any] = {
     "class": DefaultFormatter,
     "kwargs": {
         "style": "{",
-        "fmt": "[{asctime}][{levelname:<8}] {message}",
+        "fmt": "[{asctime}][{levelname:<8}][{caller}] {message}",
         "datefmt": "%Y%m%d",
     },
 },
@@ -56,6 +56,7 @@ C_LOG_COLORS = {
     "WARNING": "yellow",
     "ERROR": "red",
     "CRITICAL": "purple",
+    "VERBOSE": "light_green",
 }
 C_SECONDARY_COLORS = {
     "message": {
@@ -64,14 +65,15 @@ C_SECONDARY_COLORS = {
         "WARNING": "yellow",
         "ERROR": "red",
         "CRITICAL": "purple",
-    }    
+        "VERBOSE": "light_green",
+    }
 }
 
 G_LOG_QUEUE: queue.Queue | None = None
 G_LOG_LISTENER: QueueListener | None = None
 G_ACTIVE_HANDLERS: List[colorlog.StreamHandler] = []
 G_NAMESPACE_LEVELS: Dict[str, int] = {}
-G_DEFAULT_LEVEL = INFO
+G_DEFAULT_LEVEL = 5
 # ==================================================================================
 # endregion
 
@@ -96,8 +98,10 @@ def _getConsoleLogger(name: str) -> colorlog.StreamHandler:
         log_colors=C_LOG_COLORS,
         secondary_log_colors=C_SECONDARY_COLORS,
     )
+    filter: NamespaceFilter = NamespaceFilter()
+    NamespaceFilter.setNSLogLevel("NOT.MINE", G_DEFAULT_LEVEL)
     lConsoleHandler.setFormatter(lFormatter)
-    lConsoleHandler.addFilter(NamespaceFilter())
+    lConsoleHandler.addFilter(filter)
     lConsoleHandler.propagate = True
     return lConsoleHandler
 
