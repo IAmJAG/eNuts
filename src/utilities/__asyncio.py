@@ -19,7 +19,9 @@ def getRunningLoop() -> AbstractEventLoop:
 # ==================================================================================================
 def getEventLoop() -> AbstractEventLoop:
     try:
-        return get_event_loop()
+        loop: AbstractEventLoop = get_event_loop()
+        if loop is None: raise Exception("No event loop")
+        return loop
 
     except RuntimeError:
         return None
