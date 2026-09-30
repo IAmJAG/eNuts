@@ -1,9 +1,9 @@
 # ==================================================================================================
 # src/eNuts/apps/main.py
 # ==================================================================================================
-from asyncio import FIRST_COMPLETED, CancelledError, Event, create_task, set_event_loop
+from asyncio import CancelledError, Event, set_event_loop
 from ctypes import windll
-from sys import argv, platform
+from sys import platform
 
 # ==================================================================================================
 from PySide6.QtWidgets import QApplication
@@ -22,19 +22,25 @@ from ..UI.windows import MainWindow
 async def _training(app: QApplication, *args, **kwargs):
     cfg: iENUTSConfiguration | iApplicationConfiguration = eNutsConfiguration()
 
-    shutdownEvent: Event = Event()
-    shutdownTask = create_task(shutdownEvent.wait(), name="ApplicationShutdown")
-    app.setQuitOnLastWindowClosed(False)
+    lShutdownEvent: Event = Event()
+
+    def _onAboutToQuit() -> None:
+        lShutdownEvent.set()
+
+    app.aboutToQuit.connect(_onAboutToQuit)
+    app.setQuitOnLastWindowClosed(True)
 
     if platform == "win32":
         windll.shell32.SetCurrentProcessExplicitAppUserModelID(cfg.applicationId)
 
     try:
-        win: MainWindow = MainWindow(*args, **kwargs)
+        lWin: MainWindow = MainWindow(*args, **kwargs)
         app.setStyleSheet(cfg.styleSheet)
-        win.show()
+        lWin.show()
 
-        await wait((shutdownTask,), return_when=FIRST_COMPLETED)
+        # Keep the event loop alive until the last window closes / aboutToQuit.
+        # Note: builtins.wait is time.sleep (see __monkeyPatch); do not use it here.
+        await lShutdownEvent.wait()
 
     except CancelledError:
         raise
@@ -43,16 +49,10 @@ async def _training(app: QApplication, *args, **kwargs):
         error(f"Unhandled exception: {type(ex).__name__}: {ex}")
 
     finally:
-        debug("entering finally")        
-        if not shutdownTask.done():
-            shutdownTask.cancel()
-            try:
-                await shutdownTask
-                
-            except CancelledError: pass
-
+        debug("entering finally")
+        if not lShutdownEvent.is_set():
+            lShutdownEvent.set()
         debug("leaving finally")
-
 
     app.quit()
 
@@ -64,8 +64,8 @@ def program(*args):
 
     set_event_loop(loop)
     with loop:
-        loop.run_until_complete(_training(app))    
-    
+        loop.run_until_complete(_training(app))
+
 # ==================================================================================================
 if __name__ == "__main__":
     program()
