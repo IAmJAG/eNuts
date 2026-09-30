@@ -6,7 +6,7 @@
             "type": "debugpy",
             "request": "launch",
             "program": ".\\src\\main.py",
-            "args": ["--clean", "--module", "eNuts", "--app", "main"],
+            "args": ["--clean", "--module", "eNuts", "--app", "apps.main"],
             "console": "integratedTerminal",
         }
     ]
