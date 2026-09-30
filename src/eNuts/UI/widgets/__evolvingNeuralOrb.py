@@ -11,6 +11,7 @@ from typing import Optional
 # ==================================================================================
 from PySide6.QtCore import QThread, QTimer, Qt, Signal
 from PySide6.QtGui import QImage, QSurfaceFormat
+from PySide6.QtOpenGL import QOpenGLTexture
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from PySide6.QtWidgets import QWidget
 
@@ -19,14 +20,12 @@ try:
     from OpenGL.GL import (
         GL_ARRAY_BUFFER,
         GL_BLEND,
-        GL_CLAMP_TO_EDGE,
         GL_COLOR_ARRAY,
         GL_COLOR_BUFFER_BIT,
         GL_DEPTH_BUFFER_BIT,
         GL_DEPTH_TEST,
         GL_DYNAMIC_DRAW,
         GL_FLOAT,
-        GL_LINEAR,
         GL_LINES,
         GL_LINE_SMOOTH,
         GL_MODELVIEW,
@@ -35,46 +34,38 @@ try:
         GL_POINTS,
         GL_POINT_SMOOTH,
         GL_PROJECTION,
-        GL_QUADS,
-        GL_RGBA,
+        GL_QUAD_STRIP,
         GL_SMOOTH,
         GL_SRC_ALPHA,
         GL_STATIC_DRAW,
         GL_TEXTURE_2D,
-        GL_TEXTURE_COORD_ARRAY,
-        GL_TEXTURE_MAG_FILTER,
-        GL_TEXTURE_MIN_FILTER,
-        GL_TEXTURE_WRAP_S,
-        GL_TEXTURE_WRAP_T,
-        GL_TRIANGLES,
-        GL_UNSIGNED_BYTE,
+        GL_TRIANGLE_FAN,
         GL_VERTEX_ARRAY,
+        glBegin,
         glBindBuffer,
-        glBindTexture,
         glBlendFunc,
         glBufferData,
         glClear,
         glClearColor,
+        glColor4f,
         glColorPointer,
         glDeleteBuffers,
-        glDeleteTextures,
         glDisable,
         glDisableClientState,
         glDrawArrays,
         glEnable,
         glEnableClientState,
+        glEnd,
         glGenBuffers,
-        glGenTextures,
         glLineWidth,
         glLoadIdentity,
         glMatrixMode,
         glPointSize,
         glRotatef,
         glShadeModel,
-        glTexCoordPointer,
-        glTexImage2D,
-        glTexParameteri,
+        glTexCoord2f,
         glTranslatef,
+        glVertex3f,
         glVertexPointer,
         glViewport,
     )
@@ -88,17 +79,26 @@ except ImportError as ex:
 
 # ==================================================================================
 def _resolveLogoPath() -> Optional[Path]:
+    """Locate assets/logo.png from common layout positions."""
     lHere = Path(__file__).resolve()
+    # widgets -> UI -> eNuts -> src -> repo
+    lRepo = lHere.parents[4] if len(lHere.parents) > 4 else lHere.parents[-1]
+    lSrc = lHere.parents[3] if len(lHere.parents) > 3 else lHere.parents[-1]
+
     lCandidates = [
-        lHere.parents[3] / "assets" / "logo.png",          # repo/assets (from src/...)
-        lHere.parents[3] / "assets" / "icons" / "logo.png",
-        lHere.parents[4] / "assets" / "logo.png",
-        Path("assets") / "logo.png",
-        Path("assets") / "icons" / "logo.png",
+        lRepo / "assets" / "logo.png",
+        lRepo / "assets" / "icons" / "logo.png",
+        lSrc.parent / "assets" / "logo.png",
+        Path.cwd() / "assets" / "logo.png",
+        Path.cwd() / "assets" / "icons" / "logo.png",
+        Path.cwd() / "logo.png",
     ]
     for lPath in lCandidates:
-        if lPath.is_file():
-            return lPath
+        try:
+            if lPath.is_file():
+                return lPath
+        except OSError:
+            continue
     return None
 
 
@@ -128,7 +128,7 @@ class _MeshBakeWorker(QThread):
     def run(self) -> None:
         lLatN = self._latitudeBands
         lLonN = self._longitudeBands
-        lRadius = 1.0
+        lRadius = 1.005  # slightly outside textured sphere
 
         lLinePos = array("f")
         lLineLon = array("f")
@@ -137,6 +137,8 @@ class _MeshBakeWorker(QThread):
         lNodeLat = array("f")
 
         for lLat in range(lLatN):
+            if self.isInterruptionRequested():
+                return
             lTheta1 = lLat * pi / lLatN
             lTheta2 = (lLat + 1) * pi / lLatN
             lLatT = lLat / max(lLatN - 1, 1)
@@ -151,7 +153,6 @@ class _MeshBakeWorker(QThread):
                 lV3 = _spherePoint(lRadius, lTheta2, lPhi1)
                 lV4 = _spherePoint(lRadius, lTheta2, lPhi2)
 
-                # 4 edges as line segments (8 vertices)
                 for lA, lB in ((lV1, lV2), (lV1, lV3), (lV2, lV4), (lV3, lV4)):
                     lLinePos.extend(lA)
                     lLinePos.extend(lB)
@@ -162,26 +163,26 @@ class _MeshBakeWorker(QThread):
                 lNodeLon.append(lLonT)
                 lNodeLat.append(lLatT)
 
-        # Textured-sphere fallback geometry is not baked here.
-        lPayload = {
-            "linePos": lLinePos,
-            "lineLon": lLineLon,
-            "nodePos": lNodePos,
-            "nodeLon": lNodeLon,
-            "nodeLat": lNodeLat,
-            "lineCount": len(lLinePos) // 3,
-            "nodeCount": len(lNodePos) // 3,
-        }
-        self.Baked.emit(lPayload)
+        self.Baked.emit(
+            {
+                "linePos": lLinePos,
+                "lineLon": lLineLon,
+                "nodePos": lNodePos,
+                "nodeLon": lNodeLon,
+                "nodeLat": lNodeLat,
+                "lineCount": len(lLinePos) // 3,
+                "nodeCount": len(lNodePos) // 3,
+            }
+        )
 
 
 # ==================================================================================
 class EvolvingNeuralOrb(QOpenGLWidget):
-    """Logo texture sphere first; when mesh VBO is ready, switch to cached mesh.
+    """Logo texture sphere first; mesh VBO overlays when bake completes.
 
-    Phase 1 — texture: spin assets/logo.png on a UV sphere (smooth, logo-accurate).
+    Phase 1 — texture: spin logo.png (always visible if file found).
     Phase 2 — bake: background thread builds line/node positions.
-    Phase 3 — mesh: upload VBOs and take over rendering with evolving colors.
+    Phase 3 — mesh: VBO overlay on top of the textured sphere.
     """
 
     def __init__(
@@ -202,12 +203,11 @@ class EvolvingNeuralOrb(QOpenGLWidget):
         self._evolutionPhase: float = 0.0
         self._evolutionSpeed: float = evolutionSpeed
 
-        self._renderMode: str = "texture"  # "texture" | "mesh"
         self._logoPath: Optional[Path] = (
             Path(logoPath) if logoPath is not None else _resolveLogoPath()
         )
 
-        self._texId: int = 0
+        self._texture: Optional[QOpenGLTexture] = None
         self._texReady: bool = False
 
         self._lineVbo: int = 0
@@ -229,10 +229,12 @@ class EvolvingNeuralOrb(QOpenGLWidget):
         self._timer.start(revolutionMs)
 
         lFmt = QSurfaceFormat()
-        lFmt.setSamples(8)
+        lFmt.setSamples(4)
         lFmt.setAlphaBufferSize(8)
+        lFmt.setDepthBufferSize(24)
         self.setFormat(lFmt)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setMinimumSize(200, 200)
 
     # ------------------------------------------------------------------ public API
     def SetRevolutionSpeed(self, degreesPerTick: float) -> None:
@@ -254,7 +256,15 @@ class EvolvingNeuralOrb(QOpenGLWidget):
 
     @property
     def RenderMode(self) -> str:
-        return self._renderMode
+        if self._meshReady:
+            return "mesh"
+        if self._texReady:
+            return "texture"
+        return "fallback"
+
+    @property
+    def LogoPath(self) -> Optional[Path]:
+        return self._logoPath
 
     # ----------------------------------------------------------------- private slots
     def _onTick(self) -> None:
@@ -263,7 +273,6 @@ class EvolvingNeuralOrb(QOpenGLWidget):
         self.update()
 
     def _onMeshBaked(self, payload: dict) -> None:
-        """Receive CPU bake; upload on the GL thread at next paint."""
         self._pendingBake = payload
         self.update()
 
@@ -281,124 +290,115 @@ class EvolvingNeuralOrb(QOpenGLWidget):
         self._startMeshBake()
 
     def resizeGL(self, w: int, h: int) -> None:
-        glViewport(0, 0, w, max(h, 1))
+        glViewport(0, 0, max(w, 1), max(h, 1))
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        gluPerspective(40.0, w / max(h, 1), 0.1, 100.0)
+        gluPerspective(40.0, max(w, 1) / max(h, 1), 0.1, 100.0)
         glMatrixMode(GL_MODELVIEW)
 
     def paintGL(self) -> None:
         if self._pendingBake is not None:
-            self._uploadMeshVbos(self._pendingBake)
+            try:
+                self._uploadMeshVbos(self._pendingBake)
+                self._meshReady = True
+            except Exception:
+                self._meshReady = False
             self._pendingBake = None
-            self._meshReady = True
-            self._renderMode = "mesh"
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glLoadIdentity()
-        glTranslatef(0.0, 0.0, -3.1)
+        glTranslatef(0.0, 0.0, -3.2)
         glRotatef(self._angleX, 1.0, 0.0, 0.0)
         glRotatef(self._angleY, 0.0, 1.0, 0.0)
 
-        if self._renderMode == "mesh" and self._meshReady:
+        # Always draw a visible base (texture or colored fallback)
+        self._drawTexturedSphere()
+
+        # Overlay evolving mesh when VBOs are ready
+        if self._meshReady:
             self._drawMeshVbo()
-        else:
-            self._drawTexturedSphere()
 
-    def closeEvent(self, event) -> None:
-        self._shutdownGl()
-        super().closeEvent(event)
-
-    # ---------------------------------------------------------------- texture phase
+    # ---------------------------------------------------------------- texture
     def _loadLogoTexture(self) -> None:
+        self._texReady = False
+        if self._texture is not None:
+            self._texture.destroy()
+            self._texture = None
+
         if self._logoPath is None or not self._logoPath.is_file():
-            self._texReady = False
             return
 
         lImage = QImage(str(self._logoPath))
         if lImage.isNull():
-            self._texReady = False
             return
 
         lImage = lImage.convertToFormat(QImage.Format.Format_RGBA8888)
-        lImage = lImage.mirrored(False, True)  # OpenGL origin
+        # OpenGL expects bottom-left origin
+        lImage = lImage.flipped(Qt.Orientation.Vertical)
 
-        self._texId = int(glGenTextures(1))
-        glBindTexture(GL_TEXTURE_2D, self._texId)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+        try:
+            lTex = QOpenGLTexture(QOpenGLTexture.Target.Target2D)
+            lTex.setMinificationFilter(QOpenGLTexture.Filter.Linear)
+            lTex.setMagnificationFilter(QOpenGLTexture.Filter.Linear)
+            lTex.setWrapMode(QOpenGLTexture.WrapMode.ClampToEdge)
+            lTex.setData(lImage)
+            if not lTex.isCreated():
+                return
+            self._texture = lTex
+            self._texReady = True
+        except Exception:
+            self._texture = None
+            self._texReady = False
 
-        lPtr = lImage.bits()
-        lPtr.setsize(lImage.sizeInBytes())
-        glTexImage2D(
-            GL_TEXTURE_2D,
-            0,
-            GL_RGBA,
-            lImage.width(),
-            lImage.height(),
-            0,
-            GL_RGBA,
-            GL_UNSIGNED_BYTE,
-            bytes(lPtr),
-        )
-        glBindTexture(GL_TEXTURE_2D, 0)
-        self._texReady = True
+    def _drawTexturedSphere(self, radius: float = 1.0, bands: int = 40) -> None:
+        if self._texReady and self._texture is not None:
+            glEnable(GL_TEXTURE_2D)
+            self._texture.bind()
+            lPulse = 0.9 + 0.1 * sin(self._evolutionPhase)
+            glColor4f(lPulse, lPulse, lPulse, 1.0)
 
-    def _drawTexturedSphere(self, radius: float = 1.0, bands: int = 48) -> None:
-        """Smooth logo sphere while mesh is baking."""
-        if not self._texReady:
-            # Flat fallback disc tint
-            glColor4f = __import__("OpenGL.GL", fromlist=["glColor4f"]).glColor4f
-            glBegin = __import__("OpenGL.GL", fromlist=["glBegin"]).glBegin
-            glEnd = __import__("OpenGL.GL", fromlist=["glEnd"]).glEnd
-            glVertex3f = __import__("OpenGL.GL", fromlist=["glVertex3f"]).glVertex3f
-            from OpenGL.GL import GL_TRIANGLE_FAN
+            for lLat in range(bands):
+                lTheta1 = lLat * pi / bands
+                lTheta2 = (lLat + 1) * pi / bands
+                lV1 = lLat / bands
+                lV2 = (lLat + 1) / bands
+                glBegin(GL_QUAD_STRIP)
+                for lLon in range(bands + 1):
+                    lPhi = lLon * 2.0 * pi / bands
+                    lU = 1.0 - (lLon / bands)  # mirror U so logo faces camera better
+                    lP1 = _spherePoint(radius, lTheta1, lPhi)
+                    lP2 = _spherePoint(radius, lTheta2, lPhi)
+                    glTexCoord2f(lU, lV1)
+                    glVertex3f(*lP1)
+                    glTexCoord2f(lU, lV2)
+                    glVertex3f(*lP2)
+                glEnd()
 
-            glColor4f(0.3, 0.1, 0.5, 0.9)
-            glBegin(GL_TRIANGLE_FAN)
-            glVertex3f(0.0, 0.0, 0.0)
-            for lI in range(33):
-                lA = lI * 2.0 * pi / 32
-                glVertex3f(cos(lA) * radius, sin(lA) * radius, 0.0)
-            glEnd()
+            self._texture.release()
+            glDisable(GL_TEXTURE_2D)
             return
 
-        glEnable(GL_TEXTURE_2D)
-        glBindTexture(GL_TEXTURE_2D, self._texId)
-
-        # Mild evolution tint over the logo
-        lPulse = 0.85 + 0.15 * sin(self._evolutionPhase)
-        from OpenGL.GL import glColor4f, glBegin, glEnd, glTexCoord2f, glVertex3f, GL_QUAD_STRIP
-
-        glColor4f(lPulse, lPulse, lPulse, 1.0)
-
-        for lLat in range(bands):
-            lTheta1 = lLat * pi / bands
-            lTheta2 = (lLat + 1) * pi / bands
-            lV1 = lLat / bands
-            lV2 = (lLat + 1) / bands
+        # Fallback: visible purple→cyan sphere so we never stay pure black
+        for lLat in range(24):
+            lTheta1 = lLat * pi / 24
+            lTheta2 = (lLat + 1) * pi / 24
             glBegin(GL_QUAD_STRIP)
-            for lLon in range(bands + 1):
-                lPhi = lLon * 2.0 * pi / bands
-                lU = lLon / bands
-                lP1 = _spherePoint(radius, lTheta1, lPhi)
-                lP2 = _spherePoint(radius, lTheta2, lPhi)
-                glTexCoord2f(lU, lV1)
-                glVertex3f(*lP1)
-                glTexCoord2f(lU, lV2)
-                glVertex3f(*lP2)
+            for lLon in range(25):
+                lPhi = lLon * 2.0 * pi / 24
+                lT = lLon / 24
+                lR = 0.75 * (1.0 - lT) + 0.05 * lT
+                lG = 0.20 * (1.0 - lT) + 0.90 * lT
+                lB = 0.95
+                glColor4f(lR, lG, lB, 0.95)
+                glVertex3f(*_spherePoint(radius, lTheta1, lPhi))
+                glVertex3f(*_spherePoint(radius, lTheta2, lPhi))
             glEnd()
-
-        glBindTexture(GL_TEXTURE_2D, 0)
-        glDisable(GL_TEXTURE_2D)
 
     # ---------------------------------------------------------------- mesh bake / VBO
     def _startMeshBake(self) -> None:
         if self._worker is not None and self._worker.isRunning():
             return
-        self._worker = _MeshBakeWorker(latitudeBands=18, longitudeBands=32, parent=self)
+        self._worker = _MeshBakeWorker(latitudeBands=16, longitudeBands=28, parent=self)
         self._worker.Baked.connect(self._onMeshBaked)
         self._worker.start()
 
@@ -406,30 +406,34 @@ class EvolvingNeuralOrb(QOpenGLWidget):
         self._lineLon = payload["lineLon"]
         self._nodeLon = payload["nodeLon"]
         self._nodeLat = payload["nodeLat"]
-        self._lineCount = payload["lineCount"]
-        self._nodeCount = payload["nodeCount"]
+        self._lineCount = int(payload["lineCount"])
+        self._nodeCount = int(payload["nodeCount"])
 
         lLinePos = payload["linePos"]
         lNodePos = payload["nodePos"]
 
-        if self._lineVbo:
-            glDeleteBuffers(1, [self._lineVbo])
-        if self._nodeVbo:
-            glDeleteBuffers(1, [self._nodeVbo])
-        if self._lineColorVbo:
-            glDeleteBuffers(1, [self._lineColorVbo])
-        if self._nodeColorVbo:
-            glDeleteBuffers(1, [self._nodeColorVbo])
+        for lAttr in ("_lineVbo", "_nodeVbo", "_lineColorVbo", "_nodeColorVbo"):
+            lId = getattr(self, lAttr)
+            if lId:
+                glDeleteBuffers(1, [lId])
+                setattr(self, lAttr, 0)
 
         self._lineVbo = int(glGenBuffers(1))
         glBindBuffer(GL_ARRAY_BUFFER, self._lineVbo)
-        glBufferData(GL_ARRAY_BUFFER, lLinePos.tobytes(), GL_STATIC_DRAW)
+        glBufferData(
+            GL_ARRAY_BUFFER,
+            memoryview(lLinePos).tobytes() if hasattr(lLinePos, "tobytes") else bytes(lLinePos),
+            GL_STATIC_DRAW,
+        )
 
         self._nodeVbo = int(glGenBuffers(1))
         glBindBuffer(GL_ARRAY_BUFFER, self._nodeVbo)
-        glBufferData(GL_ARRAY_BUFFER, lNodePos.tobytes(), GL_STATIC_DRAW)
+        glBufferData(
+            GL_ARRAY_BUFFER,
+            memoryview(lNodePos).tobytes() if hasattr(lNodePos, "tobytes") else bytes(lNodePos),
+            GL_STATIC_DRAW,
+        )
 
-        # Color buffers — dynamic, filled each frame from evolution phase
         self._lineColorVbo = int(glGenBuffers(1))
         self._nodeColorVbo = int(glGenBuffers(1))
         glBindBuffer(GL_ARRAY_BUFFER, 0)
@@ -445,12 +449,14 @@ class EvolvingNeuralOrb(QOpenGLWidget):
             lG = 0.20 * (1.0 - lShift) + 0.95 * lShift
             lB = 0.98 * (1.0 - lShift) + 1.00 * lShift
             lWave = 0.55 + 0.45 * sin(lPhase + lLonT * 2.5 * pi + lLatT * 1.5 * pi)
-            lA = 0.30 + 0.55 * lWave
+            lA = 0.45 + 0.50 * lWave
             lColors.extend((lR, lG, lB, lA))
         return lColors.tobytes()
 
     def _drawMeshVbo(self) -> None:
-        # --- lines ---
+        if self._lineCount <= 0 or self._lineVbo == 0:
+            return
+
         lLineColors = self._fillColors(self._lineLon, None, self._lineCount)
         glBindBuffer(GL_ARRAY_BUFFER, self._lineColorVbo)
         glBufferData(GL_ARRAY_BUFFER, lLineColors, GL_DYNAMIC_DRAW)
@@ -463,40 +469,41 @@ class EvolvingNeuralOrb(QOpenGLWidget):
         glBindBuffer(GL_ARRAY_BUFFER, self._lineColorVbo)
         glColorPointer(4, GL_FLOAT, 0, None)
 
-        glLineWidth(1.25)
+        glLineWidth(1.4)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE)
         glDrawArrays(GL_LINES, 0, self._lineCount)
 
-        # --- nodes ---
-        lNodeColors = self._fillColors(self._nodeLon, self._nodeLat, self._nodeCount)
-        glBindBuffer(GL_ARRAY_BUFFER, self._nodeColorVbo)
-        glBufferData(GL_ARRAY_BUFFER, lNodeColors, GL_DYNAMIC_DRAW)
+        if self._nodeCount > 0 and self._nodeVbo:
+            lNodeColors = self._fillColors(self._nodeLon, self._nodeLat, self._nodeCount)
+            glBindBuffer(GL_ARRAY_BUFFER, self._nodeColorVbo)
+            glBufferData(GL_ARRAY_BUFFER, lNodeColors, GL_DYNAMIC_DRAW)
 
-        glBindBuffer(GL_ARRAY_BUFFER, self._nodeVbo)
-        glVertexPointer(3, GL_FLOAT, 0, None)
-        glBindBuffer(GL_ARRAY_BUFFER, self._nodeColorVbo)
-        glColorPointer(4, GL_FLOAT, 0, None)
+            glBindBuffer(GL_ARRAY_BUFFER, self._nodeVbo)
+            glVertexPointer(3, GL_FLOAT, 0, None)
+            glBindBuffer(GL_ARRAY_BUFFER, self._nodeColorVbo)
+            glColorPointer(4, GL_FLOAT, 0, None)
 
-        glPointSize(3.5)
-        glDrawArrays(GL_POINTS, 0, self._nodeCount)
+            glPointSize(3.8)
+            glDrawArrays(GL_POINTS, 0, self._nodeCount)
 
         glDisableClientState(GL_COLOR_ARRAY)
         glDisableClientState(GL_VERTEX_ARRAY)
         glBindBuffer(GL_ARRAY_BUFFER, 0)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
-    def _shutdownGl(self) -> None:
+    def closeEvent(self, event) -> None:
         if self._worker is not None and self._worker.isRunning():
             self._worker.requestInterruption()
-            self._worker.wait(500)
+            self._worker.wait(400)
 
         self.makeCurrent()
-        if self._texId:
-            glDeleteTextures([self._texId])
-            self._texId = 0
+        if self._texture is not None:
+            self._texture.destroy()
+            self._texture = None
         for lAttr in ("_lineVbo", "_nodeVbo", "_lineColorVbo", "_nodeColorVbo"):
             lId = getattr(self, lAttr, 0)
             if lId:
                 glDeleteBuffers(1, [lId])
                 setattr(self, lAttr, 0)
         self.doneCurrent()
+        super().closeEvent(event)
