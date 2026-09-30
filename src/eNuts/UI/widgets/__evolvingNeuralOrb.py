@@ -183,7 +183,7 @@ class _MeshBakeWorker(QThread):
 
 # ==================================================================================
 class EvolvingNeuralOrb(QOpenGLWidget):
-    """3D eNuts logo orb — designed to sit as a window background layer."""
+    """3D eNuts logo orb — smaller sphere above the base wordmark."""
 
     def __init__(
         self,
@@ -335,7 +335,7 @@ class EvolvingNeuralOrb(QOpenGLWidget):
         glViewport(0, 0, max(w, 1), max(h, 1))
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        gluPerspective(40.0, max(w, 1) / max(h, 1), 0.1, 100.0)
+        gluPerspective(36.0, max(w, 1) / max(h, 1), 0.1, 100.0)
         glMatrixMode(GL_MODELVIEW)
 
     def paintGL(self) -> None:
@@ -349,7 +349,8 @@ class EvolvingNeuralOrb(QOpenGLWidget):
         self._applyClearColor()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glLoadIdentity()
-        glTranslatef(0.0, 0.05, -3.15)
+        # Smaller orb, shifted up so the wordmark sits cleanly underneath
+        glTranslatef(0.0, 0.42, -4.35)
         glRotatef(self._angleX, 1.0, 0.0, 0.0)
         glRotatef(self._angleY, 0.0, 1.0, 0.0)
         if self._meshReady:
@@ -357,6 +358,7 @@ class EvolvingNeuralOrb(QOpenGLWidget):
             self._drawMeshVbo()
         else:
             self._drawPreviewSphere()
+        # Wordmark at the base — clear of the smaller, higher orb
         self._drawENutsLabel()
 
     def _drawPreviewSphere(self, radius: float = 1.0, bands: int = 28) -> None:
@@ -526,29 +528,37 @@ class EvolvingNeuralOrb(QOpenGLWidget):
         lPainter.setRenderHint(QPainter.RenderHint.Antialiasing)
         lPainter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
         lPainter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
+
         lW, lH = self.width(), self.height()
         if lW < 8 or lH < 8:
             lPainter.end()
             return
+
         lText = "eNuts"
-        lPixel = max(18, int(min(lW, lH) * 0.15))
+        # Smaller type anchored at the base of the widget
+        lPixel = max(14, int(min(lW, lH) * 0.075))
         lFont = QFont("Segoe UI", lPixel, QFont.Weight.Bold)
         lFont.setStyleStrategy(QFont.StyleStrategy.PreferAntialias)
         lPainter.setFont(lFont)
+
         lMetrics = lPainter.fontMetrics()
         lTextW = lMetrics.horizontalAdvance(lText)
         lTextH = lMetrics.height()
         lX = (lW - lTextW) / 2.0
-        lY = lH * 0.70 + lTextH * 0.28
+        # Baseline near the bottom edge — clear of the raised orb
+        lY = lH - max(10, int(lH * 0.035))
+
         lPhase = self._evolutionPhase
         lT = 0.5 + 0.5 * sin(lPhase)
         lT2 = 0.5 + 0.5 * sin(lPhase + 1.7)
         lC0 = QColor(int(170 + 60 * lT), int(140 + 40 * (1 - lT)), int(210 + 30 * lT))
         lC1 = QColor(int(100 + 80 * (1 - lT2)), int(160 + 70 * lT2), int(230))
         lC2 = QColor(int(60 + 40 * (1 - lT)), int(200 + 40 * lT), int(240))
+
         for lGlow, lAlpha in ((8, 30), (4, 55)):
             lPainter.setPen(QPen(QColor(lC1.red(), lC1.green(), lC1.blue(), lAlpha), lGlow))
             lPainter.drawText(int(lX), int(lY), lText)
+
         lGrad = QLinearGradient(lX, lY - lTextH, lX + lTextW, lY)
         lGrad.setColorAt(0.0, lC0)
         lGrad.setColorAt(0.45, QColor(230, 235, 245))
