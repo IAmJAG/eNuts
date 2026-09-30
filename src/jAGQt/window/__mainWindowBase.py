@@ -7,12 +7,10 @@ from typing import Optional
 # ==================================================================================
 from PySide6.QtCore import (
     QEasingCurve,
-    QPoint,
     QPropertyAnimation,
     QRect,
     QSettings,
     QSize,
-    Qt,
 )
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QGraphicsOpacityEffect
@@ -44,10 +42,9 @@ class MainWindowBase(WindowBase):
         self,
         name: str = None,
         frameless: bool = False,
-        *,
+        *args,
         showAnimation: ShowAnimation | str = ShowAnimation.Popup,
         showAnimationDurationMs: int = 320,
-        *args,
         **kwargs,
     ) -> None:
         super().__init__(name, frameless, *args, **kwargs)
@@ -173,13 +170,23 @@ class MainWindowBase(WindowBase):
         if lAnim is ShowAnimation.SlideRight:
             return QRect(lScreen.right() + 8, target.y(), target.width(), target.height())
         if lAnim is ShowAnimation.SlideLeft:
-            return QRect(lScreen.left() - target.width() - 8, target.y(), target.width(), target.height())
+            return QRect(
+                lScreen.left() - target.width() - 8,
+                target.y(),
+                target.width(),
+                target.height(),
+            )
         if lAnim is ShowAnimation.SlideTop:
-            return QRect(target.x(), lScreen.top() - target.height() - 8, target.width(), target.height())
+            return QRect(
+                target.x(),
+                lScreen.top() - target.height() - 8,
+                target.width(),
+                target.height(),
+            )
         if lAnim is ShowAnimation.SlideDown:
             return QRect(target.x(), lScreen.bottom() + 8, target.width(), target.height())
 
-        # Popup: start slightly smaller / same center (scale is approximated via geometry)
+        # Popup: start slightly smaller / same center
         lCx = target.center().x()
         lCy = target.center().y()
         lW = max(1, int(target.width() * 0.85))
