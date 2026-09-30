@@ -15,8 +15,10 @@ from PySide6.QtCore import (
     QRect,
     QSettings,
     QSize,
+    Qt,
 )
 from PySide6.QtGui import QGuiApplication
+from PySide6.QtWidgets import QWidget
 
 # ==================================================================================
 from jAGFx.workflow import workflow
@@ -24,6 +26,9 @@ from jAGFx.workflow import workflow
 # ==================================================================================
 from ..types import ShowAnimation
 from .windowBase import WindowBase
+
+# Qt's practical unbounded size (same as QWIDGETSIZE_MAX)
+_C_SIZE_MAX = 16777215
 
 
 # ==================================================================================
@@ -60,14 +65,22 @@ class MainWindowBase(WindowBase):
     # ------------------------------------------------------------------ public API
     def saveWindowState(self) -> None:
         self.Settings.setValue("geometry", self.geometry())
-        self.Settings.setValue("windowState", self.windowState())
+        self.Settings.setValue("windowState", int(self.windowState().value))
 
     def restoreWindowsState(self) -> None:
         if self.Settings.contains("geometry"):
-            self.setGeometry(self.Settings.value("geometry"))
+            lGeo = self.Settings.value("geometry")
+            if isinstance(lGeo, QRect) and lGeo.isValid():
+                self.setGeometry(lGeo)
 
         if self.Settings.contains("windowState"):
-            self.setWindowState(self.Settings.value("windowState"))
+            try:
+                lState = int(self.Settings.value("windowState"))
+                # Re-apply state after size limits are clear
+                self._releaseSizeConstraints()
+                self.setWindowState(Qt.WindowState(lState))
+            except (TypeError, ValueError):
+                pass
 
     def Show(
         self,
@@ -82,6 +95,7 @@ class MainWindowBase(WindowBase):
 
         if self._showAnimationDurationMs <= 0 or self._showAnimationRunning:
             self.setWindowOpacity(1.0)
+            self._releaseSizeConstraints()
             super().show()
             return
 
@@ -122,6 +136,11 @@ class MainWindowBase(WindowBase):
         super().closeEvent(event)
 
     # ------------------------------------------------------------------ private helpers
+    def _releaseSizeConstraints(self) -> None:
+        """Clear fixed/min/max so maximize / resize work normally."""
+        self.setMinimumSize(0, 0)
+        self.setMaximumSize(_C_SIZE_MAX, _C_SIZE_MAX)
+
     @staticmethod
     def _coerceShowAnimation(value: ShowAnimation | str) -> ShowAnimation:
         if isinstance(value, ShowAnimation):
@@ -143,7 +162,7 @@ class MainWindowBase(WindowBase):
         return lScreen.availableGeometry()
 
     def _ensureTargetGeometry(self) -> QRect:
-        """Return the final on-screen geometry; size is fixed for the whole animation."""
+        """Return the final on-screen geometry."""
         lGeo = self.geometry()
         if lGeo.width() <= 1 or lGeo.height() <= 1:
             lHint = self.sizeHint()
@@ -168,7 +187,6 @@ class MainWindowBase(WindowBase):
         if lAnim is ShowAnimation.SlideDown:
             return QPoint(target.x(), lScreen.bottom() + 4)
 
-        # Popup: same position — only opacity is animated
         return target.topLeft()
 
     def _stopRunningAnimations(self) -> None:
@@ -180,6 +198,7 @@ class MainWindowBase(WindowBase):
     def _onShowAnimationFinished(self) -> None:
         self._showAnimationRunning = False
         self.setWindowOpacity(1.0)
+        self._releaseSizeConstraints()
         self._showAnimGroup = None
 
     def _runShowAnimation(self) -> None:
@@ -192,12 +211,11 @@ class MainWindowBase(WindowBase):
         lDuration = self._showAnimationDurationMs
         lIsPopup = self._showAnimation is ShowAnimation.Popup
 
-        # Lock size once; only pos / opacity will change during the animation
-        self.setFixedSize(lTarget.size())
+        # Size the window without setFixedSize (that disables the maximize button).
+        self.resize(lTarget.size())
         self.move(lStartPos)
         self.setWindowOpacity(0.0 if lIsPopup else 1.0)
 
-        # Map the window before starting animations (required for compositor opacity)
         super().show()
         self.raise_()
 
@@ -221,9 +239,7 @@ class MainWindowBase(WindowBase):
         lGroup.addAnimation(lOpacityAnim)
 
         def _finish() -> None:
-            # Release fixed size so the window can be resized normally afterwards
-            self.setMinimumSize(0, 0)
-            self.setMaximumSize(16777215, 16777215)
+            self._releaseSizeConstraints()
             self.setGeometry(lTarget)
             self.setWindowOpacity(1.0)
             self._onShowAnimationFinished()
