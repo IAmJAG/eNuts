@@ -7,7 +7,7 @@ from jAGQt.window import MainWindowBase
 
 # ==================================================================================
 from ...configuration import ApplicationInformation
-from ..widgets import RevolvingNeuralOrb
+from ..widgets import EvolvingNeuralOrb
 
 
 # ==================================================================================
@@ -32,8 +32,8 @@ class MainWindow(MainWindowBase, ApplicationInformation):
             lLayout = self.layout()
 
         if lLayout is not None and lLayout.count() == 0:
-            lOrb = RevolvingNeuralOrb(parent=self)
-            lOrb.setMinimumSize(280, 280)
+            lOrb = EvolvingNeuralOrb(parent=self)
+            lOrb.setMinimumSize(320, 320)
             lLayout.addWidget(lOrb)
 
         return lLayout  # type: ignore[return-value]
