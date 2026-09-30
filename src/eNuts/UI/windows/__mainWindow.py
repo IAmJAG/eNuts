@@ -15,7 +15,6 @@ from ...configuration import ApplicationInformation
 from ..widgets import EvolvingNeuralOrb
 
 # ==================================================================================
-# Layout method names that change child membership
 C_MORPH_METHODS: tuple[str, ...] = (
     "addWidget",
     "insertWidget",
@@ -52,7 +51,8 @@ class MainWindow(MainWindowBase, ApplicationInformation):
         self._hookedLayoutId: int | None = None
         super().__init__("ENUTS_WINDOW", frameless=False, *args, **kwargs)
 
-        # Build background orb after the window / central widget exist
+        # Track resize on the window itself and the central host
+        self.installEventFilter(self)
         self._ensureOrbBackground()
         self._syncOrbWithLayout()
 
@@ -84,7 +84,6 @@ class MainWindow(MainWindowBase, ApplicationInformation):
         return lWidgets
 
     def _contentWidgetCount(self, layout: QLayout) -> int:
-        """Count real content widgets (orb is never in the layout)."""
         return len(self._iterLayoutWidgets(layout))
 
     # ------------------------------------------------------------------ orb background
@@ -93,16 +92,16 @@ class MainWindow(MainWindowBase, ApplicationInformation):
         if self._orbWidget is not None:
             if self._orbWidget.parent() is not lHost:
                 self._orbWidget.setParent(lHost)
+                lHost.installEventFilter(self)
             return self._orbWidget
 
         lOrb = EvolvingNeuralOrb(parent=lHost)
         lOrb.setObjectName("EvolvingNeuralOrbBackground")
         lOrb.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
-        lOrb.lower()  # behind any layout content
+        lOrb.lower()
         lOrb.hide()
         self._orbWidget = lOrb
 
-        # Keep orb geometry = host surface
         lHost.installEventFilter(self)
         self._fitOrbToHost()
         return lOrb
@@ -111,8 +110,14 @@ class MainWindow(MainWindowBase, ApplicationInformation):
         if self._orbWidget is None:
             return
         lHost = self._hostWidget()
-        self._orbWidget.setGeometry(lHost.rect())
+        # Use the host's full rect so maximize / normal resize both fill correctly
+        lRect = lHost.rect()
+        if lRect.width() < 1 or lRect.height() < 1:
+            return
+        self._orbWidget.setGeometry(lRect)
         self._orbWidget.lower()
+        if self._orbWidget.isVisible():
+            self._orbWidget.update()
 
     def _showOrbBackground(self) -> None:
         lOrb = self._ensureOrbBackground()
@@ -174,14 +179,34 @@ class MainWindow(MainWindowBase, ApplicationInformation):
 
     # ------------------------------------------------------------------ events
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:
-        if self._orbWidget is not None and watched is self._hostWidget():
-            if event.type() in (QEvent.Type.Resize, QEvent.Type.Show):
+        if self._orbWidget is not None:
+            lType = event.type()
+            if lType in (
+                QEvent.Type.Resize,
+                QEvent.Type.Show,
+                QEvent.Type.LayoutRequest,
+            ):
+                if watched is self or watched is self._hostWidget():
+                    self._fitOrbToHost()
+            elif lType == QEvent.Type.WindowStateChange and watched is self:
+                # Maximize / restore / fullscreen
                 self._fitOrbToHost()
         return super().eventFilter(watched, event)
 
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self._fitOrbToHost()
+
+    def changeEvent(self, event) -> None:
+        super().changeEvent(event)
+        if event.type() == QEvent.Type.WindowStateChange:
+            self._fitOrbToHost()
+
     def showEvent(self, event) -> None:
         super().showEvent(event)
+        self._releaseSizeConstraints()
         self._syncOrbWithLayout()
+        self._fitOrbToHost()
 
     # ------------------------------------------------------------------ Layout property
     @property
