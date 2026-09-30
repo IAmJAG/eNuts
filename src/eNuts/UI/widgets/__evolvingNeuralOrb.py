@@ -24,28 +24,37 @@ try:
     from OpenGL.GL import (
         GL_BLEND,
         GL_COLOR_BUFFER_BIT,
+        GL_CULL_FACE,
         GL_DEPTH_BUFFER_BIT,
         GL_DEPTH_TEST,
+        GL_FRONT_AND_BACK,
+        GL_LIGHTING,
         GL_LINE_SMOOTH,
         GL_LINES,
         GL_MODELVIEW,
+        GL_ONE,
         GL_ONE_MINUS_SRC_ALPHA,
         GL_POINTS,
         GL_POINT_SMOOTH,
         GL_PROJECTION,
+        GL_QUAD_STRIP,
         GL_SMOOTH,
         GL_SRC_ALPHA,
+        GL_TRIANGLE_STRIP,
         glBegin,
         glBlendFunc,
         glClear,
         glClearColor,
         glColor4f,
+        glDepthMask,
+        glDisable,
         glEnable,
         glEnd,
         glLineWidth,
         glLoadIdentity,
         glMatrixMode,
         glPointSize,
+        glPolygonMode,
         glRotatef,
         glShadeModel,
         glTranslatef,
@@ -62,12 +71,12 @@ except ImportError as ex:
 
 # ==================================================================================
 class EvolvingNeuralOrb(QOpenGLWidget):
-    """Revolving neural sphere with infinitely evolving mesh and reactive eNuts text.
+    """Logo-style revolving neural orb.
 
-    - Sphere rotates continuously (visible 3-D revolution).
-    - Node mesh pulses / phase-shifts so the web looks alive and evolving.
-    - "eNuts" wordmark uses a moving purple→cyan gradient driven by the same
-      evolution phase as the mesh, so the text reacts to the network.
+    Matches the eNuts logo look:
+    - Solid dark spherical body with purple/cyan rim glow
+    - Dense geodesic-style node mesh that evolves continuously
+    - Metallic eNuts wordmark whose gradient reacts to mesh evolution
     """
 
     def __init__(
@@ -75,14 +84,14 @@ class EvolvingNeuralOrb(QOpenGLWidget):
         parent: Optional[QWidget] = None,
         *,
         revolutionMs: int = 16,
-        degreesPerTick: float = 0.45,
-        evolutionSpeed: float = 0.035,
+        degreesPerTick: float = 0.35,
+        evolutionSpeed: float = 0.028,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("EvolvingNeuralOrb")
 
         self._angleY: float = 0.0
-        self._angleX: float = 22.0
+        self._angleX: float = 16.0
         self._degreesPerTick: float = degreesPerTick
         self._evolutionPhase: float = 0.0
         self._evolutionSpeed: float = evolutionSpeed
@@ -113,7 +122,6 @@ class EvolvingNeuralOrb(QOpenGLWidget):
 
     @property
     def EvolutionPhase(self) -> float:
-        """0..2π phase used by mesh and text gradient."""
         return self._evolutionPhase
 
     # ----------------------------------------------------------------- private slots
@@ -130,45 +138,110 @@ class EvolvingNeuralOrb(QOpenGLWidget):
         glEnable(GL_BLEND)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
         glShadeModel(GL_SMOOTH)
+        glDisable(GL_LIGHTING)
+        glDisable(GL_CULL_FACE)
         glClearColor(0.0, 0.0, 0.0, 0.0)
 
     def resizeGL(self, w: int, h: int) -> None:
         glViewport(0, 0, w, max(h, 1))
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        gluPerspective(42.0, w / max(h, 1), 0.1, 100.0)
+        gluPerspective(40.0, w / max(h, 1), 0.1, 100.0)
         glMatrixMode(GL_MODELVIEW)
 
     def paintGL(self) -> None:
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glLoadIdentity()
-        glTranslatef(0.0, 0.08, -3.15)
+        glTranslatef(0.0, 0.06, -3.05)
         glRotatef(self._angleX, 1.0, 0.0, 0.0)
         glRotatef(self._angleY, 0.0, 1.0, 0.0)
 
-        self._drawNeuralSphere(radius=1.0, latitudeBands=16, longitudeBands=28)
+        # 1) Solid dark core (logo interior)
+        self._drawSolidCore(radius=0.98, bands=48)
 
-        # Overlay reactive eNuts wordmark (2-D, after GL)
+        # 2) Soft outer rim glow (purple-left / cyan-right)
+        self._drawRimGlow(radius=1.02, bands=64)
+
+        # 3) Dense evolving neural mesh on the surface
+        self._drawNeuralMesh(radius=1.0, latitudeBands=20, longitudeBands=36)
+
+        # 4) Reactive eNuts wordmark
         self._drawENutsLabel()
 
-    # ---------------------------------------------------------------- mesh drawing
-    def _meshColor(self, lonT: float, latT: float) -> tuple[float, float, float, float]:
-        """Purple→cyan base shifted by evolution phase + latitude wave."""
+    # ---------------------------------------------------------------- geometry helpers
+    @staticmethod
+    def _spherePoint(radius: float, theta: float, phi: float) -> tuple[float, float, float]:
+        lX = radius * sin(theta) * cos(phi)
+        lY = radius * cos(theta)
+        lZ = radius * sin(theta) * sin(phi)
+        return (lX, lY, lZ)
+
+    def _lonColor(self, lonT: float) -> tuple[float, float, float]:
+        """Logo gradient: magenta/purple (left) → cyan (right), shifted by evolution."""
         lPhase = self._evolutionPhase
-        lWave = 0.5 + 0.5 * sin(lPhase + lonT * 2.0 * pi + latT * pi)
-        lShift = 0.5 + 0.5 * sin(lPhase * 0.7 + lonT * pi)
+        lShift = (lonT + 0.15 * sin(lPhase)) % 1.0
 
-        # purple (0.72, 0.15, 0.95) → cyan (0.05, 0.92, 0.98)
-        lR = 0.72 * (1.0 - lShift) + 0.05 * lShift
-        lG = 0.15 * (1.0 - lShift) + 0.92 * lShift
-        lB = 0.95 * (1.0 - lShift) + 0.98 * lShift
-        lA = 0.35 + 0.55 * lWave
-        return (lR, lG, lB, lA)
+        # purple/magenta → cyan
+        lR = 0.85 * (1.0 - lShift) + 0.05 * lShift
+        lG = 0.20 * (1.0 - lShift) + 0.95 * lShift
+        lB = 0.98 * (1.0 - lShift) + 1.00 * lShift
+        return (lR, lG, lB)
 
-    def _drawNeuralSphere(
+    # ---------------------------------------------------------------- solid core
+    def _drawSolidCore(self, radius: float, bands: int) -> None:
+        """Dark filled sphere — matches the logo's deep navy interior."""
+        glDepthMask(True)
+        for lLat in range(bands):
+            lTheta1 = lLat * pi / bands
+            lTheta2 = (lLat + 1) * pi / bands
+            glBegin(GL_TRIANGLE_STRIP)
+            for lLon in range(bands + 1):
+                lPhi = lLon * 2.0 * pi / bands
+                lLonT = lLon / bands
+                lR, lG, lB = self._lonColor(lLonT)
+                # Very dark, slight tint from the rim gradient
+                glColor4f(lR * 0.08, lG * 0.10, lB * 0.18 + 0.05, 0.92)
+                glVertex3f(*self._spherePoint(radius, lTheta1, lPhi))
+                glVertex3f(*self._spherePoint(radius, lTheta2, lPhi))
+            glEnd()
+
+    # ---------------------------------------------------------------- rim glow
+    def _drawRimGlow(self, radius: float, bands: int) -> None:
+        """Soft luminous shell around the orb (logo edge glow)."""
+        glDepthMask(False)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE)  # additive
+        lPhase = self._evolutionPhase
+        lPulse = 0.75 + 0.25 * sin(lPhase)
+
+        for lShell in range(3):
+            lR = radius + 0.012 * lShell
+            lAlpha = (0.12 - lShell * 0.03) * lPulse
+            for lLat in range(bands // 2):
+                lTheta1 = lLat * pi / (bands // 2)
+                lTheta2 = (lLat + 1) * pi / (bands // 2)
+                # Prefer equatorial rim brightness
+                lEquator = sin((lTheta1 + lTheta2) * 0.5)
+                glBegin(GL_TRIANGLE_STRIP)
+                for lLon in range(bands + 1):
+                    lPhi = lLon * 2.0 * pi / bands
+                    lLonT = lLon / bands
+                    lCr, lCg, lCb = self._lonColor(lLonT)
+                    lA = lAlpha * (0.35 + 0.65 * lEquator)
+                    glColor4f(lCr, lCg, lCb, lA)
+                    glVertex3f(*self._spherePoint(lR, lTheta1, lPhi))
+                    glVertex3f(*self._spherePoint(lR, lTheta2, lPhi))
+                glEnd()
+
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        glDepthMask(True)
+
+    # ---------------------------------------------------------------- neural mesh
+    def _drawNeuralMesh(
         self, radius: float, latitudeBands: int, longitudeBands: int
     ) -> None:
         lPhase = self._evolutionPhase
+        glDepthMask(False)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE)
 
         for lLat in range(latitudeBands):
             lTheta1 = lLat * pi / latitudeBands
@@ -185,10 +258,14 @@ class EvolvingNeuralOrb(QOpenGLWidget):
                 lV3 = self._spherePoint(radius, lTheta2, lPhi1)
                 lV4 = self._spherePoint(radius, lTheta2, lPhi2)
 
-                lR, lG, lB, lA = self._meshColor(lLonT, lLatT)
-                glColor4f(lR, lG, lB, lA)
-                glLineWidth(1.15)
+                lCr, lCg, lCb = self._lonColor(lLonT)
+                lWave = 0.55 + 0.45 * sin(
+                    lPhase + lLonT * 2.5 * pi + lLatT * 1.5 * pi
+                )
+                lA = 0.25 + 0.55 * lWave
 
+                glColor4f(lCr, lCg, lCb, lA)
+                glLineWidth(1.3)
                 glBegin(GL_LINES)
                 glVertex3f(*lV1)
                 glVertex3f(*lV2)
@@ -200,61 +277,56 @@ class EvolvingNeuralOrb(QOpenGLWidget):
                 glVertex3f(*lV4)
                 glEnd()
 
-                # Evolving node brightness / size
-                lPulse = 0.55 + 0.45 * sin(
-                    lPhase * 1.4 + lLonT * 4.0 * pi + lLatT * 2.0 * pi
+                # Nodes
+                lPulse = 0.5 + 0.5 * sin(
+                    lPhase * 1.6 + lLonT * 5.0 * pi + lLatT * 3.0 * pi
                 )
-                lNodeR = min(lR + 0.25 * lPulse, 1.0)
-                lNodeG = min(lG + 0.25 * lPulse, 1.0)
-                lNodeB = min(lB + 0.20 * lPulse, 1.0)
-                glColor4f(lNodeR, lNodeG, lNodeB, 0.55 + 0.45 * lPulse)
-                glPointSize(2.2 + 3.2 * lPulse)
+                glColor4f(
+                    min(lCr + 0.35 * lPulse, 1.0),
+                    min(lCg + 0.35 * lPulse, 1.0),
+                    min(lCb + 0.25 * lPulse, 1.0),
+                    0.45 + 0.55 * lPulse,
+                )
+                glPointSize(2.5 + 3.5 * lPulse)
                 glBegin(GL_POINTS)
                 glVertex3f(*lV1)
                 glEnd()
 
-                # Occasional brighter "activation" nodes
-                if (lLon + lLat) % 5 == 0:
-                    lSpark = 0.4 + 0.6 * max(
-                        0.0, sin(lPhase * 2.1 + lLonT * 6.0 * pi)
-                    )
-                    glColor4f(1.0, 1.0, 1.0, 0.35 * lSpark)
-                    glPointSize(4.0 + 5.0 * lSpark)
-                    glBegin(GL_POINTS)
-                    glVertex3f(*lV1)
-                    glEnd()
+                # Brighter activation sparks (logo hot-spots)
+                if (lLon * 3 + lLat * 5) % 7 == 0:
+                    lSpark = max(0.0, sin(lPhase * 2.3 + lLonT * 7.0 * pi))
+                    if lSpark > 0.15:
+                        glColor4f(1.0, 1.0, 1.0, 0.55 * lSpark)
+                        glPointSize(4.5 + 6.0 * lSpark)
+                        glBegin(GL_POINTS)
+                        glVertex3f(*lV1)
+                        glEnd()
 
-    @staticmethod
-    def _spherePoint(radius: float, theta: float, phi: float) -> tuple[float, float, float]:
-        lX = radius * sin(theta) * cos(phi)
-        lY = radius * cos(theta)
-        lZ = radius * sin(theta) * sin(phi)
-        return (lX, lY, lZ)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        glDepthMask(True)
 
     # ---------------------------------------------------------------- eNuts label
     def _evolutionGradientColors(self) -> tuple[QColor, QColor, QColor]:
-        """Three stops for the text gradient, driven by mesh evolution phase."""
+        """Metallic purple→cyan stops, driven by mesh evolution."""
         lPhase = self._evolutionPhase
         lT = 0.5 + 0.5 * sin(lPhase)
-        lT2 = 0.5 + 0.5 * sin(lPhase + 2.1)
+        lT2 = 0.5 + 0.5 * sin(lPhase + 1.8)
 
-        # Left: magenta/purple
+        # Keep a metallic silver base, tinted by evolution
         lC0 = QColor(
-            int(180 + 60 * lT),
-            int(40 + 80 * (1.0 - lT)),
-            int(230 + 25 * lT),
-        )
-        # Mid: electric violet → teal
-        lC1 = QColor(
-            int(80 + 100 * (1.0 - lT2)),
-            int(120 + 100 * lT2),
-            int(240 - 40 * lT2),
-        )
-        # Right: cyan
-        lC2 = QColor(
-            int(20 + 40 * (1.0 - lT)),
+            int(160 + 70 * lT),
+            int(150 + 30 * (1.0 - lT)),
             int(200 + 40 * lT),
-            int(240 + 15 * (1.0 - lT)),
+        )
+        lC1 = QColor(
+            int(120 + 80 * (1.0 - lT2)),
+            int(160 + 70 * lT2),
+            int(220 - 20 * lT2),
+        )
+        lC2 = QColor(
+            int(80 + 40 * (1.0 - lT)),
+            int(190 + 50 * lT),
+            int(230 + 20 * (1.0 - lT)),
         )
         return (lC0, lC1, lC2)
 
@@ -270,8 +342,9 @@ class EvolvingNeuralOrb(QOpenGLWidget):
             return
 
         lText = "eNuts"
-        lPixel = max(18, int(min(lW, lH) * 0.14))
+        lPixel = max(20, int(min(lW, lH) * 0.155))
         lFont = QFont("Segoe UI", lPixel, QFont.Weight.Bold)
+        lFont.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, 1.0)
         lFont.setStyleStrategy(QFont.StyleStrategy.PreferAntialias)
         lPainter.setFont(lFont)
 
@@ -279,21 +352,23 @@ class EvolvingNeuralOrb(QOpenGLWidget):
         lTextW = lMetrics.horizontalAdvance(lText)
         lTextH = lMetrics.height()
         lX = (lW - lTextW) / 2.0
-        # Lower third of the widget, matching logo placement
-        lY = lH * 0.72 + lTextH * 0.35
+        lY = lH * 0.70 + lTextH * 0.30
 
         lC0, lC1, lC2 = self._evolutionGradientColors()
-        lGrad = QLinearGradient(lX, 0, lX + lTextW, 0)
-        lGrad.setColorAt(0.0, lC0)
-        lGrad.setColorAt(0.5, lC1)
-        lGrad.setColorAt(1.0, lC2)
 
-        # Soft outer glow (reacts with same colors, lower alpha)
-        for lGlow in (6, 3):
-            lGlowPen = QPen(QColor(lC1.red(), lC1.green(), lC1.blue(), 35))
+        # Soft color glow behind text (reacts to mesh)
+        for lGlow, lAlpha in ((10, 28), (5, 50)):
+            lGlowPen = QPen(QColor(lC1.red(), lC1.green(), lC1.blue(), lAlpha))
             lGlowPen.setWidth(lGlow)
             lPainter.setPen(lGlowPen)
             lPainter.drawText(int(lX), int(lY), lText)
+
+        # Metallic face gradient
+        lGrad = QLinearGradient(lX, lY - lTextH, lX + lTextW, lY)
+        lGrad.setColorAt(0.0, lC0)
+        lGrad.setColorAt(0.45, QColor(230, 235, 245))
+        lGrad.setColorAt(0.55, lC1)
+        lGrad.setColorAt(1.0, lC2)
 
         lPainter.setPen(QPen(lGrad, 1))
         lPainter.drawText(int(lX), int(lY), lText)
