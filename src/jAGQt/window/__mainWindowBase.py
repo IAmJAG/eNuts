@@ -1,6 +1,8 @@
 # ==================================================================================
 # src/jAGQt/window/__mainWindowBase.py
 # ==================================================================================
+from __future__ import annotations
+
 from enum import Enum
 from typing import Optional
 
@@ -105,7 +107,7 @@ class MainWindowBase(WindowBase):
         return self._qsettings
 
     @Settings.setter
-    def Settings(self, value: QSettings):
+    def Settings(self, value: QSettings) -> None:
         self._qsettings = value
 
     @property
