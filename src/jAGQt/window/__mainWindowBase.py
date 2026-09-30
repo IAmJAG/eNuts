@@ -221,8 +221,6 @@ class MainWindowBase(WindowBase):
             lPosAnim.setStartValue(lStartPos)
             lPosAnim.setEndValue(lEndPos)
             lPosAnim.setEasingCurve(lCurve)
-            # Keep animation on the render thread's vsync-ish pacing
-            lPosAnim.setUpdateInterval(0)
             lGroup.addAnimation(lPosAnim)
 
         lOpacityAnim = QPropertyAnimation(self, b"windowOpacity", self)
@@ -230,7 +228,6 @@ class MainWindowBase(WindowBase):
         lOpacityAnim.setStartValue(0.0 if lIsPopup else 0.85)
         lOpacityAnim.setEndValue(1.0)
         lOpacityAnim.setEasingCurve(lCurve)
-        lOpacityAnim.setUpdateInterval(0)
         lGroup.addAnimation(lOpacityAnim)
 
         def _finish() -> None:
