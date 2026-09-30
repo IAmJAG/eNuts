@@ -1,9 +1,9 @@
 # ==================================================================================
 from functools import wraps
-from types import MethodType
 from typing import Callable
 
 # ==================================================================================
+from PySide6.QtCore import QEvent, QObject, Qt
 from PySide6.QtWidgets import QBoxLayout, QLayout, QLayoutItem, QWidget
 
 # ==================================================================================
@@ -38,30 +38,38 @@ C_MORPH_METHODS: tuple[str, ...] = (
     "InitializeInfo"
 )
 class MainWindow(MainWindowBase, ApplicationInformation):
+    """Main window with EvolvingNeuralOrb as a background layer.
+
+    The orb is NOT a layout item. It fills the central widget behind content:
+    - layout empty  → orb shown + running
+    - content added → orb paused + hidden
+    - content cleared → orb shown + running again
+    """
+
     def __init__(self, *args, **kwargs) -> None:
         self._orbWidget: EvolvingNeuralOrb | None = None
         self._orbSyncing: bool = False
         self._hookedLayoutId: int | None = None
         super().__init__("ENUTS_WINDOW", frameless=False, *args, **kwargs)
 
-    # ------------------------------------------------------------------ Orb helpers
-    def _isOrbWidget(self, widget: QWidget | None) -> bool:
-        if widget is None:
-            return False
-        if self._orbWidget is not None and widget is self._orbWidget:
-            return True
-        return isinstance(widget, EvolvingNeuralOrb)
+        # Build background orb after the window / central widget exist
+        self._ensureOrbBackground()
+        self._syncOrbWithLayout()
 
+    # ------------------------------------------------------------------ host surface
+    def _hostWidget(self) -> QWidget:
+        lCentral = self.centralWidget()
+        return lCentral if lCentral is not None else self
+
+    # ------------------------------------------------------------------ layout helpers
     def _resolveLayout(self) -> QLayout | None:
         lLayout: QLayout | None = getattr(self, "_layout", None)
         if lLayout is None:
             lCentral = self.centralWidget()
             if lCentral is not None:
                 lLayout = lCentral.layout()
-
         if lLayout is None:
             lLayout = self.layout()
-
         return lLayout
 
     def _iterLayoutWidgets(self, layout: QLayout) -> list[QWidget]:
@@ -75,80 +83,69 @@ class MainWindow(MainWindowBase, ApplicationInformation):
                 lWidgets.append(lWidget)
         return lWidgets
 
-    def _nonOrbWidgetCount(self, layout: QLayout) -> int:
-        lCount = 0
-        for lWidget in self._iterLayoutWidgets(layout):
-            if not self._isOrbWidget(lWidget):
-                lCount += 1
-        return lCount
+    def _contentWidgetCount(self, layout: QLayout) -> int:
+        """Count real content widgets (orb is never in the layout)."""
+        return len(self._iterLayoutWidgets(layout))
 
-    def _findOrbInLayout(self, layout: QLayout) -> EvolvingNeuralOrb | None:
-        for lWidget in self._iterLayoutWidgets(layout):
-            if self._isOrbWidget(lWidget):
-                return lWidget  # type: ignore[return-value]
-        return None
+    # ------------------------------------------------------------------ orb background
+    def _ensureOrbBackground(self) -> EvolvingNeuralOrb:
+        lHost = self._hostWidget()
+        if self._orbWidget is not None:
+            if self._orbWidget.parent() is not lHost:
+                self._orbWidget.setParent(lHost)
+            return self._orbWidget
 
-    def _createOrb(self, parent: QWidget | None = None) -> EvolvingNeuralOrb:
-        lOrb = EvolvingNeuralOrb(parent=parent if parent is not None else self)
-        lOrb.setMinimumSize(320, 320)
+        lOrb = EvolvingNeuralOrb(parent=lHost)
+        lOrb.setObjectName("EvolvingNeuralOrbBackground")
+        lOrb.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        lOrb.lower()  # behind any layout content
+        lOrb.hide()
         self._orbWidget = lOrb
+
+        # Keep orb geometry = host surface
+        lHost.installEventFilter(self)
+        self._fitOrbToHost()
         return lOrb
 
-    def _removeOrbFromLayout(self, layout: QLayout) -> None:
-        lOrb = self._findOrbInLayout(layout)
-        if lOrb is None:
-            lOrb = self._orbWidget
-        if lOrb is None:
+    def _fitOrbToHost(self) -> None:
+        if self._orbWidget is None:
             return
+        lHost = self._hostWidget()
+        self._orbWidget.setGeometry(lHost.rect())
+        self._orbWidget.lower()
 
-        layout.removeWidget(lOrb)
-        lOrb.setParent(None)
-        lOrb.deleteLater()
-        if self._orbWidget is lOrb:
-            self._orbWidget = None
+    def _showOrbBackground(self) -> None:
+        lOrb = self._ensureOrbBackground()
+        self._fitOrbToHost()
+        lOrb.show()
+        lOrb.lower()
+        lOrb.Resume()
 
-    def _ensureOrbInLayout(self, layout: QLayout) -> None:
-        if self._findOrbInLayout(layout) is not None:
+    def _hideOrbBackground(self) -> None:
+        if self._orbWidget is None:
             return
-        if self._nonOrbWidgetCount(layout) > 0:
-            return
-
-        lOrb = self._createOrb(parent=layout.parentWidget())
-        # Prefer stretch-centered placement on box layouts
-        if isinstance(layout, QBoxLayout):
-            if layout.count() == 0:
-                layout.addStretch(1)
-                layout.addWidget(lOrb, 0)
-                layout.addStretch(1)
-            else:
-                layout.addWidget(lOrb)
-        else:
-            layout.addWidget(lOrb)
+        self._orbWidget.Pause()
+        self._orbWidget.hide()
 
     def _syncOrbWithLayout(self, layout: QLayout | None = None) -> None:
         if self._orbSyncing:
             return
 
         lLayout = layout if layout is not None else self._resolveLayout()
-        if lLayout is None:
-            return
-
         self._orbSyncing = True
         try:
-            if self._nonOrbWidgetCount(lLayout) > 0:
-                self._removeOrbFromLayout(lLayout)
+            if lLayout is None or self._contentWidgetCount(lLayout) == 0:
+                self._showOrbBackground()
             else:
-                self._ensureOrbInLayout(lLayout)
+                self._hideOrbBackground()
         finally:
             self._orbSyncing = False
 
-    # ------------------------------------------------------------------ Layout morph hooks
+    # ------------------------------------------------------------------ layout morph hooks
     def _wrapMorphMethod(self, layout: QLayout, methodName: str) -> None:
         lOriginal: Callable | None = getattr(layout, methodName, None)
         if lOriginal is None or not callable(lOriginal):
             return
-
-        # Already wrapped
         if getattr(lOriginal, "_eNutsOrbHook", False):
             return
 
@@ -162,10 +159,6 @@ class MainWindow(MainWindowBase, ApplicationInformation):
             return lResult
 
         lWrapped._eNutsOrbHook = True  # type: ignore[attr-defined]
-        setattr(layout, methodName, MethodType(lWrapped, layout) if False else lWrapped)
-
-        # Bind as instance method so `self` inside original still works:
-        # lOriginal is already a bound method; call it directly in lWrapped.
         setattr(layout, methodName, lWrapped)
 
     def _hookLayoutMorphs(self, layout: QLayout) -> None:
@@ -179,15 +172,24 @@ class MainWindow(MainWindowBase, ApplicationInformation):
         layout._eNutsMorphHooked = True  # type: ignore[attr-defined]
         self._hookedLayoutId = lLayoutId
 
+    # ------------------------------------------------------------------ events
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
+        if self._orbWidget is not None and watched is self._hostWidget():
+            if event.type() in (QEvent.Type.Resize, QEvent.Type.Show):
+                self._fitOrbToHost()
+        return super().eventFilter(watched, event)
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        self._syncOrbWithLayout()
+
     # ------------------------------------------------------------------ Layout property
     @property
     def Layout(self) -> QBoxLayout:
         lLayout = self._resolveLayout()
-
         if lLayout is not None:
             self._hookLayoutMorphs(lLayout)
             self._syncOrbWithLayout(lLayout)
-
         return lLayout  # type: ignore[return-value]
 
     @Layout.setter
@@ -195,7 +197,6 @@ class MainWindow(MainWindowBase, ApplicationInformation):
         lCentral = self.centralWidget()
         if lCentral is not None:
             lCentral.setLayout(value)
-
         else:
             self.setLayout(value)
 
