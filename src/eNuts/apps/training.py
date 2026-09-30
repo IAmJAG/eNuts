@@ -56,6 +56,7 @@ async def _training(app: QApplication, *args, **kwargs):
 
     app.quit()
 
+
 # ==================================================================================================
 def program(*args):
     debug("App Main Started")
@@ -65,6 +66,7 @@ def program(*args):
     set_event_loop(loop)
     with loop:
         loop.run_until_complete(_training(app))
+
 
 # ==================================================================================================
 if __name__ == "__main__":

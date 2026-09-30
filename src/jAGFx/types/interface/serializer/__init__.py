@@ -1,5 +1,5 @@
 # ==================================================================================
-from .__icomponent import icomponent
+from .__serializable import iSerializable  #
 
 # ==================================================================================
-__all__ = ["icomponent"]
+__all__ = ["iSerializable"]

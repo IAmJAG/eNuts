@@ -1,5 +1,5 @@
 # ==================================================================================
-from .__componentBase import ComponentBase
+from .__componentBase import iComponentBase
 
 # ==================================================================================
-__all__ = ["ComponentBase"]
+__all__ = ["iComponentBase"]

@@ -1,6 +1,7 @@
 # ==================================================================================================
 # src/utilities/__init__.py
 # ==================================================================================================
+from .__asyncio import createTask, getEventLoop, getRunningLoop
 from .__cacheClean import PyCacheClean
 from .__frame import formatTrace, getCallableFromFrame, getCallersFrame, getFrameInfo
 from .__helpers import StripAnsi
@@ -18,5 +19,7 @@ __all__ = [
     "getFrameInfo", 
     "StripAnsi",
     "formatTrace",
-    ""
+    "createTask",
+    "getEventLoop",
+    "getRunningLoop",
 ]

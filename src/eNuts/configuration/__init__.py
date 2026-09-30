@@ -1,5 +1,6 @@
 # ==================================================================================
-from .__componentBase import ComponentBase
+from .__eNutsConfiguration import eNutsConfiguration
+from .__information import ApplicationInformation
 
 # ==================================================================================
-__all__ = ["ComponentBase"]
+__all__ = ["eNutsConfiguration"]

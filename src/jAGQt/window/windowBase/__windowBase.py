@@ -2,20 +2,19 @@
 # src/jAGQt/window/windowBase/__windowBase.py
 # ==================================================================================
 # ==================================================================================
-from jAGFx.names import getRandomName
-from jAGFx.workflow import workflow
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QBoxLayout, QMainWindow, QWidget
 
+from jAGFx.names import getRandomName
+from jAGFx.workflow import workflow
+
 # ==================================================================================
-from ...widgets.components import component
+from ...types.components import ComponentBase
 
 
 # ==================================================================================
 @workflow("InitializeUI")
-class WindowBase(component, QMainWindow):
-    """Generic jAGQt foundation for application windows."""
-
+class WindowBase(QMainWindow, ComponentBase):
     def __init__(self, name: str = None, frameless: bool = False, *args, **kwargs):
         self._layout: QBoxLayout = kwargs.pop("layout", None)
         super().__init__(*args, **kwargs)
@@ -30,6 +29,7 @@ class WindowBase(component, QMainWindow):
             self.Layout = QBoxLayout(QBoxLayout.Direction.TopToBottom)
             self.ContentSpacing = 0
             self.ContentMargins = 0
+            
         else:
             self.Layout = self._layout
 

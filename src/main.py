@@ -1,6 +1,6 @@
 # ==================================================================================================
 from importlib import import_module
-from logging import DEBUG, ERROR, INFO
+from logging import DEBUG, ERROR, INFO, WARNING, getLogger
 from sys import argv
 
 # ==================================================================================================
@@ -16,7 +16,7 @@ LOG_LEVEL: int = VERBOSE
 
 # ==================================================================================================
 def _program(module: str, app: str, clean: bool = False, *args, **kwargs):
-    try:
+    try:        
         lModule: launchModule = import_module(f"{module}.{app}")
         lArguments: list[str] = RebuildArguments(argv[0], *args, **kwargs)
         lExitCode = lModule.program(lArguments)
@@ -33,7 +33,7 @@ def _program(module: str, app: str, clean: bool = False, *args, **kwargs):
 # ==================================================================================================
 def program(args: list = argv):
     setupLogging("", LOG_LEVEL)
-    addFileHandler("eNuts", LOG_LEVEL)
+    addFileHandler("eNuts", LOG_LEVEL)    
     debug(f"Current module namespace: {__name__}")
     lArgs, lKWArgs = ProcessArguments(args)
     return _program(*lArgs, **lKWArgs)

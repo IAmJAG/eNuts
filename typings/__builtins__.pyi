@@ -1,4 +1,5 @@
 # ==================================================================================
+from asyncio import AbstractEventLoop
 from logging import INFO, Filter, Formatter
 from sys import argv
 from typing import Any
@@ -55,3 +56,10 @@ def fatal(message, *args, **kwargs): ...
 # GLOBAL functions - string
 # ==================================================================================
 def StripAnsi(text): ...
+
+# ==================================================================================
+# GLOBAL functions - asychronous(asyncio)
+# ==================================================================================
+def createTask(asyncFunc, *args, **kwargs): ...
+def getRunningLoop() -> AbstractEventLoop: ...
+def getEventLoop() -> AbstractEventLoop: ...

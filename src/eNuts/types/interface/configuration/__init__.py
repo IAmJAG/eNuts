@@ -1,5 +1,5 @@
 # ==================================================================================
-from .__componentBase import ComponentBase
+from .__eNutsConfiguration import iENUTSConfiguration
 
 # ==================================================================================
-__all__ = ["ComponentBase"]
+__all__ = ["iENUTSConfiguration"]

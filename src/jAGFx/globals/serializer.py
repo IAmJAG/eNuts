@@ -1,8 +1,10 @@
 # ==================================================================================
-# src/jAGQt/utilities/__init__.py
+# src/jAGFx/globals/serializer.py
 # ==================================================================================
-from .__layout import contentMargins, newLayout, replaceLayout
-from .__pushButton import createButton
+from typing import List
 
 # ==================================================================================
-__all__ = ["newLayout", "contentMargins", "createButton", "replaceLayout"]
+KNOWN_TYPES: List[str] = {
+    "str": None, "int": None, "float": None, "bool": None,
+}
+# ==================================================================================

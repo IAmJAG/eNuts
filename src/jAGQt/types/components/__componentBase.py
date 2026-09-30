@@ -1,16 +1,16 @@
 # ==================================================================================
-# src/jAGQt/widgets/mixins/__component.py
+# src/jAGQt/types/components/__component.py
 # ==================================================================================
 from PySide6.QtCore import QMargins
-from PySide6.QtWidgets import QBoxLayout, QLayout, QMainWindow, QWidget
+from PySide6.QtWidgets import QLayout, QMainWindow, QWidget
 
 # ==================================================================================
-from ...types.interface.widgets import icomponent
-from ...utilities import contentMargins
+from ...utilities import contentMargins, replaceLayout
+from ..interface.components import iComponentBase
 
 
 # ==================================================================================
-class component(icomponent):
+class ComponentBase(iComponentBase):
     @property
     def Name(self: QWidget | QMainWindow) -> str:
         return self.objectName()
@@ -29,17 +29,17 @@ class component(icomponent):
 
     @property
     def Layout(self: QWidget) -> QLayout:
-        if hasattr(self, "_layout"):
-            return self._layout
+        lLayout = getattr(self, "_layout", None)
+        if lLayout is not None:
+            return lLayout
 
         return self.layout()
 
     @Layout.setter
     def Layout(self: QWidget, value: QLayout) -> None:
-        if hasattr(self, "_layout"):            
-            self._layout = value
-
-        self.setLayout(value)
+        lOldLayout = getattr(self, "_layout", None)
+        replaceLayout(self, lOldLayout, value)
+        self._layout = value
 
     @property
     def ContentSpacing(self: QWidget):

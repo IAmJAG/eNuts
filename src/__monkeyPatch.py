@@ -22,7 +22,15 @@ from jAGFx.logging import (
 
 # ==================================================================================================
 from jAGFx.types import Is, isAny, isListOfT, isNone, isUnion
-from utilities import ProcessArguments, PyCacheClean, RebuildArguments, StripAnsi
+from utilities import (
+    ProcessArguments,
+    PyCacheClean,
+    RebuildArguments,
+    StripAnsi,
+    createTask,
+    getEventLoop,
+    getRunningLoop,
+)
 
 # ==================================================================================================
 # GLOBAL default value
@@ -81,3 +89,9 @@ setattr(builtins, "fatal", fatal)
 # ==================================================================================================
 setattr(builtins, "StripAnsi", StripAnsi)
 
+# ==================================================================================
+# GLOBAL functions - asychronous(asyncio)
+# ==================================================================================
+setattr(builtins, "createTask", createTask)
+setattr(builtins, "getRunningLoop", getRunningLoop)
+setattr(builtins, "getEventLoop", getEventLoop)

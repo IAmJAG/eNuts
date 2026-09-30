@@ -1,6 +1,6 @@
 # ==================================================================================
-from .__mainWindowBase import MainWindowBase
+from .__mainWindowBase import MainWindowBase, ShowAnimation
 from .windowBase import WindowBase
 
 # ==================================================================================
-__all__ = ["MainWindowBase", "WindowBase"]
+__all__ = ["MainWindowBase", "ShowAnimation", "WindowBase"]

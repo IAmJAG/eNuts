@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QBoxLayout, QWidget
 
 
 # ==================================================================================
-class icomponent:
+class iComponentBase:
     @property
     def Name(self: QWidget) -> str: ...
     @property
