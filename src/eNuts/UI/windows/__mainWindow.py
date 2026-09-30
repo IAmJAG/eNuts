@@ -44,6 +44,8 @@ class MainWindow(MainWindowBase, ApplicationInformation):
         lCentral = self.centralWidget()
         if lCentral is not None:
             lCentral.setLayout(value)
+
         else:
             self.setLayout(value)
+            
         self._layout = value
