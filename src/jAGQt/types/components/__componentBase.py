@@ -5,12 +5,12 @@ from PySide6.QtCore import QMargins
 from PySide6.QtWidgets import QBoxLayout, QLayout, QMainWindow, QWidget
 
 # ==================================================================================
-from ...types.interface.widgets import icomponent
 from ...utilities import contentMargins
+from ..interface.components import icomponent
 
 
 # ==================================================================================
-class component(icomponent):
+class ComponentBase(icomponent):
     @property
     def Name(self: QWidget | QMainWindow) -> str:
         return self.objectName()

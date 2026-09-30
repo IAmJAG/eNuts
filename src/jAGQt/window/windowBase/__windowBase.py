@@ -2,10 +2,11 @@
 # src/jAGQt/window/windowBase/__windowBase.py
 # ==================================================================================
 # ==================================================================================
-from jAGFx.names import getRandomName
-from jAGFx.workflow import workflow
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QBoxLayout, QMainWindow, QWidget
+
+from jAGFx.names import getRandomName
+from jAGFx.workflow import workflow
 
 # ==================================================================================
 from ...widgets.components import component
