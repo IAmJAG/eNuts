@@ -11,6 +11,7 @@ from qasync import QEventLoop
 
 # ==================================================================================================
 from jAGFx.types.interface.configuration import iApplicationConfiguration
+from jAGQt.types import ShowAnimation
 
 # ==================================================================================================
 from ..configuration import eNutsConfiguration
@@ -36,7 +37,7 @@ async def _training(app: QApplication, *args, **kwargs):
     try:
         lWin: MainWindow = MainWindow(*args, **kwargs)
         app.setStyleSheet(cfg.styleSheet)
-        lWin.show()
+        lWin.Show(ShowAnimation.SlideTop, 500)
 
         # Keep the event loop alive until the last window closes / aboutToQuit.
         # Note: builtins.wait is time.sleep (see __monkeyPatch); do not use it here.

@@ -22,18 +22,8 @@ from PySide6.QtGui import QGuiApplication
 from jAGFx.workflow import workflow
 
 # ==================================================================================
+from ..types import ShowAnimation
 from .windowBase import WindowBase
-
-
-# ==================================================================================
-class ShowAnimation(str, Enum):
-    """Available window show animations."""
-
-    Popup = "popup"
-    SlideRight = "slideRight"
-    SlideLeft = "slideLeft"
-    SlideTop = "slideTop"
-    SlideDown = "slideDown"
 
 
 # ==================================================================================
