@@ -182,7 +182,7 @@ class _MeshBakeWorker(QThread):
 
 # ==================================================================================
 class EvolvingNeuralOrb(QOpenGLWidget):
-    """True 3D reconstruction of the eNuts logo with a transparent widget background."""
+    """3D eNuts logo orb — designed to sit as a window background layer."""
 
     def __init__(
         self,
@@ -192,7 +192,6 @@ class EvolvingNeuralOrb(QOpenGLWidget):
         degreesPerTick: float = 0.4,
         evolutionSpeed: float = 0.03,
     ) -> None:
-        # Alpha-capable surface before the native window is created
         lFmt = QSurfaceFormat()
         lFmt.setSamples(4)
         lFmt.setAlphaBufferSize(8)
@@ -205,17 +204,11 @@ class EvolvingNeuralOrb(QOpenGLWidget):
         self.setObjectName("EvolvingNeuralOrb")
         self.setFormat(lFmt)
 
-        # Transparent widget chrome (no opaque system / style fill)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground, True)
         self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, False)
         self.setAutoFillBackground(False)
         self.setStyleSheet("background: transparent; border: none;")
-
-        lPalette = self.palette()
-        lPalette.setColor(QPalette.ColorRole.Window, QColor(0, 0, 0, 0))
-        lPalette.setColor(QPalette.ColorRole.Base, QColor(0, 0, 0, 0))
-        self.setPalette(lPalette)
 
         self._angleY: float = 0.0
         self._angleX: float = 18.0
@@ -274,6 +267,24 @@ class EvolvingNeuralOrb(QOpenGLWidget):
         self._pendingBake = payload
         self.update()
 
+    # ---------------------------------------------------------------- clear color
+    def _hostClearColor(self) -> tuple[float, float, float, float]:
+        """Match the host window palette so the orb blends as a background."""
+        lHost = self.parentWidget()
+        if lHost is None:
+            lHost = self.window()
+        if lHost is not None:
+            lColor = lHost.palette().color(QPalette.ColorRole.Window)
+            # If the host is pure black/default, prefer a soft dark navy
+            if lColor.red() + lColor.green() + lColor.blue() < 24:
+                return (0.04, 0.05, 0.09, 1.0)
+            return (lColor.redF(), lColor.greenF(), lColor.blueF(), 1.0)
+        return (0.04, 0.05, 0.09, 1.0)
+
+    def _applyClearColor(self) -> None:
+        lR, lG, lB, lA = self._hostClearColor()
+        glClearColor(lR, lG, lB, lA)
+
     # ---------------------------------------------------------------- OpenGL
     def initializeGL(self) -> None:
         glEnable(GL_DEPTH_TEST)
@@ -282,8 +293,7 @@ class EvolvingNeuralOrb(QOpenGLWidget):
         glEnable(GL_BLEND)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
         glShadeModel(GL_SMOOTH)
-        # Fully transparent clear — parent window shows through
-        glClearColor(0.0, 0.0, 0.0, 0.0)
+        self._applyClearColor()
         self._startMeshBake()
 
     def resizeGL(self, w: int, h: int) -> None:
@@ -302,7 +312,7 @@ class EvolvingNeuralOrb(QOpenGLWidget):
                 self._meshReady = False
             self._pendingBake = None
 
-        glClearColor(0.0, 0.0, 0.0, 0.0)
+        self._applyClearColor()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glLoadIdentity()
         glTranslatef(0.0, 0.05, -3.15)
@@ -495,7 +505,6 @@ class EvolvingNeuralOrb(QOpenGLWidget):
         lPainter = QPainter(self)
         lPainter.setRenderHint(QPainter.RenderHint.Antialiasing)
         lPainter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
-        # Do not fill the widget rect — preserves GL alpha outside the orb/text
         lPainter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
 
         lW, lH = self.width(), self.height()
