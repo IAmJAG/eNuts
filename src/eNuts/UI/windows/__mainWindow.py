@@ -16,26 +16,13 @@ from ..widgets import EvolvingNeuralBrain
 
 # ==================================================================================
 C_MORPH_METHODS: tuple[str, ...] = (
-    "addWidget",
-    "insertWidget",
-    "addLayout",
-    "insertLayout",
-    "addItem",
-    "insertItem",
-    "addStretch",
-    "addSpacing",
-    "addStrut",
-    "removeWidget",
-    "removeItem",
-    "takeAt",
+    "addWidget", "insertWidget", "addLayout", "insertLayout", "addItem",
+    "insertItem", "addStretch", "addSpacing", "addStrut", "removeWidget",
+    "removeItem", "takeAt",
 )
-
 
 # ==================================================================================
-@workflow(
-    "InitializeSettings", "InitializeUI", "RestoreWindowsState",
-    "InitializeInfo"
-)
+@workflow("InitializeSettings", "InitializeUI", "RestoreWindowsState","InitializeInfo")
 class MainWindow(MainWindowBase, ApplicationInformation):
     """Main window with EvolvingNeuralBrain as a background layer.
 
@@ -63,21 +50,19 @@ class MainWindow(MainWindowBase, ApplicationInformation):
         lLayout: QLayout | None = getattr(self, "_layout", None)
         if lLayout is None:
             lCentral = self.centralWidget()
-            if lCentral is not None:
-                lLayout = lCentral.layout()
-        if lLayout is None:
-            lLayout = self.layout()
+            if lCentral is not None: lLayout = lCentral.layout()
+
+        if lLayout is None: lLayout = self.layout()
         return lLayout
 
     def _iterLayoutWidgets(self, layout: QLayout) -> list[QWidget]:
         lWidgets: list[QWidget] = []
         for lIndex in range(layout.count()):
             lItem: QLayoutItem | None = layout.itemAt(lIndex)
-            if lItem is None:
-                continue
+            if lItem is None: continue
             lWidget = lItem.widget()
-            if lWidget is not None:
-                lWidgets.append(lWidget)
+            if lWidget is not None: lWidgets.append(lWidget)
+
         return lWidgets
 
     def _contentWidgetCount(self, layout: QLayout) -> int:
@@ -103,12 +88,10 @@ class MainWindow(MainWindowBase, ApplicationInformation):
         return lOrb
 
     def _fitOrbToHost(self) -> None:
-        if self._orbWidget is None:
-            return
+        if self._orbWidget is None: return
         lHost = self._hostWidget()
         lRect = lHost.rect()
-        if lRect.width() < 1 or lRect.height() < 1:
-            return
+        if lRect.width() < 1 or lRect.height() < 1: return
         self._orbWidget.setGeometry(lRect)
         self._orbWidget.lower()
         if self._orbWidget.isVisible():
@@ -122,39 +105,36 @@ class MainWindow(MainWindowBase, ApplicationInformation):
         lOrb.Resume()
 
     def _hideOrbBackground(self) -> None:
-        if self._orbWidget is None:
-            return
+        if self._orbWidget is None: return
         self._orbWidget.Pause()
         self._orbWidget.hide()
 
     def _syncOrbWithLayout(self, layout: QLayout | None = None) -> None:
-        if self._orbSyncing:
-            return
+        if self._orbSyncing: return
 
         lLayout = layout if layout is not None else self._resolveLayout()
         self._orbSyncing = True
         try:
             if lLayout is None or self._contentWidgetCount(lLayout) == 0:
                 self._showOrbBackground()
+
             else:
                 self._hideOrbBackground()
+
         finally:
             self._orbSyncing = False
 
     def _wrapMorphMethod(self, layout: QLayout, methodName: str) -> None:
         lOriginal: Callable | None = getattr(layout, methodName, None)
-        if lOriginal is None or not callable(lOriginal):
-            return
-        if getattr(lOriginal, "_eNutsOrbHook", False):
-            return
+        if lOriginal is None or not callable(lOriginal): return
+        if getattr(lOriginal, "_eNutsOrbHook", False): return
 
         lWindow = self
 
         @wraps(lOriginal)
         def lWrapped(*args, **kwargs):
             lResult = lOriginal(*args, **kwargs)
-            if not lWindow._orbSyncing:
-                lWindow._syncOrbWithLayout(layout)
+            if not lWindow._orbSyncing: lWindow._syncOrbWithLayout(layout)
             return lResult
 
         lWrapped._eNutsOrbHook = True  # type: ignore[attr-defined]
@@ -174,15 +154,11 @@ class MainWindow(MainWindowBase, ApplicationInformation):
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:
         if self._orbWidget is not None:
             lType = event.type()
-            if lType in (
-                QEvent.Type.Resize,
-                QEvent.Type.Show,
-                QEvent.Type.LayoutRequest,
-            ):
-                if watched is self or watched is self._hostWidget():
-                    self._fitOrbToHost()
-            elif lType == QEvent.Type.WindowStateChange and watched is self:
-                self._fitOrbToHost()
+            if lType in (QEvent.Type.Resize, QEvent.Type.Show, QEvent.Type.LayoutRequest):
+                if watched is self or watched is self._hostWidget(): self._fitOrbToHost()
+
+            elif lType == QEvent.Type.WindowStateChange and watched is self: self._fitOrbToHost()
+
         return super().eventFilter(watched, event)
 
     def resizeEvent(self, event) -> None:
@@ -213,6 +189,7 @@ class MainWindow(MainWindowBase, ApplicationInformation):
         lCentral = self.centralWidget()
         if lCentral is not None:
             lCentral.setLayout(value)
+
         else:
             self.setLayout(value)
 
