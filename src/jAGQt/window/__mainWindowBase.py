@@ -9,13 +9,14 @@ from typing import Optional
 # ==================================================================================
 from PySide6.QtCore import (
     QEasingCurve,
+    QParallelAnimationGroup,
+    QPoint,
     QPropertyAnimation,
     QRect,
     QSettings,
     QSize,
 )
 from PySide6.QtGui import QGuiApplication
-from PySide6.QtWidgets import QGraphicsOpacityEffect
 
 # ==================================================================================
 from jAGFx.workflow import workflow
@@ -46,16 +47,14 @@ class MainWindowBase(WindowBase):
         frameless: bool = False,
         *args,
         showAnimation: ShowAnimation | str = ShowAnimation.Popup,
-        showAnimationDurationMs: int = 320,
+        showAnimationDurationMs: int = 280,
         **kwargs,
     ) -> None:
         super().__init__(name, frameless, *args, **kwargs)
         self._showAnimation: ShowAnimation = self._coerceShowAnimation(showAnimation)
         self._showAnimationDurationMs: int = max(0, int(showAnimationDurationMs))
         self._showAnimationRunning: bool = False
-        self._opacityEffect: Optional[QGraphicsOpacityEffect] = None
-        self._geometryAnimation: Optional[QPropertyAnimation] = None
-        self._opacityAnimation: Optional[QPropertyAnimation] = None
+        self._showAnimGroup: Optional[QParallelAnimationGroup] = None
 
     # ------------------------------------------------------------------ workflow hooks
     def _wInitializeSettings(self) -> None:
@@ -92,6 +91,7 @@ class MainWindowBase(WindowBase):
             self._showAnimationDurationMs = max(0, int(durationMs))
 
         if self._showAnimationDurationMs <= 0 or self._showAnimationRunning:
+            self.setWindowOpacity(1.0)
             super().show()
             return
 
@@ -152,100 +152,94 @@ class MainWindowBase(WindowBase):
             return QRect(0, 0, 1920, 1080)
         return lScreen.availableGeometry()
 
-    def _targetGeometry(self) -> QRect:
+    def _ensureTargetGeometry(self) -> QRect:
+        """Return the final on-screen geometry; size is fixed for the whole animation."""
         lGeo = self.geometry()
-        if lGeo.width() <= 0 or lGeo.height() <= 0:
+        if lGeo.width() <= 1 or lGeo.height() <= 1:
             lHint = self.sizeHint()
-            if lHint.width() <= 0 or lHint.height() <= 0:
+            if lHint.width() <= 1 or lHint.height() <= 1:
                 lHint = QSize(800, 600)
             lScreen = self._screenGeometry()
             lX = lScreen.x() + max(0, (lScreen.width() - lHint.width()) // 2)
             lY = lScreen.y() + max(0, (lScreen.height() - lHint.height()) // 2)
             lGeo = QRect(lX, lY, lHint.width(), lHint.height())
-            self.setGeometry(lGeo)
         return QRect(lGeo)
 
-    def _startGeometry(self, target: QRect) -> QRect:
+    def _startPos(self, target: QRect) -> QPoint:
         lScreen = self._screenGeometry()
         lAnim = self._showAnimation
 
         if lAnim is ShowAnimation.SlideRight:
-            return QRect(lScreen.right() + 8, target.y(), target.width(), target.height())
+            return QPoint(lScreen.right() + 4, target.y())
         if lAnim is ShowAnimation.SlideLeft:
-            return QRect(
-                lScreen.left() - target.width() - 8,
-                target.y(),
-                target.width(),
-                target.height(),
-            )
+            return QPoint(lScreen.left() - target.width() - 4, target.y())
         if lAnim is ShowAnimation.SlideTop:
-            return QRect(
-                target.x(),
-                lScreen.top() - target.height() - 8,
-                target.width(),
-                target.height(),
-            )
+            return QPoint(target.x(), lScreen.top() - target.height() - 4)
         if lAnim is ShowAnimation.SlideDown:
-            return QRect(target.x(), lScreen.bottom() + 8, target.width(), target.height())
+            return QPoint(target.x(), lScreen.bottom() + 4)
 
-        # Popup: start slightly smaller / same center
-        lCx = target.center().x()
-        lCy = target.center().y()
-        lW = max(1, int(target.width() * 0.85))
-        lH = max(1, int(target.height() * 0.85))
-        return QRect(lCx - lW // 2, lCy - lH // 2, lW, lH)
-
-    def _ensureOpacityEffect(self) -> QGraphicsOpacityEffect:
-        if self._opacityEffect is None:
-            self._opacityEffect = QGraphicsOpacityEffect(self)
-            self.setGraphicsEffect(self._opacityEffect)
-        return self._opacityEffect
+        # Popup: same position — only opacity is animated
+        return target.topLeft()
 
     def _stopRunningAnimations(self) -> None:
-        if self._geometryAnimation is not None:
-            self._geometryAnimation.stop()
-            self._geometryAnimation = None
-        if self._opacityAnimation is not None:
-            self._opacityAnimation.stop()
-            self._opacityAnimation = None
+        if self._showAnimGroup is not None:
+            self._showAnimGroup.stop()
+            self._showAnimGroup.deleteLater()
+            self._showAnimGroup = None
 
     def _onShowAnimationFinished(self) -> None:
         self._showAnimationRunning = False
-        if self._opacityEffect is not None:
-            self._opacityEffect.setOpacity(1.0)
+        self.setWindowOpacity(1.0)
+        self._showAnimGroup = None
 
     def _runShowAnimation(self) -> None:
         self._stopRunningAnimations()
         self._showAnimationRunning = True
 
-        lTarget = self._targetGeometry()
-        lStart = self._startGeometry(lTarget)
-
-        self.setGeometry(lStart)
-        self.setWindowOpacity(1.0)
-
-        lEffect = self._ensureOpacityEffect()
-        lEffect.setOpacity(0.0 if self._showAnimation is ShowAnimation.Popup else 1.0)
-
-        # Show first so the window is mapped, then animate into place
-        super().show()
-
+        lTarget = self._ensureTargetGeometry()
+        lStartPos = self._startPos(lTarget)
+        lEndPos = lTarget.topLeft()
         lDuration = self._showAnimationDurationMs
-        lCurve = QEasingCurve.Type.OutCubic
+        lIsPopup = self._showAnimation is ShowAnimation.Popup
 
-        self._geometryAnimation = QPropertyAnimation(self, b"geometry", self)
-        self._geometryAnimation.setDuration(lDuration)
-        self._geometryAnimation.setStartValue(lStart)
-        self._geometryAnimation.setEndValue(lTarget)
-        self._geometryAnimation.setEasingCurve(lCurve)
+        # Lock size once; only pos / opacity will change during the animation
+        self.setFixedSize(lTarget.size())
+        self.move(lStartPos)
+        self.setWindowOpacity(0.0 if lIsPopup else 1.0)
 
-        if self._showAnimation is ShowAnimation.Popup:
-            self._opacityAnimation = QPropertyAnimation(lEffect, b"opacity", self)
-            self._opacityAnimation.setDuration(lDuration)
-            self._opacityAnimation.setStartValue(0.0)
-            self._opacityAnimation.setEndValue(1.0)
-            self._opacityAnimation.setEasingCurve(lCurve)
-            self._opacityAnimation.start()
+        # Map the window before starting animations (required for compositor opacity)
+        super().show()
+        self.raise_()
 
-        self._geometryAnimation.finished.connect(self._onShowAnimationFinished)
-        self._geometryAnimation.start()
+        lCurve = QEasingCurve(QEasingCurve.Type.OutCubic)
+        lGroup = QParallelAnimationGroup(self)
+        self._showAnimGroup = lGroup
+
+        if not lIsPopup:
+            lPosAnim = QPropertyAnimation(self, b"pos", self)
+            lPosAnim.setDuration(lDuration)
+            lPosAnim.setStartValue(lStartPos)
+            lPosAnim.setEndValue(lEndPos)
+            lPosAnim.setEasingCurve(lCurve)
+            # Keep animation on the render thread's vsync-ish pacing
+            lPosAnim.setUpdateInterval(0)
+            lGroup.addAnimation(lPosAnim)
+
+        lOpacityAnim = QPropertyAnimation(self, b"windowOpacity", self)
+        lOpacityAnim.setDuration(lDuration)
+        lOpacityAnim.setStartValue(0.0 if lIsPopup else 0.85)
+        lOpacityAnim.setEndValue(1.0)
+        lOpacityAnim.setEasingCurve(lCurve)
+        lOpacityAnim.setUpdateInterval(0)
+        lGroup.addAnimation(lOpacityAnim)
+
+        def _finish() -> None:
+            # Release fixed size so the window can be resized normally afterwards
+            self.setMinimumSize(0, 0)
+            self.setMaximumSize(16777215, 16777215)
+            self.setGeometry(lTarget)
+            self.setWindowOpacity(1.0)
+            self._onShowAnimationFinished()
+
+        lGroup.finished.connect(_finish)
+        lGroup.start()
