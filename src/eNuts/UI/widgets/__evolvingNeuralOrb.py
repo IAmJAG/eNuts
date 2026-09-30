@@ -9,7 +9,15 @@ from typing import Optional
 
 # ==================================================================================
 from PySide6.QtCore import QThread, QTimer, Qt, Signal
-from PySide6.QtGui import QColor, QFont, QLinearGradient, QPainter, QPen, QSurfaceFormat
+from PySide6.QtGui import (
+    QColor,
+    QFont,
+    QLinearGradient,
+    QPainter,
+    QPalette,
+    QPen,
+    QSurfaceFormat,
+)
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from PySide6.QtWidgets import QWidget
 
@@ -103,7 +111,6 @@ class _MeshBakeWorker(QThread):
         if self.isInterruptionRequested():
             return
 
-        # --- solid core (triangle list) ---
         lCorePos = array("f")
         lCoreLon = array("f")
         lBands = self._coreBands
@@ -121,12 +128,10 @@ class _MeshBakeWorker(QThread):
                 lB = _spherePoint(lCoreR, lTheta1, lPhi2)
                 lC = _spherePoint(lCoreR, lTheta2, lPhi1)
                 lD = _spherePoint(lCoreR, lTheta2, lPhi2)
-                # two triangles
                 for lP in (lA, lB, lC, lB, lD, lC):
                     lCorePos.extend(lP)
                     lCoreLon.append(lLonT)
 
-        # --- neural mesh lines + nodes ---
         lLinePos = array("f")
         lLineLon = array("f")
         lNodePos = array("f")
@@ -177,13 +182,7 @@ class _MeshBakeWorker(QThread):
 
 # ==================================================================================
 class EvolvingNeuralOrb(QOpenGLWidget):
-    """True 3D reconstruction of the eNuts logo (not an image wrapped on a sphere).
-
-    - Dark solid core with purple→cyan longitude tint
-    - Dense neural mesh that evolves continuously
-    - Metallic eNuts wordmark reacting to the same evolution phase
-    - Geometry baked on a worker thread into VBOs for smooth rotation
-    """
+    """True 3D reconstruction of the eNuts logo with a transparent widget background."""
 
     def __init__(
         self,
@@ -193,8 +192,30 @@ class EvolvingNeuralOrb(QOpenGLWidget):
         degreesPerTick: float = 0.4,
         evolutionSpeed: float = 0.03,
     ) -> None:
+        # Alpha-capable surface before the native window is created
+        lFmt = QSurfaceFormat()
+        lFmt.setSamples(4)
+        lFmt.setAlphaBufferSize(8)
+        lFmt.setDepthBufferSize(24)
+        lFmt.setStencilBufferSize(0)
+        lFmt.setSwapBehavior(QSurfaceFormat.SwapBehavior.DoubleBuffer)
+        lFmt.setRenderableType(QSurfaceFormat.RenderableType.OpenGL)
+
         super().__init__(parent)
         self.setObjectName("EvolvingNeuralOrb")
+        self.setFormat(lFmt)
+
+        # Transparent widget chrome (no opaque system / style fill)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, False)
+        self.setAutoFillBackground(False)
+        self.setStyleSheet("background: transparent; border: none;")
+
+        lPalette = self.palette()
+        lPalette.setColor(QPalette.ColorRole.Window, QColor(0, 0, 0, 0))
+        lPalette.setColor(QPalette.ColorRole.Base, QColor(0, 0, 0, 0))
+        self.setPalette(lPalette)
 
         self._angleY: float = 0.0
         self._angleX: float = 18.0
@@ -219,12 +240,6 @@ class EvolvingNeuralOrb(QOpenGLWidget):
         self._timer.timeout.connect(self._onTick)
         self._timer.start(revolutionMs)
 
-        lFmt = QSurfaceFormat()
-        lFmt.setSamples(4)
-        lFmt.setAlphaBufferSize(8)
-        lFmt.setDepthBufferSize(24)
-        self.setFormat(lFmt)
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setMinimumSize(200, 200)
 
     # ------------------------------------------------------------------ public API
@@ -267,6 +282,7 @@ class EvolvingNeuralOrb(QOpenGLWidget):
         glEnable(GL_BLEND)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
         glShadeModel(GL_SMOOTH)
+        # Fully transparent clear — parent window shows through
         glClearColor(0.0, 0.0, 0.0, 0.0)
         self._startMeshBake()
 
@@ -286,6 +302,7 @@ class EvolvingNeuralOrb(QOpenGLWidget):
                 self._meshReady = False
             self._pendingBake = None
 
+        glClearColor(0.0, 0.0, 0.0, 0.0)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glLoadIdentity()
         glTranslatef(0.0, 0.05, -3.15)
@@ -302,7 +319,6 @@ class EvolvingNeuralOrb(QOpenGLWidget):
 
     # ---------------------------------------------------------------- preview (while baking)
     def _drawPreviewSphere(self, radius: float = 1.0, bands: int = 28) -> None:
-        """Lightweight procedural sphere until VBOs are ready — not an image wrap."""
         lPhase = self._evolutionPhase
         for lLat in range(bands):
             lTheta1 = lLat * pi / bands
@@ -319,7 +335,6 @@ class EvolvingNeuralOrb(QOpenGLWidget):
                 glVertex3f(*_spherePoint(radius * 0.97, lTheta2, lPhi))
             glEnd()
 
-        # sparse mesh preview
         glLineWidth(1.2)
         for lLat in range(0, bands, 2):
             lTheta = lLat * pi / bands
@@ -391,7 +406,6 @@ class EvolvingNeuralOrb(QOpenGLWidget):
         for lI in range(self._coreCount):
             lLonT = self._coreLon[lI] if lI < len(self._coreLon) else 0.0
             lR, lG, lB = self._lonRgb(lLonT, lPhase)
-            # dark interior, logo-like
             lColors.extend((lR * 0.10, lG * 0.12, lB * 0.22 + 0.04, 0.96))
         return lColors.tobytes()
 
@@ -481,6 +495,8 @@ class EvolvingNeuralOrb(QOpenGLWidget):
         lPainter = QPainter(self)
         lPainter.setRenderHint(QPainter.RenderHint.Antialiasing)
         lPainter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
+        # Do not fill the widget rect — preserves GL alpha outside the orb/text
+        lPainter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
 
         lW, lH = self.width(), self.height()
         if lW < 8 or lH < 8:
