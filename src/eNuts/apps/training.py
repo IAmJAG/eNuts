@@ -25,48 +25,39 @@ async def _training(app: QApplication, *args, **kwargs):
 
     lShutdownEvent: Event = Event()
 
-    def _onAboutToQuit() -> None:
-        lShutdownEvent.set()
-
-    app.aboutToQuit.connect(_onAboutToQuit)
-    app.setQuitOnLastWindowClosed(True)
-
     if platform == "win32":
         windll.shell32.SetCurrentProcessExplicitAppUserModelID(cfg.applicationId)
 
-    try:
-        lWin: MainWindow = MainWindow(*args, **kwargs)
-        app.setStyleSheet(cfg.styleSheet)
-        lWin.Show(ShowAnimation.SlideTop, 500)
+    lWin: MainWindow = MainWindow(*args, **kwargs)
+    app.setStyleSheet(cfg.styleSheet)
+    lWin.show()
 
-        # Keep the event loop alive until the last window closes / aboutToQuit.
-        # Note: builtins.wait is time.sleep (see __monkeyPatch); do not use it here.
+    try:
         await lShutdownEvent.wait()
 
     except CancelledError:
         raise
 
     except Exception as ex:
-        error(f"Unhandled exception: {type(ex).__name__}: {ex}")
+        raise ex
 
     finally:
-        debug("entering finally")
-        if not lShutdownEvent.is_set():
-            lShutdownEvent.set()
-        debug("leaving finally")
+        if not lShutdownEvent.is_set(): lShutdownEvent.set()
 
     app.quit()
 
 
 # ==================================================================================================
 def program(*args):
-    debug("App Main Started")
-    app: QApplication = QApplication()
-    loop: QEventLoop = QEventLoop(app)
+    try:
+        app: QApplication = QApplication()
+        loop: QEventLoop = QEventLoop(app)
+        set_event_loop(loop)
+        with loop:
+            loop.run_until_complete(_training(app, *args))
 
-    set_event_loop(loop)
-    with loop:
-        loop.run_until_complete(_training(app))
+    except Exception as ex:
+        raise ex
 
 
 # ==================================================================================================

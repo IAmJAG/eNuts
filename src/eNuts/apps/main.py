@@ -34,8 +34,9 @@ async def _training(app: QApplication, *args, **kwargs):
         windll.shell32.SetCurrentProcessExplicitAppUserModelID(cfg.applicationId)
 
     try:
-        lWin: MainWindow = MainWindow(*args, **kwargs)
         app.setStyleSheet(cfg.styleSheet)
+
+        lWin: MainWindow = MainWindow(*args, **kwargs)        
         lWin.show()
 
         # Keep the event loop alive until the last window closes / aboutToQuit.
