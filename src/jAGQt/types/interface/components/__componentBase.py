@@ -1,5 +1,5 @@
 # ==================================================================================
-# src/jAGQt/types/interface/widgets/__icomponent.py
+# src/jAGQt/types/interface/components/__componentBase.py
 # ==================================================================================
 from PySide6.QtCore import QMargins
 from PySide6.QtWidgets import QBoxLayout, QWidget

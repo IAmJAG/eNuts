@@ -35,6 +35,7 @@ try:
         glViewport,
     )
     from OpenGL.GLU import gluPerspective
+
 except ImportError as ex:
     raise ImportError(
         "PyOpenGL is required for RevolvingNeuralOrb. "
@@ -47,11 +48,8 @@ class RevolvingNeuralOrb(QOpenGLWidget):
     """Continuously revolving neural-web sphere (Option-5 style)."""
 
     def __init__(
-        self,
-        parent: Optional[QWidget] = None,
-        *,
-        revolutionMs: int = 16,
-        degreesPerTick: float = 0.6,
+        self, parent: Optional[QWidget] = None, *,
+        revolutionMs: int = 16, degreesPerTick: float = 0.6,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("RevolvingNeuralOrb")
@@ -69,7 +67,7 @@ class RevolvingNeuralOrb(QOpenGLWidget):
         self.setFormat(lFmt)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
-    # ------------------------------------------------------------------ public API
+# ================================================================================== public API
     def SetRevolutionSpeed(self, degreesPerTick: float) -> None:
         """Positive = clockwise, negative = counter-clockwise."""
         self._degreesPerTick = degreesPerTick
@@ -81,12 +79,12 @@ class RevolvingNeuralOrb(QOpenGLWidget):
         if not self._timer.isActive():
             self._timer.start()
 
-    # ----------------------------------------------------------------- private slots
+# ================================================================================== private slots
     def _onTick(self) -> None:
         self._angleY = (self._angleY + self._degreesPerTick) % 360.0
         self.update()
 
-    # ---------------------------------------------------------------- OpenGL hooks
+# ================================================================================== OpenGL hooks
     def initializeGL(self) -> None:
         glEnable(GL_DEPTH_TEST)
         glShadeModel(GL_SMOOTH)
@@ -107,10 +105,8 @@ class RevolvingNeuralOrb(QOpenGLWidget):
         glRotatef(self._angleY, 0.0, 1.0, 0.0)
         self._drawNeuralSphere(radius=1.0, latitudeBands=18, longitudeBands=24)
 
-    # ---------------------------------------------------------------- drawing helpers
-    def _drawNeuralSphere(
-        self, radius: float, latitudeBands: int, longitudeBands: int
-    ) -> None:
+# ================================================================================== drawing helpers
+    def _drawNeuralSphere(self, radius: float, latitudeBands: int, longitudeBands: int) -> None:
         for lLat in range(latitudeBands):
             lTheta1 = lLat * pi / latitudeBands
             lTheta2 = (lLat + 1) * pi / latitudeBands

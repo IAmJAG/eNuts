@@ -3,13 +3,16 @@
 # ==================================================================================
 from __future__ import annotations
 
-from array import array
+# ==================================================================================
 import re
+
+# ==================================================================================
+from array import array
 from math import cos, pi, sin
 from typing import Optional
 
 # ==================================================================================
-from PySide6.QtCore import QThread, QTimer, Qt, Signal
+from PySide6.QtCore import Qt, QThread, QTimer, Signal
 from PySide6.QtGui import (
     QColor,
     QFont,
@@ -33,13 +36,13 @@ try:
         GL_DEPTH_TEST,
         GL_DYNAMIC_DRAW,
         GL_FLOAT,
-        GL_LINES,
         GL_LINE_SMOOTH,
+        GL_LINES,
         GL_MODELVIEW,
         GL_ONE,
         GL_ONE_MINUS_SRC_ALPHA,
-        GL_POINTS,
         GL_POINT_SMOOTH,
+        GL_POINTS,
         GL_PROJECTION,
         GL_QUAD_STRIP,
         GL_SMOOTH,
@@ -75,6 +78,7 @@ try:
         glViewport,
     )
     from OpenGL.GLU import gluPerspective
+
 except ImportError as ex:
     raise ImportError(
         "PyOpenGL is required for EvolvingNeuralOrb. "
@@ -180,18 +184,12 @@ class _MeshBakeWorker(QThread):
             }
         )
 
-
 # ==================================================================================
 class EvolvingNeuralOrb(QOpenGLWidget):
     """3D eNuts logo orb — smaller sphere above the base wordmark."""
 
-    def __init__(
-        self,
-        parent: Optional[QWidget] = None,
-        *,
-        revolutionMs: int = 16,
-        degreesPerTick: float = 0.4,
-        evolutionSpeed: float = 0.03,
+    def __init__(self, parent: Optional[QWidget] = None, *,
+        revolutionMs: int = 16, degreesPerTick: float = 0.4, evolutionSpeed: float = 0.03,
     ) -> None:
         lFmt = QSurfaceFormat()
         lFmt.setSamples(4)

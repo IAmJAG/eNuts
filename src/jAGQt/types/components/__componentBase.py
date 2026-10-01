@@ -30,8 +30,7 @@ class ComponentBase(iComponentBase):
     @property
     def Layout(self: QWidget) -> QLayout:
         lLayout = getattr(self, "_layout", None)
-        if lLayout is not None:
-            return lLayout
+        if lLayout is not None: return lLayout
 
         return self.layout()
 

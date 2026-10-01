@@ -3,13 +3,13 @@
 # ==================================================================================
 from __future__ import annotations
 
+import re
 from array import array
 from math import cos, pi, sin, sqrt
-import re
 from typing import Optional
 
 # ==================================================================================
-from PySide6.QtCore import QThread, QTimer, Qt, Signal
+from PySide6.QtCore import Qt, QThread, QTimer, Signal
 from PySide6.QtGui import (
     QColor,
     QFont,
@@ -17,7 +17,6 @@ from PySide6.QtGui import (
     QPainter,
     QPalette,
     QPen,
-    QRadialGradient,
     QSurfaceFormat,
 )
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
@@ -34,13 +33,13 @@ try:
         GL_DEPTH_TEST,
         GL_DYNAMIC_DRAW,
         GL_FLOAT,
-        GL_LINES,
         GL_LINE_SMOOTH,
+        GL_LINES,
         GL_MODELVIEW,
         GL_ONE,
         GL_ONE_MINUS_SRC_ALPHA,
-        GL_POINTS,
         GL_POINT_SMOOTH,
+        GL_POINTS,
         GL_PROJECTION,
         GL_SMOOTH,
         GL_SRC_ALPHA,
@@ -75,12 +74,12 @@ try:
         glViewport,
     )
     from OpenGL.GLU import gluPerspective
+
 except ImportError as ex:
     raise ImportError(
         "PyOpenGL is required for EvolvingNeuralBrain. "
         "pip install PyOpenGL PyOpenGL-accelerate"
     ) from ex
-
 
 # ==================================================================================
 def _hash01(i: int, j: int = 0) -> float:
@@ -88,7 +87,6 @@ def _hash01(i: int, j: int = 0) -> float:
     n = (i * 374761393 + j * 668265263) & 0x7FFFFFFF
     n = (n ^ (n >> 13)) * 1274126177
     return ((n ^ (n >> 16)) & 0x7FFFFFFF) / 2147483647.0
-
 
 def _brainPoint(u: float, v: float, side: float) -> tuple[float, float, float]:
     """Parametric dual-hemisphere brain surface (u lat, v lon, side ±1)."""
@@ -122,26 +120,17 @@ def _brainPoint(u: float, v: float, side: float) -> tuple[float, float, float]:
     y += 0.08
     return (x, y, z)
 
-
 # ==================================================================================
 class _BrainBakeWorker(QThread):
     """CPU bake of brain surface + vein polylines."""
-
     Baked = Signal(object)
-
-    def __init__(
-        self,
-        latBands: int = 28,
-        lonBands: int = 36,
-        parent: Optional[QWidget] = None,
-    ) -> None:
+    def __init__(self, latBands: int = 28, lonBands: int = 36, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._latBands = latBands
         self._lonBands = lonBands
 
     def run(self) -> None:
-        if self.isInterruptionRequested():
-            return
+        if self.isInterruptionRequested(): return
 
         lSurfPos = array("f")
         lSurfNormHint = array("f")  # store (u,v,side) as attributes for shading
@@ -241,21 +230,16 @@ class _BrainBakeWorker(QThread):
             }
         )
 
-
 # ==================================================================================
 class EvolvingNeuralBrain(QOpenGLWidget):
-    """Realistic dual-hemisphere brain with pulsing veins and chrome eNuts.
-
-    Background clear color follows the applied application stylesheet theme.
     """
+        Realistic dual-hemisphere brain with pulsing veins and chrome eNuts.
 
+        Background clear color follows the applied application stylesheet theme.
+    """
     def __init__(
-        self,
-        parent: Optional[QWidget] = None,
-        *,
-        revolutionMs: int = 16,
-        degreesPerTick: float = 0.22,
-        evolutionSpeed: float = 0.035,
+        self, parent: Optional[QWidget] = None, *, revolutionMs: int = 16,
+        degreesPerTick: float = 0.22, evolutionSpeed: float = 0.035,
     ) -> None:
         lFmt = QSurfaceFormat()
         lFmt.setSamples(4)
