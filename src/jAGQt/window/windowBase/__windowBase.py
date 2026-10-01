@@ -25,16 +25,19 @@ class WindowBase(QMainWindow, ComponentBase):
         self.Name = name if name else getRandomName()
 
     def _wInitializeUI(self) -> None:
-        if self.centralWidget() is None:
-            self.setCentralWidget(QWidget())
+        # A QMainWindow must never receive a layout directly: its internal QMainWindowLayout
+        # would be destroyed by the replacement. The layout goes on the central widget.
+        lCentral: QWidget = self.centralWidget()
+        if lCentral is None:
+            lCentral = QWidget()
+            self.setCentralWidget(lCentral)
 
         if self._layout is None:
-            self.Layout = QBoxLayout(QBoxLayout.Direction.TopToBottom)
+            self._layout = QBoxLayout(QBoxLayout.Direction.TopToBottom)
             self.ContentSpacing = 0
             self.ContentMargins = 0
-            
-        else:
-            self.Layout = self._layout
+
+        lCentral.setLayout(self._layout)
 
         
 

@@ -5,7 +5,7 @@ from typing import List, Set, Tuple
 
 # ==================================================================================
 from PySide6.QtCore import QMargins
-from PySide6.QtWidgets import QBoxLayout, QFormLayout, QGridLayout, QLayout, QWidget
+from PySide6.QtWidgets import QBoxLayout, QFormLayout, QGridLayout, QLayout, QMainWindow, QWidget
 
 
 # ==================================================================================
@@ -76,17 +76,31 @@ def _replaceNestedLayout(parent: QLayout, index: int, newLayout: QLayout) -> Non
 
 
 def replaceLayout(widget: QWidget, oldLayout: QLayout | None, newLayout: QLayout) -> None:
-    """Install newLayout on widget, replacing oldLayout in its exact nesting position when present."""
+    """Install newLayout on widget, replacing oldLayout in its exact nesting position when present.
+
+    Existing layouts are detached with ``setParent(None)`` instead of being handed to a
+    temporary QWidget: transferring ownership to a throwaway widget lets its C++ destructor
+    run immediately and delete the layout, leaving the real widget with a dangling pointer.
+    """
+    # A QMainWindow owns a Qt-internal QMainWindowLayout which must never be detached from
+    # its window, so the layout swap happens on the central widget instead.
+    if isinstance(widget, QMainWindow):
+        lCentral: QWidget = widget.centralWidget()
+        if lCentral is None:
+            lCentral = QWidget()
+            widget.setCentralWidget(lCentral)
+        widget = lCentral
+
     if oldLayout is None or oldLayout is newLayout:
         lTop = widget.layout()
         if lTop is not None and lTop is not newLayout:
-            QWidget().setLayout(lTop)
+            lTop.setParent(None)
         widget.setLayout(newLayout)
         return
 
     lTop = widget.layout()
     if lTop is oldLayout:
-        QWidget().setLayout(oldLayout)
+        oldLayout.setParent(None)
         widget.setLayout(newLayout)
         return
 
@@ -96,5 +110,5 @@ def replaceLayout(widget: QWidget, oldLayout: QLayout | None, newLayout: QLayout
         return
 
     if lTop is not None and lTop is not newLayout:
-        QWidget().setLayout(lTop)
+        lTop.setParent(None)
     widget.setLayout(newLayout)

@@ -25,21 +25,27 @@ async def _training(app: QApplication, *args, **kwargs):
 
     lShutdownEvent: Event = Event()
 
+    def _onAboutToQuit() -> None:
+        lShutdownEvent.set()
+
+    app.aboutToQuit.connect(_onAboutToQuit)
+    app.setQuitOnLastWindowClosed(True)
+
     if platform == "win32":
         windll.shell32.SetCurrentProcessExplicitAppUserModelID(cfg.applicationId)
 
-    lWin: MainWindow = MainWindow(*args, **kwargs)
-    app.setStyleSheet(cfg.styleSheet)
-    lWin.show()
-
     try:
+        lWin: MainWindow = MainWindow(*args, **kwargs)
+        app.setStyleSheet(cfg.styleSheet)
+        lWin.show()
+
         await lShutdownEvent.wait()
 
     except CancelledError:
         raise
 
     except Exception as ex:
-        raise ex
+        error(f"Unhandled exception: {type(ex).__name__}: {ex}")
 
     finally:
         if not lShutdownEvent.is_set(): lShutdownEvent.set()
@@ -49,15 +55,13 @@ async def _training(app: QApplication, *args, **kwargs):
 
 # ==================================================================================================
 def program(*args):
-    try:
-        app: QApplication = QApplication()
-        loop: QEventLoop = QEventLoop(app)
-        set_event_loop(loop)
-        with loop:
-            loop.run_until_complete(_training(app, *args))
+    debug("App Main Started")
+    app: QApplication = QApplication()
+    loop: QEventLoop = QEventLoop(app)
 
-    except Exception as ex:
-        raise ex
+    set_event_loop(loop)
+    with loop:
+        loop.run_until_complete(_training(app))
 
 
 # ==================================================================================================
