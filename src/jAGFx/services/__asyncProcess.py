@@ -22,7 +22,7 @@ class AsyncProcess(iService, AsyncSubscription):
         if work is None or not iscoroutinefunction(work):
             raise TypeError("AsyncProcess requires an awaitable (coroutine function) work argument")
 
-        self.work: Callable[..., Awaitable] = work
+        self._work: Callable[..., Awaitable] = work
         self._name: str = name or getRandomName()
         self._process: Process | None = None
         self._shutdownEvent: SyncEvent | None = None
@@ -60,7 +60,7 @@ class AsyncProcess(iService, AsyncSubscription):
             async def _runner() -> None:
                 await self.asyncRaiseEvent("ON_STARTED")
                 try:
-                    await self.work(shutdownEvent, *args, **kwargs)
+                    await self._work(shutdownEvent, *args, **kwargs)
                 finally:
                     await self.asyncRaiseEvent("ON_STOPPED")
 
