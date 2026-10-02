@@ -13,7 +13,7 @@ C_MAX_FRAME_BYTES: int = 32 * 1024 * 1024  # 32 MiB ceiling
 def _ParseFrameHeader(ptsBytes: bytes, sizeBytes: bytes) -> tuple[int, int]:
     lPts = int.from_bytes(ptsBytes, byteorder="big")
     lSize = int.from_bytes(sizeBytes, byteorder="big")
-    if lSize < 0 or lSize > C_MAX_FRAME_BYTES:
+    if lSize < 0 or lSize > C_MAX_FRAME_BYTES: 
         raise ValueError(f"Invalid frame size {lSize} (max {C_MAX_FRAME_BYTES})")
     return lPts, lSize
 
@@ -26,6 +26,7 @@ def ReadSingleFrame(sckt: socket) -> tuple[int, bytes] | None:
     try:
         lPtsBytes = ReadExact(sckt, 8)
         lSizeBytes = ReadExact(sckt, 4)
+
     except ConnectionError:
         return None
 
@@ -33,10 +34,7 @@ def ReadSingleFrame(sckt: socket) -> tuple[int, bytes] | None:
     lPayload = ReadExact(sckt, lSize)
     return lPts, lPayload
 
-
-async def AsyncReadSingleFrame(
-    sckt: socket, loop: AbstractEventLoop
-) -> tuple[int, bytes] | None:
+async def AsyncReadSingleFrame(sckt: socket, loop: AbstractEventLoop ) -> tuple[int, bytes] | None:
     """
     Async counterpart of ReadSingleFrame.
     Returns (pts, payload) or None on clean EOF before a full header.
