@@ -1,5 +1,6 @@
 # ==================================================================================
-from asyncio import AbstractEventLoop, Task, get_running_loop, run as asyncioRun, to_thread
+from asyncio import AbstractEventLoop, Task, get_running_loop, to_thread
+from asyncio import run as asyncioRun
 from multiprocessing import Event, Process
 from multiprocessing.synchronize import Event as SyncEvent
 from typing import Awaitable, Callable
@@ -56,6 +57,7 @@ class AsyncProcess(iService, AsyncSubscription):
                 await self.raiseEvent("ON_STARTED")
                 try:
                     await self.work(shutdownEvent, *args, **kwargs)
+                    
                 finally:
                     await self.raiseEvent("ON_STOPPED")
 
@@ -74,21 +76,19 @@ class AsyncProcess(iService, AsyncSubscription):
         self._shutdownEvent = lShutdownEvent
 
     async def _stopAsync(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
-        self._assertStopReady()
-
         if self._shutdownEvent is not None:
             self._shutdownEvent.set()
 
         lProcess = self._process
-        if lProcess is None:
-            return
+        if lProcess is None: return
 
         if lProcess.is_alive():
             if forced:
                 lProcess.terminate()
+
             await to_thread(lProcess.join, timeout)
 
-            if lProcess.is_alive() and forced:
+            if lProcess.is_alive():
                 lProcess.kill()
                 await to_thread(lProcess.join, 1.0)
 
@@ -102,6 +102,7 @@ class AsyncProcess(iService, AsyncSubscription):
 
         try:
             lLoop: AbstractEventLoop = get_running_loop()
+
         except RuntimeError:
             # No running event loop – perform stop synchronously
             if self._shutdownEvent is not None:
@@ -109,13 +110,17 @@ class AsyncProcess(iService, AsyncSubscription):
 
             lProcess = self._process
             if lProcess is not None:
-                lProcess.join(timeout)
-                if lProcess.is_alive() and forced:
+                if not forced: lProcess.join(timeout)
+
+                # this becomes forced termination if the process is still alive after the timeout
+                if lProcess.is_alive():
                     lProcess.terminate()
                     lProcess.join(timeout)
+
                     if lProcess.is_alive():
                         lProcess.kill()
                         lProcess.join(1.0)
+
                 lProcess.close()
 
             self._process = None
@@ -130,8 +135,10 @@ class AsyncProcess(iService, AsyncSubscription):
         def _onDone(t: Task) -> None:
             try:
                 t.result()
+
             except Exception:
                 pass
+            
             lLoop.create_task(self.raiseEvent("ON_STOPPED"))
 
         lTask.add_done_callback(_onDone)

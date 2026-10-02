@@ -40,7 +40,28 @@ class AsyncSubscription(Subscription):
     def unsubscribe(self, event: str, callback: Callable[..., Awaitable]):
         super().unsubscribe(event, callback)
 
-    async def raiseEvent(self, event: str, *args, **kwargs):
+    def raiseEvent(self, event: str, *args, **kwargs):
         if event in self._callbacks:
             for callback in self._callbacks[event]:
-                await callback(*args, **kwargs)
+                if callable(callback):
+                    if isinstance(callback, Awaitable):
+                        createTask(callback, *args, **kwargs)
+
+                    else:
+                        callback(*args, **kwargs)
+
+                else:
+                    raise TypeError(f"Callback for event '{event}' is not callable.")
+
+    async def asyncRaiseEvent(self, event: str, *args, **kwargs):
+        if event in self._callbacks:
+            for callback in self._callbacks[event]:
+                if callable(callback):
+                    if isinstance(callback, Awaitable):
+                        await callback(*args, **kwargs)
+
+                    else:
+                        callback(*args, **kwargs)
+
+                else:
+                    raise TypeError(f"Callback for event '{event}' is not callable.")
