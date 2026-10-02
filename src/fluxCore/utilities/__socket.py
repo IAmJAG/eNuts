@@ -2,91 +2,54 @@
 from asyncio import AbstractEventLoop
 from socket import socket
 
+# ==================================================================================
+C_RECV_CHUNK: int = 65535
+
 
 # ==================================================================================
-async def asyncReadExact(sckt: socket, numBytes: int, loop: AbstractEventLoop) -> bytes:
-    data: bytes = b""
-    while len(data) < numBytes:
-        try:
-            chunk = await loop.sock_recv(sckt, numBytes - len(data))
-            if not chunk:
-                raise ConnectionError(
-                    "Video stream is disconnected before data is complete"
-                )
-
-            data += chunk
-
-        except Exception as e:
-            raise Exception(f"Error during receive: {e}") from e
-
-    return data
+def ReadExact(sckt: socket, numBytes: int) -> bytes:
+    lData = bytearray()
+    while len(lData) < numBytes:
+        lChunk = sckt.recv(numBytes - len(lData))
+        if not lChunk:
+            raise ConnectionError("Socket disconnected before exact data received")
+        lData.extend(lChunk)
+    return bytes(lData)
 
 
-async def asyncReadAll(sckt: socket, loop: AbstractEventLoop) -> bytes:
-    data: bytes = b""
+async def AsyncReadExact(
+    sckt: socket, numBytes: int, loop: AbstractEventLoop
+) -> bytes:
+    lData = bytearray()
+    while len(lData) < numBytes:
+        lChunk = await loop.sock_recv(sckt, numBytes - len(lData))
+        if not lChunk:
+            raise ConnectionError("Socket disconnected before exact data received")
+        lData.extend(lChunk)
+    return bytes(lData)
+
+
+def ReadAll(sckt: socket, maxBytes: int | None = None) -> bytes:
+    lData = bytearray()
     while True:
-        try:
-            chunk = await loop.sock_recv(sckt, 65535)
-            if not chunk:
-                break
-            data += chunk
-
-        except Exception as e:
-            raise Exception(f"Error during receive: {e}") from e
-
-    return data
-
-
-def readExact(socket: socket, numBytes: int) -> bytes:
-    data = b""
-    while len(data) < numBytes:
-        chunk = socket.recv(numBytes - len(data))
-        if not chunk:
-            raise ConnectionError("Video stream is disconnected")
-
-        data += chunk
-    return data
-
-
-def readAll(socket: socket) -> bytes:
-    data = b""
-    while True:
-        chunk = socket.recv(65535)
-        if not chunk:
+        lChunk = sckt.recv(C_RECV_CHUNK)
+        if not lChunk:
             break
-        data += chunk
-    return data
+        lData.extend(lChunk)
+        if maxBytes is not None and len(lData) > maxBytes:
+            raise ValueError(f"Read exceeded maxBytes={maxBytes}")
+    return bytes(lData)
 
 
-async def asyncReadSingleFrame(lSocket: socket, loop: AbstractEventLoop):
-    lPtsBytes = await loop.sock_recv(lSocket, 8)
-    if not lPtsBytes:
-        return None
-    lPts = int.from_bytes(lPtsBytes, byteorder="big")
-
-    lSizeBytes = await loop.sock_recv(lSocket, 4)
-    if not lSizeBytes:
-        return None
-
-    lActualPacketSize = int.from_bytes(lSizeBytes, byteorder="big")
-
-    lSingleFrameImageBytes = await loop.sock_recv(lSocket, lActualPacketSize)
-
-    return lSingleFrameImageBytes
-
-
-def readSingleFrame(lSocket: socket):
-    lPtsBytes = lSocket.recv(8)
-    if not lPtsBytes:
-        return None
-    lPts = int.from_bytes(lPtsBytes, byteorder="big")
-
-    lSizeBytes = lSocket.recv(4)
-    if not lSizeBytes:
-        return None
-
-    lActualPacketSize = int.from_bytes(lSizeBytes, byteorder="big")
-
-    lSingleFrameImageBytes = lSocket.recv(lActualPacketSize)
-
-    return lPts, lActualPacketSize, lSingleFrameImageBytes
+async def AsyncReadAll(
+    sckt: socket, loop: AbstractEventLoop, maxBytes: int | None = None
+) -> bytes:
+    lData = bytearray()
+    while True:
+        lChunk = await loop.sock_recv(sckt, C_RECV_CHUNK)
+        if not lChunk:
+            break
+        lData.extend(lChunk)
+        if maxBytes is not None and len(lData) > maxBytes:
+            raise ValueError(f"Read exceeded maxBytes={maxBytes}")
+    return bytes(lData)
