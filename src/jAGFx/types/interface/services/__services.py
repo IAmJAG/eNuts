@@ -1,5 +1,5 @@
 # ==================================================================================
-from typing import Protocol, runtime_checkable
+from typing import Awaitable, Callable, Protocol, runtime_checkable
 
 
 # ==================================================================================
@@ -11,8 +11,11 @@ class iService(Protocol):
     @property
     def isRunning(self) -> bool: ...
 
+    work: Callable[..., Awaitable] | None
+
     def start(self, *args, **kwargs) -> None: ...
     def stop(self, *args, **kwargs) -> None: ...
-    
+
+
 # ==================================================================================
 __all__ = ["iService"]
