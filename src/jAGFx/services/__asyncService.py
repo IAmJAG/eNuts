@@ -28,7 +28,7 @@ class AsyncService(iService, AsyncSubscription):
         if work is not None and not iscoroutinefunction(work):
             raise TypeError("AsyncService requires an awaitable (coroutine function) work argument")
 
-        self.work: Callable[..., Awaitable] | None = work
+        self._work: Callable[..., Awaitable] | None = work
         self._name: str = name or getRandomName()
         self._isRunning: bool = False
         self._isStopping: bool = False
@@ -61,7 +61,7 @@ class AsyncService(iService, AsyncSubscription):
             raise RuntimeError(f"Service '{self._name}' is already running.")
         if self._isStopping:
             raise RuntimeError(f"Service '{self._name}' is stopping.")
-        if self.work is None or not iscoroutinefunction(self.work):
+        if self._work is None or not iscoroutinefunction(self._work):
             raise TypeError("AsyncService requires an awaitable (coroutine function) work argument")
 
     def _assertStopReady(self) -> None:
@@ -112,8 +112,9 @@ class AsyncService(iService, AsyncSubscription):
         self.raiseEvent("ON_RESUMED")
 
     async def _serviceLoop(self, *args, **kwargs) -> None:
-        lWork = self.work
-        if lWork is None: return
+        lWork = self._work
+        if lWork is None:
+            return
 
         await self.asyncRaiseEvent("ON_STARTED")
 

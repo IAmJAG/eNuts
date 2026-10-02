@@ -13,6 +13,7 @@ class iService(Protocol):
 
     def start(self, *args, **kwargs) -> None: ...
     def stop(self, *args, **kwargs) -> None: ...
-    
+
+
 # ==================================================================================
 __all__ = ["iService"]
