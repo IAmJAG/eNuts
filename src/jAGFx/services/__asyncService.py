@@ -1,6 +1,7 @@
 # ==================================================================================
-from asyncio import CancelledError, Event, Task, get_running_loop, iscoroutinefunction
+from asyncio import CancelledError, Event, Task, get_running_loop
 from asyncio import sleep as asyncSleep
+from inspect import iscoroutinefunction
 from typing import Awaitable, Callable
 
 # ==================================================================================
@@ -18,10 +19,8 @@ class AsyncService(iService, AsyncSubscription):
     C_DEFAULT_FORCE_AFTER: float = 0.1
 
     def __init__(
-        self,
-        work: Callable[..., Awaitable] | None = None,
-        name: str | None = None,
-        throttle: float = 0.0,
+        self, work: Callable[..., Awaitable] | None = None,
+        name: str | None = None, throttle: float = 0.0
     ) -> None:
         if throttle < 0.0:
             raise ValueError("throttle must be greater than or equal to zero")
@@ -114,8 +113,7 @@ class AsyncService(iService, AsyncSubscription):
 
     async def _serviceLoop(self, *args, **kwargs) -> None:
         lWork = self.work
-        if lWork is None:
-            return
+        if lWork is None: return
 
         await self.asyncRaiseEvent("ON_STARTED")
 
