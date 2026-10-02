@@ -1,6 +1,7 @@
 # ==================================================================================
-from asyncio import AbstractEventLoop, Task, get_running_loop, iscoroutinefunction, to_thread
+from asyncio import AbstractEventLoop, Task, get_running_loop, to_thread
 from asyncio import run as asyncioRun
+from inspect import iscoroutinefunction
 from multiprocessing import Event, Process
 from multiprocessing.synchronize import Event as SyncEvent
 from typing import Awaitable, Callable
