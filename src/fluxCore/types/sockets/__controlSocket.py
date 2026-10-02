@@ -1,13 +1,10 @@
 # ==================================================================================
-# src/fluxCore/types/interface/sockets/__controlSocket.py
+# src/fluxCore/types/sockets/__controlSocket.py
 # ==================================================================================
-from typing import Protocol, runtime_checkable
-
-# ==================================================================================
-from .__socket import iSocket
+from ...types.interface.sockets import iControlSocket
+from .__socket import SocketBase
 
 
 # ==================================================================================
-@runtime_checkable
-class iControlSocket(iSocket, Protocol): ...
+class ControlSocket(SocketBase, iControlSocket): ...
     

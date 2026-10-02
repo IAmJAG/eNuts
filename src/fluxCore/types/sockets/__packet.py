@@ -1,14 +1,22 @@
 # ==================================================================================
-# src/fluxCore/types/interface/sockets/__frame.py
+# src/fluxCore/types/sockets/__packet.py
 # ==================================================================================
-from typing import Protocol, runtime_checkable
+from time import time
+
+# ==================================================================================
+from ..interface.sockets import iPacket
 
 
 # ==================================================================================
-@runtime_checkable
-class iPacket(Protocol):
-    def __init__(self, data: bytes): ...
+class Packet(iPacket):
+    def __init__(self, data: bytes): 
+        self._createdAt: float = time()
+        self._payload: bytes = data
+    
     @property
-    def createdAt(self) -> float: ...
+    def createdAt(self) -> float: 
+        return self._createdAt
+    
     @property
-    def payload(self) -> bytes: ...
+    def payload(self) -> bytes: 
+        return self._payload
