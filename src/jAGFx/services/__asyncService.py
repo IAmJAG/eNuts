@@ -1,7 +1,6 @@
 # ==================================================================================
-from asyncio import CancelledError, Event, Task, get_running_loop
+from asyncio import CancelledError, Event, Task, get_running_loop, iscoroutinefunction
 from asyncio import sleep as asyncSleep
-from time import sleep
 from typing import Awaitable, Callable
 
 # ==================================================================================
@@ -9,26 +8,35 @@ from jAGFx.names import getRandomName
 
 # ==================================================================================
 from ..types.interface.services import iService
+from .__subscription import AsyncSubscription
 
 
 # ==================================================================================
-class AsyncService(iService):
+class AsyncService(iService, AsyncSubscription):
     """Run one asynchronous unit of work as a managed asyncio task."""
 
-    def __init__(self, unitOfWork: Callable[..., Awaitable] | None = None,
-        name: str | None = None, throttle: float = 0.0,
+    C_DEFAULT_FORCE_AFTER: float = 0.1
+
+    def __init__(
+        self,
+        work: Callable[..., Awaitable] | None = None,
+        name: str | None = None,
+        throttle: float = 0.0,
     ) -> None:
         if throttle < 0.0:
             raise ValueError("throttle must be greater than or equal to zero")
 
-        self._name = getRandomName() if name is None else name
-        self._work = unitOfWork
-        self._isRunning = False
-        self._isStopping = False
-        self._pauseEvent = Event()
+        if work is not None and not iscoroutinefunction(work):
+            raise TypeError("AsyncService requires an awaitable (coroutine function) work argument")
+
+        self.work: Callable[..., Awaitable] | None = work
+        self._name: str = name or getRandomName()
+        self._isRunning: bool = False
+        self._isStopping: bool = False
+        self._pauseEvent: Event = Event()
         self._pauseEvent.set()
         self._task: Task[None] | None = None
-        self._throttle = throttle
+        self._throttle: float = throttle
 
     @property
     def name(self) -> str:
@@ -46,74 +54,70 @@ class AsyncService(iService):
     def task(self) -> Task[None] | None:
         return self._task
 
-    def start(self, *args, **kwargs) -> None:
+    # Intentionally left as a stub for IntelliSense / type-checker signature
+    async def work(self, *args, **kwargs): ...
+
+    def _assertStartReady(self) -> None:
         if self._isRunning:
-            warning(f"Service {self.name} is already running", RuntimeWarning)
-            return
-
+            raise RuntimeError(f"Service '{self._name}' is already running.")
         if self._isStopping:
-            warning(f"Service {self.name} is stopping", RuntimeWarning)
-            return
+            raise RuntimeError(f"Service '{self._name}' is stopping.")
+        if self.work is None or not iscoroutinefunction(self.work):
+            raise TypeError("AsyncService requires an awaitable (coroutine function) work argument")
 
-        if self._work is None:
-            raise RuntimeError("AsyncService requires a unitOfWork")
+    def _assertStopReady(self) -> None:
+        if not self._isRunning and self._task is None:
+            raise RuntimeError(f"Service '{self._name}' is not running.")
+        if self._isStopping:
+            raise RuntimeError(f"Service '{self._name}' is stopping.")
 
-        runningLoop = get_running_loop()
+    def start(self, *args, **kwargs) -> None:
+        self._assertStartReady()
+        self.raiseEvent("ON_STARTING")
+
+        lLoop = get_running_loop()
         self._isRunning = True
         self._pauseEvent.set()
-        self._starting()
-        self._task = runningLoop.create_task(
+        self._task = lLoop.create_task(
             self._serviceLoop(*args, **kwargs),
             name=self._name,
         )
 
-    def stop(self, forceAfter: float = 0.1) -> None:
-        if not self._isRunning and self._task is None:
-            warning(
-                f"Service {self.name} is not running",
-                RuntimeWarning,
-            )
-            return
-
-        if self._isStopping:
-            warning(f"Service {self.name} is stopping", RuntimeWarning)
-            return
+    def stop(self, forceAfter: float = C_DEFAULT_FORCE_AFTER) -> None:
+        self._assertStopReady()
+        self.raiseEvent("ON_STOPPING")
 
         self._isStopping = True
         self._isRunning = False
         self._pauseEvent.set()
-        self._stopping()
 
-        task: Task = self._task
-        loop = get_running_loop()
-        loop.call_later(forceAfter, self._cancelIfRunning, task)
+        lTask = self._task
+        if lTask is not None:
+            lLoop = get_running_loop()
+            lLoop.call_later(forceAfter, self._cancelIfRunning, lTask)
 
     def _cancelIfRunning(self, task: Task) -> None:
         if not task.done():
             task.cancel()
 
     def pause(self) -> None:
-        if self._isRunning:
-            self._pauseEvent.clear()
-            self._paused()
-            return
-
-        warning(f"Service {self.name} is not running", RuntimeWarning)
+        if not self._isRunning:
+            raise RuntimeError(f"Service '{self._name}' is not running.")
+        self._pauseEvent.clear()
+        self.raiseEvent("ON_PAUSED")
 
     def resume(self) -> None:
-        if self._isRunning:
-            self._pauseEvent.set()
-            self._resumed()
-            return
-
-        warning(f"Service {self.name} is not running", RuntimeWarning)
+        if not self._isRunning:
+            raise RuntimeError(f"Service '{self._name}' is not running.")
+        self._pauseEvent.set()
+        self.raiseEvent("ON_RESUMED")
 
     async def _serviceLoop(self, *args, **kwargs) -> None:
-        work = self._work
-        if work is None:
+        lWork = self.work
+        if lWork is None:
             return
 
-        self._started()
+        await self.asyncRaiseEvent("ON_STARTED")
 
         try:
             while self._isRunning:
@@ -121,7 +125,7 @@ class AsyncService(iService):
                 if not self._isRunning:
                     break
 
-                await work(*args, **kwargs)
+                await lWork(*args, **kwargs)
 
                 if self._throttle:
                     await asyncSleep(self._throttle)
@@ -134,32 +138,7 @@ class AsyncService(iService):
             self._isStopping = False
             self._pauseEvent.set()
             self._task = None
-            self._stopped()
-
-    def setOnStopping(self, callback: callable) -> None:
-        self._stopping = callback
-
-    def setOnStarting(self, callback: callable) -> None:
-        self._starting = callback
-
-    def setOnStop(self, callback: callable) -> None:
-        self._stopped = callback
-
-    def setOnStart(self, callback: callable) -> None:
-        self._started = callback
-
-    def setOnPause(self, callback: callable) -> None:
-        self._paused = callback
-
-    def setOnResume(self, callback: callable) -> None:
-        self._resumed = callback
-
-    def _starting(self): ...
-    def _started(self): ...
-    def _stopping(self): ...
-    def _stopped(self): ...
-    def _paused(self): ...
-    def _resumed(self): ...
+            await self.asyncRaiseEvent("ON_STOPPED")
 
 
 # ==================================================================================
