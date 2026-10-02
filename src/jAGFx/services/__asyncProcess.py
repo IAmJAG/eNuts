@@ -18,6 +18,9 @@ class AsyncProcess(iService, AsyncSubscription):
     C_DEFAULT_STOP_TIMEOUT: float = 5.0
 
     def __init__(self, work: Callable[..., Awaitable], name: str | None = None) -> None:
+        if work is None or not callable(work):
+            raise TypeError("AsyncProcess requires a callable work argument")
+
         self.work: Callable[..., Awaitable] = work
         self._name: str = name or getRandomName()
         self._process: Process | None = None
