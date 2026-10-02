@@ -15,7 +15,6 @@ from PySide6.QtWidgets import QWidget
 from jAGFx.workflow import workflow
 
 # ==================================================================================
-from ..types import ShowAnimation
 from .windowBase import WindowBase
 
 
@@ -25,9 +24,7 @@ class MainWindowBase(WindowBase):
     """Richer foundation for application main-window and dashboard classes."""
 
     def __init__(
-        self, name: str = None,
-        showAnimation: ShowAnimation | str = ShowAnimation.Popup,
-        showAnimationDurationMs: int = 280, *args, **kwargs,
+        self, name: str = None,*args, **kwargs,
     ) -> None:
         super().__init__(name, False, *args, **kwargs)
 

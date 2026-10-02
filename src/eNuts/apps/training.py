@@ -1,5 +1,5 @@
 # ==================================================================================================
-# src/eNuts/apps/main.py
+# src/eNuts/apps/__main.py
 # ==================================================================================================
 from asyncio import CancelledError, Event, set_event_loop
 from ctypes import windll
@@ -11,32 +11,29 @@ from qasync import QEventLoop
 
 # ==================================================================================================
 from jAGFx.types.interface.configuration import iApplicationConfiguration
-from jAGQt.types import ShowAnimation
 
 # ==================================================================================================
 from ..configuration import eNutsConfiguration
+from ..types.interface.application import iShell
 from ..types.interface.configuration import iENUTSConfiguration
 from ..UI.windows import MainWindow
 
 
 # ==================================================================================================
-async def _training(app: QApplication, *args, **kwargs):
+async def training(app: QApplication, *args, **kwargs):
     cfg: iENUTSConfiguration | iApplicationConfiguration = eNutsConfiguration()
 
     lShutdownEvent: Event = Event()
-
-    def _onAboutToQuit() -> None:
-        lShutdownEvent.set()
-
-    app.aboutToQuit.connect(_onAboutToQuit)
+    app.aboutToQuit.connect(lShutdownEvent.set)
     app.setQuitOnLastWindowClosed(True)
 
     if platform == "win32":
         windll.shell32.SetCurrentProcessExplicitAppUserModelID(cfg.applicationId)
 
     try:
-        lWin: MainWindow = MainWindow(*args, **kwargs)
         app.setStyleSheet(cfg.styleSheet)
+
+        lWin: MainWindow = MainWindow(*args, **kwargs)
         lWin.show()
 
         await lShutdownEvent.wait()
@@ -48,20 +45,20 @@ async def _training(app: QApplication, *args, **kwargs):
         error(f"Unhandled exception: {type(ex).__name__}: {ex}")
 
     finally:
-        if not lShutdownEvent.is_set(): lShutdownEvent.set()
+        if not lShutdownEvent.is_set():
+            lShutdownEvent.set()
 
     app.quit()
 
 
 # ==================================================================================================
 def program(*args):
-    debug("App Main Started")
     app: QApplication = QApplication()
     loop: QEventLoop = QEventLoop(app)
 
     set_event_loop(loop)
     with loop:
-        loop.run_until_complete(_training(app))
+        loop.run_until_complete(training(app))
 
 
 # ==================================================================================================

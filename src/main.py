@@ -18,7 +18,7 @@ LOG_LEVEL: int = VERBOSE
 def _program(module: str, app: str, clean: bool = False, *args, **kwargs):
     try:
         moduleNS: str = f"{module}.{app}"
-        addFileHandler(moduleNS, LOG_LEVEL)    
+        addFileHandler(moduleNS, LOG_LEVEL)
         debug(f"Current module namespace: {moduleNS}")
 
         lModule: launchModule = import_module(moduleNS)

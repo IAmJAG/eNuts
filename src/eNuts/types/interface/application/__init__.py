@@ -1,6 +1,6 @@
 # ==================================================================================
-from .__enutsService import ieNutsService
+from .__eNutsService import iENUTSService
 from .__shell import iShell
 
 # ==================================================================================
-__all__ = ["ieNutsService"]
+__all__ = ["iENUTSService"]

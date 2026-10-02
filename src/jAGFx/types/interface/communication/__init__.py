@@ -1,6 +1,6 @@
 # ==================================================================================
-from .__mainWindowBase import MainWindowBase
-from .windowBase import WindowBase
+from .__IOQueue import iIOQueue
+from .__message import iMessage
 
 # ==================================================================================
-__all__ = ["MainWindowBase", "WindowBase"]
+__all__ = ["iMessage", "iIOQueue"]

@@ -11,15 +11,14 @@ from PySide6.QtWidgets import QLayout
 from jAGQt.types.interface.window import iMainWindowBase
 
 # ==================================================================================
-from ..types.interface.application import ieNutsService, iShell
+from ..types.interface.application import iENUTSService, iShell
 
 
 # ==================================================================================
-class TrainingShell(iShell):
+class Shell(iShell):
     def intializeUI(self: iMainWindowBase): 
-        layout: QLayout | None = self.Layout
-
+        layout: QLayout = self.Layout
 
     def initializeInstance(self: iMainWindowBase): ...
-    def bindServices(self, services: List[ieNutsService]): ... 
+    def bindServices(self, services: List[iENUTSService]): ... 
     
