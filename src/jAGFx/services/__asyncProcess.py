@@ -1,5 +1,5 @@
 # ==================================================================================
-from asyncio import AbstractEventLoop, Task, get_running_loop, to_thread
+from asyncio import AbstractEventLoop, Task, get_running_loop, iscoroutinefunction, to_thread
 from asyncio import run as asyncioRun
 from multiprocessing import Event, Process
 from multiprocessing.synchronize import Event as SyncEvent
@@ -18,8 +18,8 @@ class AsyncProcess(iService, AsyncSubscription):
     C_DEFAULT_STOP_TIMEOUT: float = 5.0
 
     def __init__(self, work: Callable[..., Awaitable], name: str | None = None) -> None:
-        if work is None or not callable(work):
-            raise TypeError("AsyncProcess requires a callable work argument")
+        if work is None or not iscoroutinefunction(work):
+            raise TypeError("AsyncProcess requires an awaitable (coroutine function) work argument")
 
         self.work: Callable[..., Awaitable] = work
         self._name: str = name or getRandomName()
