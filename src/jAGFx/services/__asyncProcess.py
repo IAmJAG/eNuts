@@ -54,12 +54,11 @@ class AsyncProcess(iService, AsyncSubscription):
 
         def _processEntry(shutdownEvent: SyncEvent, *args, **kwargs) -> None:
             async def _runner() -> None:
-                await self.raiseEvent("ON_STARTED")
+                await self.asyncRaiseEvent("ON_STARTED")
                 try:
                     await self.work(shutdownEvent, *args, **kwargs)
-                    
                 finally:
-                    await self.raiseEvent("ON_STOPPED")
+                    await self.asyncRaiseEvent("ON_STOPPED")
 
             asyncioRun(_runner())
 
@@ -80,7 +79,8 @@ class AsyncProcess(iService, AsyncSubscription):
             self._shutdownEvent.set()
 
         lProcess = self._process
-        if lProcess is None: return
+        if lProcess is None:
+            return
 
         if lProcess.is_alive():
             if forced:
@@ -102,7 +102,6 @@ class AsyncProcess(iService, AsyncSubscription):
 
         try:
             lLoop: AbstractEventLoop = get_running_loop()
-
         except RuntimeError:
             # No running event loop – perform stop synchronously
             if self._shutdownEvent is not None:
@@ -110,9 +109,10 @@ class AsyncProcess(iService, AsyncSubscription):
 
             lProcess = self._process
             if lProcess is not None:
-                if not forced: lProcess.join(timeout)
+                if not forced:
+                    lProcess.join(timeout)
 
-                # this becomes forced termination if the process is still alive after the timeout
+                # Forced termination if the process is still alive after the timeout
                 if lProcess.is_alive():
                     lProcess.terminate()
                     lProcess.join(timeout)
@@ -135,11 +135,9 @@ class AsyncProcess(iService, AsyncSubscription):
         def _onDone(t: Task) -> None:
             try:
                 t.result()
-
             except Exception:
                 pass
-            
-            lLoop.create_task(self.raiseEvent("ON_STOPPED"))
+            self.raiseEvent("ON_STOPPED")
 
         lTask.add_done_callback(_onDone)
 
