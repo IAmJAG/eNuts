@@ -6,7 +6,7 @@ from typing import Callable, Optional, Union
 # ==================================================================================
 from PySide6.QtCore import QEasingCurve, Qt, Signal
 from PySide6.QtGui import QColor, QIcon, QMouseEvent, QPalette, QPixmap
-from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
+from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QStyle, QWidget
 
 # ==================================================================================
 from jAGQt.types.components import ComponentBase
@@ -23,21 +23,13 @@ from .__sideBarText import SideBarText
 _C_HEADER_OBJECT_NAME = "SideBarGroupHeader"
 _C_HEADER_SELECTED_OBJECT_NAME = "SideBarGroupHeaderSelected"
 
-# Subtle selected panel (secondary to leaf selection)
 _C_SELECTED_BG = QColor("#1c2832")
 _C_IDLE_BG = QColor("#22262c")
 
 
 # ==================================================================================
 class SideBarGroup(QWidget, ComponentBase):
-    """Independent collapsible section/group for the SideBar.
-
-    Header activation expands the group and restores the last selected child
-    when one was cached; otherwise the default (first) child is selected.
-
-    Selected highlight is applied via QPalette so it is always visible,
-    independent of stylesheet dynamic-property quirks.
-    """
+    """Independent collapsible section/group for the SideBar."""
 
     Toggled = Signal(bool)
     ItemClicked = Signal(object)
@@ -80,10 +72,9 @@ class SideBarGroup(QWidget, ComponentBase):
         self._titleWidget = SideBarText(text=title, parent=self._header)
         self._titleWidget.setObjectName("SideBarGroupTitle")
 
-        self._indicator = SideBarText(text="▾", parent=self._header)
+        lIndicatorSize = max(12, min(self._iconSize - 4, 16))
+        self._indicator = SideBarIcon(icon=None, iconSize=lIndicatorSize, parent=self._header)
         self._indicator.setObjectName("SideBarGroupIndicator")
-        self._indicator.setFixedWidth(20)
-        self._indicator.setAlignment(Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter)
 
         lHeaderLayout: QBoxLayout = newLayout(
             QBoxLayout, spacing=6, margins=(8, 6, 8, 6)
@@ -179,11 +170,6 @@ class SideBarGroup(QWidget, ComponentBase):
         return self.GetDefaultItem()
 
     def SetSidebarCollapsed(self, collapsed: bool) -> None:
-        """Called by SideBar when the whole bar collapses/expands.
-
-        Forces icon-only children and hides header text/indicator while the
-        parent sidebar is narrow.
-        """
         self._sidebarCollapsed = bool(collapsed)
         lMode = ItemDisplayMode.IconOnly if self._sidebarCollapsed else ItemDisplayMode.IconAndText
 
@@ -208,7 +194,6 @@ class SideBarGroup(QWidget, ComponentBase):
 
     def Expand(self, animate: bool = True) -> None:
         if self._sidebarCollapsed:
-            # Keep groups closed while the whole sidebar is collapsed
             return
         if not self._collapsed:
             return
@@ -283,6 +268,16 @@ class SideBarGroup(QWidget, ComponentBase):
         return self._body
 
     # ================================================================================== private
+    def _standardIcon(self, standardPixmap: QStyle.StandardPixmap) -> QIcon:
+        return self.style().standardIcon(standardPixmap)
+
+    def _refreshIndicatorIcon(self) -> None:
+        if self._collapsed:
+            lIcon = self._standardIcon(QStyle.StandardPixmap.SP_ArrowRight)
+        else:
+            lIcon = self._standardIcon(QStyle.StandardPixmap.SP_ArrowDown)
+        self._indicator.SetIcon(lIcon)
+
     def _onHeaderClicked(self, event: QMouseEvent) -> None:
         if event.button() != Qt.MouseButton.LeftButton:
             return
@@ -307,7 +302,6 @@ class SideBarGroup(QWidget, ComponentBase):
             _C_HEADER_SELECTED_OBJECT_NAME if self._selected else _C_HEADER_OBJECT_NAME
         )
 
-        # Palette fill is always painted when autoFillBackground is True
         lPalette = self._header.palette()
         lBg = _C_SELECTED_BG if self._selected else _C_IDLE_BG
         lPalette.setColor(QPalette.ColorRole.Window, lBg)
@@ -329,7 +323,7 @@ class SideBarGroup(QWidget, ComponentBase):
             self._body.setMaximumHeight(16777215)
 
     def _applyCollapsedState(self, animate: bool = True) -> None:
-        self._indicator.Text = "▸" if self._collapsed else "▾"
+        self._refreshIndicatorIcon()
 
         if self._collapsed:
             lTargetHeight = 0
