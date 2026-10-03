@@ -40,7 +40,7 @@ class SideBar(QWidget, ComponentBase):
     Width animation is delegated to the generic validated animation utility.
     """
 
-    ItemClicked = Signal(object)          # emits SideBarItem
+    ItemClicked = Signal(object)
     CollapsedChanged = Signal(bool)
     WidthChanged = Signal(int)
 
@@ -65,7 +65,6 @@ class SideBar(QWidget, ComponentBase):
         self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
-        # Configurable state
         self._expandedWidth: int = max(collapsedWidth, expandedWidth)
         self._collapsedWidth: int = max(1, collapsedWidth)
         self._iconSize: int = max(1, iconSize)
@@ -75,7 +74,6 @@ class SideBar(QWidget, ComponentBase):
         self._animationDurationMs: int = max(0, animationDurationMs)
         self._activeAnimation = None
 
-        # Child components
         self._header = SideBarHeader(
             title=title,
             icon=icon,
@@ -94,10 +92,8 @@ class SideBar(QWidget, ComponentBase):
         self._layout.addWidget(self._header)
         self._layout.addWidget(self._content, 1)
 
-        # Wire header collapse button
         self._header.CollapseRequested.connect(self.ToggleCollapsed)
 
-        # Apply initial state
         self._applyCollapsedState(animate=False)
 
     # ================================================================================== public API – items / groups
@@ -141,6 +137,8 @@ class SideBar(QWidget, ComponentBase):
         )
         lGroup.ItemClicked.connect(self._onItemClicked)
         self._content.AddWidget(lGroup)
+        if self._collapsed:
+            lGroup.SetSidebarCollapsed(True)
         return lGroup
 
     def AddSeparator(self, separatorType: SeparatorType = SeparatorType.Line) -> SideBarSeparator:
@@ -261,10 +259,12 @@ class SideBar(QWidget, ComponentBase):
         return self._content
 
     # ================================================================================== private
-    def _applyCollapsedState(self, animate: bool = True) -> None:
-        lTargetWidth = self._collapsedWidth if self._collapsed else self._expandedWidth
-
+    def _syncAllDisplayModes(self) -> None:
+        """Icon-only when collapsed; icon+text when expanded — all items and groups."""
         lMode = ItemDisplayMode.IconOnly if self._collapsed else ItemDisplayMode.IconAndText
+
+        self._header.TitleWidget.setVisible(not self._collapsed)
+
         for lIdx in range(self._content.Count()):
             lW = self._content.ContentLayout.itemAt(lIdx)
             if lW is None:
@@ -273,10 +273,13 @@ class SideBar(QWidget, ComponentBase):
             if isinstance(lWidget, SideBarItem):
                 lWidget.DisplayMode = lMode
             elif isinstance(lWidget, SideBarGroup):
-                if self._collapsed:
-                    lWidget.Collapse(animate=False)
+                lWidget.SetSidebarCollapsed(self._collapsed)
 
-        self._header.TitleWidget.setVisible(not self._collapsed)
+    def _applyCollapsedState(self, animate: bool = True) -> None:
+        lTargetWidth = self._collapsedWidth if self._collapsed else self._expandedWidth
+
+        # Switch display modes immediately so text disappears as width animates
+        self._syncAllDisplayModes()
 
         if animate and self._animationDurationMs > 0 and self.width() != lTargetWidth:
             self.setMaximumWidth(16777215)
@@ -299,17 +302,18 @@ class SideBar(QWidget, ComponentBase):
             )
         else:
             self.setFixedWidth(lTargetWidth)
+            self._syncAllDisplayModes()
             self.WidthChanged.emit(lTargetWidth)
 
     def _onAnimationFinished(self) -> None:
         lWidth = self._collapsedWidth if self._collapsed else self._expandedWidth
         self.setFixedWidth(lWidth)
         self._activeAnimation = None
+        # Re-apply after width settles (guards against layout rebuild side-effects)
+        self._syncAllDisplayModes()
         self.WidthChanged.emit(lWidth)
 
     def _onItemClicked(self, item: SideBarItem) -> None:
-        lOwnerGroup: Optional[SideBarGroup] = None
-
         for lIdx in range(self._content.Count()):
             lW = self._content.ContentLayout.itemAt(lIdx)
             if lW is None:
@@ -321,16 +325,12 @@ class SideBar(QWidget, ComponentBase):
 
             elif isinstance(lWidget, SideBarGroup):
                 lOwns = lWidget.ContainsItem(item)
-                if lOwns:
-                    lOwnerGroup = lWidget
 
-                # Item selection inside the group
                 for lGIdx in range(lWidget.BodyWidget.layout().count()):
                     lGW = lWidget.BodyWidget.layout().itemAt(lGIdx)
                     if lGW and isinstance(lGW.widget(), SideBarItem):
                         lGW.widget().Selected = (lGW.widget() is item)
 
-                # Group selection + auto collapse of non-owners
                 lWidget.Selected = lOwns
                 if lOwns:
                     lWidget.Expand(animate=True)
