@@ -23,11 +23,8 @@ from .__sideBarText import SideBarText
 class SideBarGroup(QWidget, ComponentBase):
     """Independent collapsible section/group for the SideBar.
 
-    Contains a clickable header and a body that can hold items, separators,
-    and nested groups. Collapse/expand animates the body height.
-
-    Clicking the header expands the group and selects the default child item
-    (first SideBarItem) so navigation always has a concrete leaf target.
+    Header activation expands the group and restores the last selected child
+    when one was cached; otherwise the default (first) child is selected.
     """
 
     Toggled = Signal(bool)          # emits new collapsed state
@@ -56,6 +53,7 @@ class SideBarGroup(QWidget, ComponentBase):
         self._iconSize: int = max(1, iconSize)
         self._animationDurationMs: int = max(0, animationDurationMs)
         self._activeAnimation = None
+        self._cachedSelectedItem: Optional[SideBarItem] = None
 
         # ----- Header (clickable) --------------------------------------------
         self._header = QWidget(self)
@@ -139,6 +137,7 @@ class SideBarGroup(QWidget, ComponentBase):
         self._bodyLayout.addStretch(stretch)
 
     def Clear(self) -> None:
+        self._cachedSelectedItem = None
         while self._bodyLayout.count():
             lItem = self._bodyLayout.takeAt(0)
             if lItem.widget():
@@ -159,6 +158,12 @@ class SideBarGroup(QWidget, ComponentBase):
             if lW and isinstance(lW.widget(), SideBarItem):
                 return lW.widget()
         return None
+
+    def GetSelectionTarget(self) -> Optional[SideBarItem]:
+        """Cached leaf if still present; otherwise the default child."""
+        if self._cachedSelectedItem is not None and self.ContainsItem(self._cachedSelectedItem):
+            return self._cachedSelectedItem
+        return self.GetDefaultItem()
 
     # ================================================================================== public API – collapse
     def Collapse(self, animate: bool = True) -> None:
@@ -246,21 +251,20 @@ class SideBarGroup(QWidget, ComponentBase):
         if event.button() != Qt.MouseButton.LeftButton:
             return
 
-        # Always expand when activating the group via header
+        # Activate group: expand, then select cached leaf or default
         self.Expand(animate=True)
 
-        lDefault = self.GetDefaultItem()
-        if lDefault is not None:
-            # Drive the same path as clicking the leaf so selection + navigation run
-            self.ItemClicked.emit(lDefault)
+        lTarget = self.GetSelectionTarget()
+        if lTarget is not None:
+            self.ItemClicked.emit(lTarget)
         else:
             self.Selected = True
 
     def _onChildItemClicked(self, item: SideBarItem) -> None:
+        self._cachedSelectedItem = item
         self.ItemClicked.emit(item)
 
     def _applySelectedState(self) -> None:
-        # String properties match QSS [selected="true"] reliably across styles
         lValue = "true" if self._selected else "false"
         self.setProperty("selected", lValue)
         self._header.setProperty("selected", lValue)
@@ -269,6 +273,14 @@ class SideBarGroup(QWidget, ComponentBase):
             lWidget.style().unpolish(lWidget)
             lWidget.style().polish(lWidget)
             lWidget.update()
+
+    def _applyFinalBodyHeight(self) -> None:
+        if self._collapsed:
+            self._body.setMaximumHeight(0)
+            self._body.setVisible(False)
+        else:
+            self._body.setVisible(True)
+            self._body.setMaximumHeight(16777215)
 
     def _applyCollapsedState(self, animate: bool = True) -> None:
         self._indicator.Text = "▸" if self._collapsed else "▾"
@@ -279,42 +291,35 @@ class SideBarGroup(QWidget, ComponentBase):
 
         if self._collapsed:
             lTargetHeight = 0
-        else:
-            self._body.setVisible(True)
-            self._body.setMaximumHeight(16777215)
-            lTargetHeight = self._body.sizeHint().height()
-
-        if animate and self._animationDurationMs > 0:
             lStart = self._body.height() if self._body.isVisible() else 0
-            if lStart == lTargetHeight and self._collapsed:
-                self._body.setVisible(False)
-                self._body.setMaximumHeight(0)
-                return
-
-            self._body.setVisible(True)
-            self._body.setMaximumHeight(16777215)
-
-            self._activeAnimation = AnimateProperty(
-                self._body,
-                "maximumHeight",
-                lStart if lStart > 0 else self._body.sizeHint().height(),
-                lTargetHeight,
-                durationMs=self._animationDurationMs,
-                easing=QEasingCurve.Type.OutCubic,
-                onFinished=self._onAnimationFinished,
-            )
         else:
-            if self._collapsed:
-                self._body.setMaximumHeight(0)
-                self._body.setVisible(False)
-            else:
-                self._body.setVisible(True)
-                self._body.setMaximumHeight(16777215)
+            self._body.setVisible(True)
+            # Temporarily unlock so sizeHint reflects content
+            self._body.setMaximumHeight(16777215)
+            lTargetHeight = max(0, self._body.sizeHint().height())
+            lStart = 0 if not self._body.isVisible() else self._body.height()
+            # If still fully expanded, start from current height
+            if lStart <= 0:
+                lStart = 0
+
+        if not animate or self._animationDurationMs <= 0 or lStart == lTargetHeight:
+            self._applyFinalBodyHeight()
+            return
+
+        self._body.setVisible(True)
+        # Allow intermediate heights during animation
+        self._body.setMaximumHeight(max(lStart, lTargetHeight, 1))
+
+        self._activeAnimation = AnimateProperty(
+            self._body,
+            "maximumHeight",
+            lStart,
+            lTargetHeight,
+            durationMs=self._animationDurationMs,
+            easing=QEasingCurve.Type.OutCubic,
+            onFinished=self._onAnimationFinished,
+        )
 
     def _onAnimationFinished(self) -> None:
         self._activeAnimation = None
-        if self._collapsed:
-            self._body.setVisible(False)
-            self._body.setMaximumHeight(0)
-        else:
-            self._body.setMaximumHeight(16777215)
+        self._applyFinalBodyHeight()
