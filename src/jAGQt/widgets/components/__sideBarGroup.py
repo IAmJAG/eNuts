@@ -6,7 +6,7 @@ from typing import Callable, Optional, Union
 # ==================================================================================
 from PySide6.QtCore import QEasingCurve, Qt, Signal
 from PySide6.QtGui import QIcon, QMouseEvent, QPixmap
-from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QStyle, QWidget
+from PySide6.QtWidgets import QBoxLayout, QFrame, QSizePolicy, QStyle, QWidget
 
 # ==================================================================================
 from jAGQt.types.components import ComponentBase
@@ -20,13 +20,117 @@ from .__sideBarText import SideBarText
 
 
 # ==================================================================================
-class SideBarGroup(QWidget, ComponentBase):
-    """Independent collapsible section/group for the SideBar.
+def _polish(widget: QWidget) -> None:
+    widget.style().unpolish(widget)
+    widget.style().polish(widget)
+    widget.update()
 
-    The group header is styled as a single unit (same pattern as SideBarItem):
-    WA_StyledBackground + dynamic ``selected`` / ``hover`` properties for QSS.
-    Child icon/text/indicator stay transparent so they never mask the header fill.
+
+def _setDynProp(widget: QWidget, name: str, value: bool) -> None:
+    """Match SideBarItem: string true/false so QSS [prop="true"] resolves."""
+    widget.setProperty(name, "true" if value else "false")
+    _polish(widget)
+
+
+# ==================================================================================
+class SideBarGroupHeader(QFrame, ComponentBase):
+    """Group header styled as one unit (same QSS property pattern as SideBarItem).
+
+    Uses QFrame + WA_StyledBackground so stylesheet backgrounds always paint.
+    Event methods are real overrides (not instance monkey-patches).
     """
+
+    Clicked = Signal()
+
+    def __init__(
+        self,
+        title: str = "",
+        icon: Optional[Union[QIcon, QPixmap, str]] = None,
+        iconSize: int = 20,
+        parent: Optional[QWidget] = None,
+        *args,
+        **kwargs,
+    ) -> None:
+        super().__init__(parent, *args, **kwargs)
+
+        self.setObjectName("SideBarGroupHeader")
+        self.setFrameShape(QFrame.Shape.NoFrame)
+        self.setFrameShadow(QFrame.Shadow.Plain)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+
+        self._selected: bool = False
+
+        self._iconWidget = SideBarIcon(icon=icon, iconSize=iconSize, parent=self)
+        self._titleWidget = SideBarText(text=title, parent=self)
+        self._titleWidget.setObjectName("SideBarGroupTitle")
+
+        lIndicatorSize = max(12, min(iconSize - 4, 16))
+        self._indicator = SideBarIcon(icon=None, iconSize=lIndicatorSize, parent=self)
+        self._indicator.setObjectName("SideBarGroupIndicator")
+
+        for lChild in (self._iconWidget, self._titleWidget, self._indicator):
+            lChild.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+            lChild.setAutoFillBackground(False)
+
+        lLayout: QBoxLayout = newLayout(QBoxLayout, spacing=6, margins=(8, 6, 8, 6))
+        lLayout.setDirection(QBoxLayout.Direction.LeftToRight)
+        self.setLayout(lLayout)
+        lLayout.addWidget(self._iconWidget)
+        lLayout.addWidget(self._titleWidget, 1)
+        lLayout.addWidget(self._indicator)
+
+        _setDynProp(self, "selected", False)
+        _setDynProp(self, "hover", False)
+
+    # ----- state ---------------------------------------------------------------
+    @property
+    def Selected(self) -> bool:
+        return self._selected
+
+    @Selected.setter
+    def Selected(self, value: bool) -> None:
+        lValue = bool(value)
+        if lValue == self._selected:
+            return
+        self._selected = lValue
+        _setDynProp(self, "selected", self._selected)
+
+    @property
+    def TitleWidget(self) -> SideBarText:
+        return self._titleWidget
+
+    @property
+    def IconWidget(self) -> SideBarIcon:
+        return self._iconWidget
+
+    @property
+    def Indicator(self) -> SideBarIcon:
+        return self._indicator
+
+    def SetIndicatorIcon(self, icon: Optional[QIcon]) -> None:
+        self._indicator.SetIcon(icon)
+
+    # ----- events (real overrides) ---------------------------------------------
+    def mousePressEvent(self, event: QMouseEvent) -> None:
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.Clicked.emit()
+        super().mousePressEvent(event)
+
+    def enterEvent(self, event) -> None:
+        _setDynProp(self, "hover", True)
+        super().enterEvent(event)
+
+    def leaveEvent(self, event) -> None:
+        _setDynProp(self, "hover", False)
+        super().leaveEvent(event)
+
+
+# ==================================================================================
+class SideBarGroup(QWidget, ComponentBase):
+    """Independent collapsible section/group for the SideBar."""
 
     Toggled = Signal(bool)
     ItemClicked = Signal(object)
@@ -57,41 +161,14 @@ class SideBarGroup(QWidget, ComponentBase):
         self._cachedSelectedItem: Optional[SideBarItem] = None
         self._sidebarCollapsed: bool = False
 
-        # ----- Header (styled as a whole, like SideBarItem) -----------------
-        self._header = QWidget(self)
-        self._header.setObjectName("SideBarGroupHeader")
-        self._header.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._header.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        self._header.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-
-        self._iconWidget = SideBarIcon(icon=icon, iconSize=self._iconSize, parent=self._header)
-        self._titleWidget = SideBarText(text=title, parent=self._header)
-        self._titleWidget.setObjectName("SideBarGroupTitle")
-
-        lIndicatorSize = max(12, min(self._iconSize - 4, 16))
-        self._indicator = SideBarIcon(icon=None, iconSize=lIndicatorSize, parent=self._header)
-        self._indicator.setObjectName("SideBarGroupIndicator")
-
-        # Children must not paint an opaque fill over the header background.
-        # Global QWidget { background } would otherwise mask the header highlight.
-        for lChild in (self._iconWidget, self._titleWidget, self._indicator):
-            lChild.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
-            lChild.setAutoFillBackground(False)
-
-        lHeaderLayout: QBoxLayout = newLayout(
-            QBoxLayout, spacing=6, margins=(8, 6, 8, 6)
+        self._header = SideBarGroupHeader(
+            title=title,
+            icon=icon,
+            iconSize=self._iconSize,
+            parent=self,
         )
-        lHeaderLayout.setDirection(QBoxLayout.Direction.LeftToRight)
-        self._header.setLayout(lHeaderLayout)
-        lHeaderLayout.addWidget(self._iconWidget)
-        lHeaderLayout.addWidget(self._titleWidget, 1)
-        lHeaderLayout.addWidget(self._indicator)
+        self._header.Clicked.connect(self._onHeaderClicked)
 
-        self._header.mousePressEvent = self._onHeaderClicked  # type: ignore
-        self._header.enterEvent = self._onHeaderEnter  # type: ignore
-        self._header.leaveEvent = self._onHeaderLeave  # type: ignore
-
-        # ----- Body ----------------------------------------------------------
         self._body = QWidget(self)
         self._body.setObjectName("SideBarGroupBody")
         self._body.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
@@ -110,7 +187,6 @@ class SideBarGroup(QWidget, ComponentBase):
         self._layout.addWidget(self._body)
 
         self._applyCollapsedState(animate=False)
-        self._applySelectedState()
 
     # ==================================================================================
     def AddItem(
@@ -177,8 +253,8 @@ class SideBarGroup(QWidget, ComponentBase):
         self._sidebarCollapsed = bool(collapsed)
         lMode = ItemDisplayMode.IconOnly if self._sidebarCollapsed else ItemDisplayMode.IconAndText
 
-        self._titleWidget.setVisible(not self._sidebarCollapsed)
-        self._indicator.setVisible(not self._sidebarCollapsed)
+        self._header.TitleWidget.setVisible(not self._sidebarCollapsed)
+        self._header.Indicator.setVisible(not self._sidebarCollapsed)
 
         for lIdx in range(self._bodyLayout.count()):
             lW = self._bodyLayout.itemAt(lIdx)
@@ -231,15 +307,15 @@ class SideBarGroup(QWidget, ComponentBase):
         if lValue == self._selected:
             return
         self._selected = lValue
-        self._applySelectedState()
+        self._header.Selected = lValue
 
     @property
     def Title(self) -> str:
-        return self._titleWidget.Text
+        return self._header.TitleWidget.Text
 
     @Title.setter
     def Title(self, value: str) -> None:
-        self._titleWidget.Text = value
+        self._header.TitleWidget.Text = value
 
     @property
     def IconSize(self) -> int:
@@ -251,7 +327,7 @@ class SideBarGroup(QWidget, ComponentBase):
         if lSize == self._iconSize:
             return
         self._iconSize = lSize
-        self._iconWidget.IconSize = lSize
+        self._header.IconWidget.IconSize = lSize
 
     @property
     def AnimationDurationMs(self) -> int:
@@ -262,7 +338,7 @@ class SideBarGroup(QWidget, ComponentBase):
         self._animationDurationMs = max(0, int(value))
 
     @property
-    def HeaderWidget(self) -> QWidget:
+    def HeaderWidget(self) -> SideBarGroupHeader:
         return self._header
 
     @property
@@ -277,11 +353,9 @@ class SideBarGroup(QWidget, ComponentBase):
             lIcon = self._standardIcon(QStyle.StandardPixmap.SP_ArrowRight)
         else:
             lIcon = self._standardIcon(QStyle.StandardPixmap.SP_ArrowDown)
-        self._indicator.SetIcon(lIcon)
+        self._header.SetIndicatorIcon(lIcon)
 
-    def _onHeaderClicked(self, event: QMouseEvent) -> None:
-        if event.button() != Qt.MouseButton.LeftButton:
-            return
+    def _onHeaderClicked(self) -> None:
         if self._sidebarCollapsed:
             return
 
@@ -294,29 +368,9 @@ class SideBarGroup(QWidget, ComponentBase):
         else:
             self.Selected = True
 
-    def _onHeaderEnter(self, event) -> None:
-        self._header.setProperty("hover", "true")
-        self._header.style().unpolish(self._header)
-        self._header.style().polish(self._header)
-        self._header.update()
-
-    def _onHeaderLeave(self, event) -> None:
-        self._header.setProperty("hover", "false")
-        self._header.style().unpolish(self._header)
-        self._header.style().polish(self._header)
-        self._header.update()
-
     def _onChildItemClicked(self, item: SideBarItem) -> None:
         self._cachedSelectedItem = item
         self.ItemClicked.emit(item)
-
-    def _applySelectedState(self) -> None:
-        """Same selection mechanism as SideBarItem — property + polish for QSS."""
-        lValue = "true" if self._selected else "false"
-        self._header.setProperty("selected", lValue)
-        self._header.style().unpolish(self._header)
-        self._header.style().polish(self._header)
-        self._header.update()
 
     def _applyFinalBodyHeight(self) -> None:
         if self._collapsed:
