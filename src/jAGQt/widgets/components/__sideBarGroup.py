@@ -5,7 +5,7 @@ from typing import Callable, Optional, Union
 
 # ==================================================================================
 from PySide6.QtCore import QEasingCurve, Qt, Signal
-from PySide6.QtGui import QIcon, QMouseEvent, QPixmap
+from PySide6.QtGui import QColor, QIcon, QMouseEvent, QPalette, QPixmap
 from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 
 # ==================================================================================
@@ -23,6 +23,10 @@ from .__sideBarText import SideBarText
 _C_HEADER_OBJECT_NAME = "SideBarGroupHeader"
 _C_HEADER_SELECTED_OBJECT_NAME = "SideBarGroupHeaderSelected"
 
+# Subtle selected panel (secondary to leaf selection)
+_C_SELECTED_BG = QColor("#1c2832")
+_C_IDLE_BG = QColor("#22262c")
+
 
 # ==================================================================================
 class SideBarGroup(QWidget, ComponentBase):
@@ -31,12 +35,12 @@ class SideBarGroup(QWidget, ComponentBase):
     Header activation expands the group and restores the last selected child
     when one was cached; otherwise the default (first) child is selected.
 
-    Selected state is expressed via header objectName so QSS can target it
-    reliably (dynamic properties on plain QWidget are often ignored).
+    Selected highlight is applied via QPalette so it is always visible,
+    independent of stylesheet dynamic-property quirks.
     """
 
-    Toggled = Signal(bool)          # emits new collapsed state
-    ItemClicked = Signal(object)    # re-emits child SideBarItem clicks
+    Toggled = Signal(bool)
+    ItemClicked = Signal(object)
 
     def __init__(
         self,
@@ -62,8 +66,9 @@ class SideBarGroup(QWidget, ComponentBase):
         self._animationDurationMs: int = max(0, animationDurationMs)
         self._activeAnimation = None
         self._cachedSelectedItem: Optional[SideBarItem] = None
+        self._sidebarCollapsed: bool = False
 
-        # ----- Header (clickable) --------------------------------------------
+        # ----- Header --------------------------------------------------------
         self._header = QWidget(self)
         self._header.setObjectName(_C_HEADER_OBJECT_NAME)
         self._header.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -91,7 +96,7 @@ class SideBarGroup(QWidget, ComponentBase):
 
         self._header.mousePressEvent = self._onHeaderClicked  # type: ignore
 
-        # ----- Body (holds children) -----------------------------------------
+        # ----- Body ----------------------------------------------------------
         self._body = QWidget(self)
         self._body.setObjectName("SideBarGroupBody")
         self._body.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
@@ -103,7 +108,6 @@ class SideBarGroup(QWidget, ComponentBase):
         self._bodyLayout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self._body.setLayout(self._bodyLayout)
 
-        # ----- Root layout ---------------------------------------------------
         self._layout: QBoxLayout = newLayout(QBoxLayout, spacing=0, margins=(0, 0, 0, 0))
         self._layout.setDirection(QBoxLayout.Direction.TopToBottom)
         self.setLayout(self._layout)
@@ -135,6 +139,8 @@ class SideBarGroup(QWidget, ComponentBase):
         )
         lItem.Clicked.connect(self._onChildItemClicked)
         self._bodyLayout.addWidget(lItem)
+        if self._sidebarCollapsed:
+            lItem.DisplayMode = ItemDisplayMode.IconOnly
         return lItem
 
     def AddSeparator(self, separatorType: SeparatorType = SeparatorType.Line) -> SideBarSeparator:
@@ -161,7 +167,6 @@ class SideBarGroup(QWidget, ComponentBase):
         return False
 
     def GetDefaultItem(self) -> Optional[SideBarItem]:
-        """First SideBarItem child (default selection target)."""
         for lIdx in range(self._bodyLayout.count()):
             lW = self._bodyLayout.itemAt(lIdx)
             if lW and isinstance(lW.widget(), SideBarItem):
@@ -169,10 +174,29 @@ class SideBarGroup(QWidget, ComponentBase):
         return None
 
     def GetSelectionTarget(self) -> Optional[SideBarItem]:
-        """Cached leaf if still present; otherwise the default child."""
         if self._cachedSelectedItem is not None and self.ContainsItem(self._cachedSelectedItem):
             return self._cachedSelectedItem
         return self.GetDefaultItem()
+
+    def SetSidebarCollapsed(self, collapsed: bool) -> None:
+        """Called by SideBar when the whole bar collapses/expands.
+
+        Forces icon-only children and hides header text/indicator while the
+        parent sidebar is narrow.
+        """
+        self._sidebarCollapsed = bool(collapsed)
+        lMode = ItemDisplayMode.IconOnly if self._sidebarCollapsed else ItemDisplayMode.IconAndText
+
+        self._titleWidget.setVisible(not self._sidebarCollapsed)
+        self._indicator.setVisible(not self._sidebarCollapsed)
+
+        for lIdx in range(self._bodyLayout.count()):
+            lW = self._bodyLayout.itemAt(lIdx)
+            if lW and isinstance(lW.widget(), SideBarItem):
+                lW.widget().DisplayMode = lMode
+
+        if self._sidebarCollapsed:
+            self.Collapse(animate=False)
 
     # ================================================================================== public API – collapse
     def Collapse(self, animate: bool = True) -> None:
@@ -183,6 +207,9 @@ class SideBarGroup(QWidget, ComponentBase):
         self.Toggled.emit(True)
 
     def Expand(self, animate: bool = True) -> None:
+        if self._sidebarCollapsed:
+            # Keep groups closed while the whole sidebar is collapsed
+            return
         if not self._collapsed:
             return
         self._collapsed = False
@@ -259,6 +286,8 @@ class SideBarGroup(QWidget, ComponentBase):
     def _onHeaderClicked(self, event: QMouseEvent) -> None:
         if event.button() != Qt.MouseButton.LeftButton:
             return
+        if self._sidebarCollapsed:
+            return
 
         self.Expand(animate=True)
 
@@ -274,18 +303,22 @@ class SideBarGroup(QWidget, ComponentBase):
         self.ItemClicked.emit(item)
 
     def _applySelectedState(self) -> None:
-        # objectName is the reliable QSS hook for QWidget backgrounds
         self._header.setObjectName(
             _C_HEADER_SELECTED_OBJECT_NAME if self._selected else _C_HEADER_OBJECT_NAME
         )
-        self.setProperty("selected", "true" if self._selected else "false")
 
-        self.style().unpolish(self)
-        self.style().polish(self)
+        # Palette fill is always painted when autoFillBackground is True
+        lPalette = self._header.palette()
+        lBg = _C_SELECTED_BG if self._selected else _C_IDLE_BG
+        lPalette.setColor(QPalette.ColorRole.Window, lBg)
+        lPalette.setColor(QPalette.ColorRole.Base, lBg)
+        lPalette.setColor(QPalette.ColorRole.Button, lBg)
+        self._header.setPalette(lPalette)
+        self._header.setAutoFillBackground(True)
+
         self._header.style().unpolish(self._header)
         self._header.style().polish(self._header)
         self._header.update()
-        self.update()
 
     def _applyFinalBodyHeight(self) -> None:
         if self._collapsed:
@@ -297,10 +330,6 @@ class SideBarGroup(QWidget, ComponentBase):
 
     def _applyCollapsedState(self, animate: bool = True) -> None:
         self._indicator.Text = "▸" if self._collapsed else "▾"
-        lCollapsed = "true" if self._collapsed else "false"
-        self._header.setProperty("collapsed", lCollapsed)
-        self._header.style().unpolish(self._header)
-        self._header.style().polish(self._header)
 
         if self._collapsed:
             lTargetHeight = 0
