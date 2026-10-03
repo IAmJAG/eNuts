@@ -35,6 +35,11 @@ class MainWindow(MainWindowBase, ApplicationInformation):
 
     # ==================================================================================
     def _wInitializeUI(self) -> None:
+        # WindowBase creates the central widget and self._layout.
+        # Workflow metadata is replaced (not merged) by subclasses, so we must
+        # call the base implementation explicitly.
+        super()._wInitializeUI()
+
         # Horizontal root layout: SideBar | Content
         self._layout.setDirection(QBoxLayout.Direction.LeftToRight)
         self.ContentSpacing = 0
