@@ -100,6 +100,7 @@ QLabel#TRAINING_DEVICE_STATUS { color: #75bdf5; font-size: 11px; }
 
 /* ==========================================================================
    SideBar hierarchy
+   Group header = SideBarItem subclass → same selected/hover property path as leaves
    ========================================================================== */
 
 QWidget#SideBar {
@@ -138,36 +139,35 @@ QWidget#SideBarGroup {
     margin-top: 8px;
 }
 
-/* Group header is a QFrame — same selected/hover property pattern as SideBarItem */
-QFrame#SideBarGroupHeader {
+/* Group header (SideBarItem-based) — secondary highlight vs dominant leaf */
+QWidget#SideBarGroupHeader {
     background-color: #22262c;
     border: 1px solid #2c323a;
     border-radius: 6px;
-    margin: 0px 6px;
+    margin: 2px 6px;
     min-height: 40px;
-    padding: 2px 0px;
     color: #c5cdd6;
 }
 
-QFrame#SideBarGroupHeader[hover="true"] {
+QWidget#SideBarGroupHeader[hover="true"] {
     background-color: #2a3038;
     border-color: #3a4550;
 }
 
-QFrame#SideBarGroupHeader[selected="true"] {
+QWidget#SideBarGroupHeader[selected="true"] {
     background-color: #1c2832;
     border: 1px solid #3a5568;
     border-left: 3px solid #5b9fd4;
     color: #d8e6f0;
 }
 
-QFrame#SideBarGroupHeader[selected="true"][hover="true"] {
+QWidget#SideBarGroupHeader[selected="true"][hover="true"] {
     background-color: #243240;
     border-color: #4a6580;
     border-left-color: #75bdf5;
 }
 
-QFrame#SideBarGroupHeader QLabel {
+QWidget#SideBarGroupHeader QLabel {
     background: transparent;
     border: none;
 }
@@ -181,7 +181,7 @@ QLabel#SideBarGroupTitle {
     background: transparent;
 }
 
-QFrame#SideBarGroupHeader[selected="true"] QLabel#SideBarGroupTitle {
+QWidget#SideBarGroupHeader[selected="true"] QLabel#SideBarGroupTitle {
     color: #e0eef8;
 }
 
