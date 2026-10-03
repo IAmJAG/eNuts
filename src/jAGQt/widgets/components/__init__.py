@@ -7,7 +7,7 @@ from .__sideBarItem import IconPosition, ItemDisplayMode, SideBarItem
 from .__sideBarSeparator import SeparatorType, SideBarSeparator
 from .__sideBarContent import SideBarContent
 from .__sideBarHeader import SideBarHeader
-from .__sideBarGroup import SideBarGroup
+from .__sideBarGroup import SideBarGroup, SideBarGroupHeader
 
 # ==================================================================================
 __all__ = [
@@ -21,4 +21,5 @@ __all__ = [
     "SideBarContent",
     "SideBarHeader",
     "SideBarGroup",
+    "SideBarGroupHeader",
 ]
