@@ -57,10 +57,17 @@ class MainWindow(MainWindowBase, ApplicationInformation):
             parent=self,
         )
 
-        # Sample navigation items so we can see the sidebar immediately
+        # Sample navigation – mix of items and a collapsible group
         self._sideBar.AddItem(text="Dashboard", icon=None)
-        self._sideBar.AddItem(text="Devices", icon=None)
-        self._sideBar.AddItem(text="Training", icon=None)
+
+        lDevices = self._sideBar.AddGroup(title="Devices", startCollapsed=False)
+        lDevices.AddItem(text="Connected", icon=None)
+        lDevices.AddItem(text="Available", icon=None)
+
+        lTraining = self._sideBar.AddGroup(title="Training", startCollapsed=True)
+        lTraining.AddItem(text="Sessions", icon=None)
+        lTraining.AddItem(text="Models", icon=None)
+
         self._sideBar.AddSeparator()
         self._sideBar.AddItem(text="Settings", icon=None)
         self._sideBar.AddStretch()
