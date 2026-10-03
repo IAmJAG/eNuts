@@ -24,15 +24,9 @@ class SideBarHeader(QWidget, ComponentBase):
     CollapseRequested = Signal()
 
     def __init__(
-        self,
-        title: str = "",
-        icon: Optional[object] = None,
-        iconSize: int = 20,
-        showCollapseButton: bool = True,
-        spacing: int = 8,
-        parent: Optional[QWidget] = None,
-        *args,
-        **kwargs,
+        self, title: str = "", icon: Optional[object] = None, iconSize: int = 20,
+        showCollapseButton: bool = True, spacing: int = 8, parent: Optional[QWidget] = None,
+        *args, **kwargs,
     ) -> None:
         super().__init__(parent, *args, **kwargs)
 
@@ -95,8 +89,7 @@ class SideBarHeader(QWidget, ComponentBase):
 
     @ShowCollapseButton.setter
     def ShowCollapseButton(self, value: bool) -> None:
-        if value == self._showCollapseButton:
-            return
+        if value == self._showCollapseButton: return
         self._showCollapseButton = bool(value)
         self._rebuild()
 

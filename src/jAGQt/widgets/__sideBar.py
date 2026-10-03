@@ -103,13 +103,8 @@ class SideBar(QWidget, ComponentBase):
         iconPosition: IconPosition = IconPosition.Left, callback: Optional[Callable] = None,
     ) -> SideBarItem:
         lItem = SideBarItem(
-            text=text,
-            icon=icon,
-            displayMode=displayMode,
-            iconPosition=iconPosition,
-            iconSize=self._iconSize,
-            callback=callback,
-            parent=self._content.Container,
+            text=text, icon=icon, displayMode=displayMode, iconPosition=iconPosition,
+            iconSize=self._iconSize, callback=callback, parent=self._content.Container,
         )
         lItem.Clicked.connect(self._onItemClicked)
         self._content.AddWidget(lItem)
@@ -298,11 +293,12 @@ class SideBar(QWidget, ComponentBase):
 
         for lIdx in range(self._content.Count()):
             lW = self._content.ContentLayout.itemAt(lIdx)
-            if lW is None:
-                continue
+            if lW is None: continue
+
             lWidget = lW.widget()
             if isinstance(lWidget, SideBarItem):
                 lWidget.DisplayMode = lMode
+
             elif isinstance(lWidget, SideBarGroup):
                 lWidget.SetSidebarCollapsed(self._collapsed)
 
@@ -314,22 +310,15 @@ class SideBar(QWidget, ComponentBase):
         if animate and self._animationDurationMs > 0 and self.width() != lTargetWidth:
             self.setMaximumWidth(16777215)
             self._activeAnimation = AnimateProperty(
-                self,
-                "minimumWidth",
-                self.width(),
-                lTargetWidth,
-                durationMs=self._animationDurationMs,
-                easing=QEasingCurve.Type.OutCubic,
+                self, "minimumWidth", self.width(), lTargetWidth,
+                durationMs=self._animationDurationMs, easing=QEasingCurve.Type.OutCubic,
                 onFinished=self._onAnimationFinished,
             )
             AnimateProperty(
-                self,
-                "maximumWidth",
-                self.width(),
-                lTargetWidth,
-                durationMs=self._animationDurationMs,
-                easing=QEasingCurve.Type.OutCubic,
+                self, "maximumWidth", self.width(), lTargetWidth,
+                durationMs=self._animationDurationMs, easing=QEasingCurve.Type.OutCubic,
             )
+            
         else:
             self.setFixedWidth(lTargetWidth)
             self._syncAllDisplayModes()

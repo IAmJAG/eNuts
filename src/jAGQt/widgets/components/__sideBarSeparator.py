@@ -23,19 +23,14 @@ class SideBarSeparator(QFrame, ComponentBase):
     """Independent separator or stretcher that can be inserted between SideBar items."""
 
     def __init__(
-        self,
-        separatorType: SeparatorType = SeparatorType.Line,
-        thickness: int = 1,
-        parent: Optional[QWidget] = None,
-        *args,
-        **kwargs,
+        self, separatorType: SeparatorType = SeparatorType.Line, thickness: int = 1,
+        parent: Optional[QWidget] = None, *args, **kwargs,
     ) -> None:
         super().__init__(parent, *args, **kwargs)
 
         self.setObjectName("SideBarSeparator")
         self._separatorType: SeparatorType = separatorType
         self._thickness: int = max(0, thickness)
-
         self._applyType()
 
     # ================================================================================== public API
@@ -49,8 +44,7 @@ class SideBarSeparator(QFrame, ComponentBase):
 
     @Type.setter
     def Type(self, value: SeparatorType) -> None:
-        if value == self._separatorType:
-            return
+        if value == self._separatorType: return
         self._separatorType = value
         self._applyType()
 
@@ -61,8 +55,7 @@ class SideBarSeparator(QFrame, ComponentBase):
     @Thickness.setter
     def Thickness(self, value: int) -> None:
         lValue = max(0, int(value))
-        if lValue == self._thickness:
-            return
+        if lValue == self._thickness: return
         self._thickness = lValue
         self._applyType()
 
@@ -74,6 +67,7 @@ class SideBarSeparator(QFrame, ComponentBase):
             self.setFixedHeight(0)
             self.setMinimumHeight(0)
             self.setMaximumHeight(16777215)
+
         else:
             self.setFrameShape(QFrame.Shape.HLine)
             self.setFrameShadow(QFrame.Shadow.Sunken)

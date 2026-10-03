@@ -19,13 +19,10 @@ class SideBarText(QLabel, ComponentBase):
     """
 
     def __init__(
-        self,
-        text: str = "",
+        self, text: str = "",
         alignment: Qt.AlignmentFlag = Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
-        elideMode: Qt.TextElideMode = Qt.TextElideMode.ElideRight,
-        parent: Optional[QWidget] = None,
-        *args,
-        **kwargs,
+        elideMode: Qt.TextElideMode = Qt.TextElideMode.ElideRight, parent: Optional[QWidget] = None,
+        *args, **kwargs,
     ) -> None:
         super().__init__(parent, *args, **kwargs)
 

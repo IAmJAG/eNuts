@@ -30,24 +30,13 @@ class SideBarGroupHeader(SideBarItem):
     """
 
     def __init__(
-        self,
-        title: str = "",
-        icon: Optional[Union[QIcon, QPixmap, str]] = None,
-        iconSize: int = 20,
-        parent: Optional[QWidget] = None,
-        *args,
-        **kwargs,
+        self, title: str = "", icon: Optional[Union[QIcon, QPixmap, str]] = None,
+        iconSize: int = 20, parent: Optional[QWidget] = None, *args, **kwargs,
     ) -> None:
         super().__init__(
-            text=title,
-            icon=icon,
-            displayMode=ItemDisplayMode.IconAndText,
-            iconPosition=IconPosition.Left,
-            iconSize=iconSize,
-            spacing=6,
-            parent=parent,
-            *args,
-            **kwargs,
+            text=title, icon=icon, displayMode=ItemDisplayMode.IconAndText,
+            iconPosition=IconPosition.Left, iconSize=iconSize, spacing=6,
+            parent=parent, *args, **kwargs,
         )
 
         # 1) Header identity for QSS (overrides SideBarItem objectName)
@@ -108,16 +97,9 @@ class SideBarGroup(QWidget, ComponentBase):
     ItemClicked = Signal(object)
 
     def __init__(
-        self,
-        title: str = "",
-        icon: Optional[Union[QIcon, QPixmap, str]] = None,
-        iconSize: int = 20,
-        startCollapsed: bool = False,
-        animationDurationMs: int = 180,
-        spacing: int = 2,
-        parent: Optional[QWidget] = None,
-        *args,
-        **kwargs,
+        self, title: str = "", icon: Optional[Union[QIcon, QPixmap, str]] = None,
+        iconSize: int = 20, startCollapsed: bool = False, animationDurationMs: int = 180,
+        spacing: int = 2, parent: Optional[QWidget] = None, *args, **kwargs,
     ) -> None:
         super().__init__(parent, *args, **kwargs)
 
@@ -163,23 +145,15 @@ class SideBarGroup(QWidget, ComponentBase):
 
     # ==================================================================================
     def AddItem(
-        self,
-        text: str = "",
-        icon: Optional[Union[QIcon, QPixmap, str]] = None,
+        self, text: str = "", icon: Optional[Union[QIcon, QPixmap, str]] = None,
         displayMode: ItemDisplayMode = ItemDisplayMode.IconAndText,
-        iconPosition: IconPosition = IconPosition.Left,
-        iconSize: Optional[int] = None,
+        iconPosition: IconPosition = IconPosition.Left, iconSize: Optional[int] = None,
         callback: Optional[Callable] = None,
     ) -> SideBarItem:
         lSize = iconSize if iconSize is not None else self._iconSize
         lItem = SideBarItem(
-            text=text,
-            icon=icon,
-            displayMode=displayMode,
-            iconPosition=iconPosition,
-            iconSize=lSize,
-            callback=callback,
-            parent=self._body,
+            text=text, icon=icon, displayMode=displayMode, iconPosition=iconPosition,
+            iconSize=lSize, callback=callback, parent=self._body,
         )
         lItem.Clicked.connect(self._onChildItemClicked)
         self._bodyLayout.addWidget(lItem)
@@ -302,8 +276,7 @@ class SideBarGroup(QWidget, ComponentBase):
     @IconSize.setter
     def IconSize(self, value: int) -> None:
         lSize = max(1, int(value))
-        if lSize == self._iconSize:
-            return
+        if lSize == self._iconSize: return
         self._iconSize = lSize
         self._header.IconSize = lSize
 
@@ -333,6 +306,7 @@ class SideBarGroup(QWidget, ComponentBase):
         if lTarget is not None:
             self._cachedSelectedItem = lTarget
             self.ItemClicked.emit(lTarget)
+
         else:
             self.Selected = True
 
@@ -370,12 +344,8 @@ class SideBarGroup(QWidget, ComponentBase):
         self._body.setMaximumHeight(max(lStart, lTargetHeight, 1))
 
         self._activeAnimation = AnimateProperty(
-            self._body,
-            "maximumHeight",
-            lStart,
-            lTargetHeight,
-            durationMs=self._animationDurationMs,
-            easing=QEasingCurve.Type.OutCubic,
+            self._body, "maximumHeight", lStart, lTargetHeight,
+            durationMs=self._animationDurationMs, easing=QEasingCurve.Type.OutCubic,
             onFinished=self._onAnimationFinished,
         )
 

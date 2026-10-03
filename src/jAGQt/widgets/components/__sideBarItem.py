@@ -42,17 +42,11 @@ class SideBarItem(QWidget, ComponentBase):
     Clicked = Signal(object)  # emits self
 
     def __init__(
-        self,
-        text: str = "",
-        icon: Optional[Union[QIcon, QPixmap, str]] = None,
+        self, text: str = "", icon: Optional[Union[QIcon, QPixmap, str]] = None,
         displayMode: ItemDisplayMode = ItemDisplayMode.IconAndText,
-        iconPosition: IconPosition = IconPosition.Left,
-        iconSize: int = 24,
-        spacing: int = 8,
-        callback: Optional[Callable] = None,
-        parent: Optional[QWidget] = None,
-        *args,
-        **kwargs,
+        iconPosition: IconPosition = IconPosition.Left, iconSize: int = 24,
+        spacing: int = 8, callback: Optional[Callable] = None, parent: Optional[QWidget] = None,
+        *args, **kwargs,
     ) -> None:
         super().__init__(parent, *args, **kwargs)
 
@@ -110,8 +104,7 @@ class SideBarItem(QWidget, ComponentBase):
 
     @DisplayMode.setter
     def DisplayMode(self, value: ItemDisplayMode) -> None:
-        if value == self._displayMode:
-            return
+        if value == self._displayMode: return
         self._displayMode = value
         self._rebuildLayout()
 
@@ -174,8 +167,7 @@ class SideBarItem(QWidget, ComponentBase):
     def _rebuildLayout(self) -> None:
         # Only detach from layout — keep parent=self so widgets never become
         # transient top-level windows (which flash as mini-windows on screen).
-        while self._layout.count():
-            self._layout.takeAt(0)
+        while self._layout.count(): self._layout.takeAt(0)
 
         lShowIcon = self._displayMode in (ItemDisplayMode.IconOnly, ItemDisplayMode.IconAndText)
         lShowText = self._displayMode in (ItemDisplayMode.TextOnly, ItemDisplayMode.IconAndText)
@@ -185,17 +177,21 @@ class SideBarItem(QWidget, ComponentBase):
 
         if self._iconPosition in (IconPosition.Left, IconPosition.Right):
             self._layout.setDirection(QBoxLayout.Direction.LeftToRight)
+            
         else:
             self._layout.setDirection(QBoxLayout.Direction.TopToBottom)
 
         if self._iconPosition in (IconPosition.Left, IconPosition.Top):
             if lShowIcon:
                 self._layout.addWidget(self._iconWidget)
+
             if lShowText:
                 self._layout.addWidget(self._textWidget, 1)
+
         else:
             if lShowText:
                 self._layout.addWidget(self._textWidget, 1)
+
             if lShowIcon:
                 self._layout.addWidget(self._iconWidget)
 
