@@ -191,6 +191,17 @@ QWidget#SideBarGroupHeader:hover {
     background: #2a2a2a;
 }
 
+/* Subtle highlight when the group owns the selected item */
+QWidget#SideBarGroupHeader[selected="true"] {
+    background: #24303a;
+    border: 1px solid #3d5368;
+    color: #e8eef4;
+}
+
+QWidget#SideBarGroupHeader[selected="true"]:hover {
+    background: #2a3844;
+}
+
 QLabel#SideBarGroupTitle {
     color: #d0d0d0;
     font-size: 12px;
