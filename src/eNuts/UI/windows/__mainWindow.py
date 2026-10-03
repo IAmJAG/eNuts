@@ -8,14 +8,13 @@ from PySide6.QtWidgets import QBoxLayout, QLabel, QLayout, QLayoutItem, QWidget
 
 # ==================================================================================
 from jAGFx.workflow import workflow
-from jAGQt.window import MainWindowBase
 from jAGQt.widgets import SideBar
 from jAGQt.widgets.components import ItemDisplayMode
+from jAGQt.window import MainWindowBase
 
 # ==================================================================================
 from ...configuration import ApplicationInformation
 from ..widgets import EvolvingNeuralBrain
-
 
 # ==================================================================================
 C_MORPH_METHODS: tuple[str, ...] = (
@@ -61,9 +60,9 @@ class MainWindow(MainWindowBase, ApplicationInformation):
         self._sideBar.AddItem(text="Dashboard", icon=None)
         self._sideBar.AddItem(text="Devices", icon=None)
         self._sideBar.AddItem(text="Training", icon=None)
-        self._sideBar.AddSeparator()
-        self._sideBar.AddItem(text="Settings", icon=None)
         self._sideBar.AddStretch()
+        self._sideBar.AddItem(text="Settings", icon=None)
+        
 
         self._sideBar.ItemClicked.connect(self._onSideBarItemClicked)
 
