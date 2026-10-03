@@ -25,6 +25,9 @@ class SideBarGroup(QWidget, ComponentBase):
 
     Contains a clickable header and a body that can hold items, separators,
     and nested groups. Collapse/expand animates the body height.
+
+    Clicking the header expands the group and selects the default child item
+    (first SideBarItem) so navigation always has a concrete leaf target.
     """
 
     Toggled = Signal(bool)          # emits new collapsed state
@@ -143,12 +146,19 @@ class SideBarGroup(QWidget, ComponentBase):
                 lItem.widget().deleteLater()
 
     def ContainsItem(self, item: SideBarItem) -> bool:
-        """Return True if *item* is a direct child of this group."""
         for lIdx in range(self._bodyLayout.count()):
             lW = self._bodyLayout.itemAt(lIdx)
             if lW and lW.widget() is item:
                 return True
         return False
+
+    def GetDefaultItem(self) -> Optional[SideBarItem]:
+        """First SideBarItem child (default selection target)."""
+        for lIdx in range(self._bodyLayout.count()):
+            lW = self._bodyLayout.itemAt(lIdx)
+            if lW and isinstance(lW.widget(), SideBarItem):
+                return lW.widget()
+        return None
 
     # ================================================================================== public API – collapse
     def Collapse(self, animate: bool = True) -> None:
@@ -233,20 +243,37 @@ class SideBarGroup(QWidget, ComponentBase):
 
     # ================================================================================== private
     def _onHeaderClicked(self, event: QMouseEvent) -> None:
-        if event.button() == Qt.MouseButton.LeftButton:
-            self.Toggle()
+        if event.button() != Qt.MouseButton.LeftButton:
+            return
+
+        # Always expand when activating the group via header
+        self.Expand(animate=True)
+
+        lDefault = self.GetDefaultItem()
+        if lDefault is not None:
+            # Drive the same path as clicking the leaf so selection + navigation run
+            self.ItemClicked.emit(lDefault)
+        else:
+            self.Selected = True
 
     def _onChildItemClicked(self, item: SideBarItem) -> None:
         self.ItemClicked.emit(item)
 
     def _applySelectedState(self) -> None:
-        self._header.setProperty("selected", self._selected)
-        self._header.style().unpolish(self._header)
-        self._header.style().polish(self._header)
+        # String properties match QSS [selected="true"] reliably across styles
+        lValue = "true" if self._selected else "false"
+        self.setProperty("selected", lValue)
+        self._header.setProperty("selected", lValue)
+
+        for lWidget in (self, self._header):
+            lWidget.style().unpolish(lWidget)
+            lWidget.style().polish(lWidget)
+            lWidget.update()
 
     def _applyCollapsedState(self, animate: bool = True) -> None:
         self._indicator.Text = "▸" if self._collapsed else "▾"
-        self._header.setProperty("collapsed", self._collapsed)
+        lCollapsed = "true" if self._collapsed else "false"
+        self._header.setProperty("collapsed", lCollapsed)
         self._header.style().unpolish(self._header)
         self._header.style().polish(self._header)
 
