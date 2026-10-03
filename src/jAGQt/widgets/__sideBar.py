@@ -5,18 +5,13 @@ from enum import Enum, auto
 from typing import Callable, Optional, Union
 
 # ==================================================================================
-from PySide6.QtCore import (
-    QEasingCurve,
-    QPropertyAnimation,
-    Qt,
-    Signal,
-)
+from PySide6.QtCore import QEasingCurve, Qt, Signal
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 
 # ==================================================================================
 from jAGQt.types.components import ComponentBase
-from jAGQt.utilities import newLayout
+from jAGQt.utilities import AnimateProperty, newLayout
 
 # ==================================================================================
 from .components import (
@@ -41,6 +36,7 @@ class SideBar(QWidget, ComponentBase):
     """Main SideBar composer – Phase 1 foundation.
 
     Independent components are composed here. All key behaviours are configurable.
+    Width animation is delegated to the generic validated animation utility.
     """
 
     ItemClicked = Signal(object)          # emits SideBarItem
@@ -76,6 +72,7 @@ class SideBar(QWidget, ComponentBase):
         self._autoCollapse: bool = autoCollapse
         self._collapsed: bool = startCollapsed
         self._animationDurationMs: int = max(0, animationDurationMs)
+        self._activeAnimation = None
 
         # Child components
         self._header = SideBarHeader(
@@ -95,12 +92,6 @@ class SideBar(QWidget, ComponentBase):
 
         self._layout.addWidget(self._header)
         self._layout.addWidget(self._content, 1)
-
-        # Animation
-        self._widthAnimation = QPropertyAnimation(self, b"minimumWidth", self)
-        self._widthAnimation.setEasingCurve(QEasingCurve.Type.OutCubic)
-        self._widthAnimation.setDuration(self._animationDurationMs)
-        self._widthAnimation.finished.connect(self._onAnimationFinished)
 
         # Wire header collapse button
         self._header.CollapseRequested.connect(self.ToggleCollapsed)
@@ -206,7 +197,6 @@ class SideBar(QWidget, ComponentBase):
             return
         self._iconSize = lSize
         self._header.IconWidget.IconSize = lSize
-        # Update existing items
         for lIdx in range(self._content.Count()):
             lItem = self._content.ContentLayout.itemAt(lIdx)
             if lItem and isinstance(lItem.widget(), SideBarItem):
@@ -219,7 +209,6 @@ class SideBar(QWidget, ComponentBase):
     @DockPosition.setter
     def DockPosition(self, value: DockPosition) -> None:
         self._dockPosition = value
-        # Future: layout mirroring / animation direction
 
     @property
     def AutoCollapse(self) -> bool:
@@ -236,7 +225,6 @@ class SideBar(QWidget, ComponentBase):
     @AnimationDurationMs.setter
     def AnimationDurationMs(self, value: int) -> None:
         self._animationDurationMs = max(0, int(value))
-        self._widthAnimation.setDuration(self._animationDurationMs)
 
     @property
     def Header(self) -> SideBarHeader:
@@ -259,11 +247,27 @@ class SideBar(QWidget, ComponentBase):
 
         self._header.TitleWidget.setVisible(not self._collapsed)
 
-        if animate and self._animationDurationMs > 0:
-            self._widthAnimation.stop()
-            self._widthAnimation.setStartValue(self.width())
-            self._widthAnimation.setEndValue(lTargetWidth)
-            self._widthAnimation.start()
+        if animate and self._animationDurationMs > 0 and self.width() != lTargetWidth:
+            # Animate both minimumWidth and maximumWidth so the widget actually resizes
+            self.setMaximumWidth(16777215)
+            self._activeAnimation = AnimateProperty(
+                self,
+                "minimumWidth",
+                self.width(),
+                lTargetWidth,
+                durationMs=self._animationDurationMs,
+                easing=QEasingCurve.Type.OutCubic,
+                onFinished=self._onAnimationFinished,
+            )
+            # Keep max in sync during animation
+            AnimateProperty(
+                self,
+                "maximumWidth",
+                self.width(),
+                lTargetWidth,
+                durationMs=self._animationDurationMs,
+                easing=QEasingCurve.Type.OutCubic,
+            )
         else:
             self.setFixedWidth(lTargetWidth)
             self.WidthChanged.emit(lTargetWidth)
@@ -271,10 +275,10 @@ class SideBar(QWidget, ComponentBase):
     def _onAnimationFinished(self) -> None:
         lWidth = self._collapsedWidth if self._collapsed else self._expandedWidth
         self.setFixedWidth(lWidth)
+        self._activeAnimation = None
         self.WidthChanged.emit(lWidth)
 
     def _onItemClicked(self, item: SideBarItem) -> None:
-        # Deselect others, select this one
         for lIdx in range(self._content.Count()):
             lW = self._content.ContentLayout.itemAt(lIdx)
             if lW and isinstance(lW.widget(), SideBarItem):
