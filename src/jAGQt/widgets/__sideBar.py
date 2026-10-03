@@ -7,7 +7,7 @@ from typing import Callable, Optional, Union
 # ==================================================================================
 from PySide6.QtCore import QEasingCurve, Qt, Signal
 from PySide6.QtGui import QIcon, QPixmap
-from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
+from PySide6.QtWidgets import QBoxLayout, QLayoutItem, QSizePolicy, QWidget
 
 # ==================================================================================
 from jAGQt.types.components import ComponentBase
@@ -37,7 +37,7 @@ class SideBar(QWidget, ComponentBase):
     """Main SideBar composer.
 
     Independent components are composed here. All key behaviours are configurable.
-    Width animation is delegated to the generic validated animation utility.
+    Menu morph methods (addWidget / insertWidget / …) operate on the content layout.
     """
 
     ItemClicked = Signal(object)
@@ -83,8 +83,6 @@ class SideBar(QWidget, ComponentBase):
         )
         self._content = SideBarContent(parent=self)
 
-        # Right margin 1px keeps children under the SideBar border-right so
-        # filled headers do not paint over the border line.
         self._layout: QBoxLayout = newLayout(
             QBoxLayout, spacing=0, margins=(0, 0, 1, 0)
         )
@@ -153,6 +151,43 @@ class SideBar(QWidget, ComponentBase):
 
     def ClearItems(self) -> None:
         self._content.Clear()
+
+    # ================================================================================== menu morph methods (content layout)
+    def addWidget(self, widget: QWidget, stretch: int = 0, alignment: Qt.AlignmentFlag = Qt.AlignmentFlag(0)) -> None:
+        self._content.ContentLayout.addWidget(widget, stretch, alignment)
+
+    def insertWidget(self, index: int, widget: QWidget, stretch: int = 0, alignment: Qt.AlignmentFlag = Qt.AlignmentFlag(0)) -> None:
+        self._content.ContentLayout.insertWidget(index, widget, stretch, alignment)
+
+    def addLayout(self, layout, stretch: int = 0) -> None:
+        self._content.ContentLayout.addLayout(layout, stretch)
+
+    def insertLayout(self, index: int, layout, stretch: int = 0) -> None:
+        self._content.ContentLayout.insertLayout(index, layout, stretch)
+
+    def addItem(self, item: QLayoutItem) -> None:
+        self._content.ContentLayout.addItem(item)
+
+    def insertItem(self, index: int, item: QLayoutItem) -> None:
+        self._content.ContentLayout.insertItem(index, item)
+
+    def addStretch(self, stretch: int = 0) -> None:
+        self._content.ContentLayout.addStretch(stretch)
+
+    def addSpacing(self, size: int) -> None:
+        self._content.ContentLayout.addSpacing(size)
+
+    def addStrut(self, size: int) -> None:
+        self._content.ContentLayout.addStrut(size)
+
+    def removeWidget(self, widget: QWidget) -> None:
+        self._content.ContentLayout.removeWidget(widget)
+
+    def removeItem(self, item: QLayoutItem) -> None:
+        self._content.ContentLayout.removeItem(item)
+
+    def takeAt(self, index: int) -> QLayoutItem:
+        return self._content.ContentLayout.takeAt(index)
 
     # ================================================================================== public API – collapse
     def Collapse(self, animate: bool = True) -> None:
@@ -262,7 +297,6 @@ class SideBar(QWidget, ComponentBase):
 
     # ================================================================================== private
     def _syncAllDisplayModes(self) -> None:
-        """Icon-only when collapsed; icon+text when expanded — all items and groups."""
         lMode = ItemDisplayMode.IconOnly if self._collapsed else ItemDisplayMode.IconAndText
 
         self._header.TitleWidget.setVisible(not self._collapsed)
@@ -344,7 +378,6 @@ class SideBar(QWidget, ComponentBase):
         if self._collapsed:
             item.DisplayMode = ItemDisplayMode.IconOnly
 
-    # ================================================================================== auto-collapse helpers
     def enterEvent(self, event) -> None:
         if self._autoCollapse and self._collapsed:
             self.Expand()
