@@ -98,12 +98,9 @@ class SideBar(QWidget, ComponentBase):
 
     # ================================================================================== public API – items / groups
     def AddItem(
-        self,
-        text: str = "",
-        icon: Optional[Union[QIcon, QPixmap, str]] = None,
+        self, text: str = "", icon: Optional[Union[QIcon, QPixmap, str]] = None,
         displayMode: ItemDisplayMode = ItemDisplayMode.IconAndText,
-        iconPosition: IconPosition = IconPosition.Left,
-        callback: Optional[Callable] = None,
+        iconPosition: IconPosition = IconPosition.Left, callback: Optional[Callable] = None,
     ) -> SideBarItem:
         lItem = SideBarItem(
             text=text,
@@ -120,11 +117,8 @@ class SideBar(QWidget, ComponentBase):
         return lItem
 
     def AddGroup(
-        self,
-        title: str = "",
-        icon: Optional[Union[QIcon, QPixmap, str]] = None,
-        startCollapsed: bool = False,
-        iconSize: Optional[int] = None,
+        self, title: str = "", icon: Optional[Union[QIcon, QPixmap, str]] = None,
+        startCollapsed: bool = False, iconSize: Optional[int] = None,
     ) -> SideBarGroup:
         lSize = iconSize if iconSize is not None else max(1, self._iconSize - 2)
         lGroup = SideBarGroup(
