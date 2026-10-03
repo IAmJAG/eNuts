@@ -20,12 +20,8 @@ class SideBarIcon(QLabel, ComponentBase):
     """
 
     def __init__(
-        self,
-        icon: Optional[Union[QIcon, QPixmap, str]] = None,
-        iconSize: int = 24,
-        parent: Optional[QWidget] = None,
-        *args,
-        **kwargs,
+        self, icon: Optional[Union[QIcon, QPixmap, str]] = None,
+        iconSize: int = 24, parent: Optional[QWidget] = None, *args, **kwargs
     ) -> None:
         super().__init__(parent, *args, **kwargs)
 
@@ -54,10 +50,13 @@ class SideBarIcon(QLabel, ComponentBase):
             if lPixmap.isNull():
                 lIcon = QIcon(icon)
                 self._icon = lIcon if not lIcon.isNull() else None
+
             else:
                 self._icon = lPixmap
+
         elif isinstance(icon, (QIcon, QPixmap)):
             self._icon = icon
+
         else:
             self._icon = None
 
@@ -93,7 +92,7 @@ class SideBarIcon(QLabel, ComponentBase):
 
         if isinstance(self._icon, QIcon):
             lPixmap = self._icon.pixmap(lTarget)
-            
+
         else:
             lPixmap = self._icon.scaled(
                 lTarget,
