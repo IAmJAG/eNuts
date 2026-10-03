@@ -1,10 +1,18 @@
 # ==================================================================================
 from functools import wraps
-from typing import Callable
+from typing import Callable, Optional
 
 # ==================================================================================
 from PySide6.QtCore import QEvent, QObject, Qt
-from PySide6.QtWidgets import QBoxLayout, QLabel, QLayout, QLayoutItem, QWidget
+from PySide6.QtGui import QIcon
+from PySide6.QtWidgets import (
+    QBoxLayout,
+    QLabel,
+    QLayout,
+    QLayoutItem,
+    QStyle,
+    QWidget,
+)
 
 # ==================================================================================
 from jAGFx.workflow import workflow
@@ -15,6 +23,7 @@ from jAGQt.window import MainWindowBase
 # ==================================================================================
 from ...configuration import ApplicationInformation
 from ..widgets import EvolvingNeuralBrain
+
 
 # ==================================================================================
 C_MORPH_METHODS: tuple[str, ...] = (
@@ -31,6 +40,11 @@ C_MORPH_METHODS: tuple[str, ...] = (
 class MainWindow(MainWindowBase, ApplicationInformation):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__("ENUTS_WINDOW", *args, **kwargs)
+        self._pageLabel: Optional[QLabel] = None
+
+    # ==================================================================================
+    def _standardIcon(self, standardPixmap: QStyle.StandardPixmap) -> QIcon:
+        return self.style().standardIcon(standardPixmap)
 
     # ==================================================================================
     def _wInitializeUI(self) -> None:
@@ -56,39 +70,73 @@ class MainWindow(MainWindowBase, ApplicationInformation):
             parent=self,
         )
 
-        # Sample navigation – mix of items and a collapsible group
-        self._sideBar.AddItem(text="Dashboard", icon=None)
+        # Top-level
+        self._sideBar.AddItem(
+            text="Dashboard",
+            icon=self._standardIcon(QStyle.StandardPixmap.SP_DesktopIcon),
+        )
 
-        lDevices = self._sideBar.AddGroup(title="Devices", startCollapsed=False)
-        lDevices.AddItem(text="Connected", icon=None)
-        lDevices.AddItem(text="Available", icon=None)
+        # Devices group
+        lDevices = self._sideBar.AddGroup(
+            title="Devices",
+            icon=self._standardIcon(QStyle.StandardPixmap.SP_ComputerIcon),
+            startCollapsed=False,
+        )
+        lDevices.AddItem(
+            text="Connected",
+            icon=self._standardIcon(QStyle.StandardPixmap.SP_DriveHDIcon),
+        )
+        lDevices.AddItem(
+            text="Available",
+            icon=self._standardIcon(QStyle.StandardPixmap.SP_DriveNetIcon),
+        )
 
-        lTraining = self._sideBar.AddGroup(title="Training", startCollapsed=True)
-        lTraining.AddItem(text="Sessions", icon=None)
-        lTraining.AddItem(text="Models", icon=None)
+        # Training group (starts collapsed)
+        lTraining = self._sideBar.AddGroup(
+            title="Training",
+            icon=self._standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView),
+            startCollapsed=True,
+        )
+        lTraining.AddItem(
+            text="Sessions",
+            icon=self._standardIcon(QStyle.StandardPixmap.SP_BrowserReload),
+        )
+        lTraining.AddItem(
+            text="Models",
+            icon=self._standardIcon(QStyle.StandardPixmap.SP_FileDialogListView),
+        )
 
+        self._sideBar.AddSeparator()
+        self._sideBar.AddItem(
+            text="Settings",
+            icon=self._standardIcon(QStyle.StandardPixmap.SP_FileDialogInfoView),
+        )
         self._sideBar.AddStretch()
-        self._sideBar.AddItem(text="Settings", icon=None)
-        
 
         self._sideBar.ItemClicked.connect(self._onSideBarItemClicked)
 
-        # ----- Central content placeholder -----------------------------------
+        # ----- Central content -----------------------------------------------
         self._contentArea = QWidget(self)
         self._contentArea.setObjectName("MainContentArea")
         lContentLayout = QBoxLayout(QBoxLayout.Direction.TopToBottom, self._contentArea)
         lContentLayout.setContentsMargins(16, 16, 16, 16)
 
-        lPlaceholder = QLabel("Main content area – SideBar is live", self._contentArea)
-        lPlaceholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        lPlaceholder.setStyleSheet("color: #888888; font-size: 14px;")
-        lContentLayout.addWidget(lPlaceholder, 1)
+        self._pageLabel = QLabel("Dashboard", self._contentArea)
+        self._pageLabel.setObjectName("PAGE_TITLE")
+        self._pageLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        lContentLayout.addWidget(self._pageLabel, 1)
 
         # Assemble
         self._layout.addWidget(self._sideBar)
         self._layout.addWidget(self._contentArea, 1)
 
+        self._navigateTo("Dashboard")
+
     # ==================================================================================
     def _onSideBarItemClicked(self, item) -> None:
-        # Temporary feedback – replace with real navigation later
-        print(f"SideBar item clicked: {item.Text}")
+        self._navigateTo(item.Text)
+
+    def _navigateTo(self, pageName: str) -> None:
+        if self._pageLabel is None:
+            return
+        self._pageLabel.setText(pageName)
