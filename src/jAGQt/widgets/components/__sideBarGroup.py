@@ -20,11 +20,19 @@ from .__sideBarText import SideBarText
 
 
 # ==================================================================================
+_C_HEADER_OBJECT_NAME = "SideBarGroupHeader"
+_C_HEADER_SELECTED_OBJECT_NAME = "SideBarGroupHeaderSelected"
+
+
+# ==================================================================================
 class SideBarGroup(QWidget, ComponentBase):
     """Independent collapsible section/group for the SideBar.
 
     Header activation expands the group and restores the last selected child
     when one was cached; otherwise the default (first) child is selected.
+
+    Selected state is expressed via header objectName so QSS can target it
+    reliably (dynamic properties on plain QWidget are often ignored).
     """
 
     Toggled = Signal(bool)          # emits new collapsed state
@@ -57,9 +65,10 @@ class SideBarGroup(QWidget, ComponentBase):
 
         # ----- Header (clickable) --------------------------------------------
         self._header = QWidget(self)
-        self._header.setObjectName("SideBarGroupHeader")
+        self._header.setObjectName(_C_HEADER_OBJECT_NAME)
         self._header.setCursor(Qt.CursorShape.PointingHandCursor)
         self._header.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self._header.setAutoFillBackground(True)
         self._header.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         self._iconWidget = SideBarIcon(icon=icon, iconSize=self._iconSize, parent=self._header)
@@ -251,12 +260,10 @@ class SideBarGroup(QWidget, ComponentBase):
         if event.button() != Qt.MouseButton.LeftButton:
             return
 
-        # Activate group: expand, then select cached leaf or default
         self.Expand(animate=True)
 
         lTarget = self.GetSelectionTarget()
         if lTarget is not None:
-            # Persist choice when falling back to default (cache was empty)
             self._cachedSelectedItem = lTarget
             self.ItemClicked.emit(lTarget)
         else:
@@ -267,14 +274,18 @@ class SideBarGroup(QWidget, ComponentBase):
         self.ItemClicked.emit(item)
 
     def _applySelectedState(self) -> None:
-        lValue = "true" if self._selected else "false"
-        self.setProperty("selected", lValue)
-        self._header.setProperty("selected", lValue)
+        # objectName is the reliable QSS hook for QWidget backgrounds
+        self._header.setObjectName(
+            _C_HEADER_SELECTED_OBJECT_NAME if self._selected else _C_HEADER_OBJECT_NAME
+        )
+        self.setProperty("selected", "true" if self._selected else "false")
 
-        for lWidget in (self, self._header):
-            lWidget.style().unpolish(lWidget)
-            lWidget.style().polish(lWidget)
-            lWidget.update()
+        self.style().unpolish(self)
+        self.style().polish(self)
+        self._header.style().unpolish(self._header)
+        self._header.style().polish(self._header)
+        self._header.update()
+        self.update()
 
     def _applyFinalBodyHeight(self) -> None:
         if self._collapsed:
