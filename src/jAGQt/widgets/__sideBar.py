@@ -264,7 +264,6 @@ class SideBar(QWidget, ComponentBase):
     def _applyCollapsedState(self, animate: bool = True) -> None:
         lTargetWidth = self._collapsedWidth if self._collapsed else self._expandedWidth
 
-        # Force icon-only when collapsed (items + groups)
         lMode = ItemDisplayMode.IconOnly if self._collapsed else ItemDisplayMode.IconAndText
         for lIdx in range(self._content.Count()):
             lW = self._content.ContentLayout.itemAt(lIdx)
@@ -274,7 +273,6 @@ class SideBar(QWidget, ComponentBase):
             if isinstance(lWidget, SideBarItem):
                 lWidget.DisplayMode = lMode
             elif isinstance(lWidget, SideBarGroup):
-                # When the whole sidebar collapses, force groups closed visually
                 if self._collapsed:
                     lWidget.Collapse(animate=False)
 
@@ -310,19 +308,34 @@ class SideBar(QWidget, ComponentBase):
         self.WidthChanged.emit(lWidth)
 
     def _onItemClicked(self, item: SideBarItem) -> None:
-        # Clear selection across top-level items and items inside groups
+        lOwnerGroup: Optional[SideBarGroup] = None
+
         for lIdx in range(self._content.Count()):
             lW = self._content.ContentLayout.itemAt(lIdx)
             if lW is None:
                 continue
             lWidget = lW.widget()
+
             if isinstance(lWidget, SideBarItem):
                 lWidget.Selected = (lWidget is item)
+
             elif isinstance(lWidget, SideBarGroup):
+                lOwns = lWidget.ContainsItem(item)
+                if lOwns:
+                    lOwnerGroup = lWidget
+
+                # Item selection inside the group
                 for lGIdx in range(lWidget.BodyWidget.layout().count()):
                     lGW = lWidget.BodyWidget.layout().itemAt(lGIdx)
                     if lGW and isinstance(lGW.widget(), SideBarItem):
                         lGW.widget().Selected = (lGW.widget() is item)
+
+                # Group selection + auto collapse of non-owners
+                lWidget.Selected = lOwns
+                if lOwns:
+                    lWidget.Expand(animate=True)
+                else:
+                    lWidget.Collapse(animate=True)
 
         self.ItemClicked.emit(item)
 
