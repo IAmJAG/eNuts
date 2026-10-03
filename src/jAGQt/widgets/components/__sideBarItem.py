@@ -172,10 +172,10 @@ class SideBarItem(QWidget, ComponentBase):
 
     # ================================================================================== private
     def _rebuildLayout(self) -> None:
+        # Only detach from layout — keep parent=self so widgets never become
+        # transient top-level windows (which flash as mini-windows on screen).
         while self._layout.count():
-            lItem = self._layout.takeAt(0)
-            if lItem.widget():
-                lItem.widget().setParent(None)
+            self._layout.takeAt(0)
 
         lShowIcon = self._displayMode in (ItemDisplayMode.IconOnly, ItemDisplayMode.IconAndText)
         lShowText = self._displayMode in (ItemDisplayMode.TextOnly, ItemDisplayMode.IconAndText)
