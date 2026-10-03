@@ -1,7 +1,8 @@
 # ==================================================================================
-# src/fluxCore/utilities/__init__.py
+# fluxCore/sockets/__init__.py
 # ==================================================================================
-from .__device import iDevice
+from .__frame import Frame
+from .__packet import Packet
 
 # ==================================================================================
-__all__ = ["iDevice"]
+__all__ = ["Packet", "Frame"]

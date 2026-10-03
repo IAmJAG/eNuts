@@ -13,9 +13,7 @@ from .__subscription import AsyncSubscription
 
 
 # ==================================================================================
-class AsyncService(iService, AsyncSubscription):
-    """Run one asynchronous unit of work as a managed asyncio task."""
-
+class AsyncService(iService, AsyncSubscription):    
     C_DEFAULT_FORCE_AFTER: float = 0.1
 
     def __init__(
@@ -28,7 +26,7 @@ class AsyncService(iService, AsyncSubscription):
         if work is not None and not iscoroutinefunction(work):
             raise TypeError("AsyncService requires an awaitable (coroutine function) work argument")
 
-        self._work: Callable[..., Awaitable] | None = work
+        self.work: Callable[..., Awaitable] | None = work
         self._name: str = name or getRandomName()
         self._isRunning: bool = False
         self._isStopping: bool = False
@@ -59,8 +57,10 @@ class AsyncService(iService, AsyncSubscription):
     def _assertStartReady(self) -> None:
         if self._isRunning:
             raise RuntimeError(f"Service '{self._name}' is already running.")
+        
         if self._isStopping:
             raise RuntimeError(f"Service '{self._name}' is stopping.")
+        
         if self._work is None or not iscoroutinefunction(self._work):
             raise TypeError("AsyncService requires an awaitable (coroutine function) work argument")
 
@@ -77,6 +77,7 @@ class AsyncService(iService, AsyncSubscription):
         lLoop = get_running_loop()
         self._isRunning = True
         self._pauseEvent.set()
+        
         self._task = lLoop.create_task(
             self._serviceLoop(*args, **kwargs),
             name=self._name,
@@ -112,19 +113,17 @@ class AsyncService(iService, AsyncSubscription):
         self.raiseEvent("ON_RESUMED")
 
     async def _serviceLoop(self, *args, **kwargs) -> None:
-        lWork = self._work
-        if lWork is None:
+        if isNoOpMethod(self.work):
             return
 
         await self.asyncRaiseEvent("ON_STARTED")
-
         try:
             while self._isRunning:
                 await self._pauseEvent.wait()
                 if not self._isRunning:
                     break
 
-                await lWork(*args, **kwargs)
+                await self.work(*args, **kwargs)
 
                 if self._throttle:
                     await asyncSleep(self._throttle)

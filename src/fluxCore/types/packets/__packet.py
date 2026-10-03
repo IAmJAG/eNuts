@@ -4,7 +4,7 @@
 from time import time
 
 # ==================================================================================
-from ..interface.sockets import iPacket
+from ..interface.packets import iPacket
 
 
 # ==================================================================================

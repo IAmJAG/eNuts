@@ -10,7 +10,7 @@ from av import VideoCodecContext, VideoFrame
 from torch import Tensor, from_dlpack
 
 # ==================================================================================
-from ...types.interface.sockets import iFrame
+from ..interface.packets import iFrame
 from .__packet import Packet
 
 
@@ -45,8 +45,6 @@ class Frame(Packet, iFrame):
     @pts.setter
     def pts(self, value: int) -> None:
         self._pts = value
-
-    def decode(self, ) -> VideoFrame | Tensor: ...
     
     def decode(self, decoder: VideoCodecContext | None = None, toGPU: bool = False) -> VideoFrame | Tensor | None:
         if decoder is None:

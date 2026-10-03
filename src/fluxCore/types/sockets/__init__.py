@@ -1,13 +1,9 @@
 # ==================================================================================
 # fluxCore/sockets/__init__.py
 # ==================================================================================
-from .__controlSocket import iControlSocket
-from .__frame import iFrame
-from .__socket import iSocket
-from .__videoSocket import iVideoSocket
+from .__controlSocket import ControlSocket
+from .__socket import SocketBase
+from .__videoSocket import VideoSocket
 
 # ==================================================================================
-__all__ = [
-    "iVideoSocket", "iControlSocket",
-    "iSocket", "iFrame"
-]
+__all__ = ["VideoSocket", "ControlSocket", "SocketBase"]

@@ -1,17 +1,18 @@
 # ==================================================================================
+# src/fluxCore/types/interface/__scrcpy.py
+# ==================================================================================
 from typing import Protocol, runtime_checkable
-from uuid import UUID
 
 # ==================================================================================
-from jAGFx.types.interface.serializer import iSerializable
+from ..device import iDevice
 
 
 # ==================================================================================
 @runtime_checkable
-class iDevice(iSerializable, Protocol):
-    def __init__(self, ident: str | UUID  | None = None) -> None: ...
-    @property 
-    def id(self) -> str: ...
+class iSCRCPY(iDevice, Protocol):
     @property
-    def name(self) -> str | None: ...
-    
+    def codecId(self) -> str: ...
+    @property
+    def width(self) -> int: ...
+    @property
+    def height(self) -> int: ...
