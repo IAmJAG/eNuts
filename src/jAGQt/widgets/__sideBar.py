@@ -83,8 +83,10 @@ class SideBar(QWidget, ComponentBase):
         )
         self._content = SideBarContent(parent=self)
 
+        # Right margin 1px keeps children under the SideBar border-right so
+        # filled headers do not paint over the border line.
         self._layout: QBoxLayout = newLayout(
-            QBoxLayout, spacing=0, margins=(0, 0, 0, 0)
+            QBoxLayout, spacing=0, margins=(0, 0, 1, 0)
         )
         self._layout.setDirection(QBoxLayout.Direction.TopToBottom)
         self.setLayout(self._layout)
@@ -264,6 +266,7 @@ class SideBar(QWidget, ComponentBase):
         lMode = ItemDisplayMode.IconOnly if self._collapsed else ItemDisplayMode.IconAndText
 
         self._header.TitleWidget.setVisible(not self._collapsed)
+        self._header.SetCollapsed(self._collapsed)
 
         for lIdx in range(self._content.Count()):
             lW = self._content.ContentLayout.itemAt(lIdx)
@@ -278,7 +281,6 @@ class SideBar(QWidget, ComponentBase):
     def _applyCollapsedState(self, animate: bool = True) -> None:
         lTargetWidth = self._collapsedWidth if self._collapsed else self._expandedWidth
 
-        # Switch display modes immediately so text disappears as width animates
         self._syncAllDisplayModes()
 
         if animate and self._animationDurationMs > 0 and self.width() != lTargetWidth:
@@ -309,7 +311,6 @@ class SideBar(QWidget, ComponentBase):
         lWidth = self._collapsedWidth if self._collapsed else self._expandedWidth
         self.setFixedWidth(lWidth)
         self._activeAnimation = None
-        # Re-apply after width settles (guards against layout rebuild side-effects)
         self._syncAllDisplayModes()
         self.WidthChanged.emit(lWidth)
 
