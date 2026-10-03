@@ -5,7 +5,7 @@ from typing import Callable, Optional, Union
 
 # ==================================================================================
 from PySide6.QtCore import QEasingCurve, Qt, Signal
-from PySide6.QtGui import QColor, QIcon, QMouseEvent, QPalette, QPixmap
+from PySide6.QtGui import QIcon, QMouseEvent, QPixmap
 from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QStyle, QWidget
 
 # ==================================================================================
@@ -23,8 +23,17 @@ from .__sideBarText import SideBarText
 _C_HEADER_OBJECT_NAME = "SideBarGroupHeader"
 _C_HEADER_SELECTED_OBJECT_NAME = "SideBarGroupHeaderSelected"
 
-_C_SELECTED_BG = QColor("#1c2832")
-_C_IDLE_BG = QColor("#22262c")
+_C_STYLE_IDLE = (
+    "background-color: #22262c;"
+    "border: 1px solid #2c323a;"
+    "border-radius: 6px;"
+)
+_C_STYLE_SELECTED = (
+    "background-color: #1c2832;"
+    "border: 1px solid #3a5568;"
+    "border-left: 3px solid #5b9fd4;"
+    "border-radius: 6px;"
+)
 
 
 # ==================================================================================
@@ -60,12 +69,10 @@ class SideBarGroup(QWidget, ComponentBase):
         self._cachedSelectedItem: Optional[SideBarItem] = None
         self._sidebarCollapsed: bool = False
 
-        # ----- Header --------------------------------------------------------
         self._header = QWidget(self)
         self._header.setObjectName(_C_HEADER_OBJECT_NAME)
         self._header.setCursor(Qt.CursorShape.PointingHandCursor)
         self._header.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        self._header.setAutoFillBackground(True)
         self._header.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         self._iconWidget = SideBarIcon(icon=icon, iconSize=self._iconSize, parent=self._header)
@@ -87,7 +94,6 @@ class SideBarGroup(QWidget, ComponentBase):
 
         self._header.mousePressEvent = self._onHeaderClicked  # type: ignore
 
-        # ----- Body ----------------------------------------------------------
         self._body = QWidget(self)
         self._body.setObjectName("SideBarGroupBody")
         self._body.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
@@ -108,7 +114,7 @@ class SideBarGroup(QWidget, ComponentBase):
         self._applyCollapsedState(animate=False)
         self._applySelectedState()
 
-    # ================================================================================== public API – children
+    # ==================================================================================
     def AddItem(
         self,
         text: str = "",
@@ -184,7 +190,6 @@ class SideBarGroup(QWidget, ComponentBase):
         if self._sidebarCollapsed:
             self.Collapse(animate=False)
 
-    # ================================================================================== public API – collapse
     def Collapse(self, animate: bool = True) -> None:
         if self._collapsed:
             return
@@ -207,7 +212,6 @@ class SideBarGroup(QWidget, ComponentBase):
         else:
             self.Collapse(animate=animate)
 
-    # ================================================================================== properties
     @property
     def Collapsed(self) -> bool:
         return self._collapsed
@@ -267,7 +271,6 @@ class SideBarGroup(QWidget, ComponentBase):
     def BodyWidget(self) -> QWidget:
         return self._body
 
-    # ================================================================================== private
     def _standardIcon(self, standardPixmap: QStyle.StandardPixmap) -> QIcon:
         return self.style().standardIcon(standardPixmap)
 
@@ -298,20 +301,13 @@ class SideBarGroup(QWidget, ComponentBase):
         self.ItemClicked.emit(item)
 
     def _applySelectedState(self) -> None:
+        """Inline stylesheet — guaranteed paint, independent of app QSS quirks."""
         self._header.setObjectName(
             _C_HEADER_SELECTED_OBJECT_NAME if self._selected else _C_HEADER_OBJECT_NAME
         )
-
-        lPalette = self._header.palette()
-        lBg = _C_SELECTED_BG if self._selected else _C_IDLE_BG
-        lPalette.setColor(QPalette.ColorRole.Window, lBg)
-        lPalette.setColor(QPalette.ColorRole.Base, lBg)
-        lPalette.setColor(QPalette.ColorRole.Button, lBg)
-        self._header.setPalette(lPalette)
-        self._header.setAutoFillBackground(True)
-
-        self._header.style().unpolish(self._header)
-        self._header.style().polish(self._header)
+        self._header.setStyleSheet(
+            _C_STYLE_SELECTED if self._selected else _C_STYLE_IDLE
+        )
         self._header.update()
 
     def _applyFinalBodyHeight(self) -> None:
