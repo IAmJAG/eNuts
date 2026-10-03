@@ -135,9 +135,10 @@ class SideBarItem(QWidget, ComponentBase):
         if value == self._selected:
             return
         self._selected = bool(value)
-        self.setProperty("selected", self._selected)
+        self.setProperty("selected", "true" if self._selected else "false")
         self.style().unpolish(self)
         self.style().polish(self)
+        self.update()
 
     @property
     def IconWidget(self) -> SideBarIcon:
@@ -156,15 +157,17 @@ class SideBarItem(QWidget, ComponentBase):
         super().mousePressEvent(event)
 
     def enterEvent(self, event) -> None:
-        self.setProperty("hover", True)
+        self.setProperty("hover", "true")
         self.style().unpolish(self)
         self.style().polish(self)
+        self.update()
         super().enterEvent(event)
 
     def leaveEvent(self, event) -> None:
-        self.setProperty("hover", False)
+        self.setProperty("hover", "false")
         self.style().unpolish(self)
         self.style().polish(self)
+        self.update()
         super().leaveEvent(event)
 
     # ================================================================================== private
