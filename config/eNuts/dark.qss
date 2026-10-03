@@ -107,7 +107,6 @@ QWidget#SideBar {
     border-right: 1px solid #2e2e2e;
 }
 
-/* Header sits inset (layout right margin) so border-right stays visible */
 QWidget#SideBarHeader {
     background: #121212;
     border: none;
@@ -192,8 +191,9 @@ QWidget#SideBarGroupBody {
     margin: 3px 0px 6px 0px;
 }
 
+/* Nested children — deeper indent under group header */
 QWidget#SideBarGroupBody QWidget#SideBarItem {
-    margin-left: 14px;
+    margin-left: 28px;
     margin-right: 8px;
     margin-top: 1px;
     margin-bottom: 1px;
