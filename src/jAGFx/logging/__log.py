@@ -46,7 +46,9 @@ def log(
         f"{key}: {value}" for key, value in messages.items()
     ] 
     if isinstance(messages, Set): messages = list(messages)    
-    if err:
-        messages.extend(formatTrace(err))
+    if err is not None:
+        lTraceLines = formatTrace(err)
+        if lTraceLines:
+            messages.extend(lTraceLines)
 
     _log(messages, level, lExtra)
