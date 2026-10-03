@@ -219,3 +219,81 @@ QDialog QWidget#WD_MODE_SELECTION {
 QDialog QWidget#WD_MODE_SELECTION QRadioButton {
     padding: 2px 2px;
 }
+
+/* ==========================================================================
+   New SideBar components (jAGQt.widgets)
+   ========================================================================== */
+
+QWidget#SideBar {
+    background-color: #ffffff;
+    border-right: 2px solid #d0d0d0;
+}
+
+QWidget#SideBarHeader {
+    background-color: #f8f8f8;
+    border-bottom: 1px solid #d0d0d0;
+}
+
+QLabel#SideBarHeaderTitle {
+    color: #303030;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+QLabel#SideBarHeaderCollapse {
+    color: #909090;
+    font-size: 14px;
+}
+
+QLabel#SideBarHeaderCollapse:hover {
+    color: #1565c0;
+    background-color: #e9eef5;
+    border-radius: 3px;
+}
+
+QWidget#SideBarItem {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 0px;
+    color: #303030;
+}
+
+QWidget#SideBarItem[hover="true"] {
+    background-color: #e9eef5;
+    color: #111111;
+}
+
+QWidget#SideBarItem[selected="true"] {
+    background-color: #1976d2;
+    color: #ffffff;
+    border-color: #1565c0;
+    font-weight: bold;
+}
+
+QWidget#SideBarItem[selected="true"][hover="true"] {
+    background-color: #1565c0;
+}
+
+QLabel#SideBarText {
+    color: inherit;
+    background: transparent;
+}
+
+QLabel#SideBarIcon {
+    background: transparent;
+}
+
+QFrame#SideBarSeparator {
+    background: #d0d0d0;
+    border: none;
+    max-height: 1px;
+}
+
+QScrollArea#SideBarContent {
+    background: transparent;
+    border: none;
+}
+
+QWidget#SideBarContentContainer {
+    background: transparent;
+}
