@@ -5,13 +5,7 @@ from typing import Optional
 
 # ==================================================================================
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (
-    QBoxLayout,
-    QFrame,
-    QScrollArea,
-    QSizePolicy,
-    QWidget,
-)
+from PySide6.QtWidgets import QBoxLayout, QFrame, QScrollArea, QSizePolicy, QWidget
 
 # ==================================================================================
 from jAGQt.types.components import ComponentBase
@@ -23,12 +17,8 @@ class SideBarContent(QScrollArea, ComponentBase):
     """Scrollable content area that holds SideBar items, groups and separators."""
 
     def __init__(
-        self,
-        spacing: int = 2,
-        margins: tuple[int, int, int, int] = (0, 0, 0, 0),
-        parent: Optional[QWidget] = None,
-        *args,
-        **kwargs,
+        self, spacing: int = 2, margins: tuple[int, int, int, int] = (0, 0, 0, 0),
+        parent: Optional[QWidget] = None, *args, **kwargs,
     ) -> None:
         super().__init__(parent, *args, **kwargs)
 
@@ -41,9 +31,7 @@ class SideBarContent(QScrollArea, ComponentBase):
 
         self._container = QWidget()
         self._container.setObjectName("SideBarContentContainer")
-        self._layout: QBoxLayout = newLayout(
-            QBoxLayout, spacing=spacing, margins=margins
-        )
+        self._layout: QBoxLayout = newLayout(QBoxLayout, spacing=spacing, margins=margins)
         self._layout.setDirection(QBoxLayout.Direction.TopToBottom)
         self._layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self._container.setLayout(self._layout)
