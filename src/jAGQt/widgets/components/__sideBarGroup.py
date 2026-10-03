@@ -49,6 +49,7 @@ class SideBarGroup(QWidget, ComponentBase):
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
         self._collapsed: bool = startCollapsed
+        self._selected: bool = False
         self._iconSize: int = max(1, iconSize)
         self._animationDurationMs: int = max(0, animationDurationMs)
         self._activeAnimation = None
@@ -100,6 +101,7 @@ class SideBarGroup(QWidget, ComponentBase):
         self._layout.addWidget(self._body)
 
         self._applyCollapsedState(animate=False)
+        self._applySelectedState()
 
     # ================================================================================== public API – children
     def AddItem(
@@ -140,6 +142,14 @@ class SideBarGroup(QWidget, ComponentBase):
                 lItem.widget().setParent(None)
                 lItem.widget().deleteLater()
 
+    def ContainsItem(self, item: SideBarItem) -> bool:
+        """Return True if *item* is a direct child of this group."""
+        for lIdx in range(self._bodyLayout.count()):
+            lW = self._bodyLayout.itemAt(lIdx)
+            if lW and lW.widget() is item:
+                return True
+        return False
+
     # ================================================================================== public API – collapse
     def Collapse(self, animate: bool = True) -> None:
         if self._collapsed:
@@ -172,6 +182,18 @@ class SideBarGroup(QWidget, ComponentBase):
             self.Collapse()
         else:
             self.Expand()
+
+    @property
+    def Selected(self) -> bool:
+        return self._selected
+
+    @Selected.setter
+    def Selected(self, value: bool) -> None:
+        lValue = bool(value)
+        if lValue == self._selected:
+            return
+        self._selected = lValue
+        self._applySelectedState()
 
     @property
     def Title(self) -> str:
@@ -217,6 +239,11 @@ class SideBarGroup(QWidget, ComponentBase):
     def _onChildItemClicked(self, item: SideBarItem) -> None:
         self.ItemClicked.emit(item)
 
+    def _applySelectedState(self) -> None:
+        self._header.setProperty("selected", self._selected)
+        self._header.style().unpolish(self._header)
+        self._header.style().polish(self._header)
+
     def _applyCollapsedState(self, animate: bool = True) -> None:
         self._indicator.Text = "▸" if self._collapsed else "▾"
         self._header.setProperty("collapsed", self._collapsed)
@@ -226,7 +253,6 @@ class SideBarGroup(QWidget, ComponentBase):
         if self._collapsed:
             lTargetHeight = 0
         else:
-            # Ensure body is visible so sizeHint is accurate
             self._body.setVisible(True)
             self._body.setMaximumHeight(16777215)
             lTargetHeight = self._body.sizeHint().height()
