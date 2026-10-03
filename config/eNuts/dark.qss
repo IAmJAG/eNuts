@@ -97,3 +97,81 @@ QLabel#TRAINING_STAT_LABEL { color: #888888; font-size: 10px; font-weight: 600; 
 QLabel#TRAINING_DEVICE_NAME { color: #eeeeee; font-size: 14px; font-weight: 600; }
 QLabel#TRAINING_DEVICE_KIND { color: #888888; }
 QLabel#TRAINING_DEVICE_STATUS { color: #75bdf5; font-size: 11px; }
+
+/* ==========================================================================
+   New SideBar components (jAGQt.widgets)
+   ========================================================================== */
+
+QWidget#SideBar {
+    background: #202020;
+    border-right: 1px solid #303030;
+}
+
+QWidget#SideBarHeader {
+    background: #1c1c1c;
+    border-bottom: 1px solid #303030;
+}
+
+QLabel#SideBarHeaderTitle {
+    color: #f0f0f0;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+QLabel#SideBarHeaderCollapse {
+    color: #888888;
+    font-size: 14px;
+}
+
+QLabel#SideBarHeaderCollapse:hover {
+    color: #eeeeee;
+    background: #333333;
+    border-radius: 4px;
+}
+
+QWidget#SideBarItem {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    color: #b8b8b8;
+}
+
+QWidget#SideBarItem[hover="true"] {
+    background: #333333;
+    color: #eeeeee;
+    border-color: #484848;
+}
+
+QWidget#SideBarItem[selected="true"] {
+    background: #2d3945;
+    color: #ffffff;
+    border-color: #3d5368;
+}
+
+QWidget#SideBarItem[selected="true"][hover="true"] {
+    background: #344554;
+}
+
+QLabel#SideBarText {
+    color: inherit;
+    background: transparent;
+}
+
+QLabel#SideBarIcon {
+    background: transparent;
+}
+
+QFrame#SideBarSeparator {
+    background: #303030;
+    border: none;
+    max-height: 1px;
+}
+
+QScrollArea#SideBarContent {
+    background: transparent;
+    border: none;
+}
+
+QWidget#SideBarContentContainer {
+    background: transparent;
+}
