@@ -6,7 +6,6 @@ from typing import Callable, Optional, Union
 
 # ==================================================================================
 from PySide6.QtCore import (
-    Property,
     QEasingCurve,
     QPropertyAnimation,
     Qt,
@@ -21,16 +20,14 @@ from jAGQt.utilities import newLayout
 
 # ==================================================================================
 from .components import (
+    IconPosition,
     ItemDisplayMode,
+    SeparatorType,
     SideBarContent,
     SideBarHeader,
-    SideBarIcon,
     SideBarItem,
     SideBarSeparator,
-    SideBarText,
 )
-from .components.__sideBarItem import IconPosition
-from .components.__sideBarSeparator import SeparatorType
 
 
 # ==================================================================================
