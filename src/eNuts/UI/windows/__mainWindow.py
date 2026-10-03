@@ -67,8 +67,6 @@ class MainWindow(MainWindowBase, ApplicationInformation):
         lTraining.AddItem(text="Sessions", icon=None)
         lTraining.AddItem(text="Models", icon=None)
 
-        self._sideBar.AddSeparator()
-        self._sideBar.AddItem(text="Settings", icon=None)
         self._sideBar.AddStretch()
         self._sideBar.AddItem(text="Settings", icon=None)
         
