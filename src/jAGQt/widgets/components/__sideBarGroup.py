@@ -256,6 +256,8 @@ class SideBarGroup(QWidget, ComponentBase):
 
         lTarget = self.GetSelectionTarget()
         if lTarget is not None:
+            # Persist choice when falling back to default (cache was empty)
+            self._cachedSelectedItem = lTarget
             self.ItemClicked.emit(lTarget)
         else:
             self.Selected = True
@@ -294,11 +296,9 @@ class SideBarGroup(QWidget, ComponentBase):
             lStart = self._body.height() if self._body.isVisible() else 0
         else:
             self._body.setVisible(True)
-            # Temporarily unlock so sizeHint reflects content
             self._body.setMaximumHeight(16777215)
             lTargetHeight = max(0, self._body.sizeHint().height())
             lStart = 0 if not self._body.isVisible() else self._body.height()
-            # If still fully expanded, start from current height
             if lStart <= 0:
                 lStart = 0
 
@@ -307,7 +307,6 @@ class SideBarGroup(QWidget, ComponentBase):
             return
 
         self._body.setVisible(True)
-        # Allow intermediate heights during animation
         self._body.setMaximumHeight(max(lStart, lTargetHeight, 1))
 
         self._activeAnimation = AnimateProperty(
