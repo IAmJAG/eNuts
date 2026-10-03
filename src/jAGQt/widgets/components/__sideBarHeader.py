@@ -5,7 +5,8 @@ from typing import Optional
 
 # ==================================================================================
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
+from PySide6.QtGui import QIcon, QMouseEvent
+from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QStyle, QWidget
 
 # ==================================================================================
 from jAGQt.types.components import ComponentBase
@@ -40,28 +41,31 @@ class SideBarHeader(QWidget, ComponentBase):
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
         self._showCollapseButton: bool = showCollapseButton
+        self._collapsed: bool = False
+        self._collapseIconSize: int = max(14, min(iconSize, 18))
 
         self._iconWidget = SideBarIcon(icon=icon, iconSize=iconSize, parent=self)
         self._titleWidget = SideBarText(text=title, parent=self)
         self._titleWidget.setObjectName("SideBarHeaderTitle")
 
-        # Simple collapse indicator (text for now – can be replaced by icon later)
-        self._collapseIndicator = SideBarText(text="⟨", parent=self)
-        self._collapseIndicator.setObjectName("SideBarHeaderCollapse")
-        self._collapseIndicator.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._collapseIndicator.setFixedWidth(24)
-        self._collapseIndicator.setAlignment(
-            Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
+        self._collapseButton = SideBarIcon(
+            icon=None,
+            iconSize=self._collapseIconSize,
+            parent=self,
         )
-        self._collapseIndicator.mousePressEvent = self._onCollapseClicked  # type: ignore
+        self._collapseButton.setObjectName("SideBarHeaderCollapse")
+        self._collapseButton.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._collapseButton.mousePressEvent = self._onCollapseClicked  # type: ignore
 
+        # Leave 1px on the right so this fill does not cover SideBar border-right
         self._layout: QBoxLayout = newLayout(
-            QBoxLayout, spacing=spacing, margins=(8, 8, 8, 8)
+            QBoxLayout, spacing=spacing, margins=(8, 8, 9, 8)
         )
         self._layout.setDirection(QBoxLayout.Direction.LeftToRight)
         self.setLayout(self._layout)
 
         self._rebuild()
+        self._refreshCollapseIcon()
 
     # ================================================================================== public API
     def SetTitle(self, title: str) -> None:
@@ -69,6 +73,14 @@ class SideBarHeader(QWidget, ComponentBase):
 
     def SetIcon(self, icon) -> None:
         self._iconWidget.SetIcon(icon)
+
+    def SetCollapsed(self, collapsed: bool) -> None:
+        """Update the collapse/expand glyph to match SideBar state."""
+        lValue = bool(collapsed)
+        if lValue == self._collapsed:
+            return
+        self._collapsed = lValue
+        self._refreshCollapseIcon()
 
     # ================================================================================== properties
     @property
@@ -98,7 +110,23 @@ class SideBarHeader(QWidget, ComponentBase):
     def TitleWidget(self) -> SideBarText:
         return self._titleWidget
 
+    @property
+    def CollapseButton(self) -> SideBarIcon:
+        return self._collapseButton
+
     # ================================================================================== private
+    def _standardIcon(self, standardPixmap: QStyle.StandardPixmap) -> QIcon:
+        return self.style().standardIcon(standardPixmap)
+
+    def _refreshCollapseIcon(self) -> None:
+        # Collapsed sidebar → arrow pointing right (expand)
+        # Expanded sidebar  → arrow pointing left  (collapse)
+        if self._collapsed:
+            lIcon = self._standardIcon(QStyle.StandardPixmap.SP_ArrowRight)
+        else:
+            lIcon = self._standardIcon(QStyle.StandardPixmap.SP_ArrowLeft)
+        self._collapseButton.SetIcon(lIcon)
+
     def _rebuild(self) -> None:
         while self._layout.count():
             lItem = self._layout.takeAt(0)
@@ -109,7 +137,8 @@ class SideBarHeader(QWidget, ComponentBase):
         self._layout.addWidget(self._titleWidget, 1)
 
         if self._showCollapseButton:
-            self._layout.addWidget(self._collapseIndicator)
+            self._layout.addWidget(self._collapseButton)
 
-    def _onCollapseClicked(self, event) -> None:
-        self.CollapseRequested.emit()
+    def _onCollapseClicked(self, event: QMouseEvent) -> None:
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.CollapseRequested.emit()
