@@ -17,8 +17,10 @@ from ..types.interface.application import iENUTSService, iShell
 # ==================================================================================
 class Shell(iShell):
     def intializeUI(self: iMainWindowBase): 
-        layout: QLayout = self.Layout
+        pass
 
-    def initializeInstance(self: iMainWindowBase): ...
-    def bindServices(self, services: List[iENUTSService]): ... 
+    def initializeInstance(self: iMainWindowBase): 
+        pass
+    def bindServices(self, services: List[iENUTSService]): 
+        pass    
     
