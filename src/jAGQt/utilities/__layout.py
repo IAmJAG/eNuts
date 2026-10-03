@@ -1,7 +1,7 @@
 # ==================================================================================
 # src/jAGQt/utilities/__layout.py
 # ==================================================================================
-from typing import List, Set, Tuple
+from typing import List, Optional, Set, Tuple
 
 # ==================================================================================
 from PySide6.QtCore import QMargins
@@ -9,9 +9,28 @@ from PySide6.QtWidgets import QBoxLayout, QFormLayout, QGridLayout, QLayout, QMa
 
 
 # ==================================================================================
-def newLayout(layout: type[QLayout], spacing=0, margins=(0, 0, 0, 0)) -> QLayout:
-    lLayout = layout()
-    lLayout.setContentsMargins(*margins)
+def newLayout(
+    layout: type[QLayout],
+    spacing: int = 0,
+    margins: tuple[int, int, int, int] | int = (0, 0, 0, 0),
+    direction: Optional[QBoxLayout.Direction] = None,
+) -> QLayout:
+    """Create a layout instance with spacing and margins applied.
+
+    For QBoxLayout a Direction is required by Qt. If *direction* is omitted,
+    TopToBottom is used as the default.
+    """
+    if issubclass(layout, QBoxLayout):
+        lDirection = direction if direction is not None else QBoxLayout.Direction.TopToBottom
+        lLayout = layout(lDirection)
+    else:
+        lLayout = layout()
+
+    if isinstance(margins, int):
+        lLayout.setContentsMargins(margins, margins, margins, margins)
+    else:
+        lLayout.setContentsMargins(*margins)
+
     lLayout.setSpacing(spacing)
     return lLayout
 
