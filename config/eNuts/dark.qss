@@ -100,9 +100,7 @@ QLabel#TRAINING_DEVICE_STATUS { color: #75bdf5; font-size: 11px; }
 
 /* ==========================================================================
    SideBar hierarchy
-   Level 0 – app header (chrome)
-   Level 1 – group headers (section context — secondary)
-   Level 2 – leaf items (active navigation — dominant)
+   Headers thicker than children; nested leaves more accented
    ========================================================================== */
 
 QWidget#SideBar {
@@ -110,28 +108,28 @@ QWidget#SideBar {
     border-right: 1px solid #2e2e2e;
 }
 
-/* ----- Level 0: Main header ------------------------------------------------ */
+/* ----- Level 0: App header (thickest chrome) ------------------------------- */
 QWidget#SideBarHeader {
-    background: #141414;
+    background: #121212;
     border: none;
     border-bottom: 2px solid #3d5368;
-    min-height: 44px;
-    padding: 4px 0px;
+    min-height: 52px;
+    padding: 8px 0px;
 }
 
 QLabel#SideBarHeaderTitle {
     color: #f5f5f5;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 700;
-    letter-spacing: 0.4px;
+    letter-spacing: 0.5px;
 }
 
 QLabel#SideBarHeaderCollapse {
     color: #7a8a9a;
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 600;
     border-radius: 4px;
-    padding: 2px 4px;
+    padding: 4px 6px;
 }
 
 QLabel#SideBarHeaderCollapse:hover {
@@ -139,18 +137,19 @@ QLabel#SideBarHeaderCollapse:hover {
     background: #2d3945;
 }
 
-/* ----- Level 1: Group headers (secondary / context) ------------------------ */
+/* ----- Level 1: Group headers (thicker than leaves) ------------------------ */
 QWidget#SideBarGroup {
     background: transparent;
-    margin-top: 6px;
+    margin-top: 8px;
 }
 
 QWidget#SideBarGroupHeader {
     background: #22262c;
     border: 1px solid #2c323a;
-    border-radius: 5px;
+    border-radius: 6px;
     margin: 0px 6px;
-    min-height: 32px;
+    min-height: 40px;
+    padding: 2px 0px;
     color: #c5cdd6;
 }
 
@@ -159,7 +158,6 @@ QWidget#SideBarGroupHeader:hover {
     border-color: #3a4550;
 }
 
-/* Selected group: visible but muted — never competes with the active leaf */
 QWidget#SideBarGroupHeader[selected="true"] {
     background: #1c2832;
     border: 1px solid #3a5568;
@@ -177,7 +175,7 @@ QLabel#SideBarGroupTitle {
     color: #b8c4d0;
     font-size: 11px;
     font-weight: 700;
-    letter-spacing: 0.8px;
+    letter-spacing: 0.9px;
     text-transform: uppercase;
 }
 
@@ -187,7 +185,7 @@ QWidget#SideBarGroupHeader[selected="true"] QLabel#SideBarGroupTitle {
 
 QLabel#SideBarGroupIndicator {
     color: #6a7a8a;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
 }
 
@@ -197,30 +195,34 @@ QWidget#SideBarGroupHeader[selected="true"] QLabel#SideBarGroupIndicator {
 
 QWidget#SideBarGroupBody {
     background: transparent;
-    margin: 2px 0px 4px 0px;
+    margin: 3px 0px 6px 0px;
 }
 
-/* Nested leaves — dominant selection treatment */
+/* ----- Nested sub-items: thinner, more accented ---------------------------- */
 QWidget#SideBarGroupBody QWidget#SideBarItem {
-    margin-left: 10px;
-    margin-right: 6px;
+    margin-left: 14px;
+    margin-right: 8px;
+    margin-top: 1px;
+    margin-bottom: 1px;
     border-radius: 4px;
     border: 1px solid transparent;
-    border-left: 3px solid transparent;
-    min-height: 30px;
-    color: #a8b0b8;
-    font-size: 12px;
+    border-left: 3px solid #2a3540;
+    min-height: 26px;
+    max-height: 28px;
+    color: #9aa8b4;
+    font-size: 11.5px;
+    background: #181c20;
 }
 
 QWidget#SideBarGroupBody QWidget#SideBarItem[hover="true"] {
-    background: #2a2e34;
-    color: #e8ecf0;
-    border-left-color: #5a6a7a;
+    background: #243038;
+    color: #e8f0f6;
+    border-left-color: #5b9fd4;
+    border-color: #2a3a48;
 }
 
-/* Active leaf: strongest visual in the sidebar */
 QWidget#SideBarGroupBody QWidget#SideBarItem[selected="true"] {
-    background: #2a4558;
+    background: #1e3a4e;
     color: #ffffff;
     font-weight: 600;
     border: 1px solid #3d6a88;
@@ -228,18 +230,18 @@ QWidget#SideBarGroupBody QWidget#SideBarItem[selected="true"] {
 }
 
 QWidget#SideBarGroupBody QWidget#SideBarItem[selected="true"][hover="true"] {
-    background: #315268;
+    background: #274a62;
     border-color: #4a7a9a;
     border-left-color: #9ad0ff;
 }
 
-/* ----- Level 2: Top-level leaf items --------------------------------------- */
+/* ----- Top-level leaves (between header thickness and nested) -------------- */
 QWidget#SideBarItem {
     background: transparent;
     border: 1px solid transparent;
     border-radius: 5px;
-    margin: 1px 6px;
-    min-height: 34px;
+    margin: 2px 6px;
+    min-height: 32px;
     color: #b0b8c0;
     font-size: 12.5px;
 }
