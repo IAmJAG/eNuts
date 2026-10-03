@@ -57,7 +57,6 @@ class SideBarHeader(QWidget, ComponentBase):
         self._collapseButton.setCursor(Qt.CursorShape.PointingHandCursor)
         self._collapseButton.mousePressEvent = self._onCollapseClicked  # type: ignore
 
-        # Leave 1px on the right so this fill does not cover SideBar border-right
         self._layout: QBoxLayout = newLayout(
             QBoxLayout, spacing=spacing, margins=(8, 8, 9, 8)
         )
@@ -75,7 +74,6 @@ class SideBarHeader(QWidget, ComponentBase):
         self._iconWidget.SetIcon(icon)
 
     def SetCollapsed(self, collapsed: bool) -> None:
-        """Update the collapse/expand glyph to match SideBar state."""
         lValue = bool(collapsed)
         if lValue == self._collapsed:
             return
@@ -119,8 +117,6 @@ class SideBarHeader(QWidget, ComponentBase):
         return self.style().standardIcon(standardPixmap)
 
     def _refreshCollapseIcon(self) -> None:
-        # Collapsed sidebar → arrow pointing right (expand)
-        # Expanded sidebar  → arrow pointing left  (collapse)
         if self._collapsed:
             lIcon = self._standardIcon(QStyle.StandardPixmap.SP_ArrowRight)
         else:
@@ -128,10 +124,9 @@ class SideBarHeader(QWidget, ComponentBase):
         self._collapseButton.SetIcon(lIcon)
 
     def _rebuild(self) -> None:
+        # Detach from layout only — keep parent so no top-level window flashes
         while self._layout.count():
-            lItem = self._layout.takeAt(0)
-            if lItem.widget():
-                lItem.widget().setParent(None)
+            self._layout.takeAt(0)
 
         self._layout.addWidget(self._iconWidget)
         self._layout.addWidget(self._titleWidget, 1)
