@@ -175,3 +175,33 @@ QScrollArea#SideBarContent {
 QWidget#SideBarContentContainer {
     background: transparent;
 }
+
+/* SideBarGroup */
+QWidget#SideBarGroup {
+    background: transparent;
+}
+
+QWidget#SideBarGroupHeader {
+    background: transparent;
+    border-radius: 4px;
+    color: #c8c8c8;
+}
+
+QWidget#SideBarGroupHeader:hover {
+    background: #2a2a2a;
+}
+
+QLabel#SideBarGroupTitle {
+    color: #d0d0d0;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+QLabel#SideBarGroupIndicator {
+    color: #888888;
+    font-size: 11px;
+}
+
+QWidget#SideBarGroupBody {
+    background: transparent;
+}

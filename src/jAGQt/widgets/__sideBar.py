@@ -19,6 +19,7 @@ from .components import (
     ItemDisplayMode,
     SeparatorType,
     SideBarContent,
+    SideBarGroup,
     SideBarHeader,
     SideBarItem,
     SideBarSeparator,
@@ -33,7 +34,7 @@ class DockPosition(Enum):
 
 # ==================================================================================
 class SideBar(QWidget, ComponentBase):
-    """Main SideBar composer – Phase 1 foundation.
+    """Main SideBar composer.
 
     Independent components are composed here. All key behaviours are configurable.
     Width animation is delegated to the generic validated animation utility.
@@ -99,7 +100,7 @@ class SideBar(QWidget, ComponentBase):
         # Apply initial state
         self._applyCollapsedState(animate=False)
 
-    # ================================================================================== public API – items
+    # ================================================================================== public API – items / groups
     def AddItem(
         self,
         text: str = "",
@@ -121,6 +122,26 @@ class SideBar(QWidget, ComponentBase):
         self._content.AddWidget(lItem)
         self._syncItemDisplayMode(lItem)
         return lItem
+
+    def AddGroup(
+        self,
+        title: str = "",
+        icon: Optional[Union[QIcon, QPixmap, str]] = None,
+        startCollapsed: bool = False,
+        iconSize: Optional[int] = None,
+    ) -> SideBarGroup:
+        lSize = iconSize if iconSize is not None else max(1, self._iconSize - 2)
+        lGroup = SideBarGroup(
+            title=title,
+            icon=icon,
+            iconSize=lSize,
+            startCollapsed=startCollapsed,
+            animationDurationMs=self._animationDurationMs,
+            parent=self._content.Container,
+        )
+        lGroup.ItemClicked.connect(self._onItemClicked)
+        self._content.AddWidget(lGroup)
+        return lGroup
 
     def AddSeparator(self, separatorType: SeparatorType = SeparatorType.Line) -> SideBarSeparator:
         lSep = SideBarSeparator(separatorType=separatorType, parent=self._content.Container)
@@ -198,9 +219,14 @@ class SideBar(QWidget, ComponentBase):
         self._iconSize = lSize
         self._header.IconWidget.IconSize = lSize
         for lIdx in range(self._content.Count()):
-            lItem = self._content.ContentLayout.itemAt(lIdx)
-            if lItem and isinstance(lItem.widget(), SideBarItem):
-                lItem.widget().IconSize = lSize
+            lW = self._content.ContentLayout.itemAt(lIdx)
+            if lW is None:
+                continue
+            lWidget = lW.widget()
+            if isinstance(lWidget, SideBarItem):
+                lWidget.IconSize = lSize
+            elif isinstance(lWidget, SideBarGroup):
+                lWidget.IconSize = max(1, lSize - 2)
 
     @property
     def DockPosition(self) -> DockPosition:
@@ -238,17 +264,23 @@ class SideBar(QWidget, ComponentBase):
     def _applyCollapsedState(self, animate: bool = True) -> None:
         lTargetWidth = self._collapsedWidth if self._collapsed else self._expandedWidth
 
-        # Force icon-only when collapsed
+        # Force icon-only when collapsed (items + groups)
         lMode = ItemDisplayMode.IconOnly if self._collapsed else ItemDisplayMode.IconAndText
         for lIdx in range(self._content.Count()):
-            lItem = self._content.ContentLayout.itemAt(lIdx)
-            if lItem and isinstance(lItem.widget(), SideBarItem):
-                lItem.widget().DisplayMode = lMode
+            lW = self._content.ContentLayout.itemAt(lIdx)
+            if lW is None:
+                continue
+            lWidget = lW.widget()
+            if isinstance(lWidget, SideBarItem):
+                lWidget.DisplayMode = lMode
+            elif isinstance(lWidget, SideBarGroup):
+                # When the whole sidebar collapses, force groups closed visually
+                if self._collapsed:
+                    lWidget.Collapse(animate=False)
 
         self._header.TitleWidget.setVisible(not self._collapsed)
 
         if animate and self._animationDurationMs > 0 and self.width() != lTargetWidth:
-            # Animate both minimumWidth and maximumWidth so the widget actually resizes
             self.setMaximumWidth(16777215)
             self._activeAnimation = AnimateProperty(
                 self,
@@ -259,7 +291,6 @@ class SideBar(QWidget, ComponentBase):
                 easing=QEasingCurve.Type.OutCubic,
                 onFinished=self._onAnimationFinished,
             )
-            # Keep max in sync during animation
             AnimateProperty(
                 self,
                 "maximumWidth",
@@ -279,10 +310,20 @@ class SideBar(QWidget, ComponentBase):
         self.WidthChanged.emit(lWidth)
 
     def _onItemClicked(self, item: SideBarItem) -> None:
+        # Clear selection across top-level items and items inside groups
         for lIdx in range(self._content.Count()):
             lW = self._content.ContentLayout.itemAt(lIdx)
-            if lW and isinstance(lW.widget(), SideBarItem):
-                lW.widget().Selected = (lW.widget() is item)
+            if lW is None:
+                continue
+            lWidget = lW.widget()
+            if isinstance(lWidget, SideBarItem):
+                lWidget.Selected = (lWidget is item)
+            elif isinstance(lWidget, SideBarGroup):
+                for lGIdx in range(lWidget.BodyWidget.layout().count()):
+                    lGW = lWidget.BodyWidget.layout().itemAt(lGIdx)
+                    if lGW and isinstance(lGW.widget(), SideBarItem):
+                        lGW.widget().Selected = (lGW.widget() is item)
+
         self.ItemClicked.emit(item)
 
     def _syncItemDisplayMode(self, item: SideBarItem) -> None:
