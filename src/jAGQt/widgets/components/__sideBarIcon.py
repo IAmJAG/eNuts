@@ -74,8 +74,7 @@ class SideBarIcon(QLabel, ComponentBase):
     @IconSize.setter
     def IconSize(self, value: int) -> None:
         lSize = max(1, int(value))
-        if lSize == self._iconSize:
-            return
+        if lSize == self._iconSize: return
         self._iconSize = lSize
         self.setFixedSize(QSize(lSize, lSize))
         self._updatePixmap()
@@ -94,6 +93,7 @@ class SideBarIcon(QLabel, ComponentBase):
 
         if isinstance(self._icon, QIcon):
             lPixmap = self._icon.pixmap(lTarget)
+            
         else:
             lPixmap = self._icon.scaled(
                 lTarget,
