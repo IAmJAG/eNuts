@@ -20,25 +20,13 @@ from .__sideBarText import SideBarText
 
 
 # ==================================================================================
-_C_HEADER_OBJECT_NAME = "SideBarGroupHeader"
-_C_HEADER_SELECTED_OBJECT_NAME = "SideBarGroupHeaderSelected"
-
-_C_STYLE_IDLE = (
-    "background-color: #22262c;"
-    "border: 1px solid #2c323a;"
-    "border-radius: 6px;"
-)
-_C_STYLE_SELECTED = (
-    "background-color: #1c2832;"
-    "border: 1px solid #3a5568;"
-    "border-left: 3px solid #5b9fd4;"
-    "border-radius: 6px;"
-)
-
-
-# ==================================================================================
 class SideBarGroup(QWidget, ComponentBase):
-    """Independent collapsible section/group for the SideBar."""
+    """Independent collapsible section/group for the SideBar.
+
+    The group header is styled as a single unit (same pattern as SideBarItem):
+    WA_StyledBackground + dynamic ``selected`` / ``hover`` properties for QSS.
+    Child icon/text/indicator stay transparent so they never mask the header fill.
+    """
 
     Toggled = Signal(bool)
     ItemClicked = Signal(object)
@@ -69,8 +57,9 @@ class SideBarGroup(QWidget, ComponentBase):
         self._cachedSelectedItem: Optional[SideBarItem] = None
         self._sidebarCollapsed: bool = False
 
+        # ----- Header (styled as a whole, like SideBarItem) -----------------
         self._header = QWidget(self)
-        self._header.setObjectName(_C_HEADER_OBJECT_NAME)
+        self._header.setObjectName("SideBarGroupHeader")
         self._header.setCursor(Qt.CursorShape.PointingHandCursor)
         self._header.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self._header.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -83,6 +72,12 @@ class SideBarGroup(QWidget, ComponentBase):
         self._indicator = SideBarIcon(icon=None, iconSize=lIndicatorSize, parent=self._header)
         self._indicator.setObjectName("SideBarGroupIndicator")
 
+        # Children must not paint an opaque fill over the header background.
+        # Global QWidget { background } would otherwise mask the header highlight.
+        for lChild in (self._iconWidget, self._titleWidget, self._indicator):
+            lChild.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+            lChild.setAutoFillBackground(False)
+
         lHeaderLayout: QBoxLayout = newLayout(
             QBoxLayout, spacing=6, margins=(8, 6, 8, 6)
         )
@@ -93,7 +88,10 @@ class SideBarGroup(QWidget, ComponentBase):
         lHeaderLayout.addWidget(self._indicator)
 
         self._header.mousePressEvent = self._onHeaderClicked  # type: ignore
+        self._header.enterEvent = self._onHeaderEnter  # type: ignore
+        self._header.leaveEvent = self._onHeaderLeave  # type: ignore
 
+        # ----- Body ----------------------------------------------------------
         self._body = QWidget(self)
         self._body.setObjectName("SideBarGroupBody")
         self._body.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
@@ -296,18 +294,28 @@ class SideBarGroup(QWidget, ComponentBase):
         else:
             self.Selected = True
 
+    def _onHeaderEnter(self, event) -> None:
+        self._header.setProperty("hover", "true")
+        self._header.style().unpolish(self._header)
+        self._header.style().polish(self._header)
+        self._header.update()
+
+    def _onHeaderLeave(self, event) -> None:
+        self._header.setProperty("hover", "false")
+        self._header.style().unpolish(self._header)
+        self._header.style().polish(self._header)
+        self._header.update()
+
     def _onChildItemClicked(self, item: SideBarItem) -> None:
         self._cachedSelectedItem = item
         self.ItemClicked.emit(item)
 
     def _applySelectedState(self) -> None:
-        """Inline stylesheet — guaranteed paint, independent of app QSS quirks."""
-        self._header.setObjectName(
-            _C_HEADER_SELECTED_OBJECT_NAME if self._selected else _C_HEADER_OBJECT_NAME
-        )
-        self._header.setStyleSheet(
-            _C_STYLE_SELECTED if self._selected else _C_STYLE_IDLE
-        )
+        """Same selection mechanism as SideBarItem — property + polish for QSS."""
+        lValue = "true" if self._selected else "false"
+        self._header.setProperty("selected", lValue)
+        self._header.style().unpolish(self._header)
+        self._header.style().polish(self._header)
         self._header.update()
 
     def _applyFinalBodyHeight(self) -> None:
