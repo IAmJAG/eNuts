@@ -99,57 +99,159 @@ QLabel#TRAINING_DEVICE_KIND { color: #888888; }
 QLabel#TRAINING_DEVICE_STATUS { color: #75bdf5; font-size: 11px; }
 
 /* ==========================================================================
-   New SideBar components (jAGQt.widgets)
+   SideBar hierarchy
+   Level 0 – app header
+   Level 1 – group headers (sections)
+   Level 2 – leaf items (navigation targets)
    ========================================================================== */
 
 QWidget#SideBar {
-    background: #202020;
-    border-right: 1px solid #303030;
+    background: #1a1a1a;
+    border-right: 1px solid #2e2e2e;
 }
 
+/* ----- Level 0: Main header ------------------------------------------------ */
 QWidget#SideBarHeader {
-    background: #1c1c1c;
-    border-bottom: 1px solid #303030;
+    background: #141414;
+    border: none;
+    border-bottom: 2px solid #3d5368;
+    min-height: 44px;
+    padding: 4px 0px;
 }
 
 QLabel#SideBarHeaderTitle {
-    color: #f0f0f0;
-    font-size: 13px;
-    font-weight: 600;
+    color: #f5f5f5;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
 }
 
 QLabel#SideBarHeaderCollapse {
-    color: #888888;
-    font-size: 14px;
+    color: #7a8a9a;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: 4px;
+    padding: 2px 4px;
 }
 
 QLabel#SideBarHeaderCollapse:hover {
-    color: #eeeeee;
-    background: #333333;
-    border-radius: 4px;
+    color: #ffffff;
+    background: #2d3945;
 }
 
+/* ----- Level 1: Group headers ---------------------------------------------- */
+QWidget#SideBarGroup {
+    background: transparent;
+    margin-top: 6px;
+}
+
+QWidget#SideBarGroupHeader {
+    background: #22262c;
+    border: 1px solid #2c323a;
+    border-radius: 5px;
+    margin: 0px 6px;
+    min-height: 32px;
+    color: #c5cdd6;
+}
+
+QWidget#SideBarGroupHeader:hover {
+    background: #2a3038;
+    border-color: #3a4550;
+}
+
+QWidget#SideBarGroupHeader[selected="true"] {
+    background: #24303a;
+    border: 1px solid #4a6a82;
+    color: #eaf2f8;
+}
+
+QWidget#SideBarGroupHeader[selected="true"]:hover {
+    background: #2c3a46;
+    border-color: #5a7a92;
+}
+
+QLabel#SideBarGroupTitle {
+    color: #b8c4d0;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+}
+
+QWidget#SideBarGroupHeader[selected="true"] QLabel#SideBarGroupTitle {
+    color: #dce8f2;
+}
+
+QLabel#SideBarGroupIndicator {
+    color: #6a7a8a;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+QWidget#SideBarGroupHeader[selected="true"] QLabel#SideBarGroupIndicator {
+    color: #8ab0c8;
+}
+
+QWidget#SideBarGroupBody {
+    background: transparent;
+    margin: 2px 0px 4px 0px;
+}
+
+/* Nested leaves inside a group – indented */
+QWidget#SideBarGroupBody QWidget#SideBarItem {
+    margin-left: 10px;
+    margin-right: 6px;
+    border-radius: 4px;
+    border-left: 2px solid transparent;
+    min-height: 28px;
+    color: #a8b0b8;
+    font-size: 12px;
+}
+
+QWidget#SideBarGroupBody QWidget#SideBarItem[hover="true"] {
+    background: #2a2e34;
+    color: #e0e4e8;
+    border-left-color: #4a5a6a;
+}
+
+QWidget#SideBarGroupBody QWidget#SideBarItem[selected="true"] {
+    background: #1e2a34;
+    color: #ffffff;
+    border-left: 2px solid #5b9fd4;
+}
+
+QWidget#SideBarGroupBody QWidget#SideBarItem[selected="true"][hover="true"] {
+    background: #243240;
+    border-left-color: #75bdf5;
+}
+
+/* ----- Level 2: Top-level leaf items --------------------------------------- */
 QWidget#SideBarItem {
     background: transparent;
     border: 1px solid transparent;
-    border-radius: 4px;
-    color: #b8b8b8;
+    border-radius: 5px;
+    margin: 1px 6px;
+    min-height: 34px;
+    color: #b0b8c0;
+    font-size: 12.5px;
 }
 
 QWidget#SideBarItem[hover="true"] {
-    background: #333333;
-    color: #eeeeee;
-    border-color: #484848;
+    background: #2a2e34;
+    color: #f0f0f0;
+    border-color: #3a4048;
 }
 
 QWidget#SideBarItem[selected="true"] {
     background: #2d3945;
     color: #ffffff;
     border-color: #3d5368;
+    font-weight: 600;
 }
 
 QWidget#SideBarItem[selected="true"][hover="true"] {
     background: #344554;
+    border-color: #4a6a82;
 }
 
 QLabel#SideBarText {
@@ -162,9 +264,10 @@ QLabel#SideBarIcon {
 }
 
 QFrame#SideBarSeparator {
-    background: #303030;
+    background: #2e2e2e;
     border: none;
     max-height: 1px;
+    margin: 8px 12px;
 }
 
 QScrollArea#SideBarContent {
@@ -173,46 +276,5 @@ QScrollArea#SideBarContent {
 }
 
 QWidget#SideBarContentContainer {
-    background: transparent;
-}
-
-/* SideBarGroup */
-QWidget#SideBarGroup {
-    background: transparent;
-}
-
-QWidget#SideBarGroupHeader {
-    background: transparent;
-    border-radius: 4px;
-    color: #c8c8c8;
-}
-
-QWidget#SideBarGroupHeader:hover {
-    background: #2a2a2a;
-}
-
-/* Subtle highlight when the group owns the selected item */
-QWidget#SideBarGroupHeader[selected="true"] {
-    background: #24303a;
-    border: 1px solid #3d5368;
-    color: #e8eef4;
-}
-
-QWidget#SideBarGroupHeader[selected="true"]:hover {
-    background: #2a3844;
-}
-
-QLabel#SideBarGroupTitle {
-    color: #d0d0d0;
-    font-size: 12px;
-    font-weight: 600;
-}
-
-QLabel#SideBarGroupIndicator {
-    color: #888888;
-    font-size: 11px;
-}
-
-QWidget#SideBarGroupBody {
     background: transparent;
 }
