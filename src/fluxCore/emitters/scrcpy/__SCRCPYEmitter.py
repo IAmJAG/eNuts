@@ -8,7 +8,6 @@ from asyncio import AbstractEventLoop, CancelledError, get_running_loop
 from socket import socket
 from threading import Event as ThreadEvent
 from threading import Thread
-from time import perf_counter
 
 # ==================================================================================
 from adbutils import AdbConnection, AdbDevice, adb
@@ -44,44 +43,29 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
     """Async video/control emitter. Satisfies iSCRCPYEmitter structurally."""
 
     def __init__(self, serial: str, name: str | None = None) -> None:
-        verbose(f"SCRCPYEmitter.__init__: serial={serial!r} name={name!r}")
         SCRCPY.__init__(self, serial=serial, name=name)
         AsyncService.__init__(self, work=self.work, name=name)
         self._vSocket: iVideoSocket | None = None
         self._cSocket: iControlSocket | None = None
         self._streamServer: AdbConnection | None = None
         self._codecContext: VideoCodecContext | None = None
-        self._frameCount: int = 0
-        self._byteCount: int = 0
         self._serverLogStop: ThreadEvent = ThreadEvent()
         self._serverLogThread: Thread | None = None
-        verbose(f"SCRCPYEmitter.__init__: done id={self.id!r}")
 
     def _startServerLogDrain(self, streamServer: AdbConnection) -> None:
         """Prevent scrcpy-server from blocking on a full stdout pipe."""
 
         def _drain() -> None:
-            verbose("SCRCPYEmitter: server log drain thread started")
             try:
                 while not self._serverLogStop.is_set():
                     try:
                         lChunk = streamServer.read(4096)
-                    except Exception as ex:
-                        verbose(f"SCRCPYEmitter: server log read ended: {ex}")
+                    except Exception:
                         break
                     if not lChunk:
-                        verbose("SCRCPYEmitter: server log EOF")
                         break
-                    if isinstance(lChunk, bytes):
-                        lText = lChunk.decode("utf-8", errors="replace")
-                    else:
-                        lText = str(lChunk)
-                    for lLine in lText.splitlines():
-                        lLine = lLine.strip()
-                        if lLine:
-                            verbose(f"scrcpy-server: {lLine}")
             finally:
-                verbose("SCRCPYEmitter: server log drain thread stopped")
+                pass
 
         self._serverLogStop.clear()
         self._serverLogThread = Thread(
@@ -100,15 +84,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         """Drain the video socket continuously until the service is stopped."""
         sckt: iVideoSocket | None = self._vSocket
         if sckt is None:
-            warning("SCRCPYEmitter.work: _vSocket is None — exit")
             return
-
-        lWindowStart: float = perf_counter()
-        lWindowCount: int = 0
-        lWindowBytes: int = 0
-        lLastPayload: int = 0
-        lLastHead: bytes = b""
-        verbose("SCRCPYEmitter.work: receive loop started")
 
         try:
             while self.isRunning:
@@ -118,83 +94,29 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
                 except CancelledError:
                     raise
 
-                except InvalidDataError as ex:
-                    verbose(f"SCRCPYEmitter.work: InvalidDataError (ignored) {ex}")
+                except InvalidDataError:
                     await asyncWait(0)
                     continue
 
-                except ConnectionError as ex:
-                    warning(f"SCRCPYEmitter.work: ConnectionError {ex}")
+                except ConnectionError:
                     raise
-
-                except Exception as ex:
-                    error(f"SCRCPYEmitter.work: {type(ex).__name__}: {ex}")
-                    raise
-
-                lPayload = frame.payload
-                lSize = len(lPayload)
-                self._frameCount += 1
-                self._byteCount += lSize
-                lWindowCount += 1
-                lWindowBytes += lSize
-                lLastPayload = lSize
-                lLastHead = lPayload[:8] if lPayload else b""
-
-                if lSize == 0:
-                    warning(
-                        f"SCRCPYEmitter.work: empty payload packet #{self._frameCount} "
-                        f"pts={frame.pts} isConfig={frame.isConfig}"
-                    )
-
-                if frame.isConfig or frame.isKeyFrame or self._frameCount <= 5:
-                    verbose(
-                        f"SCRCPYEmitter.work: packet #{self._frameCount} "
-                        f"pts={frame.pts} isConfig={frame.isConfig} isKeyFrame={frame.isKeyFrame} "
-                        f"payloadBytes={lSize} head={lLastHead!r}"
-                    )
 
                 self.raiseEvent("ON_FRAME", frame)
-
-                lNow: float = perf_counter()
-                lElapsed: float = lNow - lWindowStart
-                if lElapsed >= 1.0:
-                    # warning level so it is visible above asyncio DEBUG IOCP spam
-                    warning(
-                        f"SCRCPYEmitter: fps={lWindowCount / lElapsed:.1f} "
-                        f"Bps={lWindowBytes / lElapsed:.0f} "
-                        f"totalFrames={self._frameCount} totalBytes={self._byteCount} "
-                        f"lastPayload={lLastPayload} lastHead={lLastHead!r}"
-                    )
-                    lWindowStart = lNow
-                    lWindowCount = 0
-                    lWindowBytes = 0
 
                 # qasync + Windows IOCP: yield so overlapped reads can complete
                 await asyncWait(0)
 
         finally:
-            warning(
-                f"SCRCPYEmitter.work: ended frames={self._frameCount} "
-                f"bytes={self._byteCount}"
-            )
             self._stopServerLogDrain()
 
     async def _updateMetadata(self, sckt: iVideoSocket) -> None:
-        verbose("SCRCPYEmitter._updateMetadata: reading deviceName (64 bytes)")
         deviceName: bytes = await sckt.receive(64)
-        verbose(
-            f"SCRCPYEmitter._updateMetadata: raw deviceName len={len(deviceName)} head={deviceName[:8]!r}"
-        )
 
         if deviceName and deviceName[0] == 0x00:
-            verbose("SCRCPYEmitter._updateMetadata: leading 0x00 — reading extra byte")
             deviceName = deviceName[1:] + await sckt.receive(1)
 
-        verbose("SCRCPYEmitter._updateMetadata: reading codecId (4 bytes)")
         codecIdRaw: bytes = await sckt.receive(4)
-        verbose("SCRCPYEmitter._updateMetadata: reading width (4 bytes)")
         widthRaw: bytes = await sckt.receive(4)
-        verbose("SCRCPYEmitter._updateMetadata: reading height (4 bytes)")
         heightRaw: bytes = await sckt.receive(4)
 
         lCodecId: str = codecIdRaw.decode("ascii", errors="replace").strip("\x00") or "h264"
@@ -202,23 +124,11 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         lHeight: int = int.from_bytes(heightRaw, "big")
         lName: str = deviceName.split(b"\x00", 1)[0].decode("utf-8", errors="replace")
 
-        verbose(
-            f"SCRCPYEmitter._updateMetadata: name={lName!r} codecId={lCodecId!r} "
-            f"width={lWidth} height={lHeight}"
-        )
         self._name = lName
         self.update(codecId=lCodecId, width=lWidth, height=lHeight)
-        verbose("SCRCPYEmitter._updateMetadata: update() applied")
 
     async def initialize(self, GPUID: int = 0, GPUReady: bool = True) -> None:
-        verbose(
-            f"SCRCPYEmitter.initialize: start serial={self.id!r} "
-            f"GPUID={GPUID} GPUReady={GPUReady}"
-        )
-        verbose(f"SCRCPYEmitter.initialize: SERVER_PATH={SERVER_PATH!r}")
-
         device: AdbDevice = adb.device(serial=self.id)
-        verbose(f"SCRCPYEmitter.initialize: AdbDevice resolved serial={self.id!r}")
 
         cfg: SCRCPYServerConfig = SCRCPYServerConfig(
             androidPath=ANDROID_PATH,
@@ -228,56 +138,27 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
             bitrate=BITRATE,
             logLevel="warn",
         )
-        verbose(
-            f"SCRCPYEmitter.initialize: SCRCPYServerConfig scid={cfg.Scid:#010x} "
-            f"maxSize={cfg.MaxSize} maxFps={cfg.MaxFps} bitrate={cfg.Bitrate} "
-            f"control={cfg.Control}"
-        )
 
-        verbose("SCRCPYEmitter.initialize: deployServer ...")
         streamServer: AdbConnection = deployServer(
             device, cfg=cfg, serverPath=SERVER_PATH, timeout=3000
         )
         if streamServer is None:
-            warning("SCRCPYEmitter.initialize: Failed to deploy scrcpy server")
-            return
+            raise RuntimeError("Failed to deploy scrcpy server")
 
-        verbose("SCRCPYEmitter.initialize: deployServer ok")
         self._streamServer = streamServer
         self._startServerLogDrain(streamServer)
 
         asyncLoop: AbstractEventLoop = get_running_loop()
-        verbose(f"SCRCPYEmitter.initialize: event loop={asyncLoop!r}")
 
         # scrcpy accepts video first, then control; only then sends device metadata
-        verbose(f"SCRCPYEmitter.initialize: getSCRCPYADBSocket video scid={cfg.Scid:#010x}")
         vSCKT: socket = getSCRCPYADBSocket(device, scid=cfg.Scid, timeout=3000)
-        verbose(f"SCRCPYEmitter.initialize: video socket obtained {vSCKT!r}")
         self._vSocket = VideoSocket(vSCKT, loop=asyncLoop)
-        verbose("SCRCPYEmitter.initialize: VideoSocket wrapped")
 
-        verbose(f"SCRCPYEmitter.initialize: getSCRCPYADBSocket control scid={cfg.Scid:#010x}")
         cSCKT: socket = getSCRCPYADBSocket(device, scid=cfg.Scid, timeout=3000)
-        verbose(f"SCRCPYEmitter.initialize: control socket obtained {cSCKT!r}")
         self._cSocket = ControlSocket(cSCKT, loop=asyncLoop)
-        verbose("SCRCPYEmitter.initialize: ControlSocket wrapped")
 
         await self._updateMetadata(self._vSocket)
-        verbose(
-            f"SCRCPYEmitter.initialize: metadata ready name={self.name!r} "
-            f"codecId={self.codecId!r} {self.width}x{self.height}"
-        )
 
-        verbose(
-            f"SCRCPYEmitter.initialize: createCodecContext codecId={self.codecId!r} "
-            f"GPUID={GPUID} GPUReady={GPUReady}"
-        )
-        codecCTX: VideoCodecContext = createCodecContext(
+        self._codecContext = createCodecContext(
             self.codecId, GPUID=GPUID, GPUReady=GPUReady
         )
-        verbose(f"SCRCPYEmitter.initialize: codec context {codecCTX!r}")
-
-        self._codecContext = codecCTX
-        self._frameCount = 0
-        self._byteCount = 0
-        verbose("SCRCPYEmitter.initialize: complete — ready to receive packets")
