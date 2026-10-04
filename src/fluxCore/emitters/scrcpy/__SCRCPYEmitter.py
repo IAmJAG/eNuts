@@ -12,7 +12,6 @@ from adbutils import AdbConnection, AdbDevice
 from av import InvalidDataError, VideoCodecContext
 
 # ==================================================================================
-from jAGFx.logging import error, verbose, warning
 from jAGFx.services import AsyncService, AsyncSubscription
 
 # ==================================================================================
@@ -65,7 +64,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY, AsyncSubscription, iSCRCPYEmitter):
             verbose(
                 f"SCRCPYEmitter.work: packet #{self._frameCount} "
                 f"pts={frame.pts} isConfig={frame.isConfig} isKeyFrame={frame.isKeyFrame} "
-                f"payloadBytes={len(frame.payload) if hasattr(frame, 'payload') else len(getattr(frame, '_payload', b''))}"
+                f"payloadBytes={len(frame.payload)}"
             )
             self.raiseEvent("ON_FRAME", frame)
             verbose(f"SCRCPYEmitter.work: raised ON_FRAME for packet #{self._frameCount}")
