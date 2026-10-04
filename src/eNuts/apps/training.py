@@ -1,14 +1,16 @@
 # ==================================================================================================
 # src/eNuts/apps/training.py
 # ==================================================================================================
-# Application entry for training experiments. Full SCRCPY / window startup lives in apps.main.
+# Thin entry: full SCRCPY / window startup lives in apps.main.
 # ==================================================================================================
-from ..apps.main import main as _mainImpl
 from asyncio import set_event_loop
 
 # ==================================================================================================
 from PySide6.QtWidgets import QApplication
 from qasync import QEventLoop
+
+# ==================================================================================================
+from .main import main as _mainImpl
 
 
 # ==================================================================================================
