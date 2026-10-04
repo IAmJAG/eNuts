@@ -22,6 +22,8 @@ class AsyncService(iService, AsyncSubscription):
         name: str | None = None,
         throttle: float = 0.0,
     ) -> None:
+        AsyncSubscription.__init__(self)
+
         if throttle < 0.0:
             raise ValueError("throttle must be greater than or equal to zero")
 
