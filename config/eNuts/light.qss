@@ -23,7 +23,7 @@ QWidget {
     background: transparent;
     color: #505050;
     border: 1px solid transparent;
-    border-radius: 4px;
+    border-radius: 0;
     padding: 7px 10px;
 }
 
@@ -79,7 +79,7 @@ QPushButton#ADD_DEVICE { color: #1565c0; }
 QPushButton#ADD_DEVICE:hover { background: #e3f2fd; color: #0d47a1; }
 
 QListWidget { background: transparent; border: none; outline: none; padding: 4px 0; }
-QListWidget::item { color: #505050; padding: 7px 10px; border-radius: 4px; }
+QListWidget::item { color: #505050; padding: 7px 10px; border-radius: 0; }
 QListWidget::item:hover { background: #e9eef5; color: #111111; }
 QListWidget::item:selected { background: #e3f2fd; color: #0d47a1; }
 
@@ -88,7 +88,7 @@ QLabel#WORKSPACE_DESCRIPTION { color: #707070; }
 QLabel#WORKSPACE_SECTION_TITLE { color: #303030; font-size: 14px; font-weight: 600; }
 
 QFrame#TRAINING_STAT_CARD,
-QFrame#TRAINING_DEVICE_CARD { background: #ffffff; border: 1px solid #d0d0d0; border-radius: 6px; }
+QFrame#TRAINING_DEVICE_CARD { background: #ffffff; border: 1px solid #d0d0d0; border-radius: 0; }
 QFrame#TRAINING_STAT_CARD:hover,
 QFrame#TRAINING_DEVICE_CARD:hover { border-color: #90caf9; }
 
@@ -126,7 +126,7 @@ QLabel#SideBarHeaderTitle {
 
 QLabel#SideBarHeaderCollapse {
     background: transparent;
-    border-radius: 4px;
+    border-radius: 0;
     padding: 2px;
 }
 
@@ -143,7 +143,7 @@ QWidget#SideBarGroup {
 QWidget#SideBarGroupHeader {
     background-color: #f0f4f8;
     border: 1px solid #d0d8e0;
-    border-radius: 6px;
+    border-radius: 0;
     margin: 2px 6px;
     min-height: 40px;
     color: #404850;
@@ -200,7 +200,7 @@ QWidget#SideBarGroupBody QWidget#SideBarItem {
     margin-right: 8px;
     margin-top: 1px;
     margin-bottom: 1px;
-    border-radius: 4px;
+    border-radius: 0;
     border: 1px solid transparent;
     border-left: 3px solid #d0d8e0;
     min-height: 26px;
@@ -234,7 +234,7 @@ QWidget#SideBarGroupBody QWidget#SideBarItem[selected="true"][hover="true"] {
 QWidget#SideBarItem {
     background: transparent;
     border: 1px solid transparent;
-    border-radius: 5px;
+    border-radius: 0;
     margin: 2px 6px;
     min-height: 32px;
     color: #404850;
