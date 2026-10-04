@@ -12,11 +12,10 @@ from adbutils import AdbConnection, AdbDevice
 from av import InvalidDataError, VideoCodecContext
 
 # ==================================================================================
-from jAGFx.services import AsyncService, AsyncSubscription
+from jAGFx.services import AsyncService
 
 # ==================================================================================
 from ...devices import SCRCPY
-from ...types.interface.emitters import iSCRCPYEmitter
 from ...types.interface.packets import iFrame
 from ...types.interface.sockets import iControlSocket, iVideoSocket
 from ...types.sockets import ControlSocket, VideoSocket
@@ -38,7 +37,9 @@ BITRATE = 4000000
 
 
 # ==================================================================================
-class SCRCPYEmitter(AsyncService, SCRCPY, AsyncSubscription, iSCRCPYEmitter):
+class SCRCPYEmitter(AsyncService, SCRCPY):
+    """Async video/control emitter. Satisfies iSCRCPYEmitter structurally."""
+
     def __init__(self, serial: str, name: str | None = None) -> None:
         verbose(f"SCRCPYEmitter.__init__: serial={serial!r} name={name!r}")
         AsyncService.__init__(self, work=self.work, name=name)
