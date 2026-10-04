@@ -34,13 +34,7 @@ class IconPosition(Enum):
 
 # ==================================================================================
 class SideBarItem(QWidget, ComponentBase):
-    """Independent SideBar item that composes Icon + Text.
-
-    Supports IconOnly / TextOnly / IconAndText modes and flexible alignment.
-    """
-
     Clicked = Signal(object)  # emits self
-
     def __init__(
         self, text: str = "", icon: Optional[Union[QIcon, QPixmap, str]] = None,
         displayMode: ItemDisplayMode = ItemDisplayMode.IconAndText,
@@ -125,8 +119,7 @@ class SideBarItem(QWidget, ComponentBase):
 
     @Selected.setter
     def Selected(self, value: bool) -> None:
-        if value == self._selected:
-            return
+        if value == self._selected: return
         self._selected = bool(value)
         self.setProperty("selected", "true" if self._selected else "false")
         self.style().unpolish(self)
@@ -145,8 +138,7 @@ class SideBarItem(QWidget, ComponentBase):
     def mousePressEvent(self, event: QMouseEvent) -> None:
         if event.button() == Qt.MouseButton.LeftButton:
             self.Clicked.emit(self)
-            if self._callback is not None:
-                self._callback(self)
+            if self._callback is not None: self._callback(self)
         super().mousePressEvent(event)
 
     def enterEvent(self, event) -> None:
