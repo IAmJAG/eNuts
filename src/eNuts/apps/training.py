@@ -44,7 +44,7 @@ async def training(app: QApplication, *args, **kwargs):
         lDevices = adb.device_list()
         verbose(f"training: adb devices count={len(lDevices)}")
         if lDevices:
-            lSerial = lDevices[0].serial
+            lSerial = lDevices[1].serial
             verbose(f"training: using first device serial={lSerial!r}")
             lEmitter = SCRCPYEmitter(serial=lSerial)
             await lEmitter.initialize(GPUReady=False)
