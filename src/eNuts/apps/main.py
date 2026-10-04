@@ -10,7 +10,11 @@ from PySide6.QtWidgets import QApplication
 from qasync import QEventLoop
 
 # ==================================================================================================
+from adbutils import adb
 from jAGFx.types.interface.configuration import iApplicationConfiguration
+
+# ==================================================================================================
+from fluxCore.emitters import SCRCPYEmitter
 
 # ==================================================================================================
 from ..configuration import eNutsConfiguration
@@ -30,11 +34,26 @@ async def main(app: QApplication, *args, **kwargs):
     if platform == "win32":
         windll.shell32.SetCurrentProcessExplicitAppUserModelID(cfg.applicationId)
 
+    lEmitter: SCRCPYEmitter | None = None
+
     try:
         app.setStyleSheet(cfg.styleSheet)
 
         lWin: MainWindow = MainWindow(*args, **kwargs)
         lWin.show()
+
+        # ----- SCRCPYEmitter: receive packets only (verbose logs, no display) -----
+        lDevices = adb.device_list()
+        verbose(f"main: adb devices count={len(lDevices)}")
+        if lDevices:
+            lSerial = lDevices[0].serial
+            verbose(f"main: using first device serial={lSerial!r}")
+            lEmitter = SCRCPYEmitter(serial=lSerial)
+            await lEmitter.initialize(GPUReady=False)
+            lEmitter.start()
+            verbose("main: SCRCPYEmitter started")
+        else:
+            warning("main: no adb devices — SCRCPYEmitter not started")
 
         await lShutdownEvent.wait()
 
@@ -45,6 +64,9 @@ async def main(app: QApplication, *args, **kwargs):
         error(f"Unhandled exception: {type(ex).__name__}: {ex}")
 
     finally:
+        if lEmitter is not None and lEmitter.isRunning:
+            verbose("main: stopping SCRCPYEmitter")
+            lEmitter.stop()
         if not lShutdownEvent.is_set():
             lShutdownEvent.set()
 
