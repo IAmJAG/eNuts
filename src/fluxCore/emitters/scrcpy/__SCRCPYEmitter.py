@@ -33,6 +33,7 @@ ANDROID_PATH = "/data/local/tmp/"
 MAX_SIZE = 0
 MAX_FPS = 0
 BITRATE = 4000000
+C_LOG_EVERY_N: int = 30
 # ==================================================================================
 
 
@@ -55,23 +56,32 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         try:
             sckt: iVideoSocket | None = self._vSocket
             if sckt is None:
-                verbose("SCRCPYEmitter.work: _vSocket is None — skip")
+                await asyncWait(0.05)
                 return
 
-            verbose("SCRCPYEmitter.work: awaiting asyncReceiveSingleFrame")
             frame: iFrame = await sckt.asyncReceiveSingleFrame()
             self._frameCount += 1
 
-            verbose(
-                f"SCRCPYEmitter.work: packet #{self._frameCount} "
-                f"pts={frame.pts} isConfig={frame.isConfig} isKeyFrame={frame.isKeyFrame} "
-                f"payloadBytes={len(frame.payload)}"
+            lLog = (
+                frame.isConfig
+                or frame.isKeyFrame
+                or (self._frameCount % C_LOG_EVERY_N == 0)
             )
+            if lLog:
+                verbose(
+                    f"SCRCPYEmitter.work: packet #{self._frameCount} "
+                    f"pts={frame.pts} isConfig={frame.isConfig} isKeyFrame={frame.isKeyFrame} "
+                    f"payloadBytes={len(frame.payload)}"
+                )
+
             self.raiseEvent("ON_FRAME", frame)
-            verbose(f"SCRCPYEmitter.work: raised ON_FRAME for packet #{self._frameCount}")
+
+            # Cooperate with Qt / other tasks when many frames are already buffered
+            await asyncWait(0)
 
         except InvalidDataError as ex:
             verbose(f"SCRCPYEmitter.work: InvalidDataError (ignored) {ex}")
+            await asyncWait(0)
 
         except ConnectionError as ex:
             warning(f"SCRCPYEmitter.work: ConnectionError {ex}")
