@@ -34,7 +34,7 @@ class Image(QWidget, ComponentBase):
     """Fast image viewer with zoom / pan.
 
     backend="software"  → pure QWidget + cached scaled QPixmap (default)
-    backend="opengl"    → QOpenGLWidget child, GPU textured quad
+    backend="opengl"    → QOpenGLWidget child (GPU-backed)
     """
 
     onResize: Signal = Signal(QSize)
@@ -323,10 +323,17 @@ class Image(QWidget, ComponentBase):
 # OpenGL renderer (private)
 # ==================================================================================
 class _GLView(QOpenGLWidget):
+    """GPU-backed view used when Image(backend="opengl").
+
+    Uses QPainter over the GL context for maximum cross-platform reliability
+    with pure PySide6 (no fixed-function pipeline / no PyOpenGL dependency).
+    """
+
     def __init__(self, parent: Image) -> None:
         super().__init__(parent)
         self._owner = parent
         self._texture: Optional[QOpenGLTexture] = None
+        self._imageFallback: Optional[QImage] = None
         self._bg = QColor("lightgray")
         self._zoom = 100.0
         self._offset = QPointF(0.0, 0.0)
@@ -338,10 +345,19 @@ class _GLView(QOpenGLWidget):
 
     def setImage(self, pixmap: QPixmap) -> None:
         if pixmap is None or pixmap.isNull():
+            self._imageFallback = None
+            self._imgW = 0
+            self._imgH = 0
+            if self._texture is not None:
+                self._texture.destroy()
+                self._texture = None
+            self.update()
             return
+
         qimg = pixmap.toImage().convertToFormat(QImage.Format.Format_RGBA8888)
         self._imgW = qimg.width()
         self._imgH = qimg.height()
+        self._imageFallback = qimg
 
         if self._texture is not None:
             self._texture.destroy()
@@ -364,54 +380,32 @@ class _GLView(QOpenGLWidget):
         )
 
     def resizeGL(self, w: int, h: int) -> None:
-        self.gl.glViewport(0, 0, w, h)
+        if hasattr(self, "gl") and self.gl is not None:
+            self.gl.glViewport(0, 0, w, h)
 
     def paintGL(self) -> None:
-        self.gl.glClearColor(
-            self._bg.redF(), self._bg.greenF(), self._bg.blueF(), 1.0
-        )
-        self.gl.glClear(0x00004000)  # GL_COLOR_BUFFER_BIT
+        if hasattr(self, "gl") and self.gl is not None:
+            self.gl.glClearColor(
+                self._bg.redF(), self._bg.greenF(), self._bg.blueF(), 1.0
+            )
+            self.gl.glClear(0x00004000)  # GL_COLOR_BUFFER_BIT
 
-        if self._texture is None or not self._texture.isCreated():
+        if self._imageFallback is None:
             return
 
-        # Simple textured quad via QPainter on the GL context is the most
-        # reliable cross-platform path with pure PySide6 (no fixed-function
-        # or external PyOpenGL dependency).
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
 
         scale = self._zoom / 100.0
         x = self._offset.x()
         y = self._offset.y()
-        w = self._imgW * scale
-        h = self._imgH * scale
+        w = max(1, int(self._imgW * scale))
+        h = max(1, int(self._imgH * scale))
 
-        # Draw via the texture's associated image for maximum compatibility
-        # (QOpenGLTexture + QPainter works on all Qt platforms).
-        if hasattr(self._texture, "textureId") and self._imageFallback is not None:
-            painter.drawImage(QPointF(x, y), self._imageFallback.scaled(
-                int(w), int(h),
-                Qt.AspectRatioMode.IgnoreAspectRatio,
-                Qt.TransformationMode.SmoothTransformation,
-            ))
+        scaled = self._imageFallback.scaled(
+            w, h,
+            Qt.AspectRatioMode.IgnoreAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+        painter.drawImage(QPointF(x, y), scaled)
         painter.end()
-
-    # Keep a CPU-side copy for the QPainter path above
-    def setImage(self, pixmap: QPixmap) -> None:
-        if pixmap is None or pixmap.isNull():
-            return
-        qimg = pixmap.toImage().convertToFormat(QImage.Format.Format_RGBA8888)
-        self._imgW = qimg.width()
-        self._imgH = qimg.height()
-        self._imageFallback = qimg
-
-        if self._texture is not None:
-            self._texture.destroy()
-
-        self._texture = QOpenGLTexture(QOpenGLTexture.Target.Target2D)
-        self._texture.setData(qimg)
-        self._texture.setMinificationFilter(QOpenGLTexture.Filter.Linear)
-        self._texture.setMagnificationFilter(QOpenGLTexture.Filter.Linear)
-        self._texture.setWrapMode(QOpenGLTexture.WrapMode.ClampToEdge)
-        self.update()
