@@ -100,9 +100,20 @@ class AsyncService(iService, AsyncSubscription):
         self._pauseEvent.set()
 
         lTask = self._task
-        if lTask is not None:
+        if lTask is None:
+            self._isStopping = False
+            return
+
+        try:
             lLoop = get_running_loop()
-            lLoop.call_later(forceAfter, self._cancelIfRunning, lTask)
+        except RuntimeError:
+            # Loop already stopped (e.g. finally after run_until_complete) — cancel now
+            self._cancelIfRunning(lTask)
+            self._task = None
+            self._isStopping = False
+            return
+
+        lLoop.call_later(forceAfter, self._cancelIfRunning, lTask)
 
     def _cancelIfRunning(self, task: Task) -> None:
         if not task.done():
