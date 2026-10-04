@@ -104,6 +104,3 @@ class SCRCPYEmitter(AsyncService, SCRCPY, AsyncSubscription, iSCRCPYEmitter):
         self._cSocket: iControlSocket = ControlSocket(cSCKT, loop=asyncLoop)
         self._streamServer: AdbConnection = streamServer
         self._codecContext: VideoCodecContext = codecCTX
-
-    async def emitter(self):
-        ...
