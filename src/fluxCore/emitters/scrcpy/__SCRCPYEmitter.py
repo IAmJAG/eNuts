@@ -52,6 +52,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         self._streamServer: AdbConnection | None = None
         self._codecContext: VideoCodecContext | None = None
         self._frameCount: int = 0
+        self._byteCount: int = 0
         self._serverLogStop: ThreadEvent = ThreadEvent()
         self._serverLogThread: Thread | None = None
         verbose(f"SCRCPYEmitter.__init__: done id={self.id!r}")
@@ -104,6 +105,9 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
 
         lWindowStart: float = perf_counter()
         lWindowCount: int = 0
+        lWindowBytes: int = 0
+        lLastPayload: int = 0
+        lLastHead: bytes = b""
         verbose("SCRCPYEmitter.work: receive loop started")
 
         try:
@@ -127,14 +131,26 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
                     error(f"SCRCPYEmitter.work: {type(ex).__name__}: {ex}")
                     raise
 
+                lPayload = frame.payload
+                lSize = len(lPayload)
                 self._frameCount += 1
+                self._byteCount += lSize
                 lWindowCount += 1
+                lWindowBytes += lSize
+                lLastPayload = lSize
+                lLastHead = lPayload[:8] if lPayload else b""
+
+                if lSize == 0:
+                    warning(
+                        f"SCRCPYEmitter.work: empty payload packet #{self._frameCount} "
+                        f"pts={frame.pts} isConfig={frame.isConfig}"
+                    )
 
                 if frame.isConfig or frame.isKeyFrame or self._frameCount <= 5:
                     verbose(
                         f"SCRCPYEmitter.work: packet #{self._frameCount} "
                         f"pts={frame.pts} isConfig={frame.isConfig} isKeyFrame={frame.isKeyFrame} "
-                        f"payloadBytes={len(frame.payload)}"
+                        f"payloadBytes={lSize} head={lLastHead!r}"
                     )
 
                 self.raiseEvent("ON_FRAME", frame)
@@ -142,18 +158,25 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
                 lNow: float = perf_counter()
                 lElapsed: float = lNow - lWindowStart
                 if lElapsed >= 1.0:
-                    verbose(
-                        f"SCRCPYEmitter.work: fps={lWindowCount / lElapsed:.1f} "
-                        f"total={self._frameCount}"
+                    # warning level so it is visible above asyncio DEBUG IOCP spam
+                    warning(
+                        f"SCRCPYEmitter: fps={lWindowCount / lElapsed:.1f} "
+                        f"Bps={lWindowBytes / lElapsed:.0f} "
+                        f"totalFrames={self._frameCount} totalBytes={self._byteCount} "
+                        f"lastPayload={lLastPayload} lastHead={lLastHead!r}"
                     )
                     lWindowStart = lNow
                     lWindowCount = 0
+                    lWindowBytes = 0
 
                 # qasync + Windows IOCP: yield so overlapped reads can complete
                 await asyncWait(0)
 
         finally:
-            verbose(f"SCRCPYEmitter.work: receive loop ended total={self._frameCount}")
+            warning(
+                f"SCRCPYEmitter.work: ended frames={self._frameCount} "
+                f"bytes={self._byteCount}"
+            )
             self._stopServerLogDrain()
 
     async def _updateMetadata(self, sckt: iVideoSocket) -> None:
@@ -256,4 +279,5 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
 
         self._codecContext = codecCTX
         self._frameCount = 0
+        self._byteCount = 0
         verbose("SCRCPYEmitter.initialize: complete — ready to receive packets")
