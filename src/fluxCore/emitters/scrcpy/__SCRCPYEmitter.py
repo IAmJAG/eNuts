@@ -66,14 +66,18 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         while self.isRunning:
             try:
                 frame: iFrame = await sckt.asyncReceiveSingleFrame()
+
             except CancelledError:
                 raise
+
             except InvalidDataError as ex:
                 verbose(f"SCRCPYEmitter.work: InvalidDataError (ignored) {ex}")
                 continue
+
             except ConnectionError as ex:
                 warning(f"SCRCPYEmitter.work: ConnectionError {ex}")
                 raise
+            
             except Exception as ex:
                 error(f"SCRCPYEmitter.work: {type(ex).__name__}: {ex}")
                 raise
