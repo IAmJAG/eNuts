@@ -6,6 +6,8 @@ import os
 # ==================================================================================
 from asyncio import AbstractEventLoop, CancelledError, get_running_loop
 from socket import socket
+from threading import Event as ThreadEvent
+from threading import Thread
 from time import perf_counter
 
 # ==================================================================================
@@ -50,7 +52,48 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         self._streamServer: AdbConnection | None = None
         self._codecContext: VideoCodecContext | None = None
         self._frameCount: int = 0
+        self._serverLogStop: ThreadEvent = ThreadEvent()
+        self._serverLogThread: Thread | None = None
         verbose(f"SCRCPYEmitter.__init__: done id={self.id!r}")
+
+    def _startServerLogDrain(self, streamServer: AdbConnection) -> None:
+        """Prevent scrcpy-server from blocking on a full stdout pipe."""
+
+        def _drain() -> None:
+            verbose("SCRCPYEmitter: server log drain thread started")
+            try:
+                while not self._serverLogStop.is_set():
+                    try:
+                        lChunk = streamServer.read(4096)
+                    except Exception as ex:
+                        verbose(f"SCRCPYEmitter: server log read ended: {ex}")
+                        break
+                    if not lChunk:
+                        verbose("SCRCPYEmitter: server log EOF")
+                        break
+                    if isinstance(lChunk, bytes):
+                        lText = lChunk.decode("utf-8", errors="replace")
+                    else:
+                        lText = str(lChunk)
+                    for lLine in lText.splitlines():
+                        lLine = lLine.strip()
+                        if lLine:
+                            verbose(f"scrcpy-server: {lLine}")
+            finally:
+                verbose("SCRCPYEmitter: server log drain thread stopped")
+
+        self._serverLogStop.clear()
+        self._serverLogThread = Thread(
+            target=_drain, name=f"scrcpy-log-{self.id}", daemon=True
+        )
+        self._serverLogThread.start()
+
+    def _stopServerLogDrain(self) -> None:
+        self._serverLogStop.set()
+        lThread = self._serverLogThread
+        if lThread is not None and lThread.is_alive():
+            lThread.join(timeout=1.0)
+        self._serverLogThread = None
 
     async def work(self, *args, **kwargs):
         """Drain the video socket continuously until the service is stopped."""
@@ -63,53 +106,55 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         lWindowCount: int = 0
         verbose("SCRCPYEmitter.work: receive loop started")
 
-        while self.isRunning:
-            try:
-                frame: iFrame = await sckt.asyncReceiveSingleFrame()
+        try:
+            while self.isRunning:
+                try:
+                    frame: iFrame = await sckt.asyncReceiveSingleFrame()
 
-            except CancelledError:
-                raise
+                except CancelledError:
+                    raise
 
-            except InvalidDataError as ex:
-                verbose(f"SCRCPYEmitter.work: InvalidDataError (ignored) {ex}")
+                except InvalidDataError as ex:
+                    verbose(f"SCRCPYEmitter.work: InvalidDataError (ignored) {ex}")
+                    await asyncWait(0)
+                    continue
+
+                except ConnectionError as ex:
+                    warning(f"SCRCPYEmitter.work: ConnectionError {ex}")
+                    raise
+
+                except Exception as ex:
+                    error(f"SCRCPYEmitter.work: {type(ex).__name__}: {ex}")
+                    raise
+
+                self._frameCount += 1
+                lWindowCount += 1
+
+                if frame.isConfig or frame.isKeyFrame or self._frameCount <= 5:
+                    verbose(
+                        f"SCRCPYEmitter.work: packet #{self._frameCount} "
+                        f"pts={frame.pts} isConfig={frame.isConfig} isKeyFrame={frame.isKeyFrame} "
+                        f"payloadBytes={len(frame.payload)}"
+                    )
+
+                self.raiseEvent("ON_FRAME", frame)
+
+                lNow: float = perf_counter()
+                lElapsed: float = lNow - lWindowStart
+                if lElapsed >= 1.0:
+                    verbose(
+                        f"SCRCPYEmitter.work: fps={lWindowCount / lElapsed:.1f} "
+                        f"total={self._frameCount}"
+                    )
+                    lWindowStart = lNow
+                    lWindowCount = 0
+
+                # qasync + Windows IOCP: yield so overlapped reads can complete
                 await asyncWait(0)
-                continue
 
-            except ConnectionError as ex:
-                warning(f"SCRCPYEmitter.work: ConnectionError {ex}")
-                raise
-
-            except Exception as ex:
-                error(f"SCRCPYEmitter.work: {type(ex).__name__}: {ex}")
-                raise
-
-            self._frameCount += 1
-            lWindowCount += 1
-
-            if frame.isConfig or frame.isKeyFrame or self._frameCount <= 5:
-                verbose(
-                    f"SCRCPYEmitter.work: packet #{self._frameCount} "
-                    f"pts={frame.pts} isConfig={frame.isConfig} isKeyFrame={frame.isKeyFrame} "
-                    f"payloadBytes={len(frame.payload)}"
-                )
-
-            self.raiseEvent("ON_FRAME", frame)
-
-            lNow: float = perf_counter()
-            lElapsed: float = lNow - lWindowStart
-            if lElapsed >= 1.0:
-                verbose(
-                    f"SCRCPYEmitter.work: fps={lWindowCount / lElapsed:.1f} "
-                    f"total={self._frameCount}"
-                )
-                lWindowStart = lNow
-                lWindowCount = 0
-
-            # qasync + Windows IOCP: must return to the Qt loop so overlapped
-            # reads can complete once the pre-buffered TCP data is drained.
-            await asyncWait(0)
-
-        verbose(f"SCRCPYEmitter.work: receive loop ended total={self._frameCount}")
+        finally:
+            verbose(f"SCRCPYEmitter.work: receive loop ended total={self._frameCount}")
+            self._stopServerLogDrain()
 
     async def _updateMetadata(self, sckt: iVideoSocket) -> None:
         verbose("SCRCPYEmitter._updateMetadata: reading deviceName (64 bytes)")
@@ -158,6 +203,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
             maxSize=MAX_SIZE,
             maxFps=MAX_FPS,
             bitrate=BITRATE,
+            logLevel="warn",
         )
         verbose(
             f"SCRCPYEmitter.initialize: SCRCPYServerConfig scid={cfg.Scid:#010x} "
@@ -174,6 +220,9 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
             return
 
         verbose("SCRCPYEmitter.initialize: deployServer ok")
+        self._streamServer = streamServer
+        self._startServerLogDrain(streamServer)
+
         asyncLoop: AbstractEventLoop = get_running_loop()
         verbose(f"SCRCPYEmitter.initialize: event loop={asyncLoop!r}")
 
@@ -205,7 +254,6 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         )
         verbose(f"SCRCPYEmitter.initialize: codec context {codecCTX!r}")
 
-        self._streamServer = streamServer
         self._codecContext = codecCTX
         self._frameCount = 0
         verbose("SCRCPYEmitter.initialize: complete — ready to receive packets")
