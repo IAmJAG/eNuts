@@ -12,7 +12,7 @@ from PySide6.QtWidgets import QBoxLayout, QLabel, QStyle, QWidget
 # ==================================================================================
 from jAGQt.types.interface.window import iMainWindowBase
 from jAGQt.widgets import SideBar
-from jAGQt.widgets.components import SideBarItem
+from jAGQt.widgets.SideBar import SideBarItem
 
 # ==================================================================================
 from ..types.interface.application import iENUTSService, iShell
