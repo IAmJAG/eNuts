@@ -164,11 +164,6 @@ class SCRCPYEmitter(AsyncService, SCRCPY, AsyncSubscription, iSCRCPYEmitter):
         )
         verbose(f"SCRCPYEmitter.initialize: codec context {codecCTX!r}")
 
-<<<<<<< HEAD
-        self._cSocket: iControlSocket = ControlSocket(cSCKT, loop=asyncLoop)
-        self._streamServer: AdbConnection = streamServer
-        self._codecContext: VideoCodecContext = codecCTX
-=======
         verbose(f"SCRCPYEmitter.initialize: getSCRCPYADBSocket control scid={cfg.Scid:#010x}")
         cSCKT: socket = getSCRCPYADBSocket(device, scid=cfg.Scid, timeout=3000)
         verbose(f"SCRCPYEmitter.initialize: control socket obtained {cSCKT!r}")
@@ -181,4 +176,3 @@ class SCRCPYEmitter(AsyncService, SCRCPY, AsyncSubscription, iSCRCPYEmitter):
 
     async def emitter(self):
         verbose("SCRCPYEmitter.emitter: stub (not used yet)")
->>>>>>> 0560355c7a678888b9832ede9ffa39e6ead39601

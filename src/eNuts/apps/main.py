@@ -6,15 +6,15 @@ from ctypes import windll
 from sys import platform
 
 # ==================================================================================================
+from adbutils import adb
+
+# ==================================================================================================
 from PySide6.QtWidgets import QApplication
 from qasync import QEventLoop
 
 # ==================================================================================================
-from adbutils import adb
-from jAGFx.types.interface.configuration import iApplicationConfiguration
-
-# ==================================================================================================
 from fluxCore.emitters import SCRCPYEmitter
+from jAGFx.types.interface.configuration import iApplicationConfiguration
 
 # ==================================================================================================
 from ..configuration import eNutsConfiguration
