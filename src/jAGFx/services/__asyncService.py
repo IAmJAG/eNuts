@@ -13,18 +13,22 @@ from .__subscription import AsyncSubscription
 
 
 # ==================================================================================
-class AsyncService(iService, AsyncSubscription):    
+class AsyncService(iService, AsyncSubscription):
     C_DEFAULT_FORCE_AFTER: float = 0.1
 
     def __init__(
-        self, work: Callable[..., Awaitable] | None = None,
-        name: str | None = None, throttle: float = 0.0
+        self,
+        work: Callable[..., Awaitable] | None = None,
+        name: str | None = None,
+        throttle: float = 0.0,
     ) -> None:
         if throttle < 0.0:
             raise ValueError("throttle must be greater than or equal to zero")
 
         if work is not None and not iscoroutinefunction(work):
-            raise TypeError("AsyncService requires an awaitable (coroutine function) work argument")
+            raise TypeError(
+                "AsyncService requires an awaitable (coroutine function) work argument"
+            )
 
         self.work: Callable[..., Awaitable] | None = work
         self._name: str = name or getRandomName()
@@ -57,12 +61,14 @@ class AsyncService(iService, AsyncSubscription):
     def _assertStartReady(self) -> None:
         if self._isRunning:
             raise RuntimeError(f"Service '{self._name}' is already running.")
-        
+
         if self._isStopping:
             raise RuntimeError(f"Service '{self._name}' is stopping.")
-        
-        if self._work is None or not iscoroutinefunction(self._work):
-            raise TypeError("AsyncService requires an awaitable (coroutine function) work argument")
+
+        if self.work is None or not iscoroutinefunction(self.work):
+            raise TypeError(
+                "AsyncService requires an awaitable (coroutine function) work argument"
+            )
 
     def _assertStopReady(self) -> None:
         if not self._isRunning and self._task is None:
@@ -77,7 +83,7 @@ class AsyncService(iService, AsyncSubscription):
         lLoop = get_running_loop()
         self._isRunning = True
         self._pauseEvent.set()
-        
+
         self._task = lLoop.create_task(
             self._serviceLoop(*args, **kwargs),
             name=self._name,
