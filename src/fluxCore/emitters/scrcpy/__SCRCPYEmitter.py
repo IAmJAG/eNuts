@@ -72,12 +72,13 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
 
             except InvalidDataError as ex:
                 verbose(f"SCRCPYEmitter.work: InvalidDataError (ignored) {ex}")
+                await asyncWait(0)
                 continue
 
             except ConnectionError as ex:
                 warning(f"SCRCPYEmitter.work: ConnectionError {ex}")
                 raise
-            
+
             except Exception as ex:
                 error(f"SCRCPYEmitter.work: {type(ex).__name__}: {ex}")
                 raise
@@ -85,7 +86,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
             self._frameCount += 1
             lWindowCount += 1
 
-            if frame.isConfig or frame.isKeyFrame:
+            if frame.isConfig or frame.isKeyFrame or self._frameCount <= 5:
                 verbose(
                     f"SCRCPYEmitter.work: packet #{self._frameCount} "
                     f"pts={frame.pts} isConfig={frame.isConfig} isKeyFrame={frame.isKeyFrame} "
@@ -103,6 +104,10 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
                 )
                 lWindowStart = lNow
                 lWindowCount = 0
+
+            # qasync + Windows IOCP: must return to the Qt loop so overlapped
+            # reads can complete once the pre-buffered TCP data is drained.
+            await asyncWait(0)
 
         verbose(f"SCRCPYEmitter.work: receive loop ended total={self._frameCount}")
 
