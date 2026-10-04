@@ -91,10 +91,8 @@ def deployServer(
         if not pushSCRCPYServer(device, androidPath, serverPath, jarName, timeout):
             raise Exception("Could not deploy scrcpy server")
 
-        # start server — single shell string (CLASSPATH=... app_process ...)
         cmds: list[str] = cfg.buildCommands()
         lCmd: str = " ".join(cmds)
-        verbose(f"deployServer: shell {lCmd!r}")
         strmServer: AdbConnection = device.shell(lCmd, stream=True)
         if strmServer is None:
             raise Exception("Could not start scrcpy server")
