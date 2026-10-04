@@ -131,7 +131,8 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         )
         verbose(
             f"SCRCPYEmitter.initialize: SCRCPYServerConfig scid={cfg.Scid:#010x} "
-            f"maxSize={cfg.MaxSize} maxFps={cfg.MaxFps} bitrate={cfg.Bitrate}"
+            f"maxSize={cfg.MaxSize} maxFps={cfg.MaxFps} bitrate={cfg.Bitrate} "
+            f"control={cfg.Control}"
         )
 
         verbose("SCRCPYEmitter.initialize: deployServer ...")
@@ -146,11 +147,18 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         asyncLoop: AbstractEventLoop = get_running_loop()
         verbose(f"SCRCPYEmitter.initialize: event loop={asyncLoop!r}")
 
+        # scrcpy accepts video first, then control; only then sends device metadata
         verbose(f"SCRCPYEmitter.initialize: getSCRCPYADBSocket video scid={cfg.Scid:#010x}")
         vSCKT: socket = getSCRCPYADBSocket(device, scid=cfg.Scid, timeout=3000)
         verbose(f"SCRCPYEmitter.initialize: video socket obtained {vSCKT!r}")
         self._vSocket = VideoSocket(vSCKT, loop=asyncLoop)
         verbose("SCRCPYEmitter.initialize: VideoSocket wrapped")
+
+        verbose(f"SCRCPYEmitter.initialize: getSCRCPYADBSocket control scid={cfg.Scid:#010x}")
+        cSCKT: socket = getSCRCPYADBSocket(device, scid=cfg.Scid, timeout=3000)
+        verbose(f"SCRCPYEmitter.initialize: control socket obtained {cSCKT!r}")
+        self._cSocket = ControlSocket(cSCKT, loop=asyncLoop)
+        verbose("SCRCPYEmitter.initialize: ControlSocket wrapped")
 
         await self._updateMetadata(self._vSocket)
         verbose(
@@ -167,11 +175,6 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         )
         verbose(f"SCRCPYEmitter.initialize: codec context {codecCTX!r}")
 
-        verbose(f"SCRCPYEmitter.initialize: getSCRCPYADBSocket control scid={cfg.Scid:#010x}")
-        cSCKT: socket = getSCRCPYADBSocket(device, scid=cfg.Scid, timeout=3000)
-        verbose(f"SCRCPYEmitter.initialize: control socket obtained {cSCKT!r}")
-
-        self._cSocket = ControlSocket(cSCKT, loop=asyncLoop)
         self._streamServer = streamServer
         self._codecContext = codecCTX
         self._frameCount = 0
