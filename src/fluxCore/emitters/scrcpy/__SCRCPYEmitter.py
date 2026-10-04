@@ -4,8 +4,9 @@
 import os
 
 # ==================================================================================
-from asyncio import AbstractEventLoop, get_running_loop
+from asyncio import AbstractEventLoop, CancelledError, get_running_loop
 from socket import socket
+from time import perf_counter
 
 # ==================================================================================
 from adbutils import AdbConnection, AdbDevice, adb
@@ -30,10 +31,9 @@ from ...utilities.scrcpy import (
 JAR_NAME = "scrcpy-server.jar"
 SERVER_PATH = os.path.join(os.getcwd(), ".bin", JAR_NAME)
 ANDROID_PATH = "/data/local/tmp/"
-MAX_SIZE = 0
-MAX_FPS = 0
+MAX_SIZE = 1920
+MAX_FPS = 60
 BITRATE = 4000000
-C_LOG_EVERY_N: int = 30
 # ==================================================================================
 
 
@@ -53,21 +53,35 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         verbose(f"SCRCPYEmitter.__init__: done id={self.id!r}")
 
     async def work(self, *args, **kwargs):
-        try:
-            sckt: iVideoSocket | None = self._vSocket
-            if sckt is None:
-                await asyncWait(0.05)
-                return
+        """Drain the video socket continuously until the service is stopped."""
+        sckt: iVideoSocket | None = self._vSocket
+        if sckt is None:
+            warning("SCRCPYEmitter.work: _vSocket is None — exit")
+            return
 
-            frame: iFrame = await sckt.asyncReceiveSingleFrame()
+        lWindowStart: float = perf_counter()
+        lWindowCount: int = 0
+        verbose("SCRCPYEmitter.work: receive loop started")
+
+        while self.isRunning:
+            try:
+                frame: iFrame = await sckt.asyncReceiveSingleFrame()
+            except CancelledError:
+                raise
+            except InvalidDataError as ex:
+                verbose(f"SCRCPYEmitter.work: InvalidDataError (ignored) {ex}")
+                continue
+            except ConnectionError as ex:
+                warning(f"SCRCPYEmitter.work: ConnectionError {ex}")
+                raise
+            except Exception as ex:
+                error(f"SCRCPYEmitter.work: {type(ex).__name__}: {ex}")
+                raise
+
             self._frameCount += 1
+            lWindowCount += 1
 
-            lLog = (
-                frame.isConfig
-                or frame.isKeyFrame
-                or (self._frameCount % C_LOG_EVERY_N == 0)
-            )
-            if lLog:
+            if frame.isConfig or frame.isKeyFrame:
                 verbose(
                     f"SCRCPYEmitter.work: packet #{self._frameCount} "
                     f"pts={frame.pts} isConfig={frame.isConfig} isKeyFrame={frame.isKeyFrame} "
@@ -76,20 +90,17 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
 
             self.raiseEvent("ON_FRAME", frame)
 
-            # Cooperate with Qt / other tasks when many frames are already buffered
-            await asyncWait(0)
+            lNow: float = perf_counter()
+            lElapsed: float = lNow - lWindowStart
+            if lElapsed >= 1.0:
+                verbose(
+                    f"SCRCPYEmitter.work: fps={lWindowCount / lElapsed:.1f} "
+                    f"total={self._frameCount}"
+                )
+                lWindowStart = lNow
+                lWindowCount = 0
 
-        except InvalidDataError as ex:
-            verbose(f"SCRCPYEmitter.work: InvalidDataError (ignored) {ex}")
-            await asyncWait(0)
-
-        except ConnectionError as ex:
-            warning(f"SCRCPYEmitter.work: ConnectionError {ex}")
-            raise
-
-        except Exception as ex:
-            error(f"SCRCPYEmitter.work: {type(ex).__name__}: {ex}")
-            raise
+        verbose(f"SCRCPYEmitter.work: receive loop ended total={self._frameCount}")
 
     async def _updateMetadata(self, sckt: iVideoSocket) -> None:
         verbose("SCRCPYEmitter._updateMetadata: reading deviceName (64 bytes)")
