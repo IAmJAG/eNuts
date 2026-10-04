@@ -22,6 +22,7 @@ BITRATE = 4000000
 
 try:
     from av.codec.hwaccel import HWAccel, hwdevices_available
+
     C_HAS_HWACCEL = True
 
 except ImportError:
@@ -36,7 +37,7 @@ except ImportError:
 def isSCRCPYServerDeployed(
     device: AdbDevice, path: str = ANDROID_PATH, JARName: str = JAR_NAME
 ):
-    try:        
+    try:
         for info in device.sync.list(path):
             if info.path == JARName:
                 return True
@@ -45,19 +46,22 @@ def isSCRCPYServerDeployed(
 
     except AdbError:
         return False
-    
+
+
 # ==================================================================================
 def pushSCRCPYServer(
-        device: AdbDevice, androidPath: str =  ANDROID_PATH, 
-        serverPath: str = SERVER_PATH, JARName: str = JAR_NAME,
-        timeout: int = 3000
+    device: AdbDevice,
+    androidPath: str = ANDROID_PATH,
+    serverPath: str = SERVER_PATH,
+    JARName: str = JAR_NAME,
+    timeout: int = 3000,
 ):
     # retry every 100ms
     for _ in range(timeout // 100):
         try:
-            if isSCRCPYServerDeployed(device, androidPath, JARName): 
+            if isSCRCPYServerDeployed(device, androidPath, JARName):
                 return True
-            
+
             device.sync.push(serverPath, androidPath)
             return True
 
@@ -69,23 +73,29 @@ def pushSCRCPYServer(
             raise ex
 
     else:
-        raise ConnectionError(f"Failed to push scrcpy server file after {timeout / 1000} seconds")
+        raise ConnectionError(
+            f"Failed to push scrcpy server file after {timeout / 1000} seconds"
+        )
 
 
 def deployServer(
-    device: AdbDevice, cfg: SCRCPYServerConfig, 
-    serverPath: str = SERVER_PATH, timeout: int = 3000
+    device: AdbDevice,
+    cfg: SCRCPYServerConfig,
+    serverPath: str = SERVER_PATH,
+    timeout: int = 3000,
 ) -> AdbConnection:
-    try:        
+    try:
         androidPath: str = cfg.AndroidPath
         jarName: str = cfg.JarName
 
         if not pushSCRCPYServer(device, androidPath, serverPath, jarName, timeout):
             raise Exception("Could not deploy scrcpy server")
 
-        # start server
+        # start server — single shell string (CLASSPATH=... app_process ...)
         cmds: list[str] = cfg.buildCommands()
-        strmServer: AdbConnection = device.shell(cmds, stream=True)
+        lCmd: str = " ".join(cmds)
+        verbose(f"deployServer: shell {lCmd!r}")
+        strmServer: AdbConnection = device.shell(lCmd, stream=True)
         if strmServer is None:
             raise Exception("Could not start scrcpy server")
 
@@ -93,6 +103,7 @@ def deployServer(
 
     except Exception as ex:
         raise ex
+
 
 # ==================================================================================
 def getSCRCPYADBSocket(device: AdbDevice, scid: str, timeout: int = 3000) -> socket:
@@ -112,8 +123,11 @@ def getSCRCPYADBSocket(device: AdbDevice, scid: str, timeout: int = 3000) -> soc
 
     return sSocket
 
+
 # ==================================================================================
-def createCodecContext(codecId: str, GPUID: int = 0, GPUReady: bool = True) -> VideoCodecContext:
+def createCodecContext(
+    codecId: str, GPUID: int = 0, GPUReady: bool = True
+) -> VideoCodecContext:
     lCodec = (codecId or "h264").strip().lower() or "h264"
 
     if not GPUReady:
