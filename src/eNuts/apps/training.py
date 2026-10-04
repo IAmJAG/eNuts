@@ -1,15 +1,17 @@
 # ==================================================================================================
-# src/eNuts/apps/__main.py
+# src/eNuts/apps/training.py
 # ==================================================================================================
 from asyncio import CancelledError, Event, set_event_loop
 from ctypes import windll
 from sys import platform
 
 # ==================================================================================================
+from adbutils import adb
 from PySide6.QtWidgets import QApplication
 from qasync import QEventLoop
 
 # ==================================================================================================
+from fluxCore.emitters import SCRCPYEmitter
 from jAGFx.types.interface.configuration import iApplicationConfiguration
 
 # ==================================================================================================
@@ -30,11 +32,26 @@ async def training(app: QApplication, *args, **kwargs):
     if platform == "win32":
         windll.shell32.SetCurrentProcessExplicitAppUserModelID(cfg.applicationId)
 
+    lEmitter: SCRCPYEmitter | None = None
+
     try:
         app.setStyleSheet(cfg.styleSheet)
 
         lWin: MainWindow = MainWindow(*args, **kwargs)
         lWin.show()
+
+        # ----- SCRCPYEmitter: receive packets only (verbose logs, no display) -----
+        lDevices = adb.device_list()
+        verbose(f"training: adb devices count={len(lDevices)}")
+        if lDevices:
+            lSerial = lDevices[0].serial
+            verbose(f"training: using first device serial={lSerial!r}")
+            lEmitter = SCRCPYEmitter(serial=lSerial)
+            await lEmitter.initialize(GPUReady=False)
+            lEmitter.start()
+            verbose("training: SCRCPYEmitter started")
+        else:
+            warning("training: no adb devices — SCRCPYEmitter not started")
 
         await lShutdownEvent.wait()
 
@@ -45,6 +62,9 @@ async def training(app: QApplication, *args, **kwargs):
         error(f"Unhandled exception: {type(ex).__name__}: {ex}")
 
     finally:
+        if lEmitter is not None and lEmitter.isRunning:
+            verbose("training: stopping SCRCPYEmitter")
+            lEmitter.stop()
         if not lShutdownEvent.is_set():
             lShutdownEvent.set()
 
