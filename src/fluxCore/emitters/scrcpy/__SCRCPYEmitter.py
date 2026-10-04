@@ -179,6 +179,3 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         self._codecContext = codecCTX
         self._frameCount = 0
         verbose("SCRCPYEmitter.initialize: complete — ready to receive packets")
-
-    async def emitter(self):
-        verbose("SCRCPYEmitter.emitter: stub (not used yet)")
