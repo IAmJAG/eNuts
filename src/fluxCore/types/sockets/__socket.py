@@ -1,5 +1,5 @@
 # ==================================================================================
-# src/fluxCore/types/interface/sockets/__asyncSocket.py
+# src/fluxCore/types/sockets/__socket.py
 # ==================================================================================
 from asyncio import AbstractEventLoop, get_running_loop
 from socket import socket
@@ -16,20 +16,11 @@ class SocketBase(iSocket):
         self._socket: socket = sckt
         self._loop: AbstractEventLoop = loop or get_running_loop()
 
-    def close(self):
+    def close(self) -> None:
         self._socket.close()
 
-    def receive(self, numBytes: int) -> bytes: 
-        sckt: socket = self._socket
-        return sckt.recv(numBytes)
-    
-    def send(self, payload: bytes):
-        sckt: socket = self._socket
-        sckt.sendall(payload)
-    
-    async def AsyncReceive(self, numBytes: int) -> bytes:
+    async def receive(self, numBytes: int) -> bytes:
         return await AsyncReadExact(self._socket, numBytes, self._loop)
 
-    async def AsyncSend(self, payload: bytes) -> None:
+    async def send(self, payload: bytes) -> None:
         await self._loop.sock_sendall(self._socket, payload)
-    
