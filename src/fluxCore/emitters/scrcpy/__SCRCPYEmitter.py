@@ -41,8 +41,8 @@ BITRATE = 4000000
 class SCRCPYEmitter(AsyncService, SCRCPY, AsyncSubscription, iSCRCPYEmitter):
     def __init__(self, serial: str, name: str | None = None) -> None:
         verbose(f"SCRCPYEmitter.__init__: serial={serial!r} name={name!r}")
-        AsyncService.__init__(self, work=self.work, name=name)
         SCRCPY.__init__(self, serial=serial, name=name)
+        AsyncService.__init__(self, work=self.work, name=name)        
         self._vSocket: iVideoSocket | None = None
         self._cSocket: iControlSocket | None = None
         self._streamServer: AdbConnection | None = None
