@@ -233,7 +233,8 @@ QWidget#SideBarGroupBody QWidget#SideBarItem[selected="true"][hover="true"] {
 }
 
 QWidget#SideBarItem {
-    background: transparent;
+    /* background: transparent; */
+    background: #181c20;
     border: 1px solid transparent;
     border-radius: 0px;
     margin: 2px 6px;
@@ -261,7 +262,7 @@ QWidget#SideBarItem[selected="true"][hover="true"] {
     border-color: #4a7a9a;
     border-left-color: #9ad0ff;
 }
-
+/*
 QLabel#SideBarText {
     color: inherit;
     background: transparent;
@@ -270,6 +271,7 @@ QLabel#SideBarText {
 QLabel#SideBarIcon {
     background: transparent;
 }
+*/
 
 QFrame#SideBarSeparator {
     background: #2e2e2e;
