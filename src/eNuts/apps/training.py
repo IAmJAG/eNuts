@@ -59,6 +59,9 @@ async def training(app: QApplication, *args, **kwargs):
         raise
 
     except Exception as ex:
+        # Do not pass err= here if EXITONERROR should be avoided; ERROR+ still
+        # auto-attaches the active exception traceback via sys.exc_info().
+        # Pass err=ex only when process exit on error is desired.
         error(f"Unhandled exception: {type(ex).__name__}: {ex}")
 
     finally:
