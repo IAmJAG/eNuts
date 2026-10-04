@@ -8,7 +8,7 @@ from asyncio import AbstractEventLoop, get_running_loop
 from socket import socket
 
 # ==================================================================================
-from adbutils import AdbConnection, AdbDevice
+from adbutils import AdbConnection, AdbDevice, adb
 from av import InvalidDataError, VideoCodecContext
 
 # ==================================================================================
@@ -43,7 +43,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
     def __init__(self, serial: str, name: str | None = None) -> None:
         verbose(f"SCRCPYEmitter.__init__: serial={serial!r} name={name!r}")
         SCRCPY.__init__(self, serial=serial, name=name)
-        AsyncService.__init__(self, work=self.work, name=name)        
+        AsyncService.__init__(self, work=self.work, name=name)
         self._vSocket: iVideoSocket | None = None
         self._cSocket: iControlSocket | None = None
         self._streamServer: AdbConnection | None = None
@@ -84,7 +84,9 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
     async def _updateMetadata(self, sckt: iVideoSocket) -> None:
         verbose("SCRCPYEmitter._updateMetadata: reading deviceName (64 bytes)")
         deviceName: bytes = await sckt.receive(64)
-        verbose(f"SCRCPYEmitter._updateMetadata: raw deviceName len={len(deviceName)} head={deviceName[:8]!r}")
+        verbose(
+            f"SCRCPYEmitter._updateMetadata: raw deviceName len={len(deviceName)} head={deviceName[:8]!r}"
+        )
 
         if deviceName and deviceName[0] == 0x00:
             verbose("SCRCPYEmitter._updateMetadata: leading 0x00 — reading extra byte")
@@ -117,8 +119,8 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         )
         verbose(f"SCRCPYEmitter.initialize: SERVER_PATH={SERVER_PATH!r}")
 
-        device: AdbDevice = AdbDevice(serial=self.id)
-        verbose(f"SCRCPYEmitter.initialize: AdbDevice created serial={self.id!r}")
+        device: AdbDevice = adb.device(serial=self.id)
+        verbose(f"SCRCPYEmitter.initialize: AdbDevice resolved serial={self.id!r}")
 
         cfg: SCRCPYServerConfig = SCRCPYServerConfig(
             androidPath=ANDROID_PATH,
