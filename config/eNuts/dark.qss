@@ -194,8 +194,9 @@ QWidget#SideBarGroupBody {
     margin: 3px 0px 6px 0px;
 }
 
+/* Nested children — deeper indent under group header */
 QWidget#SideBarGroupBody QWidget#SideBarItem {
-    margin-left: 28px;
+    margin-left: 40px;
     margin-right: 8px;
     margin-top: 1px;
     margin-bottom: 1px;
