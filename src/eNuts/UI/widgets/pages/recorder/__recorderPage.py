@@ -51,7 +51,7 @@ C_TAB_CONFIGURATION = 1
 class KAndGRecorderPage(Page):
     """Key & Gesture Recorder page.
 
-    Page layout contract:
+    Page layout contract (jAGQt.widgets.Page):
 
         Page
         ├── Header
@@ -65,15 +65,9 @@ class KAndGRecorderPage(Page):
             ├── Start Recording
             └── Stop Recording
 
-    Recording UX:
-        IDLE       → Stream + Configuration accessible; Start enabled
-        RECORDING  → Stream active + focused; Configuration inaccessible
-        STOPPING   → Configuration inaccessible; both lifecycle buttons disabled
-        IDLE       → Configuration re-enabled after finalization
-
-    Do not install a competing root layout on the Page itself.
-    CommandBar is assigned via Page.CommandBar; it is not placed in the header.
-    All visual chrome is left to the application QSS via object names.
+    CommandBar uses jAGQt CommandBar.AddButton (see
+    src/jAGQt/widgets/workspace/__commandBar.py).
+    Content is assigned via Page.Content.
     """
 
     def __init__(self, shell: iShell | None = None, parent=None) -> None:
@@ -99,14 +93,8 @@ class KAndGRecorderPage(Page):
 
     # ==================================================================================
     def _buildCommandBar(self) -> None:
-        """Page-level CommandBar for recording lifecycle controls.
-
-        Assigns Page.CommandBar only. Start/Stop buttons are created and wired;
-        attachment to the bar uses the real jAGQt CommandBar API (to be applied
-        after that API is rescanned from the installed package — no probing).
-        """
+        """Page-level CommandBar via the real jAGQt API."""
         lBar = CommandBar(parent=self)
-        self.CommandBar = lBar
 
         self._startBtn = QPushButton("Start Recording")
         self._startBtn.setObjectName("StartRecordingBtn")
@@ -117,44 +105,13 @@ class KAndGRecorderPage(Page):
         self._stopBtn.clicked.connect(self._onStopRecording)
         self._stopBtn.setEnabled(False)
 
+        lBar.AddStretch()
+        lBar.AddButton(self._startBtn)
+        lBar.AddButton(self._stopBtn)
+
+        self.CommandBar = lBar
+
     # ==================================================================================
-    def _contentHost(self) -> QWidget:
-        """Return the container Page exposes for body content.
-
-        Prefer Page.Content. Never replace the Page root layout that owns the header.
-        """
-        lContent = getattr(self, "Content", None)
-        if isinstance(lContent, QWidget):
-            return lContent
-        return self
-
-    def _attachToContent(self, widget: QWidget) -> None:
-        """Place recorder body into the Page content area without fighting the header."""
-        lHost = self._contentHost()
-
-        lContentLayout = getattr(self, "ContentLayout", None)
-        if lContentLayout is not None:
-            lContentLayout.addWidget(widget, 1)
-            return
-
-        if lHost is not self:
-            lLayout = lHost.layout()
-            if lLayout is None:
-                lLayout = QVBoxLayout(lHost)
-                lLayout.setContentsMargins(0, 0, 0, 0)
-                lLayout.setSpacing(0)
-            lLayout.addWidget(widget, 1)
-            return
-
-        lPageLayout = self.layout()
-        if lPageLayout is not None:
-            lPageLayout.addWidget(widget, 1)
-            return
-
-        lEmergency = QVBoxLayout(self)
-        lEmergency.setContentsMargins(0, 0, 0, 0)
-        lEmergency.addWidget(widget, 1)
-
     def _buildUI(self) -> None:
         self._tabs = QTabWidget()
         self._tabs.setObjectName("KAndGRecorderTabs")
@@ -165,7 +122,8 @@ class KAndGRecorderPage(Page):
         self._tabs.addTab(self._streamTab, "Stream")
         self._tabs.addTab(self._configTab, "Configuration")
 
-        self._attachToContent(self._tabs)
+        # Page.Content places the body between Header and CommandBar
+        self.Content = self._tabs
 
     def _buildStreamTab(self) -> QWidget:
         lTab = QWidget()
@@ -339,22 +297,7 @@ class KAndGRecorderPage(Page):
         self._setState(eRecorderState.IDLE)
 
     def _setState(self, state: eRecorderState) -> None:
-        """Apply UI state for IDLE / RECORDING / STOPPING.
-
-        RECORDING:
-            - Stream tab selected and focused
-            - Configuration tab inaccessible
-            - config controls disabled
-            - Start disabled, Stop enabled
-
-        STOPPING:
-            - Configuration remains inaccessible
-            - both lifecycle buttons disabled
-
-        IDLE:
-            - Configuration tab and controls re-enabled
-            - Start enabled, Stop disabled
-        """
+        """Apply UI state for IDLE / RECORDING / STOPPING."""
         self._state = state
 
         lIsIdle = state is eRecorderState.IDLE
