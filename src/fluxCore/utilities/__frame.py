@@ -27,7 +27,7 @@ def _ParseFrameHeader(header12: bytes) -> tuple[int, bool, bool, int]:
     return lPts, lIsConfig, lIsKeyFrame, lSize
 
 # ==================================================================================
-def ReadSingleFrame(sckt: socket) -> tuple[int, bool, bool, bytes] | None:
+def ReadSingleFrame(sckt: socket) -> tuple[int, bool, bool, bytes]:
     try:
         lHeader = ReadExact(sckt, 12)
 

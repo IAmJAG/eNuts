@@ -12,7 +12,7 @@ from jAGQt.window import MainWindowBase
 # ==================================================================================
 from ...application.__shell import Shell
 from ...configuration import ApplicationInformation
-from ..widgets import EvolvingNeuralBrain
+from ..widgets.spinners import EvolvingNeuralBrain
 
 
 # ==================================================================================

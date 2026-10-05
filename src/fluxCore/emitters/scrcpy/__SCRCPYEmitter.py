@@ -60,17 +60,17 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
                 while not self._serverLogStop.is_set():
                     try:
                         lChunk = streamServer.read(4096)
+
                     except Exception:
                         break
-                    if not lChunk:
-                        break
+
+                    if not lChunk: break
+
             finally:
                 pass
 
         self._serverLogStop.clear()
-        self._serverLogThread = Thread(
-            target=_drain, name=f"scrcpy-log-{self.id}", daemon=True
-        )
+        self._serverLogThread = Thread(target=_drain, name=f"scrcpy-log-{self.id}", daemon=True)
         self._serverLogThread.start()
 
     def _stopServerLogDrain(self) -> None:
@@ -82,14 +82,14 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
 
     async def work(self, *args, **kwargs):
         """Drain the video socket continuously until the service is stopped."""
-        sckt: iVideoSocket | None = self._vSocket
-        if sckt is None:
-            return
+        sckt: iVideoSocket = self._vSocket
+        if sckt is None: return
 
         try:
             while self.isRunning:
                 try:
                     frame: iFrame = await sckt.asyncReceiveSingleFrame()
+                    self.raiseEvent("ON_FRAME", frame)
 
                 except CancelledError:
                     raise
@@ -97,11 +97,6 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
                 except InvalidDataError:
                     await asyncWait(0)
                     continue
-
-                except ConnectionError:
-                    raise
-
-                self.raiseEvent("ON_FRAME", frame)
 
                 # qasync + Windows IOCP: yield so overlapped reads can complete
                 await asyncWait(0)

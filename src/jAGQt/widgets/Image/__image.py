@@ -16,14 +16,13 @@ from PySide6.QtGui import (
     QResizeEvent,
     QWheelEvent,
 )
-from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from PySide6.QtOpenGL import QOpenGLTexture
+from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from PySide6.QtWidgets import QWidget
 from torch import Tensor
 
 # ==================================================================================
-from jAGQt.types.components import ComponentBase
-
+from ...types.components import ComponentBase
 
 # ==================================================================================
 Backend = Literal["software", "opengl"]
@@ -34,19 +33,15 @@ class Image(QWidget, ComponentBase):
     """Fast image viewer with zoom / pan.
 
     backend="software"  → pure QWidget + cached scaled QPixmap (default)
-    backend="opengl"    → QOpenGLWidget child (GPU-backed)
-    """
+    backend="opengl"    → QOpenGLWidget child (GPU-backed)    """
 
     onResize: Signal = Signal(QSize)
     onZoomChanged: Signal = Signal(float)
 
     # ------------------------------------------------------------------
     def __init__(
-        self,
-        bg: Union[str, QColor] = "lightgray",
-        backend: Backend = "software",
-        *args,
-        **kwargs,
+        self, bg: Union[str, QColor] = "lightgray",
+        backend: Backend = "software", *args, **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
 

@@ -83,7 +83,11 @@ QListWidget::item { color: #c8cdd2; padding: 7px 10px; border-radius: 0; }
 QListWidget::item:hover { background: #343a43; color: #ffffff; }
 QListWidget::item:selected { background: #3a2024; color: #ffffff; }
 
-QLabel#PAGE_TITLE { color: #f0f0f0; font-size: 20px; font-weight: 600; }
+QLabel#PAGE_TITLE {
+    color: #f0f0f0;
+    font-size: 20px;
+    font-weight: 600;
+}
 QLabel#WORKSPACE_DESCRIPTION { color: #8a9098; }
 QLabel#WORKSPACE_SECTION_TITLE { color: #d4af37; font-size: 14px; font-weight: 600; }
 
@@ -98,10 +102,12 @@ QLabel#TRAINING_DEVICE_NAME { color: #e7e9ec; font-size: 14px; font-weight: 600;
 QLabel#TRAINING_DEVICE_KIND { color: #8a9098; }
 QLabel#TRAINING_DEVICE_STATUS { color: #56d9ff; font-size: 11px; }
 
-/* ==========================================================================
-   SideBar hierarchy
-   Group header = SideBarItem subclass → same selected/hover property path as leaves
-   ========================================================================== */
+/* 
+    ==========================================================================
+    SideBar hierarchy
+    Group header = SideBarItem subclass → same selected/hover property path as leaves
+    ==========================================================================
+*/
 
 QWidget#SideBar {
     background: #20242a;
@@ -112,7 +118,8 @@ QWidget#SideBarHeader {
     background: #1a1d22;
     border: none;
     border-bottom: 2px solid #a51d25;
-    min-height: 52px;
+    min-height: 40px;
+    height: 40px;
     padding: 8px 0px;
 }
 
@@ -141,16 +148,16 @@ QWidget#SideBarGroup {
 
 /* Group header (SideBarItem-based) — secondary highlight vs dominant leaf */
 QWidget#SideBarGroupHeader {
-    background-color: #262b32;
+    background: #262b32;
     border: 1px solid #3a4048;
-    border-radius: 0;
-    margin: 2px 6px;
+    border-radius: 0px;
+    margin: 2px 0px;
     min-height: 40px;
     color: #c8cdd2;
 }
 
 QWidget#SideBarGroupHeader[hover="true"] {
-    background-color: #30363e;
+    background: #30363e;
     border-color: #c8a951;
 }
 

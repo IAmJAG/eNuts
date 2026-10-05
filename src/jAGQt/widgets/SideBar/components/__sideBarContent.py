@@ -8,8 +8,8 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QBoxLayout, QFrame, QScrollArea, QSizePolicy, QWidget
 
 # ==================================================================================
-from jAGQt.types.components import ComponentBase
-from jAGQt.utilities import newLayout
+from ....types.components import ComponentBase
+from ....utilities import newLayout
 
 
 # ==================================================================================

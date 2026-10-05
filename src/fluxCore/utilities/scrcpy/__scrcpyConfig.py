@@ -30,27 +30,15 @@ class SCRCPYServerConfig:
     _next_scid: int = 1
 
     def __init__(
-        self,
-        androidPath: str,
-        jarName: str,
-        version: str = CL_DEFAULT_VERSION,
-        maxSize: int = CL_DEFAULT_MAX_SIZE,
-        maxFps: int = CL_DEFAULT_MAX_FPS,
-        bitrate: int = CL_DEFAULT_BITRATE,
-        logLevel: str = CL_DEFAULT_LOG_LEVEL,
-        videoEncoder: str = CL_DEFAULT_VIDEO_ENCODER,
-        videoCodec: str = CL_DEFAULT_VIDEO_CODEC,
-        tunnelForward: bool = CL_DEFAULT_TUNNEL_FORWARD,
-        sendFrameMeta: bool = CL_DEFAULT_SEND_FRAME_META,
-        control: bool = CL_DEFAULT_CONTROL,
-        audio: bool = CL_DEFAULT_AUDIO,
-        showTouches: bool = CL_DEFAULT_SHOW_TOUCHES,
-        stayAwake: bool = CL_DEFAULT_STAY_AWAKE,
-        powerOffOnClose: bool = CL_DEFAULT_POWER_OFF_ON_CLOSE,
-        clipboardAutosync: bool = CL_DEFAULT_CLIPBOARD_AUTOSYNC,
-        displayId: int = CL_DEFAULT_DISPLAY_ID,
-        cleanup: bool = CL_DEFAULT_CLEANUP,
-        scid: Optional[int] = None,
+        self, androidPath: str, jarName: str, version: str = CL_DEFAULT_VERSION,
+        maxSize: int = CL_DEFAULT_MAX_SIZE, maxFps: int = CL_DEFAULT_MAX_FPS,
+        bitrate: int = CL_DEFAULT_BITRATE, logLevel: str = CL_DEFAULT_LOG_LEVEL,
+        videoEncoder: str = CL_DEFAULT_VIDEO_ENCODER, videoCodec: str = CL_DEFAULT_VIDEO_CODEC,
+        tunnelForward: bool = CL_DEFAULT_TUNNEL_FORWARD, sendFrameMeta: bool = CL_DEFAULT_SEND_FRAME_META,
+        control: bool = CL_DEFAULT_CONTROL, audio: bool = CL_DEFAULT_AUDIO,
+        showTouches: bool = CL_DEFAULT_SHOW_TOUCHES, stayAwake: bool = CL_DEFAULT_STAY_AWAKE,
+        powerOffOnClose: bool = CL_DEFAULT_POWER_OFF_ON_CLOSE, clipboardAutosync: bool = CL_DEFAULT_CLIPBOARD_AUTOSYNC,
+        displayId: int = CL_DEFAULT_DISPLAY_ID, cleanup: bool = CL_DEFAULT_CLEANUP, scid: Optional[int] = None,
     ) -> None:
         self._androidPath = androidPath
         self._jarName = jarName

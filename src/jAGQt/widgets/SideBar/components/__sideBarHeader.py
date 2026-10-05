@@ -9,8 +9,8 @@ from PySide6.QtGui import QIcon, QMouseEvent
 from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QStyle, QWidget
 
 # ==================================================================================
-from jAGQt.types.components import ComponentBase
-from jAGQt.utilities import newLayout
+from ....types.components import ComponentBase
+from ....utilities import newLayout
 
 # ==================================================================================
 from .__sideBarIcon import SideBarIcon

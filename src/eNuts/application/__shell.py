@@ -12,7 +12,7 @@ from PySide6.QtWidgets import QBoxLayout, QLabel, QStyle, QWidget
 # ==================================================================================
 from jAGQt.types.interface.window import iMainWindowBase
 from jAGQt.widgets import SideBar
-from jAGQt.widgets.SideBar import SideBarItem
+from jAGQt.widgets.sideBar import SideBarItem
 
 # ==================================================================================
 from ..types.interface.application import iENUTSService, iShell
@@ -24,23 +24,16 @@ class Shell(iShell):
 
     def intializeUI(self: iMainWindowBase) -> None:
         # Expect WindowBase._wInitializeUI to have already created self._layout
-        self._layout.setDirection(QBoxLayout.Direction.LeftToRight)
+        self.Layout.setDirection(QBoxLayout.Direction.LeftToRight)
         self.ContentSpacing = 0
         self.ContentMargins = 0
 
         self._sideBar = SideBar(
-            title="eNuts",
-            expandedWidth=220,
-            collapsedWidth=52,
-            iconSize=22,
-            startCollapsed=False,
-            autoCollapse=False,
-            animationDurationMs=240,
-            parent=self,
+            title="eNuts", expandedWidth=220, collapsedWidth=52, iconSize=22,
+            startCollapsed=False, autoCollapse=False, animationDurationMs=240, parent=self,
         )
 
         self._buildSideBarNavigation()
-
         self._sideBar.ItemClicked.connect(self._onSideBarItemClicked)
 
         # ----- Central content host -----------------------------------------
@@ -48,14 +41,14 @@ class Shell(iShell):
         self._contentArea.setObjectName("MainContentArea")
         lContentLayout = QBoxLayout(QBoxLayout.Direction.TopToBottom, self._contentArea)
         lContentLayout.setContentsMargins(16, 16, 16, 16)
-
+        
         self._pageLabel = QLabel("Dashboard", self._contentArea)
         self._pageLabel.setObjectName("PAGE_TITLE")
         self._pageLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
         lContentLayout.addWidget(self._pageLabel, 1)
 
-        self._layout.addWidget(self._sideBar)
-        self._layout.addWidget(self._contentArea, 1)
+        self.Layout.addWidget(self._sideBar)
+        self.Layout.addWidget(self._contentArea, 1)
 
         self._navigateTo("Dashboard")
 
@@ -68,21 +61,20 @@ class Shell(iShell):
         lBar: SideBar = self._sideBar
 
         lBar.AddItem(
-            text="Dashboard",
-            icon=self._standardIcon(QStyle.StandardPixmap.SP_DesktopIcon),
+            text="Dashboard", icon=self._standardIcon(QStyle.StandardPixmap.SP_DesktopIcon),
         )
 
         lDevices = lBar.AddGroup(
-            title="Devices",
+            title="Data Factory(DF)",
             icon=self._standardIcon(QStyle.StandardPixmap.SP_ComputerIcon),
             startCollapsed=False,
         )
         lDevices.AddItem(
-            text="Connected",
+            text="DF Dashboard",
             icon=self._standardIcon(QStyle.StandardPixmap.SP_DriveHDIcon),
         )
         lDevices.AddItem(
-            text="Available",
+            text="Connected",
             icon=self._standardIcon(QStyle.StandardPixmap.SP_DriveNetIcon),
         )
 
@@ -103,8 +95,7 @@ class Shell(iShell):
         # Configuration / settings stay at the bottom of the sidebar
         lBar.AddStretch()
         lBar.AddSeparator()
-        lBar.AddItem(
-            text="Settings",
+        lBar.AddItem(text="Settings",
             icon=self._standardIcon(QStyle.StandardPixmap.SP_FileDialogInfoView),
         )
 
@@ -114,8 +105,7 @@ class Shell(iShell):
 
     def _navigateTo(self, pageName: str) -> None:
         lLabel: Optional[QLabel] = getattr(self, "_pageLabel", None)
-        if lLabel is None:
-            return
+        if lLabel is None: return
         lLabel.setText(pageName)
 
     def initializeInstance(self: iMainWindowBase) -> None:

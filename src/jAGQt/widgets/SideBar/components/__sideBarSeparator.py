@@ -9,7 +9,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QSizePolicy, QWidget
 
 # ==================================================================================
-from jAGQt.types.components import ComponentBase
+from ....types.components import ComponentBase
 
 
 # ==================================================================================
