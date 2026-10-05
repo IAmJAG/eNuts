@@ -2,7 +2,7 @@
 from typing import Any, Protocol, runtime_checkable
 
 # ==================================================================================
-from ....action.android.androidAction.enums import eCommandType
+from ....action.android.enums import eCommandType
 from ..sockets import iControlSocket
 from .__actionMetadata import iActionMetadata
 

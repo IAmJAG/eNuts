@@ -1,5 +1,5 @@
 # ==================================================================================
-from ..androidAction.enums import eKeyCode, eKeyState, eMetaState
+from ..enums import eKeyCode, eKeyState, eMetaState
 from .__injectKeyBase import InjectKeyBase
 
 

@@ -10,7 +10,7 @@ from utilities import createTask
 from ...types.interface.action import iActionMetadata, iAndroidAction
 from ...types.interface.sockets import iControlSocket
 from .. import Action
-from .androidAction.enums import eCommandType
+from .enums import eCommandType
 
 
 # ==================================================================================

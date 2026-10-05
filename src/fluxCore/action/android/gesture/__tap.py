@@ -18,7 +18,7 @@ from ..__const import (
     PRESSURE_MIN,
     PRIMARY_BUTTON,
 )
-from ..androidAction.enums import eCommandType, eKeyState
+from ..enums import eCommandType, eKeyState
 from .__touch import Touch
 
 

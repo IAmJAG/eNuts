@@ -16,6 +16,10 @@ class SCRCPY(Device, iSCRCPY):
         self._height: int = 0
 
     @property
+    def serial(self) -> str | None:
+        return self.id
+
+    @property
     def codecId(self) -> str:
         return self._codecId
     

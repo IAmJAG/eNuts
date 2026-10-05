@@ -15,7 +15,7 @@ from ..__const import (
     PRESSURE_MIN,
     PRIMARY_BUTTON,
 )
-from ..androidAction.enums import (
+from ..enums import (
     eCommandType,
     eKeyState,
 )

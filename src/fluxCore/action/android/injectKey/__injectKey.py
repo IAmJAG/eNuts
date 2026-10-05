@@ -7,7 +7,7 @@ from struct import pack
 # ==================================================================================
 from ....types.interface.sockets import iControlSocket
 from ..__androidAction import AndroidAction as Action
-from ..androidAction.enums import (
+from ..enums import (
     eCommandType,
     eKeyCode,
     eKeyState,
