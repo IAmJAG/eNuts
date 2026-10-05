@@ -29,7 +29,7 @@ class WindowBase(QMainWindow, ComponentBase):
         # would be destroyed by the replacement. The layout goes on the central widget.
         lCentral: QWidget = self.centralWidget()
         if lCentral is None:
-            lCentral = QWidget()
+            lCentral = QWidget(self)
             self.setCentralWidget(lCentral)
 
         if self._layout is None:
@@ -38,7 +38,3 @@ class WindowBase(QMainWindow, ComponentBase):
             self.ContentMargins = 0
 
         lCentral.setLayout(self._layout)
-
-        
-
-        
