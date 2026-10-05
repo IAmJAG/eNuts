@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 # ==================================================================================
-from typing import List
+from typing import Dict, List
 
 # ==================================================================================
 from PySide6.QtGui import QIcon
@@ -14,18 +14,24 @@ from jAGQt.widgets import CommandBar, Page, SideBar, Workspace
 from jAGQt.widgets.sideBar import SideBarItem
 
 # ==================================================================================
+from fluxCore.types.interface.device import iDevice
+
+# ==================================================================================
 from ..types.interface.application import iENUTSService, iShell
+from ..UI.widgets.pages import KAndGRecorderPage
 
 
 # ==================================================================================
 class Shell(iShell):
-    """Application shell: owns SideBar composition and Workspace content host."""
+    """Application shell: owns SideBar composition, Workspace content host, and device registry."""
 
     def intializeUI(self: iMainWindowBase) -> None:
         # Expect WindowBase._wInitializeUI to have already created self._layout
         self.Layout.setDirection(QBoxLayout.Direction.LeftToRight)
         self.ContentSpacing = 0
         self.ContentMargins = 0
+
+        self._devices: Dict[str, iDevice] = {}
 
         self._sideBar = SideBar(
             title="eNuts", expandedWidth=220, collapsedWidth=52, iconSize=22,
@@ -71,6 +77,10 @@ class Shell(iShell):
             text="Connected",
             icon=self._standardIcon(QStyle.StandardPixmap.SP_DriveNetIcon),
         )
+        lDevices.AddItem(
+            text="K&G Recorder",
+            icon=self._standardIcon(QStyle.StandardPixmap.SP_MediaPlay),
+        )
 
         lTraining = lBar.AddGroup(
             title="Training",
@@ -106,10 +116,31 @@ class Shell(iShell):
 
         for lTitle, lDescription in lPages:
             lPage: Page = Page(title=lTitle, description=lDescription, parent=self._workspace)
-            # optional: attach an empty CommandBar so pages are ready for actions
             lBar = CommandBar(parent=lPage)
             lPage.CommandBar = lBar
             self._workspace.AddPage(lPage, name=lTitle)
+
+        # Specialized recorder page (name must match sidebar text exactly)
+        lRecorder = KAndGRecorderPage(parent=self._workspace)
+        self._workspace.AddPage(lRecorder, name="K&G Recorder")
+
+    # ==================================================================================
+    def AddDevice(self, device: iDevice) -> None:
+        """Register an iDevice in the global application collection."""
+        if device is None:
+            return
+        self._devices[device.id] = device
+
+    def RemoveDevice(self, device: iDevice) -> None:
+        """Remove an iDevice from the global application collection."""
+        if device is None:
+            return
+        self._devices.pop(device.id, None)
+
+    @property
+    def Devices(self) -> Dict[str, iDevice]:
+        """Read-only view of registered devices keyed by iDevice.id."""
+        return dict(self._devices)
 
     # ==================================================================================
     def _onSideBarItemClicked(self, item: SideBarItem) -> None:
