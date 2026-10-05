@@ -1,5 +1,5 @@
 # ==================================================================================
-# src/fluxCore/emitters/scrcpy/__SCRCPYEmitters.py
+# src/fluxCore/emitters/scrcpy/__SCRCPYEmitter.py
 # ==================================================================================
 import os
 
@@ -52,6 +52,15 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         self._serverLogStop: ThreadEvent = ThreadEvent()
         self._serverLogThread: Thread | None = None
 
+    # ==================================================================================
+    @property
+    def ControlSocket(self) -> iControlSocket | None:
+        """Public control-channel accessor. Returns None when unavailable."""
+        if not hasattr(self, "_cSocket"):
+            return None
+        return self._cSocket
+
+    # ==================================================================================
     def _startServerLogDrain(self, streamServer: AdbConnection) -> None:
         """Prevent scrcpy-server from blocking on a full stdout pipe."""
 
