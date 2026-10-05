@@ -23,7 +23,7 @@ QWidget {
     background: transparent;
     color: #bd93f9;
     border: 1px solid transparent;
-    border-radius: 0;
+    border-radius: 0px;
     padding: 7px 10px;
 }
 
@@ -79,7 +79,7 @@ QPushButton#ADD_DEVICE { color: #8be9fd; }
 QPushButton#ADD_DEVICE:hover { background: #44475a; color: #50fa7b; }
 
 QListWidget { background: transparent; border: none; outline: none; padding: 4px 0; }
-QListWidget::item { color: #f8f8f2; padding: 7px 10px; border-radius: 0; }
+QListWidget::item { color: #f8f8f2; padding: 7px 10px; border-radius: 0px; }
 QListWidget::item:hover { background: #44475a; color: #ffffff; }
 QListWidget::item:selected { background: #44475a; color: #bd93f9; }
 
@@ -88,7 +88,7 @@ QLabel#WORKSPACE_DESCRIPTION { color: #6272a4; }
 QLabel#WORKSPACE_SECTION_TITLE { color: #f8f8f2; font-size: 14px; font-weight: 600; }
 
 QFrame#TRAINING_STAT_CARD,
-QFrame#TRAINING_DEVICE_CARD { background: #21222c; border: 1px solid #44475a; border-radius: 0; }
+QFrame#TRAINING_DEVICE_CARD { background: #21222c; border: 1px solid #44475a; border-radius: 0px; }
 QFrame#TRAINING_STAT_CARD:hover,
 QFrame#TRAINING_DEVICE_CARD:hover { border-color: #bd93f9; }
 
@@ -98,10 +98,12 @@ QLabel#TRAINING_DEVICE_NAME { color: #f8f8f2; font-size: 14px; font-weight: 600;
 QLabel#TRAINING_DEVICE_KIND { color: #6272a4; }
 QLabel#TRAINING_DEVICE_STATUS { color: #8be9fd; font-size: 11px; }
 
-/* ==========================================================================
-   SideBar hierarchy
-   Group header = SideBarItem subclass → same selected/hover property path as leaves
-   ========================================================================== */
+/* 
+    ==========================================================================
+    SideBar hierarchy
+    Group header = SideBarItem subclass → same selected/hover property path as leaves
+    ==========================================================================
+*/
 
 QWidget#SideBar {
     background: #21222c;
@@ -112,7 +114,8 @@ QWidget#SideBarHeader {
     background: #191a21;
     border: none;
     border-bottom: 2px solid #bd93f9;
-    min-height: 52px;
+    min-height: 40px;
+    height: 40px;
     padding: 8px 0px;
 }
 
@@ -126,7 +129,7 @@ QLabel#SideBarHeaderTitle {
 
 QLabel#SideBarHeaderCollapse {
     background: transparent;
-    border-radius: 0;
+    border-radius: 0px;
     padding: 2px;
 }
 
@@ -141,16 +144,16 @@ QWidget#SideBarGroup {
 
 /* Group header (SideBarItem-based) — secondary highlight vs dominant leaf */
 QWidget#SideBarGroupHeader {
-    background-color: #2b2d3a;
+    background: #2b2d3a;
     border: 1px solid #44475a;
-    border-radius: 0;
-    margin: 2px 6px;
+    border-radius: 0px;
+    margin: 2px 0px;
     min-height: 40px;
     color: #cfcfcf;
 }
 
 QWidget#SideBarGroupHeader[hover="true"] {
-    background-color: #343746;
+    background: #343746;
     border-color: #6272a4;
 }
 
@@ -200,7 +203,7 @@ QWidget#SideBarGroupBody QWidget#SideBarItem {
     margin-right: 8px;
     margin-top: 1px;
     margin-bottom: 1px;
-    border-radius: 0;
+    border-radius: 0px;
     border: 1px solid transparent;
     border-left: 3px solid #44475a;
     min-height: 26px;
@@ -234,7 +237,7 @@ QWidget#SideBarGroupBody QWidget#SideBarItem[selected="true"][hover="true"] {
 QWidget#SideBarItem {
     background: transparent;
     border: 1px solid transparent;
-    border-radius: 0;
+    border-radius: 0px;
     margin: 2px 6px;
     min-height: 32px;
     color: #f8f8f2;
