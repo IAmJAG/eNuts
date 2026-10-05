@@ -11,7 +11,6 @@ from PySide6.QtWidgets import (
     QFrame,
     QLabel,
     QSizePolicy,
-    QVBoxLayout,
     QWidget,
 )
 
@@ -49,11 +48,11 @@ class Page(QWidget, ComponentBase):
 
         self.Layout = newLayout(QBoxLayout, spacing=8, margins=(16, 16, 16, 16))
 
-        self._titleLabel = QLabel(title)
+        self._titleLabel = QLabel(title, self)
         self._titleLabel.setObjectName("PAGE_TITLE")
         self.Layout.addWidget(self._titleLabel)
 
-        self._descriptionLabel = QLabel(description)
+        self._descriptionLabel = QLabel(description, self)
         self._descriptionLabel.setObjectName("PAGE_DESCRIPTION")
         self._descriptionLabel.setVisible(bool(description))
         self.Layout.addWidget(self._descriptionLabel)
@@ -97,12 +96,12 @@ class Page(QWidget, ComponentBase):
     def Content(self, value: Optional[QWidget]) -> None:
         if self._content is not None:
             self.Layout.removeWidget(self._content)
-            self._content.setParent(None)
+            self._content.hide()
             self._content.deleteLater()
             self._content = None
 
         if value is None:
-            value = QFrame()
+            value = QFrame(self)
             value.setObjectName("PageContent")
             lCntLayout = newLayout(QBoxLayout, spacing=2, margins=(7, 7, 7, 7))
             value.setLayout(lCntLayout)
@@ -124,7 +123,7 @@ class Page(QWidget, ComponentBase):
     def CommandBar(self, value: Optional[CommandBar]) -> None:
         if self._commandBar is not None:
             self.Layout.removeWidget(self._commandBar)
-            self._commandBar.setParent(None)
+            self._commandBar.hide()
             self._commandBar.deleteLater()
             self._commandBar = None
 
