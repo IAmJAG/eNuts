@@ -5,7 +5,14 @@ from typing import List, Optional, Set, Tuple
 
 # ==================================================================================
 from PySide6.QtCore import QMargins
-from PySide6.QtWidgets import QBoxLayout, QFormLayout, QGridLayout, QLayout, QMainWindow, QWidget
+from PySide6.QtWidgets import (
+    QBoxLayout,
+    QFormLayout,
+    QGridLayout,
+    QLayout,
+    QMainWindow,
+    QWidget,
+)
 
 
 # ==================================================================================
@@ -22,9 +29,10 @@ def newLayout(
     """
     if issubclass(layout, QBoxLayout):
         lDirection = direction if direction is not None else QBoxLayout.Direction.TopToBottom
-        lLayout = layout(lDirection)
+        lLayout: QBoxLayout = layout(lDirection)
+
     else:
-        lLayout = layout()
+        lLayout: QBoxLayout = layout()
 
     if isinstance(margins, int):
         lLayout.setContentsMargins(margins, margins, margins, margins)

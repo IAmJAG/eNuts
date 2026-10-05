@@ -1,69 +1,127 @@
 # ==================================================================================
-from uuid import UUID, uuid4
+# src/jAGQt/widgets/workspace/__page.py
+# ==================================================================================
+from typing import Optional
+from uuid import uuid4
 
 # ==================================================================================
-from PySide6.QtWidgets import QFrame, QLabel, QVBoxLayout, QWidget
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (
+    QBoxLayout,
+    QFrame,
+    QLabel,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 
 # ==================================================================================
-from ...types.components import ComponentBase
+from jAGQt.types.components import ComponentBase
+from jAGQt.utilities import newLayout
+
+# ==================================================================================
+from .__commandBar import CommandBar
 
 
 # ==================================================================================
 class Page(QWidget, ComponentBase):
-    def __init__(self, title: str, description: str = "", parent=None) -> None:
-        super().__init__(parent)
-        self._id: UUID = str(uuid4())
+    """Single workspace page (title + content + optional CommandBar)."""
+
+    def __init__(
+        self,
+        title: str = "",
+        description: str = "",
+        parent: Optional[QWidget] = None,
+        *args,
+        **kwargs,
+    ) -> None:
+        super().__init__(parent, *args, **kwargs)
+
+        self.setObjectName("Page")
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+
+        self._id: str = str(uuid4())
         self._title: str = title
         self._description: str = description
-        self._content: QWidget  = None
+        self._content: Optional[QWidget] = None
+        self._commandBar: Optional[CommandBar] = None
 
-        self._layout = QVBoxLayout(self)
-        self._layout.setContentsMargins(16, 16, 16, 16)
-        self._layout.setSpacing(8)
+        self.Layout = newLayout(QBoxLayout, spacing=8, margins=(16, 16, 16, 16))
 
-        titleWidget = QLabel(title)
-        titleWidget.setObjectName("PAGE_TITLE")
-        self._layout.addWidget(titleWidget)
+        self._titleLabel = QLabel(title)
+        self._titleLabel.setObjectName("PAGE_TITLE")
+        self.Layout.addWidget(self._titleLabel)
 
-        self.content = None
-        self.commandBar = None
+        self._descriptionLabel = QLabel(description)
+        self._descriptionLabel.setObjectName("PAGE_DESCRIPTION")
+        self._descriptionLabel.setVisible(bool(description))
+        self.Layout.addWidget(self._descriptionLabel)
+
+        self.Content = None
+
+    # ==================================================================================
+    @property
+    def Id(self) -> str:
+        """Immutable identifier used as the key in Workspace."""
+        return self._id
 
     @property
-    def title(self) -> str:
+    def id(self) -> str:
+        return self._id
+
+    @property
+    def Title(self) -> str:
         return self._title
 
+    @Title.setter
+    def Title(self, value: str) -> None:
+        self._title = value
+        self._titleLabel.setText(value)
+
     @property
-    def content(self) -> QWidget:
+    def Description(self) -> str:
+        return self._description
+
+    @Description.setter
+    def Description(self, value: str) -> None:
+        self._description = value
+        self._descriptionLabel.setText(value)
+        self._descriptionLabel.setVisible(bool(value))
+
+    @property
+    def Content(self) -> Optional[QWidget]:
         return self._content
 
-    @content.setter
-    def content(self, value: QFrame | None) -> None:
-        if hasattr(self, "_content"):
+    @Content.setter
+    def Content(self, value: Optional[QWidget]) -> None:
+        if self._content is not None:
             self.Layout.removeWidget(self._content)
             self._content.setParent(None)
             self._content.deleteLater()
+            self._content = None
 
         if value is None:
-            value: QFrame = QFrame()
-            cntLayout: QVBoxLayout = QVBoxLayout(value)
-            cntLayout.setContentsMargins(7, 7, 7, 7)
-            cntLayout.setSpacing(2)
-            cntLayout.addStretch()
+            value = QFrame()
+            value.setObjectName("PageContent")
+            lCntLayout = newLayout(QBoxLayout, spacing=2, margins=(7, 7, 7, 7))
+            value.setLayout(lCntLayout)
+            lCntLayout.addStretch()
 
         self._content = value
         value.setParent(self)
 
-        self.Layout.addWidget(value, 1)
+        lInsertIndex = self.Layout.count()
+        if self._commandBar is not None:
+            lInsertIndex = self.Layout.indexOf(self._commandBar)
+        self.Layout.insertWidget(lInsertIndex, value, 1)
 
     @property
-    def commandBar(self) -> CommandBar | None:
+    def CommandBar(self) -> Optional[CommandBar]:
         return self._commandBar
 
-    @commandBar.setter
-    def commandBar(self, value: CommandBar | None) -> None:
-        if not hasattr(self, "_commandBar"):
-            self._commandBar = None
-
+    @CommandBar.setter
+    def CommandBar(self, value: Optional[CommandBar]) -> None:
         if self._commandBar is not None:
             self.Layout.removeWidget(self._commandBar)
             self._commandBar.setParent(None)
@@ -74,3 +132,6 @@ class Page(QWidget, ComponentBase):
             self._commandBar = value
             value.setParent(self)
             self.Layout.addWidget(value)
+
+    content = Content
+    commandBar = CommandBar
