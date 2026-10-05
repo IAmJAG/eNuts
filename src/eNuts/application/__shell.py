@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QBoxLayout, QStyle
 
 # ==================================================================================
 from jAGQt.types.interface.window import iMainWindowBase
-from jAGQt.widgets import CommandBar, Page, SideBar, Workspace
+from jAGQt.widgets import Page, SideBar, Workspace
 from jAGQt.widgets.sideBar import SideBarItem
 
 # ==================================================================================
@@ -104,7 +104,10 @@ class Shell(iShell):
         )
 
     def _buildPages(self) -> None:
-        """Create a Page for every navigable sidebar entry."""
+        """Create a Page for every navigable sidebar entry.
+
+        Page already owns CommandBar — do not construct or assign one.
+        """
         lPages = [
             ("Dashboard", "Overview of the system"),
             ("DF Dashboard", "Data Factory overview"),
@@ -115,11 +118,8 @@ class Shell(iShell):
 
         for lTitle, lDescription in lPages:
             lPage: Page = Page(title=lTitle, description=lDescription, parent=self._workspace)
-            lBar = CommandBar(parent=lPage)
-            lPage.CommandBar = lBar
             self._workspace.AddPage(lPage, name=lTitle)
 
-        # Specialized pages (name must match sidebar text exactly)
         lRecorder = KAndGRecorderPage(shell=self, parent=self._workspace)
         self._workspace.AddPage(lRecorder, name="K&G Recorder")
 
