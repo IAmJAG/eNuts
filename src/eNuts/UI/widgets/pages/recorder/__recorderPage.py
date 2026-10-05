@@ -25,7 +25,7 @@ from PySide6.QtWidgets import (
 )
 
 # ==================================================================================
-from jAGQt.widgets import CommandBar, Page
+from jAGQt.widgets import Page
 
 # ==================================================================================
 if TYPE_CHECKING:
@@ -41,7 +41,6 @@ class eRecorderState(Enum):
 
 
 # ==================================================================================
-# Tab indices inside KAndGRecorderTabs
 C_TAB_STREAM = 0
 C_TAB_CONFIGURATION = 1
 # ==================================================================================
@@ -51,23 +50,9 @@ C_TAB_CONFIGURATION = 1
 class KAndGRecorderPage(Page):
     """Key & Gesture Recorder page.
 
-    Page layout contract (jAGQt.widgets.Page):
-
-        Page
-        ├── Header
-        │   ├── Title: K&G Recorder
-        │   └── Description
-        ├── Content
-        │   └── Tabs
-        │       ├── Stream
-        │       └── Configuration   (settings only)
-        └── CommandBar              (page-level — not part of Header)
-            ├── Start Recording
-            └── Stop Recording
-
-    CommandBar uses jAGQt CommandBar.AddButton (see
-    src/jAGQt/widgets/workspace/__commandBar.py).
-    Content is assigned via Page.Content.
+        Page (owns Header / Content / CommandBar)
+        ├── Content → Tabs (Stream | Configuration)
+        └── CommandBar → AddButton(Start) / AddButton(Stop)
     """
 
     def __init__(self, shell: iShell | None = None, parent=None) -> None:
@@ -81,7 +66,6 @@ class KAndGRecorderPage(Page):
         self._shell: iShell | None = shell
         self._state: eRecorderState = eRecorderState.IDLE
 
-        # Local configuration (lives for the lifetime of the page)
         self._maxSize: int = 1920
         self._fps: int = 30
         self._bitrate: int = 4_000_000
@@ -93,9 +77,7 @@ class KAndGRecorderPage(Page):
 
     # ==================================================================================
     def _buildCommandBar(self) -> None:
-        """Page-level CommandBar via the real jAGQt API."""
-        lBar = CommandBar(parent=self)
-
+        """Add lifecycle buttons to the Page-owned CommandBar."""
         self._startBtn = QPushButton("Start Recording")
         self._startBtn.setObjectName("StartRecordingBtn")
         self._startBtn.clicked.connect(self._onStartRecording)
@@ -105,11 +87,9 @@ class KAndGRecorderPage(Page):
         self._stopBtn.clicked.connect(self._onStopRecording)
         self._stopBtn.setEnabled(False)
 
-        lBar.AddStretch()
-        lBar.AddButton(self._startBtn)
-        lBar.AddButton(self._stopBtn)
-
-        self.CommandBar = lBar
+        self.CommandBar.AddStretch()
+        self.CommandBar.AddButton(self._startBtn)
+        self.CommandBar.AddButton(self._stopBtn)
 
     # ==================================================================================
     def _buildUI(self) -> None:
@@ -122,7 +102,6 @@ class KAndGRecorderPage(Page):
         self._tabs.addTab(self._streamTab, "Stream")
         self._tabs.addTab(self._configTab, "Configuration")
 
-        # Page.Content places the body between Header and CommandBar
         self.Content = self._tabs
 
     def _buildStreamTab(self) -> QWidget:
@@ -145,7 +124,6 @@ class KAndGRecorderPage(Page):
         return lTab
 
     def _buildConfigTab(self) -> QWidget:
-        """Configuration holds settings only — no Start/Stop lifecycle controls."""
         lTab = QWidget()
         lTab.setObjectName("RecorderConfigTab")
 
@@ -221,8 +199,6 @@ class KAndGRecorderPage(Page):
         return lTab
 
     # ==================================================================================
-    # Configuration callbacks
-    # ==================================================================================
     def _onMaxSizeChanged(self, value: int) -> None:
         self._maxSize = value
 
@@ -246,10 +222,7 @@ class KAndGRecorderPage(Page):
             self._outputPath = lDir
 
     # ==================================================================================
-    # Device population (Shell.Devices only — no ADB discovery)
-    # ==================================================================================
     def RefreshDevices(self) -> None:
-        """Repopulate the device combo from Shell.Devices."""
         lCurrentId: str | None = None
         lData = self._deviceCombo.currentData()
         if lData is not None:
@@ -262,10 +235,8 @@ class KAndGRecorderPage(Page):
             self._deviceCombo.blockSignals(False)
             return
 
-        lDevices = self._shell.Devices
-        for lId, lDevice in lDevices.items():
-            lLabel = lDevice.name or lId
-            self._deviceCombo.addItem(lLabel, lDevice)
+        for lId, lDevice in self._shell.Devices.items():
+            self._deviceCombo.addItem(lDevice.name or lId, lDevice)
 
         if lCurrentId is not None:
             for lIdx in range(self._deviceCombo.count()):
@@ -277,33 +248,26 @@ class KAndGRecorderPage(Page):
         self._deviceCombo.blockSignals(False)
 
     def SelectedDevice(self) -> iDevice | None:
-        """Return the currently selected iDevice, or None."""
         return self._deviceCombo.currentData()
 
-    # ==================================================================================
-    # Recording control
     # ==================================================================================
     def _onStartRecording(self) -> None:
         if self._state is not eRecorderState.IDLE:
             return
-        # Validation and full start logic land in Phase 5
         self._setState(eRecorderState.RECORDING)
 
     def _onStopRecording(self) -> None:
         if self._state is not eRecorderState.RECORDING:
             return
         self._setState(eRecorderState.STOPPING)
-        # Flush / finalize lands in Phase 5
         self._setState(eRecorderState.IDLE)
 
     def _setState(self, state: eRecorderState) -> None:
-        """Apply UI state for IDLE / RECORDING / STOPPING."""
         self._state = state
 
         lIsIdle = state is eRecorderState.IDLE
         lIsRecording = state is eRecorderState.RECORDING
-        lIsStopping = state is eRecorderState.STOPPING
-        lConfigLocked = lIsRecording or lIsStopping
+        lConfigLocked = state is not eRecorderState.IDLE
 
         self._tabs.setTabEnabled(C_TAB_CONFIGURATION, not lConfigLocked)
 
@@ -321,8 +285,6 @@ class KAndGRecorderPage(Page):
             self._tabs.setCurrentIndex(C_TAB_STREAM)
             self._streamPlaceholder.setFocus(Qt.FocusReason.OtherFocusReason)
 
-    # ==================================================================================
-    # Public config accessors (used by later phases)
     # ==================================================================================
     @property
     def MaxSize(self) -> int:
