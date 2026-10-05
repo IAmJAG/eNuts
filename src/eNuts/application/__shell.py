@@ -18,7 +18,7 @@ from fluxCore.types.interface.device import iDevice
 
 # ==================================================================================
 from ..types.interface.application import iENUTSService, iShell
-from ..UI.widgets.pages import KAndGRecorderPage
+from ..UI.widgets.pages import KAndGRecorderPage, SettingsPage
 
 
 # ==================================================================================
@@ -111,7 +111,6 @@ class Shell(iShell):
             ("Connected", "Connected devices and streams"),
             ("Sessions", "Active and past training sessions"),
             ("Models", "Trained and available models"),
-            ("Settings", "Application configuration"),
         ]
 
         for lTitle, lDescription in lPages:
@@ -120,9 +119,12 @@ class Shell(iShell):
             lPage.CommandBar = lBar
             self._workspace.AddPage(lPage, name=lTitle)
 
-        # Specialized recorder page (name must match sidebar text exactly)
+        # Specialized pages (name must match sidebar text exactly)
         lRecorder = KAndGRecorderPage(shell=self, parent=self._workspace)
         self._workspace.AddPage(lRecorder, name="K&G Recorder")
+
+        lSettings = SettingsPage(parent=self._workspace)
+        self._workspace.AddPage(lSettings, name="Settings")
 
     # ==================================================================================
     def AddDevice(self, device: iDevice) -> None:
