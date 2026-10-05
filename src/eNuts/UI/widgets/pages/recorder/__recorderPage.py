@@ -44,17 +44,22 @@ class eRecorderState(Enum):
 class KAndGRecorderPage(Page):
     """Key & Gesture Recorder page.
 
-    Follows the Page contract:
+    Page layout contract:
 
         Page
-        ├── Header (Title / Description / CommandBar)  — owned by Page
-        │   └── CommandBar holds Start / Stop recording controls
-        └── Content
-            └── KAndGRecorderTabs
-                ├── Stream
-                └── Configuration   (settings only — no lifecycle buttons)
+        ├── Header
+        │   ├── Title: K&G Recorder
+        │   └── Description
+        ├── Content
+        │   └── Tabs
+        │       ├── Stream
+        │       └── Configuration   (settings only)
+        └── CommandBar              (page-level — not part of Header)
+            ├── Start Recording
+            └── Stop Recording
 
     Do not install a competing root layout on the Page itself.
+    CommandBar is assigned via Page.CommandBar; it is not placed in the header.
     All visual chrome is left to the application QSS via object names.
     """
 
@@ -81,7 +86,7 @@ class KAndGRecorderPage(Page):
 
     # ==================================================================================
     def _buildCommandBar(self) -> None:
-        """Recording lifecycle controls live on the page CommandBar."""
+        """Recording lifecycle controls live on the page-level CommandBar."""
         lBar = CommandBar(parent=self)
         self.CommandBar = lBar
 
