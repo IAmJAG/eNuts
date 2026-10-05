@@ -1,6 +1,7 @@
-/* eNuts — ironman theme (high contrast; explicit FG on common widgets) */
+/* eNuts — ironman theme (high contrast)
+   Black text on dark bg is Qt system palette leak; force light FG on common widgets.
+*/
 
-/* Force light text everywhere Qt would otherwise use system WindowText (often black) */
 QMainWindow,
 QWidget {
     background-color: #0e1014;
@@ -9,6 +10,7 @@ QWidget {
     font-size: 12px;
 }
 
+/* Qt often paints QLabel with system WindowText (black) — override globally */
 QLabel {
     color: #f5f7fa;
     background: transparent;
@@ -38,7 +40,7 @@ QTabWidget::pane {
 
 QTabBar::tab {
     background: #1e242c;
-    color: #c8d0d8;
+    color: #e0e6ec;
     border: 1px solid #3d4652;
     padding: 8px 16px;
     margin-right: 2px;
@@ -126,9 +128,29 @@ QPushButton#CONTEXT_BACK { font-weight: 600; }
 QPushButton#ADD_DEVICE { color: #5ce1ff; }
 QPushButton#ADD_DEVICE:hover { background: #1a2830; color: #ffffff; }
 
-/* ==========================================================================
-   SideBar hierarchy
-   ========================================================================== */
+QListWidget { background: transparent; border: none; outline: none; padding: 4px 0; }
+QListWidget::item { color: #e0e6ec; padding: 7px 10px; border-radius: 0px; }
+QListWidget::item:hover { background: #2a323c; color: #ffffff; }
+QListWidget::item:selected { background: #4a1518; color: #ffffff; }
+
+QLabel#PAGE_TITLE {
+    color: #ffffff;
+    font-size: 20px;
+    font-weight: 600;
+}
+QLabel#WORKSPACE_DESCRIPTION { color: #aeb6c0; }
+QLabel#WORKSPACE_SECTION_TITLE { color: #f0c14b; font-size: 14px; font-weight: 600; }
+
+QFrame#TRAINING_STAT_CARD,
+QFrame#TRAINING_DEVICE_CARD { background: #161a20; border: 1px solid #3d4652; border-radius: 0px; }
+QFrame#TRAINING_STAT_CARD:hover,
+QFrame#TRAINING_DEVICE_CARD:hover { border-color: #f0c14b; }
+
+QLabel#TRAINING_STAT_VALUE { color: #ffffff; font-size: 22px; font-weight: 600; }
+QLabel#TRAINING_STAT_LABEL { color: #aeb6c0; font-size: 10px; font-weight: 600; }
+QLabel#TRAINING_DEVICE_NAME { color: #f5f7fa; font-size: 14px; font-weight: 600; }
+QLabel#TRAINING_DEVICE_KIND { color: #aeb6c0; }
+QLabel#TRAINING_DEVICE_STATUS { color: #5ce1ff; font-size: 11px; }
 
 QWidget#SideBar {
     background: #161a20;
@@ -194,11 +216,6 @@ QWidget#SideBarGroupHeader[selected="true"][hover="true"] {
     border-left-color: #ffd666;
 }
 
-QWidget#SideBarGroupHeader QLabel {
-    background: transparent;
-    border: none;
-}
-
 QLabel#SideBarGroupTitle {
     color: #f0c14b;
     font-size: 11px;
@@ -210,10 +227,6 @@ QLabel#SideBarGroupTitle {
 
 QWidget#SideBarGroupHeader[selected="true"] QLabel#SideBarGroupTitle {
     color: #ffffff;
-}
-
-QLabel#SideBarGroupIndicator {
-    background: transparent;
 }
 
 QWidget#SideBarGroupBody {
@@ -285,15 +298,6 @@ QWidget#SideBarItem[selected="true"][hover="true"] {
     background: #5c181c;
     border-color: #ff2d35;
     border-left-color: #ffd666;
-}
-
-QLabel#SideBarText {
-    color: inherit;
-    background: transparent;
-}
-
-QLabel#SideBarIcon {
-    background: transparent;
 }
 
 QFrame#SideBarSeparator {
