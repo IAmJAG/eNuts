@@ -1,6 +1,7 @@
 /* eNuts — ironman theme (high contrast)
-   Black text on dark bg is Qt system palette leak; force light FG on common widgets.
-*/
+ * Black-on-dark is Qt system WindowText leaking through; force light FG on
+ * QLabel, QGroupBox, tabs, and form controls — not only QWidget.
+ */
 
 QMainWindow,
 QWidget {
@@ -10,7 +11,6 @@ QWidget {
     font-size: 12px;
 }
 
-/* Qt often paints QLabel with system WindowText (black) — override globally */
 QLabel {
     color: #f5f7fa;
     background: transparent;
