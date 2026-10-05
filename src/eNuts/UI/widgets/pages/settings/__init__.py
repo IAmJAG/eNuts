@@ -1,8 +1,7 @@
 # ==================================================================================
-# src/eNuts/UI/widgets/pages/__init__.py
+# src/eNuts/UI/widgets/pages/settings/__init__.py
 # ==================================================================================
-from .recorder import KAndGRecorderPage
-from .settings import SettingsPage
+from .__settingsPage import SettingsPage
 
 # ==================================================================================
-__all__ = ["KAndGRecorderPage", "SettingsPage"]
+__all__ = ["SettingsPage"]
