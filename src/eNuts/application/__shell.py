@@ -121,7 +121,7 @@ class Shell(iShell):
             self._workspace.AddPage(lPage, name=lTitle)
 
         # Specialized recorder page (name must match sidebar text exactly)
-        lRecorder = KAndGRecorderPage(parent=self._workspace)
+        lRecorder = KAndGRecorderPage(shell=self, parent=self._workspace)
         self._workspace.AddPage(lRecorder, name="K&G Recorder")
 
     # ==================================================================================
