@@ -23,7 +23,7 @@ from PySide6.QtWidgets import (
 from jAGQt.widgets import CommandBar, Page
 
 # ==================================================================================
-from ....configuration import eNutsConfiguration
+from .....configuration import eNutsConfiguration
 
 # ==================================================================================
 C_THEME_NAMES: List[str] = ["dark", "light", "dracula", "ironman", "material"]
@@ -36,9 +36,10 @@ class SettingsPage(Page):
     Follows the Page contract:
 
         Page
-        ├── Header (Title / Description / CommandBar)
-        └── Content
-            └── Settings panels (Appearance / …)
+        ├── Header (Title / Description)
+        ├── Content
+        │   └── Settings panels (Appearance / …)
+        └── CommandBar
     """
 
     def __init__(self, parent=None) -> None:
