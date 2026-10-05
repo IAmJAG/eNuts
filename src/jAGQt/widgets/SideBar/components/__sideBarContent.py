@@ -29,7 +29,7 @@ class SideBarContent(QScrollArea, ComponentBase):
         self.setFrameShape(QFrame.Shape.NoFrame)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
-        self._container = QWidget()
+        self._container = QWidget(self)
         self._container.setObjectName("SideBarContentContainer")
         self._layout: QBoxLayout = newLayout(QBoxLayout, spacing=spacing, margins=margins)
         self._layout.setDirection(QBoxLayout.Direction.TopToBottom)
@@ -47,13 +47,14 @@ class SideBarContent(QScrollArea, ComponentBase):
 
     def RemoveWidget(self, widget: QWidget) -> None:
         self._layout.removeWidget(widget)
-        widget.setParent(None)
+        widget.hide()
+        widget.deleteLater()
 
     def Clear(self) -> None:
         while self._layout.count():
             lItem = self._layout.takeAt(0)
             if lItem.widget():
-                lItem.widget().setParent(None)
+                lItem.widget().hide()
                 lItem.widget().deleteLater()
 
     def AddStretch(self, stretch: int = 1) -> None:
