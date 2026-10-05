@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QComboBox,
     QFileDialog,
     QFormLayout,
+    QGroupBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -43,8 +44,17 @@ class eRecorderState(Enum):
 class KAndGRecorderPage(Page):
     """Key & Gesture Recorder page.
 
-    Phase 2: Stream + Configuration tabs, device selection from Shell.Devices,
-    and local configuration state. Stream display and action capture land later.
+    Follows the Page contract:
+
+        Page
+        ├── Header (Title / Description / CommandBar)  — owned by Page
+        └── Content
+            └── KAndGRecorderTabs
+                ├── Stream
+                └── Configuration
+
+    Do not install a competing root layout on the Page itself.
+    All visual chrome is left to the application QSS via object names.
     """
 
     def __init__(self, shell: iShell | None = None, parent=None) -> None:
@@ -53,6 +63,8 @@ class KAndGRecorderPage(Page):
             description="Key & Gesture Recorder — live scrcpy stream with action capture",
             parent=parent,
         )
+        self.setObjectName("KAndGRecorderPage")
+
         self._shell: iShell | None = shell
         self._state: eRecorderState = eRecorderState.IDLE
 
@@ -69,12 +81,49 @@ class KAndGRecorderPage(Page):
         self.RefreshDevices()
 
     # ==================================================================================
-    def _buildUI(self) -> None:
-        lRoot = QVBoxLayout(self)
-        lRoot.setContentsMargins(8, 8, 8, 8)
-        lRoot.setSpacing(8)
+    def _contentHost(self) -> QWidget:
+        """Return the container Page exposes for body content.
 
-        self._tabs = QTabWidget(self)
+        Prefer Page.Content. Never replace the Page root layout that owns the header.
+        """
+        lContent = getattr(self, "Content", None)
+        if isinstance(lContent, QWidget):
+            return lContent
+        return self
+
+    def _attachToContent(self, widget: QWidget) -> None:
+        """Place recorder body into the Page content area without fighting the header."""
+        lHost = self._contentHost()
+
+        # If Page exposes an explicit content layout, use it.
+        lContentLayout = getattr(self, "ContentLayout", None)
+        if lContentLayout is not None:
+            lContentLayout.addWidget(widget, 1)
+            return
+
+        # Otherwise attach under Content (or, as last resort, the existing page layout).
+        if lHost is not self:
+            lLayout = lHost.layout()
+            if lLayout is None:
+                lLayout = QVBoxLayout(lHost)
+                lLayout.setContentsMargins(0, 0, 0, 0)
+                lLayout.setSpacing(0)
+            lLayout.addWidget(widget, 1)
+            return
+
+        lPageLayout = self.layout()
+        if lPageLayout is not None:
+            lPageLayout.addWidget(widget, 1)
+            return
+
+        # Page has no layout and no Content — should not happen under the Page contract.
+        # Avoid creating a permanent competing structure beyond this emergency path.
+        lEmergency = QVBoxLayout(self)
+        lEmergency.setContentsMargins(0, 0, 0, 0)
+        lEmergency.addWidget(widget, 1)
+
+    def _buildUI(self) -> None:
+        self._tabs = QTabWidget()
         self._tabs.setObjectName("KAndGRecorderTabs")
 
         self._streamTab = self._buildStreamTab()
@@ -83,12 +132,15 @@ class KAndGRecorderPage(Page):
         self._tabs.addTab(self._streamTab, "Stream")
         self._tabs.addTab(self._configTab, "Configuration")
 
-        lRoot.addWidget(self._tabs, 1)
+        self._attachToContent(self._tabs)
 
     def _buildStreamTab(self) -> QWidget:
-        lTab = QWidget(self)
+        lTab = QWidget()
+        lTab.setObjectName("RecorderStreamTab")
+
         lLayout = QVBoxLayout(lTab)
-        lLayout.setContentsMargins(4, 4, 4, 4)
+        lLayout.setContentsMargins(0, 0, 0, 0)
+        lLayout.setSpacing(0)
 
         self._streamPlaceholder = QLabel(
             "Stream surface (RecorderImage) will appear here in Phase 3.",
@@ -101,82 +153,101 @@ class KAndGRecorderPage(Page):
         return lTab
 
     def _buildConfigTab(self) -> QWidget:
-        lTab = QWidget(self)
+        lTab = QWidget()
+        lTab.setObjectName("RecorderConfigTab")
+
         lOuter = QVBoxLayout(lTab)
-        lOuter.setContentsMargins(12, 12, 12, 12)
-        lOuter.setSpacing(12)
+        lOuter.setContentsMargins(0, 0, 0, 0)
+        lOuter.setSpacing(0)
+
+        # Proper content panel — stable QSS target, not a loose floating form
+        lPanel = QGroupBox("Recorder Configuration", lTab)
+        lPanel.setObjectName("RecorderConfigPanel")
+
+        lPanelLayout = QVBoxLayout(lPanel)
+        lPanelLayout.setContentsMargins(12, 16, 12, 12)
+        lPanelLayout.setSpacing(12)
 
         lForm = QFormLayout()
+        lForm.setObjectName("RecorderConfigForm")
         lForm.setSpacing(10)
-        lForm.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+        lForm.setLabelAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        lForm.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
 
         # Device
-        self._deviceCombo = QComboBox(lTab)
+        self._deviceCombo = QComboBox(lPanel)
         self._deviceCombo.setObjectName("DeviceCombo")
         self._deviceCombo.setMinimumWidth(280)
-        lForm.addRow("Device:", self._deviceCombo)
+        lForm.addRow("Device", self._deviceCombo)
 
         # Max Size
-        self._maxSizeSpin = QSpinBox(lTab)
+        self._maxSizeSpin = QSpinBox(lPanel)
         self._maxSizeSpin.setObjectName("MaxSizeSpin")
         self._maxSizeSpin.setRange(320, 4096)
         self._maxSizeSpin.setSingleStep(160)
         self._maxSizeSpin.setValue(self._maxSize)
         self._maxSizeSpin.valueChanged.connect(self._onMaxSizeChanged)
-        lForm.addRow("Max Size:", self._maxSizeSpin)
+        lForm.addRow("Max Size", self._maxSizeSpin)
 
         # FPS
-        self._fpsSpin = QSpinBox(lTab)
+        self._fpsSpin = QSpinBox(lPanel)
         self._fpsSpin.setObjectName("FpsSpin")
         self._fpsSpin.setRange(1, 120)
         self._fpsSpin.setValue(self._fps)
         self._fpsSpin.valueChanged.connect(self._onFpsChanged)
-        lForm.addRow("FPS:", self._fpsSpin)
+        lForm.addRow("FPS", self._fpsSpin)
 
         # Bitrate
-        self._bitrateSpin = QSpinBox(lTab)
+        self._bitrateSpin = QSpinBox(lPanel)
         self._bitrateSpin.setObjectName("BitrateSpin")
         self._bitrateSpin.setRange(100_000, 50_000_000)
         self._bitrateSpin.setSingleStep(100_000)
         self._bitrateSpin.setValue(self._bitrate)
         self._bitrateSpin.valueChanged.connect(self._onBitrateChanged)
-        lForm.addRow("Bitrate:", self._bitrateSpin)
+        lForm.addRow("Bitrate", self._bitrateSpin)
 
         # Output path + Browse
-        lOutputRow = QHBoxLayout()
-        self._outputEdit = QLineEdit(lTab)
+        lOutputRow = QWidget(lPanel)
+        lOutputRow.setObjectName("OutputRow")
+        lOutputLayout = QHBoxLayout(lOutputRow)
+        lOutputLayout.setContentsMargins(0, 0, 0, 0)
+        lOutputLayout.setSpacing(8)
+
+        self._outputEdit = QLineEdit(lOutputRow)
         self._outputEdit.setObjectName("OutputEdit")
         self._outputEdit.setPlaceholderText("/path/to/output/folder")
         self._outputEdit.setText(self._outputPath)
         self._outputEdit.textChanged.connect(self._onOutputChanged)
 
-        self._browseBtn = QPushButton("Browse…", lTab)
+        self._browseBtn = QPushButton("Browse…", lOutputRow)
         self._browseBtn.setObjectName("BrowseOutputBtn")
         self._browseBtn.clicked.connect(self._onBrowseOutput)
 
-        lOutputRow.addWidget(self._outputEdit, 1)
-        lOutputRow.addWidget(self._browseBtn)
-        lForm.addRow("Output:", lOutputRow)
+        lOutputLayout.addWidget(self._outputEdit, 1)
+        lOutputLayout.addWidget(self._browseBtn)
+        lForm.addRow("Output", lOutputRow)
 
-        lOuter.addLayout(lForm)
+        lPanelLayout.addLayout(lForm)
 
-        # Action buttons
+        # Action buttons — right-aligned inside the panel
         lBtnRow = QHBoxLayout()
+        lBtnRow.setSpacing(8)
         lBtnRow.addStretch(1)
 
-        self._startBtn = QPushButton("Start Recording", lTab)
+        self._startBtn = QPushButton("Start Recording", lPanel)
         self._startBtn.setObjectName("StartRecordingBtn")
         self._startBtn.clicked.connect(self._onStartRecording)
 
-        self._stopBtn = QPushButton("Stop Recording", lTab)
+        self._stopBtn = QPushButton("Stop Recording", lPanel)
         self._stopBtn.setObjectName("StopRecordingBtn")
         self._stopBtn.clicked.connect(self._onStopRecording)
         self._stopBtn.setEnabled(False)
 
         lBtnRow.addWidget(self._startBtn)
         lBtnRow.addWidget(self._stopBtn)
-        lOuter.addLayout(lBtnRow)
+        lPanelLayout.addLayout(lBtnRow)
 
+        lOuter.addWidget(lPanel, 0, Qt.AlignmentFlag.AlignTop)
         lOuter.addStretch(1)
         return lTab
 
