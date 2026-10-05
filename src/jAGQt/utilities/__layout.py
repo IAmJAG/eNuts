@@ -1,7 +1,7 @@
 # ==================================================================================
 # src/jAGQt/utilities/__layout.py
 # ==================================================================================
-from typing import List, Optional, Set, Tuple
+from typing import List, Optional, Set, Tuple, overload
 
 # ==================================================================================
 from PySide6.QtCore import QMargins
@@ -16,23 +16,51 @@ from PySide6.QtWidgets import (
 
 
 # ==================================================================================
+@overload
+def newLayout(
+    layout: type[QBoxLayout],
+    spacing: int = 0,
+    margins: tuple[int, int, int, int] | int = (0, 0, 0, 0),
+    direction: QBoxLayout.Direction = QBoxLayout.Direction.TopToBottom,
+) -> QBoxLayout: ...
+
+
+@overload
+def newLayout(
+    layout: type[QLayout],
+    spacing: int = 0,
+    margins: tuple[int, int, int, int] | int = (0, 0, 0, 0),
+    direction: None = None,
+) -> QLayout: ...
+
+
 def newLayout(
     layout: type[QLayout],
     spacing: int = 0,
     margins: tuple[int, int, int, int] | int = (0, 0, 0, 0),
     direction: Optional[QBoxLayout.Direction] = None,
 ) -> QLayout:
-    """Create a layout instance with spacing and margins applied.
+    """Create a layout with spacing and margins applied.
 
-    For QBoxLayout a Direction is required by Qt. If *direction* is omitted,
-    TopToBottom is used as the default.
+    Direction control is only valid for QBoxLayout subclasses.
+    - QBoxLayout: direction defaults to TopToBottom when omitted.
+    - Other QLayout types: direction must be None (default); passing a
+      direction raises TypeError.
     """
     if issubclass(layout, QBoxLayout):
-        lDirection = direction if direction is not None else QBoxLayout.Direction.TopToBottom
-        lLayout: QBoxLayout = layout(lDirection)
+        lDirection = (
+            direction
+            if direction is not None
+            else QBoxLayout.Direction.TopToBottom
+        )
+        lLayout: QLayout = layout(lDirection)
 
     else:
-        lLayout: QBoxLayout = layout()
+        if direction is not None:
+            raise TypeError(
+                "direction is only supported when layout is a QBoxLayout subclass"
+            )
+        lLayout = layout()
 
     if isinstance(margins, int):
         lLayout.setContentsMargins(margins, margins, margins, margins)
