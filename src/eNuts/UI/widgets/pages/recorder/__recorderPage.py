@@ -41,6 +41,13 @@ class eRecorderState(Enum):
 
 
 # ==================================================================================
+# Tab indices inside KAndGRecorderTabs
+C_TAB_STREAM = 0
+C_TAB_CONFIGURATION = 1
+# ==================================================================================
+
+
+# ==================================================================================
 class KAndGRecorderPage(Page):
     """Key & Gesture Recorder page.
 
@@ -57,6 +64,12 @@ class KAndGRecorderPage(Page):
         └── CommandBar              (page-level — not part of Header)
             ├── Start Recording
             └── Stop Recording
+
+    Recording UX:
+        IDLE       → Stream + Configuration accessible; Start enabled
+        RECORDING  → Stream active + focused; Configuration inaccessible
+        STOPPING   → Configuration inaccessible; both lifecycle buttons disabled
+        IDLE       → Configuration re-enabled after finalization
 
     Do not install a competing root layout on the Page itself.
     CommandBar is assigned via Page.CommandBar; it is not placed in the header.
@@ -133,13 +146,11 @@ class KAndGRecorderPage(Page):
         """Place recorder body into the Page content area without fighting the header."""
         lHost = self._contentHost()
 
-        # If Page exposes an explicit content layout, use it.
         lContentLayout = getattr(self, "ContentLayout", None)
         if lContentLayout is not None:
             lContentLayout.addWidget(widget, 1)
             return
 
-        # Otherwise attach under Content (or, as last resort, the existing page layout).
         if lHost is not self:
             lLayout = lHost.layout()
             if lLayout is None:
@@ -154,7 +165,6 @@ class KAndGRecorderPage(Page):
             lPageLayout.addWidget(widget, 1)
             return
 
-        # Page has no layout and no Content — should not happen under the Page contract.
         lEmergency = QVBoxLayout(self)
         lEmergency.setContentsMargins(0, 0, 0, 0)
         lEmergency.addWidget(widget, 1)
@@ -185,6 +195,8 @@ class KAndGRecorderPage(Page):
         )
         self._streamPlaceholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._streamPlaceholder.setObjectName("StreamPlaceholder")
+        # Accept focus so keyboard focus can move off configuration fields
+        self._streamPlaceholder.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         lLayout.addWidget(self._streamPlaceholder, 1)
 
         return lTab
@@ -211,13 +223,11 @@ class KAndGRecorderPage(Page):
         lForm.setLabelAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         lForm.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
 
-        # Device
         self._deviceCombo = QComboBox(lPanel)
         self._deviceCombo.setObjectName("DeviceCombo")
         self._deviceCombo.setMinimumWidth(280)
         lForm.addRow("Device", self._deviceCombo)
 
-        # Max Size
         self._maxSizeSpin = QSpinBox(lPanel)
         self._maxSizeSpin.setObjectName("MaxSizeSpin")
         self._maxSizeSpin.setRange(320, 4096)
@@ -226,7 +236,6 @@ class KAndGRecorderPage(Page):
         self._maxSizeSpin.valueChanged.connect(self._onMaxSizeChanged)
         lForm.addRow("Max Size", self._maxSizeSpin)
 
-        # FPS
         self._fpsSpin = QSpinBox(lPanel)
         self._fpsSpin.setObjectName("FpsSpin")
         self._fpsSpin.setRange(1, 120)
@@ -234,7 +243,6 @@ class KAndGRecorderPage(Page):
         self._fpsSpin.valueChanged.connect(self._onFpsChanged)
         lForm.addRow("FPS", self._fpsSpin)
 
-        # Bitrate
         self._bitrateSpin = QSpinBox(lPanel)
         self._bitrateSpin.setObjectName("BitrateSpin")
         self._bitrateSpin.setRange(100_000, 50_000_000)
@@ -243,7 +251,6 @@ class KAndGRecorderPage(Page):
         self._bitrateSpin.valueChanged.connect(self._onBitrateChanged)
         lForm.addRow("Bitrate", self._bitrateSpin)
 
-        # Output path + Browse
         lOutputRow = QWidget(lPanel)
         lOutputRow.setObjectName("OutputRow")
         lOutputLayout = QHBoxLayout(lOutputRow)
@@ -317,7 +324,6 @@ class KAndGRecorderPage(Page):
             lLabel = lDevice.name or lId
             self._deviceCombo.addItem(lLabel, lDevice)
 
-        # Restore previous selection if still present
         if lCurrentId is not None:
             for lIdx in range(self._deviceCombo.count()):
                 lItem: iDevice | None = self._deviceCombo.itemData(lIdx)
@@ -332,7 +338,7 @@ class KAndGRecorderPage(Page):
         return self._deviceCombo.currentData()
 
     # ==================================================================================
-    # Recording control (stubs for Phase 5 lifecycle)
+    # Recording control
     # ==================================================================================
     def _onStartRecording(self) -> None:
         if self._state is not eRecorderState.IDLE:
@@ -348,19 +354,48 @@ class KAndGRecorderPage(Page):
         self._setState(eRecorderState.IDLE)
 
     def _setState(self, state: eRecorderState) -> None:
+        """Apply UI state for IDLE / RECORDING / STOPPING.
+
+        RECORDING:
+            - Stream tab selected and focused
+            - Configuration tab inaccessible
+            - config controls disabled
+            - Start disabled, Stop enabled
+
+        STOPPING:
+            - Configuration remains inaccessible
+            - both lifecycle buttons disabled
+
+        IDLE:
+            - Configuration tab and controls re-enabled
+            - Start enabled, Stop disabled
+        """
         self._state = state
-        lRecording = state is eRecorderState.RECORDING
 
-        # Lock stream-affecting configuration while recording
-        self._deviceCombo.setEnabled(not lRecording)
-        self._maxSizeSpin.setEnabled(not lRecording)
-        self._fpsSpin.setEnabled(not lRecording)
-        self._bitrateSpin.setEnabled(not lRecording)
-        self._outputEdit.setEnabled(not lRecording)
-        self._browseBtn.setEnabled(not lRecording)
+        lIsIdle = state is eRecorderState.IDLE
+        lIsRecording = state is eRecorderState.RECORDING
+        lIsStopping = state is eRecorderState.STOPPING
+        lConfigLocked = lIsRecording or lIsStopping
 
-        self._startBtn.setEnabled(not lRecording)
-        self._stopBtn.setEnabled(lRecording)
+        # Configuration tab accessibility
+        self._tabs.setTabEnabled(C_TAB_CONFIGURATION, not lConfigLocked)
+
+        # Individual configuration controls (secondary safeguard)
+        self._deviceCombo.setEnabled(not lConfigLocked)
+        self._maxSizeSpin.setEnabled(not lConfigLocked)
+        self._fpsSpin.setEnabled(not lConfigLocked)
+        self._bitrateSpin.setEnabled(not lConfigLocked)
+        self._outputEdit.setEnabled(not lConfigLocked)
+        self._browseBtn.setEnabled(not lConfigLocked)
+
+        # CommandBar lifecycle buttons
+        self._startBtn.setEnabled(lIsIdle)
+        self._stopBtn.setEnabled(lIsRecording)
+
+        if lIsRecording:
+            # Enter recorder mode: Stream is active and focused
+            self._tabs.setCurrentIndex(C_TAB_STREAM)
+            self._streamPlaceholder.setFocus(Qt.FocusReason.OtherFocusReason)
 
     # ==================================================================================
     # Public config accessors (used by later phases)
