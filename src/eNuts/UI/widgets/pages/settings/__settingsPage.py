@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (
 )
 
 # ==================================================================================
-from jAGQt.widgets import CommandBar, Page
+from jAGQt.widgets import Page
 
 # ==================================================================================
 from .....configuration import eNutsConfiguration
@@ -31,15 +31,7 @@ C_THEME_NAMES: List[str] = ["dark", "light", "dracula", "ironman", "material"]
 
 # ==================================================================================
 class SettingsPage(Page):
-    """Application settings page.
-
-    Uses jAGQt.widgets.Page as-is:
-
-        Page
-        ├── Header (Title / Description)
-        ├── Content
-        └── CommandBar
-    """
+    """Application settings page. Page already owns Header / Content / CommandBar."""
 
     def __init__(self, parent=None) -> None:
         super().__init__(
@@ -48,9 +40,6 @@ class SettingsPage(Page):
             parent=parent,
         )
         self.setObjectName("SettingsPage")
-
-        lBar = CommandBar(parent=self)
-        self.CommandBar = lBar
 
         self._buildUI()
         self._loadCurrentTheme()
@@ -97,7 +86,6 @@ class SettingsPage(Page):
         lOuter.addWidget(lPanel, 0, Qt.AlignmentFlag.AlignTop)
         lOuter.addStretch(1)
 
-        # Page owns placement between Header and CommandBar
         self.Content = lRoot
 
     # ==================================================================================
