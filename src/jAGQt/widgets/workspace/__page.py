@@ -24,7 +24,13 @@ from .__commandBar import CommandBar
 
 # ==================================================================================
 class Page(QWidget, ComponentBase):
-    """Single workspace page (title + content + optional CommandBar)."""
+    """Single workspace page (title + content + CommandBar).
+
+        Page
+        ├── Header (Title / Description)
+        ├── Content
+        └── CommandBar   ← always present; consumers AddButton only
+    """
 
     def __init__(
         self,
@@ -58,6 +64,7 @@ class Page(QWidget, ComponentBase):
         self.Layout.addWidget(self._descriptionLabel)
 
         self.Content = None
+        self.CommandBar = CommandBar(parent=self)
 
     # ==================================================================================
     @property
