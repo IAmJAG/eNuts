@@ -1,113 +1,134 @@
-/* eNuts — ironman theme (high contrast) */
+/* eNuts — ironman theme (high contrast; explicit FG on common widgets) */
 
+/* Force light text everywhere Qt would otherwise use system WindowText (often black) */
 QMainWindow,
 QWidget {
-    background: #0e1014;
+    background-color: #0e1014;
     color: #f5f7fa;
     font-family: "Segoe UI", "Arial", sans-serif;
     font-size: 12px;
 }
 
-#SIDE_BAR {
-    background: #161a20;
-    border-right: 1px solid #c41e26;
-}
-
-#BOTTOM_BAR {
-    background: #161a20;
-    border-top: 1px solid #c41e26;
-}
-
-#SIDE_BAR QPushButton,
-#BOTTOM_BAR QPushButton {
-    background: transparent;
-    color: #f0c14b;
-    border: 1px solid transparent;
-    border-radius: 0px;
-    padding: 7px 10px;
-}
-
-#SIDE_BAR QPushButton {
-    text-align: left;
-}
-
-#BOTTOM_BAR QPushButton {
-    background: #1e242c;
-    border-color: #3d4652;
+QLabel {
     color: #f5f7fa;
-    padding: 5px 12px;
-    text-align: center;
+    background: transparent;
 }
 
-#SIDE_BAR QPushButton:hover,
-#BOTTOM_BAR QPushButton:hover {
-    background: #2a323c;
-    color: #ffffff;
-    border-color: #f0c14b;
+QGroupBox {
+    color: #f5f7fa;
+    border: 1px solid #3d4652;
+    border-radius: 0px;
+    margin-top: 12px;
+    padding-top: 8px;
+    background-color: #161a20;
 }
 
-#SIDE_BAR QPushButton:pressed,
-#BOTTOM_BAR QPushButton:pressed {
-    background: #5c181c;
+QGroupBox::title {
+    subcontrol-origin: margin;
+    left: 10px;
+    padding: 0 4px;
+    color: #f0c14b;
 }
 
-#SIDE_BAR QPushButton:checked {
+QTabWidget::pane {
+    border: 1px solid #3d4652;
+    background: #12161c;
+    top: -1px;
+}
+
+QTabBar::tab {
+    background: #1e242c;
+    color: #c8d0d8;
+    border: 1px solid #3d4652;
+    padding: 8px 16px;
+    margin-right: 2px;
+    border-radius: 0px;
+}
+
+QTabBar::tab:selected {
     background: #4a1518;
     color: #ffffff;
     border-color: #e31b23;
+    border-bottom-color: #4a1518;
 }
 
-#SIDE_BAR QPushButton:checked:hover {
-    background: #5c181c;
-}
-
-#SIDE_BAR QPushButton:disabled,
-#BOTTOM_BAR QPushButton:disabled {
-    color: #6a727c;
-    background: transparent;
-    border-color: transparent;
-}
-
-#BOTTOM_BAR QPushButton:pressed {
-    background: #e31b23;
-    border-color: #f0c14b;
+QTabBar::tab:hover:!selected {
+    background: #2a323c;
     color: #ffffff;
+}
+
+QComboBox,
+QLineEdit,
+QSpinBox {
+    background-color: #1e242c;
+    color: #f5f7fa;
+    border: 1px solid #3d4652;
+    border-radius: 0px;
+    padding: 6px 8px;
+    selection-background-color: #e31b23;
+    selection-color: #ffffff;
+}
+
+QComboBox:hover,
+QLineEdit:hover,
+QSpinBox:hover {
+    border-color: #f0c14b;
+}
+
+QComboBox:focus,
+QLineEdit:focus,
+QSpinBox:focus {
+    border-color: #5ce1ff;
+}
+
+QComboBox::drop-down {
+    border: none;
+    width: 20px;
+}
+
+QComboBox::down-arrow {
+    image: none;
+    width: 0px;
+    height: 0px;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid #f5f7fa;
+}
+
+QComboBox QAbstractItemView {
+    background-color: #1e242c;
+    color: #f5f7fa;
+    border: 1px solid #3d4652;
+    selection-background-color: #e31b23;
+    selection-color: #ffffff;
+}
+
+QAbstractItemView {
+    background-color: #161a20;
+    color: #f5f7fa;
+    selection-background-color: #4a1518;
+    selection-color: #ffffff;
+}
+
+QSpinBox::up-button,
+QSpinBox::down-button {
+    background: #1e242c;
+    border: 1px solid #3d4652;
+}
+
+QToolTip {
+    background-color: #1e242c;
+    color: #f5f7fa;
+    border: 1px solid #f0c14b;
 }
 
 QPushButton#CONTEXT_BACK { font-weight: 600; }
 QPushButton#ADD_DEVICE { color: #5ce1ff; }
 QPushButton#ADD_DEVICE:hover { background: #1a2830; color: #ffffff; }
 
-QListWidget { background: transparent; border: none; outline: none; padding: 4px 0; }
-QListWidget::item { color: #e0e6ec; padding: 7px 10px; border-radius: 0px; }
-QListWidget::item:hover { background: #2a323c; color: #ffffff; }
-QListWidget::item:selected { background: #4a1518; color: #ffffff; }
-
-QLabel#PAGE_TITLE {
-    color: #ffffff;
-    font-size: 20px;
-    font-weight: 600;
-}
-QLabel#WORKSPACE_DESCRIPTION { color: #aeb6c0; }
-QLabel#WORKSPACE_SECTION_TITLE { color: #f0c14b; font-size: 14px; font-weight: 600; }
-
-QFrame#TRAINING_STAT_CARD,
-QFrame#TRAINING_DEVICE_CARD { background: #161a20; border: 1px solid #3d4652; border-radius: 0px; }
-QFrame#TRAINING_STAT_CARD:hover,
-QFrame#TRAINING_DEVICE_CARD:hover { border-color: #f0c14b; }
-
-QLabel#TRAINING_STAT_VALUE { color: #ffffff; font-size: 22px; font-weight: 600; }
-QLabel#TRAINING_STAT_LABEL { color: #aeb6c0; font-size: 10px; font-weight: 600; }
-QLabel#TRAINING_DEVICE_NAME { color: #f5f7fa; font-size: 14px; font-weight: 600; }
-QLabel#TRAINING_DEVICE_KIND { color: #aeb6c0; }
-QLabel#TRAINING_DEVICE_STATUS { color: #5ce1ff; font-size: 11px; }
-
-/* 
-    ==========================================================================
-    SideBar hierarchy
-    Group header = SideBarItem subclass → same selected/hover property path as leaves
-    ==========================================================================
-*/
+/* ==========================================================================
+   SideBar hierarchy
+   ========================================================================== */
 
 QWidget#SideBar {
     background: #161a20;
@@ -146,7 +167,6 @@ QWidget#SideBarGroup {
     margin-top: 8px;
 }
 
-/* Group header (SideBarItem-based) — secondary highlight vs dominant leaf */
 QWidget#SideBarGroupHeader {
     background: #1c222a;
     border: 1px solid #3d4652;
@@ -201,7 +221,6 @@ QWidget#SideBarGroupBody {
     margin: 3px 0px 6px 0px;
 }
 
-/* Nested children — deeper indent under group header */
 QWidget#SideBarGroupBody QWidget#SideBarItem {
     margin-left: 40px;
     margin-right: 8px;
