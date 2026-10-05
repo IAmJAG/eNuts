@@ -7,6 +7,7 @@ from sys import platform
 
 # ==================================================================================================
 from adbutils import adb
+from PySide6.QtGui import QColor, QPalette
 from PySide6.QtWidgets import QApplication
 from qasync import QEventLoop
 
@@ -17,6 +18,57 @@ from jAGFx.types.interface.configuration import iApplicationConfiguration
 from ..configuration import eNutsConfiguration
 from ..types.interface.configuration import iENUTSConfiguration
 from ..UI.windows import MainWindow
+
+# ==================================================================================================
+C_DARK_THEMES = frozenset({"dark", "dracula", "ironman", "material"})
+
+
+def _applyThemePalette(app: QApplication, theme: str) -> None:
+    """Override system palette so text is never black-on-dark (or white-on-light)."""
+    lPal = QPalette(app.palette())
+    if theme in C_DARK_THEMES:
+        lFg = QColor("#f5f7fa")
+        lBg = QColor("#0e1014")
+        lBase = QColor("#1e242c")
+        lAlt = QColor("#161a20")
+        lDisabled = QColor("#6b7280")
+        lHighlight = QColor("#e31b23")
+        lHighlightedText = QColor("#ffffff")
+    else:
+        lFg = QColor("#1a1a1a")
+        lBg = QColor("#f5f5f5")
+        lBase = QColor("#ffffff")
+        lAlt = QColor("#eeeeee")
+        lDisabled = QColor("#9e9e9e")
+        lHighlight = QColor("#1976d2")
+        lHighlightedText = QColor("#ffffff")
+
+    for lRole in (
+        QPalette.ColorRole.WindowText,
+        QPalette.ColorRole.Text,
+        QPalette.ColorRole.ButtonText,
+        QPalette.ColorRole.BrightText,
+        QPalette.ColorRole.ToolTipText,
+        QPalette.ColorRole.PlaceholderText,
+    ):
+        lPal.setColor(QPalette.ColorGroup.Active, lRole, lFg)
+        lPal.setColor(QPalette.ColorGroup.Inactive, lRole, lFg)
+        lPal.setColor(QPalette.ColorGroup.Disabled, lRole, lDisabled)
+
+    for lRole, lColor in (
+        (QPalette.ColorRole.Window, lBg),
+        (QPalette.ColorRole.Base, lBase),
+        (QPalette.ColorRole.AlternateBase, lAlt),
+        (QPalette.ColorRole.Button, lBase),
+        (QPalette.ColorRole.ToolTipBase, lBase),
+        (QPalette.ColorRole.Highlight, lHighlight),
+        (QPalette.ColorRole.HighlightedText, lHighlightedText),
+    ):
+        lPal.setColor(QPalette.ColorGroup.Active, lRole, lColor)
+        lPal.setColor(QPalette.ColorGroup.Inactive, lRole, lColor)
+        lPal.setColor(QPalette.ColorGroup.Disabled, lRole, lColor)
+
+    app.setPalette(lPal)
 
 
 # ==================================================================================================
@@ -31,6 +83,8 @@ async def main(app: QApplication, *args, **kwargs):
         windll.shell32.SetCurrentProcessExplicitAppUserModelID(cfg.applicationId)
 
     try:
+        lTheme = str(getattr(cfg, "style", None) or "ironman").strip().lower()
+        _applyThemePalette(app, lTheme)
         app.setStyleSheet(cfg.styleSheet)
 
         lWin: MainWindow = MainWindow(*args, **kwargs)

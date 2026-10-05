@@ -1,6 +1,6 @@
 /* eNuts — ironman theme (high contrast)
- * Black-on-dark is Qt system WindowText leaking through; force light FG on
- * QLabel, QGroupBox, tabs, and form controls — not only QWidget.
+ * Black-on-dark is Qt system WindowText leaking through.
+ * QSS + application QPalette (see SettingsPage / main) are both required.
  */
 
 QMainWindow,
@@ -11,13 +11,26 @@ QWidget {
     font-size: 12px;
 }
 
-QLabel {
+/* Force every text-bearing control; do not rely on inheritance alone */
+QLabel,
+QLabel#SideBarText,
+QLabel#PAGE_TITLE,
+QLabel#PAGE_DESCRIPTION,
+QLabel#WORKSPACE_DESCRIPTION,
+QLabel#WORKSPACE_SECTION_TITLE,
+QLabel#SideBarHeaderTitle,
+QLabel#SideBarGroupTitle,
+QGroupBox,
+QCheckBox,
+QRadioButton,
+QStatusBar,
+QMenuBar,
+QMenu {
     color: #f5f7fa;
     background: transparent;
 }
 
 QGroupBox {
-    color: #f5f7fa;
     border: 1px solid #3d4652;
     border-radius: 0px;
     margin-top: 12px;
@@ -61,7 +74,9 @@ QTabBar::tab:hover:!selected {
 
 QComboBox,
 QLineEdit,
-QSpinBox {
+QSpinBox,
+QTextEdit,
+QPlainTextEdit {
     background-color: #1e242c;
     color: #f5f7fa;
     border: 1px solid #3d4652;
@@ -118,6 +133,32 @@ QSpinBox::down-button {
     border: 1px solid #3d4652;
 }
 
+QPushButton {
+    background-color: #1e242c;
+    color: #f5f7fa;
+    border: 1px solid #3d4652;
+    border-radius: 0px;
+    padding: 6px 14px;
+}
+
+QPushButton:hover {
+    background-color: #2a323c;
+    color: #ffffff;
+    border-color: #f0c14b;
+}
+
+QPushButton:pressed {
+    background-color: #4a1518;
+    color: #ffffff;
+    border-color: #e31b23;
+}
+
+QPushButton:disabled {
+    color: #6b7280;
+    background-color: #161a20;
+    border-color: #2a323c;
+}
+
 QToolTip {
     background-color: #1e242c;
     color: #f5f7fa;
@@ -138,6 +179,7 @@ QLabel#PAGE_TITLE {
     font-size: 20px;
     font-weight: 600;
 }
+QLabel#PAGE_DESCRIPTION,
 QLabel#WORKSPACE_DESCRIPTION { color: #aeb6c0; }
 QLabel#WORKSPACE_SECTION_TITLE { color: #f0c14b; font-size: 14px; font-weight: 600; }
 
@@ -249,11 +291,19 @@ QWidget#SideBarGroupBody QWidget#SideBarItem {
     background: #12161c;
 }
 
+QWidget#SideBarGroupBody QWidget#SideBarItem QLabel#SideBarText {
+    color: #d8dee6;
+}
+
 QWidget#SideBarGroupBody QWidget#SideBarItem[hover="true"] {
     background: #2a323c;
     color: #ffffff;
     border-left-color: #5ce1ff;
     border-color: #4a5560;
+}
+
+QWidget#SideBarGroupBody QWidget#SideBarItem[hover="true"] QLabel#SideBarText {
+    color: #ffffff;
 }
 
 QWidget#SideBarGroupBody QWidget#SideBarItem[selected="true"] {
@@ -262,6 +312,10 @@ QWidget#SideBarGroupBody QWidget#SideBarItem[selected="true"] {
     font-weight: 600;
     border: 1px solid #e31b23;
     border-left: 3px solid #f0c14b;
+}
+
+QWidget#SideBarGroupBody QWidget#SideBarItem[selected="true"] QLabel#SideBarText {
+    color: #ffffff;
 }
 
 QWidget#SideBarGroupBody QWidget#SideBarItem[selected="true"][hover="true"] {
@@ -280,10 +334,18 @@ QWidget#SideBarItem {
     font-size: 12.5px;
 }
 
+QWidget#SideBarItem QLabel#SideBarText {
+    color: #e8edf2;
+}
+
 QWidget#SideBarItem[hover="true"] {
     background: #2a323c;
     color: #ffffff;
     border-color: #f0c14b;
+}
+
+QWidget#SideBarItem[hover="true"] QLabel#SideBarText {
+    color: #ffffff;
 }
 
 QWidget#SideBarItem[selected="true"] {
@@ -292,6 +354,10 @@ QWidget#SideBarItem[selected="true"] {
     border: 1px solid #e31b23;
     border-left: 3px solid #f0c14b;
     font-weight: 600;
+}
+
+QWidget#SideBarItem[selected="true"] QLabel#SideBarText {
+    color: #ffffff;
 }
 
 QWidget#SideBarItem[selected="true"][hover="true"] {
