@@ -57,7 +57,7 @@ class Workspace(QWidget, ComponentBase):
             if lMappedId == lId:
                 del self._nameToId[lName]
         self._stack.removeWidget(lPage)
-        lPage.setParent(None)
+        lPage.hide()
         lPage.deleteLater()
 
     def SetCurrentPage(self, key: str) -> None:
