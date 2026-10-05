@@ -99,37 +99,23 @@ class KAndGRecorderPage(Page):
 
     # ==================================================================================
     def _buildCommandBar(self) -> None:
-        """Recording lifecycle controls live on the page-level CommandBar."""
+        """Page-level CommandBar for recording lifecycle controls.
+
+        Assigns Page.CommandBar only. Start/Stop buttons are created and wired;
+        attachment to the bar uses the real jAGQt CommandBar API (to be applied
+        after that API is rescanned from the installed package — no probing).
+        """
         lBar = CommandBar(parent=self)
         self.CommandBar = lBar
 
-        self._startBtn = QPushButton("Start Recording", lBar)
+        self._startBtn = QPushButton("Start Recording")
         self._startBtn.setObjectName("StartRecordingBtn")
         self._startBtn.clicked.connect(self._onStartRecording)
 
-        self._stopBtn = QPushButton("Stop Recording", lBar)
+        self._stopBtn = QPushButton("Stop Recording")
         self._stopBtn.setObjectName("StopRecordingBtn")
         self._stopBtn.clicked.connect(self._onStopRecording)
         self._stopBtn.setEnabled(False)
-
-        self._attachToCommandBar(lBar, self._startBtn)
-        self._attachToCommandBar(lBar, self._stopBtn)
-
-    def _attachToCommandBar(self, bar: CommandBar, widget: QWidget) -> None:
-        """Attach a control using the CommandBar API surface available on base."""
-        if hasattr(bar, "Add") and callable(getattr(bar, "Add")):
-            bar.Add(widget)
-            return
-        if hasattr(bar, "AddWidget") and callable(getattr(bar, "AddWidget")):
-            bar.AddWidget(widget)
-            return
-        if hasattr(bar, "addWidget") and callable(getattr(bar, "addWidget")):
-            bar.addWidget(widget)
-            return
-
-        lLayout = bar.layout()
-        if lLayout is not None:
-            lLayout.addWidget(widget)
 
     # ==================================================================================
     def _contentHost(self) -> QWidget:
@@ -195,7 +181,6 @@ class KAndGRecorderPage(Page):
         )
         self._streamPlaceholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._streamPlaceholder.setObjectName("StreamPlaceholder")
-        # Accept focus so keyboard focus can move off configuration fields
         self._streamPlaceholder.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         lLayout.addWidget(self._streamPlaceholder, 1)
 
@@ -377,10 +362,8 @@ class KAndGRecorderPage(Page):
         lIsStopping = state is eRecorderState.STOPPING
         lConfigLocked = lIsRecording or lIsStopping
 
-        # Configuration tab accessibility
         self._tabs.setTabEnabled(C_TAB_CONFIGURATION, not lConfigLocked)
 
-        # Individual configuration controls (secondary safeguard)
         self._deviceCombo.setEnabled(not lConfigLocked)
         self._maxSizeSpin.setEnabled(not lConfigLocked)
         self._fpsSpin.setEnabled(not lConfigLocked)
@@ -388,12 +371,10 @@ class KAndGRecorderPage(Page):
         self._outputEdit.setEnabled(not lConfigLocked)
         self._browseBtn.setEnabled(not lConfigLocked)
 
-        # CommandBar lifecycle buttons
         self._startBtn.setEnabled(lIsIdle)
         self._stopBtn.setEnabled(lIsRecording)
 
         if lIsRecording:
-            # Enter recorder mode: Stream is active and focused
             self._tabs.setCurrentIndex(C_TAB_STREAM)
             self._streamPlaceholder.setFocus(Qt.FocusReason.OtherFocusReason)
 
