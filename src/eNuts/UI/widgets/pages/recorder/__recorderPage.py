@@ -48,10 +48,11 @@ class KAndGRecorderPage(Page):
 
         Page
         ├── Header (Title / Description / CommandBar)  — owned by Page
+        │   └── CommandBar holds Start / Stop recording controls
         └── Content
             └── KAndGRecorderTabs
                 ├── Stream
-                └── Configuration
+                └── Configuration   (settings only — no lifecycle buttons)
 
     Do not install a competing root layout on the Page itself.
     All visual chrome is left to the application QSS via object names.
@@ -74,11 +75,43 @@ class KAndGRecorderPage(Page):
         self._bitrate: int = 4_000_000
         self._outputPath: str = ""
 
+        self._buildCommandBar()
+        self._buildUI()
+        self.RefreshDevices()
+
+    # ==================================================================================
+    def _buildCommandBar(self) -> None:
+        """Recording lifecycle controls live on the page CommandBar."""
         lBar = CommandBar(parent=self)
         self.CommandBar = lBar
 
-        self._buildUI()
-        self.RefreshDevices()
+        self._startBtn = QPushButton("Start Recording", lBar)
+        self._startBtn.setObjectName("StartRecordingBtn")
+        self._startBtn.clicked.connect(self._onStartRecording)
+
+        self._stopBtn = QPushButton("Stop Recording", lBar)
+        self._stopBtn.setObjectName("StopRecordingBtn")
+        self._stopBtn.clicked.connect(self._onStopRecording)
+        self._stopBtn.setEnabled(False)
+
+        self._attachToCommandBar(lBar, self._startBtn)
+        self._attachToCommandBar(lBar, self._stopBtn)
+
+    def _attachToCommandBar(self, bar: CommandBar, widget: QWidget) -> None:
+        """Attach a control using the CommandBar API surface available on base."""
+        if hasattr(bar, "Add") and callable(getattr(bar, "Add")):
+            bar.Add(widget)
+            return
+        if hasattr(bar, "AddWidget") and callable(getattr(bar, "AddWidget")):
+            bar.AddWidget(widget)
+            return
+        if hasattr(bar, "addWidget") and callable(getattr(bar, "addWidget")):
+            bar.addWidget(widget)
+            return
+
+        lLayout = bar.layout()
+        if lLayout is not None:
+            lLayout.addWidget(widget)
 
     # ==================================================================================
     def _contentHost(self) -> QWidget:
@@ -117,7 +150,6 @@ class KAndGRecorderPage(Page):
             return
 
         # Page has no layout and no Content — should not happen under the Page contract.
-        # Avoid creating a permanent competing structure beyond this emergency path.
         lEmergency = QVBoxLayout(self)
         lEmergency.setContentsMargins(0, 0, 0, 0)
         lEmergency.addWidget(widget, 1)
@@ -153,6 +185,7 @@ class KAndGRecorderPage(Page):
         return lTab
 
     def _buildConfigTab(self) -> QWidget:
+        """Configuration holds settings only — no Start/Stop lifecycle controls."""
         lTab = QWidget()
         lTab.setObjectName("RecorderConfigTab")
 
@@ -160,7 +193,6 @@ class KAndGRecorderPage(Page):
         lOuter.setContentsMargins(0, 0, 0, 0)
         lOuter.setSpacing(0)
 
-        # Proper content panel — stable QSS target, not a loose floating form
         lPanel = QGroupBox("Recorder Configuration", lTab)
         lPanel.setObjectName("RecorderConfigPanel")
 
@@ -228,24 +260,6 @@ class KAndGRecorderPage(Page):
         lForm.addRow("Output", lOutputRow)
 
         lPanelLayout.addLayout(lForm)
-
-        # Action buttons — right-aligned inside the panel
-        lBtnRow = QHBoxLayout()
-        lBtnRow.setSpacing(8)
-        lBtnRow.addStretch(1)
-
-        self._startBtn = QPushButton("Start Recording", lPanel)
-        self._startBtn.setObjectName("StartRecordingBtn")
-        self._startBtn.clicked.connect(self._onStartRecording)
-
-        self._stopBtn = QPushButton("Stop Recording", lPanel)
-        self._stopBtn.setObjectName("StopRecordingBtn")
-        self._stopBtn.clicked.connect(self._onStopRecording)
-        self._stopBtn.setEnabled(False)
-
-        lBtnRow.addWidget(self._startBtn)
-        lBtnRow.addWidget(self._stopBtn)
-        lPanelLayout.addLayout(lBtnRow)
 
         lOuter.addWidget(lPanel, 0, Qt.AlignmentFlag.AlignTop)
         lOuter.addStretch(1)
