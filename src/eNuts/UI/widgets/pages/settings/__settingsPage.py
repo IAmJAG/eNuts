@@ -33,12 +33,11 @@ C_THEME_NAMES: List[str] = ["dark", "light", "dracula", "ironman", "material"]
 class SettingsPage(Page):
     """Application settings page.
 
-    Follows the Page contract:
+    Uses jAGQt.widgets.Page as-is:
 
         Page
         ├── Header (Title / Description)
         ├── Content
-        │   └── Settings panels (Appearance / …)
         └── CommandBar
     """
 
@@ -57,34 +56,6 @@ class SettingsPage(Page):
         self._loadCurrentTheme()
 
     # ==================================================================================
-    def _contentHost(self) -> QWidget:
-        lContent = getattr(self, "Content", None)
-        if isinstance(lContent, QWidget):
-            return lContent
-        return self
-
-    def _attachToContent(self, widget: QWidget) -> None:
-        lHost = self._contentHost()
-        lContentLayout = getattr(self, "ContentLayout", None)
-        if lContentLayout is not None:
-            lContentLayout.addWidget(widget, 1)
-            return
-        if lHost is not self:
-            lLayout = lHost.layout()
-            if lLayout is None:
-                lLayout = QVBoxLayout(lHost)
-                lLayout.setContentsMargins(0, 0, 0, 0)
-                lLayout.setSpacing(0)
-            lLayout.addWidget(widget, 1)
-            return
-        lPageLayout = self.layout()
-        if lPageLayout is not None:
-            lPageLayout.addWidget(widget, 1)
-            return
-        lEmergency = QVBoxLayout(self)
-        lEmergency.setContentsMargins(0, 0, 0, 0)
-        lEmergency.addWidget(widget, 1)
-
     def _buildUI(self) -> None:
         lRoot = QWidget()
         lRoot.setObjectName("SettingsRoot")
@@ -125,7 +96,9 @@ class SettingsPage(Page):
 
         lOuter.addWidget(lPanel, 0, Qt.AlignmentFlag.AlignTop)
         lOuter.addStretch(1)
-        self._attachToContent(lRoot)
+
+        # Page owns placement between Header and CommandBar
+        self.Content = lRoot
 
     # ==================================================================================
     def _loadCurrentTheme(self) -> None:
