@@ -4,6 +4,7 @@
 from asyncio import CancelledError, Event, set_event_loop
 from ctypes import windll
 from sys import platform
+from traceback import format_exc
 
 # ==================================================================================================
 from adbutils import adb
@@ -73,46 +74,73 @@ def _applyThemePalette(app: QApplication, theme: str) -> None:
 
 # ==================================================================================================
 async def main(app: QApplication, *args, **kwargs):
+    debug("[main] enter async main")
     cfg: iENUTSConfiguration | iApplicationConfiguration = eNutsConfiguration()
+    debug("[main] config loaded")
 
     lShutdownEvent: Event = Event()
-    app.aboutToQuit.connect(lShutdownEvent.set)
+    app.aboutToQuit.connect(lambda: debug("[main] aboutToQuit fired") or lShutdownEvent.set())
     app.setQuitOnLastWindowClosed(True)
+    debug("[main] quitOnLastWindowClosed=True")
 
     if platform == "win32":
         windll.shell32.SetCurrentProcessExplicitAppUserModelID(cfg.applicationId)
 
     try:
         lTheme = str(getattr(cfg, "style", None) or "ironman").strip().lower()
+        debug(f"[main] theme={lTheme!r} — applying palette + stylesheet")
         _applyThemePalette(app, lTheme)
         app.setStyleSheet(cfg.styleSheet)
+        debug("[main] stylesheet applied")
 
+        debug("[main] constructing MainWindow…")
         lWin: MainWindow = MainWindow(*args, **kwargs)
-        lWin.show()
+        debug(
+            f"[main] MainWindow constructed id={id(lWin)} "
+            f"visible={lWin.isVisible()} size={lWin.size().width()}x{lWin.size().height()}"
+        )
 
+        debug("[main] calling show()")
+        lWin.show()
+        debug(
+            f"[main] after show() visible={lWin.isVisible()} "
+            f"active={lWin.isActiveWindow()} "
+            f"topLevel={lWin.isWindow()} "
+            f"geometry={lWin.geometry().getRect()}"
+        )
+
+        debug("[main] waiting on shutdown event")
         await lShutdownEvent.wait()
+        debug("[main] shutdown event set — exiting wait")
 
     except CancelledError:
+        debug("[main] CancelledError")
         raise
 
     except Exception as ex:
-        error(f"Unhandled exception: {type(ex).__name__}: {ex}")
+        error(f"[main] Unhandled exception: {type(ex).__name__}: {ex}")
+        error(f"[main] traceback:\n{format_exc()}")
 
     finally:
         if not lShutdownEvent.is_set():
+            debug("[main] finally: forcing shutdown event")
             lShutdownEvent.set()
 
+    debug("[main] app.quit()")
     app.quit()
 
 
 # ==================================================================================================
 def program(*args):
+    debug("[main] program() start")
     app: QApplication = QApplication()
     loop: QEventLoop = QEventLoop(app)
 
     set_event_loop(loop)
+    debug("[main] event loop set — run_until_complete(main)")
     with loop:
         loop.run_until_complete(main(app))
+    debug("[main] program() end")
 
 
 # ==================================================================================================
