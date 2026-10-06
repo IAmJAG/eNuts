@@ -36,8 +36,8 @@ class CommandBar(QWidget, ComponentBase, _commandBarBase):
         self._groups: Dict[str, iCommandBarGroup] = dict[str, iCommandBarGroup]()        
         self._buttons: Dict[str, iCommandBarButton] = dict[str, iCommandBarButton]()
 
-    def _wIntializeUI(self) -> None:
-        super()._wIntializeUI()
+    def _wInitializeUI(self) -> None:
+        super()._wInitializeUI()
         self.setObjectName("CommandBar")
         self.setSizePolicy(QtPolicy.Expanding, QtPolicy.Fixed)
         self.Layout = newLayout(QBoxLayout, spacing=0, margins=(0, 0, 0, 0))
