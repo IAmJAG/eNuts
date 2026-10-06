@@ -8,9 +8,13 @@ from functools import wraps
 from typing import Callable, TypeVar, overload
 
 # ==================================================================================
+from utilities import createTask, getRunningLoop
+
+# ==================================================================================
 _T = TypeVar("_T", bound=type)
 _WORKFLOW_PREFIX = "_w"
 _WORKFLOW_METADATA = "__jagfx_workflow__"
+_WORKFLOW_ASYNC = "__jagfx_workflow_async__"
 _WORKFLOW_GUARD = "__jagfx_workflow_active__"
 _WORKFLOW_INIT_WRAPPED = "__jagfx_workflow_init_wrapped__"
 _WORKFLOW_SUBCLASS_WRAPPED = "__jagfx_workflow_subclass_wrapped__"
@@ -37,13 +41,23 @@ def _run_workflow(instance: object) -> None:
     if names is None:
         return
 
+    preferAsync: bool = getattr(type(instance), _WORKFLOW_ASYNC, True)
+    loop = getRunningLoop() if preferAsync else None
+
     for name in names:
         method = getattr(instance, name, None)
         if not callable(method):
             raise AttributeError(
                 f"Workflow method {name!r} was not found on {type(instance).__name__}."
             )
-        method()
+
+        if loop is not None:
+            async def _runner(m=method):
+                m()
+
+            createTask(_runner)
+        else:
+            method()
 
 # ==================================================================================
 def _wrap_init(cls: type, original_init: Callable) -> None:
@@ -139,10 +153,10 @@ def _install_subclass_hook(cls: type) -> None:
 def workflow(cls: _T) -> _T: ...
 
 @overload
-def workflow(*names: str) -> Callable[[_T], _T]: ...
+def workflow(*names: str, async_: bool = True) -> Callable[[_T], _T]: ...
 
 # ==================================================================================
-def workflow(*args):
+def workflow(*args, async_: bool = True):
     """Decorate a class with an automatic post-construction workflow.
 
     ``@workflow`` discovers ``_w...`` methods defined directly on the decorated
@@ -150,6 +164,11 @@ def workflow(*args):
     the execution order. Workflow metadata is inherited normally by subclasses;
     a subclass decorated with ``@workflow`` replaces that metadata rather than
     merging with its base class.
+
+    ``async_`` (default ``True``) prefers scheduling each ``_w...`` method on a
+    running asyncio loop (wrapping the synchronous call in a one-liner
+    coroutine). When no loop is running, or when ``async_=False``, the methods
+    are invoked synchronously — the original behaviour.
 
     The construction boundary is propagated through ``__init_subclass__`` so a
     subclass workflow runs only after that subclass's own ``__init__`` returns.
@@ -159,6 +178,10 @@ def workflow(*args):
     if len(args) == 1 and isinstance(args[0], type):
         cls = args[0]
         names: tuple[str, ...] | None = None
+
+    elif not args:
+        cls = None
+        names = None
 
     else:
         if not all(isinstance(name, str) for name in args):
@@ -172,6 +195,7 @@ def workflow(*args):
     def decorate(target: _T) -> _T:
         workflow_names = names if names is not None else _discover_workflows(target)
         setattr(target, _WORKFLOW_METADATA, workflow_names)
+        setattr(target, _WORKFLOW_ASYNC, async_)
 
         if "__init_subclass__" not in target.__dict__:
             _install_subclass_hook(target)
