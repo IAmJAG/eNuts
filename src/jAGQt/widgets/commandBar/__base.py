@@ -24,7 +24,7 @@ QtPolicy = QSizePolicy.Policy
 # ==================================================================================
 
 # ==================================================================================
-class _commandBarBase(ComponentBase):
+class _commandBarBase:
     def _wIntializeUI(self: QWidget) -> None:
         self.Layout = newLayout(QHBoxLayout, spacing=0, margins=(0, 0, 0, 0))
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)

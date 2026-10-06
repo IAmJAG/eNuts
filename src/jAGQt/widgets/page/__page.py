@@ -47,8 +47,7 @@ class Page(QWidget, ComponentBase):
         self._description = description            
         self._isCommandBarOn: bool = commandBarOn
 
-    def _wInitializePage(self):
-        
+    def _wInitializeUI(self):        
         titleText: str = self._title
         descriptionText: str = self._description
         isCommandBarOn: bool = self._isCommandBarOn 

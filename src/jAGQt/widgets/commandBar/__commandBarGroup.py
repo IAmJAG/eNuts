@@ -21,9 +21,6 @@ class CommandBarGroup(QWidget, ComponentBase, _commandBarBase):
     OBJECT_NAME = "C_COMMANDBAR_GROUP"
     def __init__(self, name: str, *args, **kwargs) -> None:
         OBJNAME: str = kwargs.pop("objectName", self.OBJECT_NAME)
-        CommandBarGroup.__init__(self, objectName=OBJNAME, *args, **kwargs)
-        ComponentBase.__init__(self)
-        _commandBarBase.__init__(self)
-
+        super().__init__(objectName=OBJNAME, *args, **kwargs)
         self._buttons: Dict[str, iCommandBarButton] = dict[str, iCommandBarButton]()
         self._name: str = name

@@ -9,12 +9,12 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QBoxLayout, QStyle
 
 # ==================================================================================
+from fluxCore.types.interface.device import iDevice
+
+# ==================================================================================
 from jAGQt.types.interface.window import iMainWindowBase
 from jAGQt.widgets import Page, SideBar, Workspace
 from jAGQt.widgets.sideBar import SideBarItem
-
-# ==================================================================================
-from fluxCore.types.interface.device import iDevice
 
 # ==================================================================================
 from ..types.interface.application import iENUTSService, iShell
