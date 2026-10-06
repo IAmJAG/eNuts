@@ -3,6 +3,7 @@ from __future__ import annotations
 
 # ==================================================================================
 from typing import Dict, List
+from traceback import format_exc
 
 # ==================================================================================
 from PySide6.QtGui import QIcon
@@ -26,30 +27,45 @@ class Shell(iShell):
     """Application shell: owns SideBar composition, Workspace content host, and device registry."""
 
     def intializeUI(self: iMainWindowBase) -> None:
-        # Expect WindowBase._wInitializeUI to have already created self._layout
-        self.Layout.setDirection(QBoxLayout.Direction.LeftToRight)
-        self.ContentSpacing = 0
-        self.ContentMargins = 0
+        debug("[shell] intializeUI BEGIN")
+        try:
+            # Expect WindowBase._wInitializeUI to have already created self._layout
+            self.Layout.setDirection(QBoxLayout.Direction.LeftToRight)
+            self.ContentSpacing = 0
+            self.ContentMargins = 0
 
-        self._devices: Dict[str, iDevice] = {}
+            self._devices: Dict[str, iDevice] = {}
 
-        self._sideBar = SideBar(
-            title="eNuts", expandedWidth=220, collapsedWidth=52, iconSize=22,
-            startCollapsed=False, autoCollapse=False, animationDurationMs=240,
-            parent=self,
-        )
+            debug("[shell] creating SideBar")
+            self._sideBar = SideBar(
+                title="eNuts", expandedWidth=220, collapsedWidth=52, iconSize=22,
+                startCollapsed=False, autoCollapse=False, animationDurationMs=240,
+                parent=self,
+            )
 
-        self._workspace: Workspace = Workspace(parent=self)
-        self._workspace.setObjectName("MainWorkspace")
+            debug("[shell] creating Workspace")
+            self._workspace: Workspace = Workspace(parent=self)
+            self._workspace.setObjectName("MainWorkspace")
 
-        self._buildSideBarNavigation()
-        self._buildPages()
-        self._sideBar.ItemClicked.connect(self._onSideBarItemClicked)
+            debug("[shell] _buildSideBarNavigation")
+            self._buildSideBarNavigation()
+            debug("[shell] _buildPages")
+            self._buildPages()
+            self._sideBar.ItemClicked.connect(self._onSideBarItemClicked)
 
-        self.Layout.addWidget(self._sideBar)
-        self.Layout.addWidget(self._workspace, 1)
+            debug("[shell] add SideBar + Workspace to layout")
+            self.Layout.addWidget(self._sideBar)
+            self.Layout.addWidget(self._workspace, 1)
 
-        self._navigateTo("Dashboard")
+            debug("[shell] navigate Dashboard")
+            self._navigateTo("Dashboard")
+            debug(
+                f"[shell] intializeUI END pages={self._workspace.Count} "
+                f"current={getattr(self._workspace.CurrentPage, 'Title', None)!r}"
+            )
+        except Exception:
+            error(f"[shell] intializeUI FAIL\n{format_exc()}")
+            raise
 
     # ==================================================================================
     def _standardIcon(self, standardPixmap: QStyle.StandardPixmap) -> QIcon:
@@ -117,14 +133,26 @@ class Shell(iShell):
         ]
 
         for lTitle, lDescription in lPages:
+            debug(f"[shell] Page({lTitle!r}) construct…")
             lPage: Page = Page(title=lTitle, description=lDescription, commandBarOn=True)
+            debug(
+                f"[shell] Page({lTitle!r}) constructed parent={lPage.parent()!r} "
+                f"visible={lPage.isVisible()} isWindow={lPage.isWindow()}"
+            )
             self._workspace.AddPage(lPage, name=lTitle)
+            debug(
+                f"[shell] Page({lTitle!r}) after AddPage parent={lPage.parent()!r} "
+                f"isWindow={lPage.isWindow()}"
+            )
 
+        debug("[shell] KAndGRecorderPage construct…")
         lRecorder = KAndGRecorderPage(shell=self, parent=self._workspace)
         self._workspace.AddPage(lRecorder, name="K&G Recorder")
 
+        debug("[shell] SettingsPage construct…")
         lSettings = SettingsPage(parent=self._workspace)
         self._workspace.AddPage(lSettings, name="Settings")
+        debug(f"[shell] _buildPages done count={self._workspace.Count}")
 
     # ==================================================================================
     def AddDevice(self, device: iDevice) -> None:
@@ -149,6 +177,7 @@ class Shell(iShell):
         self._navigateTo(item.Text)
 
     def _navigateTo(self, pageName: str) -> None:
+        debug(f"[shell] _navigateTo({pageName!r})")
         self._workspace.SetCurrentPage(pageName)
 
     # ==================================================================================
