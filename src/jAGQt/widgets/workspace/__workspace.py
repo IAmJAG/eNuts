@@ -2,6 +2,7 @@
 # src/jAGQt/widgets/workspace/__workspace.py
 # ==================================================================================
 from typing import Dict, Optional
+from traceback import format_exc
 
 # ==================================================================================
 from PySide6.QtCore import Signal
@@ -39,13 +40,34 @@ class Workspace(QWidget, ComponentBase):
 
     # ==================================================================================
     def AddPage(self, page: Page, name: Optional[str] = None) -> None:
-        if page.Id in self._pages:
-            return
-        self._stack.addWidget(page)
-        self._pages[page.Id] = page
-        lKey = name if name is not None else page.Title
-        if lKey:
-            self._nameToId[lKey] = page.Id
+        print(
+            f"[workspace] AddPage ENTER name={name!r} "
+            f"pageId={page.Id!r} isWindow={page.isWindow()} "
+            f"stackCount={self._stack.count()}",
+            flush=True,
+        )
+        try:
+            if page.Id in self._pages:
+                print("[workspace] AddPage skip duplicate Id", flush=True)
+                return
+
+            print("[workspace] AddPage before stack.addWidget", flush=True)
+            self._stack.addWidget(page)
+            print(
+                f"[workspace] AddPage after stack.addWidget "
+                f"isWindow={page.isWindow()} parent={type(page.parent()).__name__ if page.parent() else None} "
+                f"stackCount={self._stack.count()}",
+                flush=True,
+            )
+
+            self._pages[page.Id] = page
+            lKey = name if name is not None else page.Title
+            if lKey:
+                self._nameToId[lKey] = page.Id
+            print(f"[workspace] AddPage END key={lKey!r}", flush=True)
+        except Exception:
+            print(f"[workspace] AddPage FAIL\n{format_exc()}", flush=True)
+            raise
 
     def RemovePage(self, key: str) -> None:
         """Remove by Id or by registered name."""
@@ -95,5 +117,6 @@ class Workspace(QWidget, ComponentBase):
 
     # ==================================================================================
     def _onStackChanged(self, index: int) -> None:
+        print(f"[workspace] currentChanged index={index}", flush=True)
         lPage = self._stack.widget(index) if index >= 0 else None
         self.CurrentPageChanged.emit(lPage if isinstance(lPage, Page) else None)
