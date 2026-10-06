@@ -4,9 +4,10 @@
 from PySide6.QtCore import QMargins
 from PySide6.QtWidgets import QLayout, QMainWindow, QWidget
 
+from ...types.interface.components import iComponentBase
+
 # ==================================================================================
 from ...utilities import contentMargins, replaceLayout
-from ..interface.components import iComponentBase
 
 
 # ==================================================================================
@@ -30,8 +31,7 @@ class ComponentBase(iComponentBase):
     @property
     def Layout(self: QWidget) -> QLayout:
         lLayout = getattr(self, "_layout", None)
-        if lLayout is not None: return lLayout
-
+        if lLayout is not None: return lLayout        
         return self.layout()
 
     @Layout.setter

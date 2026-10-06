@@ -148,8 +148,7 @@ def replaceLayout(widget: QWidget, oldLayout: QLayout | None, newLayout: QLayout
 
     if oldLayout is None or oldLayout is newLayout:
         lTop = widget.layout()
-        if lTop is not None and lTop is not newLayout:
-            lTop.setParent(None)
+        if lTop is not None and lTop is not newLayout: lTop.setParent(None)
         widget.setLayout(newLayout)
         return
 

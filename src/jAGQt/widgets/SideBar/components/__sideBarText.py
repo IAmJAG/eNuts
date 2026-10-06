@@ -8,7 +8,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QLabel, QSizePolicy, QWidget
 
 # ==================================================================================
-from ....types.components import ComponentBase
+from ...components import ComponentBase
 
 
 # ==================================================================================

@@ -7,12 +7,13 @@ from typing import Dict, Optional
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QStackedWidget, QWidget
 
-# ==================================================================================
-from jAGQt.types.components import ComponentBase
 from jAGQt.utilities import newLayout
 
 # ==================================================================================
-from .__page import Page
+from jAGQt.widgets.components import ComponentBase
+
+# ==================================================================================
+from ..page.__page import Page
 
 
 # ==================================================================================

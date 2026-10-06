@@ -1,10 +1,9 @@
 # ==================================================================================
-# src/jAGQt/widgets/workspace/__init__.py
+# src/jAGQt/widgets/commandBar/__init__.py
 # ==================================================================================
-from ..page.__page import Page
-from .__commandBar import CommandBar
-from .__workspace import Workspace
-from .components import CommandBarGroup
+from .__commandBar import iCommandBar
+from .__commandBarButton import iCommandBarItem
+from .__commandBarGroup import iCommandBarGroup
 
 # ==================================================================================
-__all__ = ["CommandBar", "CommandBarGroup", "Page", "Workspace"]
+__all__ = ["iCommandBar", "iCommandBarGroup", "iCommandBarItem"]

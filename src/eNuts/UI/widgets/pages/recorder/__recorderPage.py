@@ -6,22 +6,19 @@ from __future__ import annotations
 # ==================================================================================
 from typing import TYPE_CHECKING
 
+from jAGFx.workflow import workflow
+
 # ==================================================================================
 from jAGQt.widgets import Page
 
 # ==================================================================================
 if TYPE_CHECKING:
-    from ....types.interface.application import iShell
+    from .....types.interface.application import iShell
 
 
 # ==================================================================================
+@workflow
 class KAndGRecorderPage(Page):
-    """Key & Gesture Recorder — Phase 1 stub.
-
-    Registered under Data Factory(DF). Full Stream / Configuration UI and
-    recording lifecycle belong to later phases.
-    """
-
     def __init__(self, shell: iShell | None = None, parent=None) -> None:
         super().__init__(
             title="K&G Recorder",

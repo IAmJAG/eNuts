@@ -1,68 +1,75 @@
 # ==================================================================================
 # src/jAGQt/widgets/workspace/__commandBar.py
 # ==================================================================================
-from typing import Optional, Union
+from typing import Dict, Optional, Union, overload
 
 # ==================================================================================
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QAbstractButton, QBoxLayout, QSizePolicy, QWidget
 
+from jAGFx.workflow import workflow
 from jAGQt.utilities import newLayout
 
 # ==================================================================================
 from jAGQt.widgets.components import ComponentBase
 
 # ==================================================================================
-from .components import CommandBarGroup
+from ...types.interface.widgets.commandBar import (
+    iCommandBar,
+    iCommandBarGroup,
+    iCommandBarItem,
+)
+from .__commandBarButton import CommandBarItem
+from .__commandBarGroup import CommandBarGroup
 
 
 # ==================================================================================
-class CommandBar(QWidget, ComponentBase):
-    """Bottom command / action bar for a Page (SideBar-style composer)."""
+@workflow("InitializeUI")
+class CommandBar(QWidget, ComponentBase, iCommandBar):
+    OBJECT_NAME = "W_COMMANDBAR"
+    def __init__(self, *args, **kwargs,) -> None:
+        super().__init__(*args, **kwargs)
+        self._groups: Dict[str, iCommandBarGroup] = dict[str, iCommandBarGroup]()        
 
-    def __init__(
-        self, spacing: int = 6, parent: Optional[QWidget] = None,
-        *args, **kwargs,
-    ) -> None:
-        super().__init__(parent, *args, **kwargs)
-
+    def _wIntializeUI(self) -> None:
         self.setObjectName("CommandBar")
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.Layout = newLayout(QBoxLayout, spacing=0, margins=(0, 0, 0, 0))
 
-        self._groups: dict[str, CommandBarGroup] = {}
-        self.Layout = newLayout(QBoxLayout, spacing=spacing, margins=(8, 4, 8, 4))
+    def _assertButton(self, button: QAbstractButton) -> None:
+        if not isinstance(button, QAbstractButton | iCommandBarItem):
+            raise TypeError("CommandBar.AddButton expects a QAbstractButton subclass")
 
-    # ==================================================================================
     def AddButton(
-        self, button: QAbstractButton, group: Optional[Union[str, CommandBarGroup]] = None,
-    ) -> QAbstractButton:
+        self,
+        button: QAbstractButton | iCommandBarItem,
+        group: Optional[Union[str, iCommandBarGroup]] = None,
+    ) -> QAbstractButton | iCommandBarItem:        
         if not isinstance(button, QAbstractButton):
             raise TypeError("CommandBar.AddButton expects a QAbstractButton subclass")
 
+        group: CommandBarGroup = self._resolveGroup(group)
         if group is None:
-            button.setParent(self)
             self.Layout.addWidget(button)
             return button
+            
+        return group.AddButton(button)
 
-        lGroup = self._resolveGroup(group)
-        return lGroup.AddButton(button)
-
-    def AddGroup(self, name: str = "", spacing: int = 4) -> CommandBarGroup:
-        if name and name in self._groups:
+    def AddGroup(self, name: str) -> CommandBarGroup:
+        if name in self._groups: 
             return self._groups[name]
-
-        lGroup = CommandBarGroup(name=name, spacing=spacing, parent=self)
+        
+        lGroup = CommandBarGroup(name)        
+        self._groups[name] = lGroup
         self.Layout.addWidget(lGroup)
-        if name:
-            self._groups[name] = lGroup
         return lGroup
 
     def AddStretch(self, stretch: int = 1) -> None:
         self.Layout.addStretch(stretch)
 
-    def AddSpacing(self, size: int) -> None:
-        self.Layout.addSpacing(size)
+    def setSpacingSize(self, size: int) -> None:
+        self.Layout.setSpacing(size)
 
     def Clear(self) -> None:
         while self.Layout.count():
@@ -82,13 +89,10 @@ class CommandBar(QWidget, ComponentBase):
     def _resolveGroup(self, group: Union[str, CommandBarGroup]) -> CommandBarGroup:
         if isinstance(group, CommandBarGroup):
             if group not in self._groups.values():
-                group.setParent(self)
                 self.Layout.addWidget(group)
-                if group.Name:
-                    self._groups[group.Name] = group
+                self._groups[group.Name] = group                
             return group
 
         lExisting = self._groups.get(group)
-        if lExisting is not None:
-            return lExisting
+        if lExisting is not None: return lExisting
         return self.AddGroup(name=group)

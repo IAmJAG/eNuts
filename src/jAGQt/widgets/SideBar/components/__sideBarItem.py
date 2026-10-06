@@ -9,9 +9,10 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QIcon, QMouseEvent, QPixmap
 from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 
-# ==================================================================================
-from ....types.components import ComponentBase
 from ....utilities import newLayout
+
+# ==================================================================================
+from ...components import ComponentBase
 
 # ==================================================================================
 from .__sideBarIcon import SideBarIcon

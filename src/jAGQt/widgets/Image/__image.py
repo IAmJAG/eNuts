@@ -22,7 +22,7 @@ from PySide6.QtWidgets import QWidget
 from torch import Tensor
 
 # ==================================================================================
-from ...types.components import ComponentBase
+from ..components import ComponentBase
 
 # ==================================================================================
 Backend = Literal["software", "opengl"]

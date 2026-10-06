@@ -5,10 +5,10 @@ from typing import Any, Callable, Optional
 
 # ==================================================================================
 from PySide6.QtCore import (
+    QAbstractAnimation,
     QEasingCurve,
     QObject,
     QPropertyAnimation,
-    QAbstractAnimation,
 )
 from PySide6.QtWidgets import QWidget
 

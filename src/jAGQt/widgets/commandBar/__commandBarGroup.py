@@ -1,51 +1,51 @@
 # ==================================================================================
 # src/jAGQt/widgets/workspace/components/__commandBarGroup.py
 # ==================================================================================
-from typing import Optional
+from typing import List
 
 # ==================================================================================
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QAbstractButton, QHBoxLayout, QSizePolicy, QWidget
+from PySide6.QtWidgets import QAbstractButton, QWidget
 
-from jAGQt.utilities import newLayout
+from jAGFx.workflow import workflow
 
 # ==================================================================================
 from jAGQt.widgets.components import ComponentBase
 
+from .__commandBar import CommandBar
+from .__commandBarButton import CommandBarItem
+
 
 # ==================================================================================
+@workflow("InitializeUI")
 class CommandBarGroup(QWidget, ComponentBase):
+    OBJECT_NAME = "C_COMMANDBAR_GROUP"
     def __init__(
-        self, name: str = "", spacing: int = 4, parent: Optional[QWidget] = None,
+        self, name: str,
         *args, **kwargs,
     ) -> None:
-        super().__init__(parent, *args, **kwargs)
-
-        self.setObjectName("CommandBarGroup")
-        self.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
+        super().__init__(objectName=self.OBJECT_NAME, *args, **kwargs)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-
+        self._buttons: List[QAbstractButton] = List[QAbstractButton]()   
         self._name: str = name
-        self._buttons: list[QAbstractButton] = []
-        self.Layout = newLayout(QHBoxLayout, spacing=spacing, margins=(0, 0, 0, 0))
+
+    def _assertIsButton(self, button: QAbstractButton) -> None:
+        if not isinstance(button, QAbstractButton | CommandBarItem):
+            raise TypeError("AddButton expects a QAbstractButton subclass or a CommandBarItem.")
 
     # ==================================================================================
     def AddButton(self, button: QAbstractButton) -> QAbstractButton:
-        if not isinstance(button, QAbstractButton):
-            raise TypeError(
-                "CommandBarGroup.AddButton expects a QAbstractButton subclass"
-            )
-
-        button.setParent(self)        
+        self._assertIsButton(button)
         self.Layout.addWidget(button)
         self._buttons.append(button)
         return button
 
     def RemoveButton(self, button: QAbstractButton) -> None:
-        if button not in self._buttons: return
+        if not self.Contains(button): return
         self._buttons.remove(button)
         self.Layout.removeWidget(button)
         button.setParent(None)
+        button.deleteLater()
 
     def Clear(self) -> None:
         while self.Layout.count():
@@ -59,20 +59,7 @@ class CommandBarGroup(QWidget, ComponentBase):
 
     def Contains(self, button: QAbstractButton) -> bool:
         return button in self._buttons
-
-    # ==================================================================================
-    @property
-    def Name(self) -> str:
-        return self._name
-
-    @Name.setter
-    def Name(self, value: str) -> None:
-        self._name = value
-
-    @property
-    def Buttons(self) -> list[QAbstractButton]:
-        return list(self._buttons)
-
+        
     @property
     def Count(self) -> int:
         return len(self._buttons)

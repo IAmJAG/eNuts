@@ -9,7 +9,7 @@ from jAGFx.names import getRandomName
 from jAGFx.workflow import workflow
 
 # ==================================================================================
-from ...types.components import ComponentBase
+from ...widgets.components import ComponentBase
 
 
 # ==================================================================================
