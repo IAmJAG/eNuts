@@ -27,7 +27,6 @@ class Header(QFrame, ComponentBase):
         self,
         title: str = "jAGQt Page",
         description: str = "",
-        id: Optional[str] = None,
         *args,
         **kwargs,
     ) -> None:
@@ -43,8 +42,9 @@ class Header(QFrame, ComponentBase):
         titleText: str = self._title
         descriptionText: str = self._description
 
-        # Build first; do NOT setVisible while parentless — that opens top-level windows.
-        # Layout.addWidget + setLayout reparents; visibility is applied only after that.
+        del self._title
+        del self._description
+
         title: QLabel = QLabel(titleText)
         title.setObjectName(f"{objName}_TITLE")
 
