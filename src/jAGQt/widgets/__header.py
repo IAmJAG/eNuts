@@ -34,8 +34,7 @@ class Header(QFrame, ComponentBase):
         self._description = description
         
     def _wInitializeUI(self):
-        objName: str = self.OBJECT_NAME
-
+        objName: str = self.OBJECT_NAME        
         self.setObjectName(objName)        
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 

@@ -1,21 +1,46 @@
 # ==================================================================================
 # src/jAGQt/widgets/workspace/__commandBar.py
 # ==================================================================================
-from typing import Optional, Union
-
-# ==================================================================================
-from PySide6.QtWidgets import QAbstractButton
+from typing import Optional, Protocol, Union, overload, runtime_checkable
 
 # ==================================================================================
 from ...components import iComponentBase
-from .__commandBarButton import iCommandBarItem
+from .__commandBarBase import iCommandBarBase
+from .__commandBarButton import iCommandBarButton
 from .__commandBarGroup import iCommandBarGroup
 
 
 # ==================================================================================
-class iCommandBar(iComponentBase):
-    def AddButton(self, button: QAbstractButton | iCommandBarItem, group: Optional[Union[str, iCommandBarGroup]] = None) -> QAbstractButton | iCommandBarItem: ...
-    def AddGroup(self, name: str) -> iCommandBarGroup: ...
-    def AddStretch(self, stretch: int = 1) -> None: ...
-    def setSpacingSize(self, size: int) -> None: ...
-    def Clear(self) -> None: ...
+@runtime_checkable
+class iCommandBar(iCommandBarBase, iComponentBase, Protocol):
+    @overload
+    def addButton(self, button: str) -> iCommandBarButton: ...
+    @overload
+    def addButton(self, button: iCommandBarButton) -> iCommandBarButton: ...    
+
+    @overload
+    def addButton(self, caption: str, group: str) -> iCommandBarButton: ...
+    @overload
+    def addButton(self, caption: str, group: iCommandBarGroup) -> iCommandBarButton: ...   
+
+    @overload    
+    def addButton(self, button: iCommandBarButton, group: str) -> iCommandBarButton: ...
+    @overload
+    def addButton(self, button: iCommandBarButton, group: iCommandBarGroup) -> iCommandBarButton: ...
+
+    def addButton(
+        self, button: iCommandBarButton | str, 
+        group: Optional[Union[str, iCommandBarGroup]] = None
+    ) -> iCommandBarButton:
+        
+        lButtonInstance = button
+        if isinstance(button, str):
+            lButtonInstance = iCommandBarButton(text=button)
+
+        return super().addButton(lButtonInstance, group)
+
+    @overload
+    def addGroup(self, name: str): ...
+    @overload
+    def addGroup(self, group: iCommandBarGroup): ...
+    def addGroup(self, name: str | iCommandBarGroup) -> iCommandBarGroup: ...

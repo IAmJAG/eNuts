@@ -1,17 +1,11 @@
 # ==================================================================================
-# src/jAGQt/types/interface/widgets/commandBar/__commandBarGroup.py
-# ==================================================================================
-from PySide6.QtWidgets import QAbstractButton
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 # ==================================================================================
-from ...components import iComponentBase
-from .__commandBarButton import iCommandBarButton
+if TYPE_CHECKING:    
+    from .__commandBarBase import iCommandBarBase
 
 
 # ==================================================================================
-class iCommandBarGroup(iComponentBase):
-    def __init__(self, name: str, *args, **kwargs) -> None: ...
-    def AddButton(self, button: QAbstractButton | iCommandBarButton) -> QAbstractButton | iCommandBarButton: ...
-    def RemoveButton(self, button: QAbstractButton | iCommandBarButton) -> None: ...    
-    def Contains(self, button: QAbstractButton | iCommandBarButton) -> bool: ...
-    def Clear(self) -> None: ...
+@runtime_checkable
+class iCommandBarGroup(iCommandBarBase, Protocol): ...

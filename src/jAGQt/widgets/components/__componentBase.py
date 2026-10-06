@@ -2,16 +2,14 @@
 # src/jAGQt/types/components/__component.py
 # ==================================================================================
 from PySide6.QtCore import QMargins
-from PySide6.QtWidgets import QLayout, QMainWindow, QWidget
-
-from ...types.interface.components import iComponentBase
+from PySide6.QtWidgets import QBoxLayout, QMainWindow, QWidget
 
 # ==================================================================================
 from ...utilities import contentMargins, replaceLayout
 
 
 # ==================================================================================
-class ComponentBase(iComponentBase):
+class ComponentBase:
     @property
     def Name(self: QWidget | QMainWindow) -> str:
         return self.objectName()
@@ -21,43 +19,45 @@ class ComponentBase(iComponentBase):
         self.setObjectName(value)
 
     @property
-    def Parent(self: QWidget) -> QWidget:
+    def Parent(self: QWidget | QMainWindow) -> QWidget:
         return self.parent()
 
     @Parent.setter
-    def Parent(self: QWidget, value: QWidget):
+    def Parent(self: QWidget, value: QWidget | QMainWindow):
         self.setParent(value)
 
     @property
-    def Layout(self: QWidget) -> QLayout:
-        lLayout = getattr(self, "_layout", None)
-        if lLayout is not None: return lLayout        
-        return self.layout()
+    def Layout(self: QWidget | QMainWindow) -> QBoxLayout:
+        lLayout: QBoxLayout = getattr(self, "_layout", None)
+        if lLayout is None: lLayout = self.layout()
+        return lLayout
 
     @Layout.setter
-    def Layout(self: QWidget, value: QLayout) -> None:
-        lOldLayout = getattr(self, "_layout", None)
+    def Layout(self: QWidget | QMainWindow, value: QBoxLayout) -> None:
+        lOldLayout: QBoxLayout = getattr(self, "_layout", None)
         replaceLayout(self, lOldLayout, value)
-        self._layout = value
+        self._layout: QBoxLayout = value
 
     @property
-    def ContentSpacing(self: QWidget):
-        return self.Layout.spacing()
+    def ContentSpacing(self: QWidget | QMainWindow):
+        layout: QBoxLayout = self.Layout
+        return layout.spacing()
 
     @ContentSpacing.setter
-    def ContentSpacing(self, value: int):
-        self.Layout.setSpacing(value)
+    def ContentSpacing(self: QWidget | QMainWindow, value: int):        
+        layout: QBoxLayout = self.Layout
+        layout.setSpacing(value)
 
     @property
-    def ContentMargins(self: QWidget) -> QMargins:
-        return self.Layout.contentsMargins()
+    def ContentMargins(self: QWidget | QMainWindow) -> QMargins:
+        layout: QBoxLayout = self.Layout
+        return layout.contentsMargins()
 
     @ContentMargins.setter
-    def ContentMargins(
-        self: QWidget | QMainWindow, value: QMargins | int | tuple[int] | list[int]
-    ):
+    def ContentMargins(self: QWidget | QMainWindow, value: QMargins | int | tuple[int] | list[int]):
+        layout: QBoxLayout = self.Layout
         if isinstance(value, QMargins):
-            self.Layout.setContentsMargins(value)
+            layout.setContentsMargins(value)
 
         else:
-            self.Layout.setContentsMargins(contentMargins(value))
+            layout.setContentsMargins(contentMargins(value))

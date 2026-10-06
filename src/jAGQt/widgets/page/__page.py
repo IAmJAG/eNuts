@@ -17,15 +17,17 @@ from PySide6.QtWidgets import (
 from jAGFx.workflow import workflow
 
 # ==================================================================================
-from ...components import CommandBarGroup
-
-# ==================================================================================
 from ...types.interface.components import iComponentBase
+from ...types.interface.widgets.commandBar import (
+    iCommandBar,
+    iCommandBarButton,
+    iCommandBarGroup,
+)
 from ...utilities import newLayout
 from ...widgets.components import ComponentBase
 from .. import Header
+from ..commandBar import CommandBar
 from ..components import ComponentBase
-from ..workspace.__commandBar import CommandBar
 
 
 # ==================================================================================
@@ -38,48 +40,55 @@ class Page(QWidget, ComponentBase):
         *args, **kwargs
     ) -> None: 
         super().__init__(*args, **kwargs)
-        self._title = title
-        self._description = description    
         self._id: str = str(uuid4()) if id is None else id
-        self._commandBar: CommandBar =  commandBarOn
+
+        # temp instance variable until initialized
+        self._title = title
+        self._description = description            
+        self._isCommandBarOn: bool = commandBarOn
 
     def _wInitializePage(self):
-        # clean up init
+        
         titleText: str = self._title
         descriptionText: str = self._description
+        isCommandBarOn: bool = self._isCommandBarOn 
+        OBJNAME: str = self.OBJECT_NAME
+
+        # clean up init
         del self._title
         del self._description
+        del self._isCommandBarOn
 
-        objName: str = self.OBJECT_NAME
-
-        self.setObjectName(objName)
+        self.setObjectName(OBJNAME)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
         pageHeader: Header = Header(title=titleText, description=descriptionText)
-        pageHeader.setObjectName(f"{objName}_HEADER")
+        pageHeader.setObjectName(f"{OBJNAME}_HEADER")
 
-        content: QWidget = QWidget(self)
+        content: QWidget = QWidget()
         content.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        content.setObjectName(f"{objName}_CONTENT")
+        content.setObjectName(f"{OBJNAME}_CONTENT")
 
         cntLayout: QBoxLayout = newLayout(QBoxLayout, spacing=0, margins=(0, 0, 0, 0))
         content.setLayout(cntLayout)
 
+        commandBar: Optional[iCommandBar] = CommandBar() if isCommandBarOn else None
+
         mainLayout: QBoxLayout = newLayout(QBoxLayout, spacing=0, margins=(0, 0, 0, 0), direction=QBoxLayout.Direction.TopToBottom)
         mainLayout.addWidget(pageHeader)
         mainLayout.addWidget(content)
-        if self._hasCommandBar:
-            self._commandBar = CommandBar()
-            cntLayout.addWidget(self._commandBar)
+        if bool(commandBar):          
+            mainLayout.addWidget(commandBar)
 
-        self._header: Header = pageHeader        
+        self._header: Header = pageHeader
         self._content: QWidget = content
+        self._commandBar: iCommandBar = commandBar
 
         self.setLayout(mainLayout)
         self._layout: QBoxLayout = cntLayout
 
     def addComponent(self, component: iComponentBase) -> None:
-        self.Layout.addWidget(component)
+        self.addWidget(component)
 
     def addWidget(self, widget: QWidget) -> None:
         self.Layout.addWidget(widget)
@@ -90,23 +99,22 @@ class Page(QWidget, ComponentBase):
         vData: QSizePolicy.Policy = QSizePolicy.Policy.Expanding
     ) -> QSpacerItem:        
         spacer: QSpacerItem = QSpacerItem(w, h, hData, vData)
-        self.Layout.addWidget(spacer)
+        self.Layout.addSpacerItem(spacer)
         return spacer
 
     def _assertCommandBar(self) -> bool:
-        if not hasattr(self, "_commandBar") or self._commandBar is None: 
+        if self._commandBar is None: 
             warning("CommandBar not initialized")
-            return False
-        
+            return False        
         return True
     
-    def addCommand(self, button: QAbstractButton, group: Optional[str | CommandBarGroup] = None) -> None:
-        if self._assertCommandBar(): return
-        self._commandBar.AddButton(button, group)
+    def addCommand(self, button: str | iCommandBarButton, group: Optional[str | iCommandBarGroup]) -> None:
+        if not self._assertCommandBar(): return
+        self._commandBar.addButton(button, group)
 
-    def addCommandGroup(self, name: str = "", spacing: int = 4):
-        if self._assertCommandBar(): return
-        self._commandBar.AddGroup(name, spacing)
+    def addCommandGroup(self, name: str | iCommandBarGroup):
+        if not self._assertCommandBar(): return
+        self._commandBar.addGroup(name)
 
     # ==================================================================================    
     def _assertWarnHeader(self) -> bool:

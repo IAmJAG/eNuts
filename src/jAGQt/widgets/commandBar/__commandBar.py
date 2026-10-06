@@ -16,47 +16,48 @@ from jAGQt.widgets.components import ComponentBase
 # ==================================================================================
 from ...types.interface.widgets.commandBar import (
     iCommandBar,
+    iCommandBarButton,
     iCommandBarGroup,
-    iCommandBarItem,
 )
-from .__commandBarButton import CommandBarItem
+from .__base import _commandBarBase
 from .__commandBarGroup import CommandBarGroup
+
+# ==================================================================================
+QtPolicy = QSizePolicy.Policy
+# ==================================================================================
 
 
 # ==================================================================================
 @workflow("InitializeUI")
-class CommandBar(QWidget, ComponentBase, iCommandBar):
+class CommandBar(QWidget, ComponentBase, _commandBarBase):
     OBJECT_NAME = "W_COMMANDBAR"
     def __init__(self, *args, **kwargs,) -> None:
         super().__init__(*args, **kwargs)
         self._groups: Dict[str, iCommandBarGroup] = dict[str, iCommandBarGroup]()        
+        self._buttons: Dict[str, iCommandBarButton] = dict[str, iCommandBarButton]()
 
     def _wIntializeUI(self) -> None:
+        super()._wIntializeUI()
         self.setObjectName("CommandBar")
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.setSizePolicy(QtPolicy.Expanding, QtPolicy.Fixed)
         self.Layout = newLayout(QBoxLayout, spacing=0, margins=(0, 0, 0, 0))
 
     def _assertButton(self, button: QAbstractButton) -> None:
-        if not isinstance(button, QAbstractButton | iCommandBarItem):
+        if not isinstance(button, QAbstractButton | iCommandBarButton):
             raise TypeError("CommandBar.AddButton expects a QAbstractButton subclass")
 
-    def AddButton(
+    def addButton(
         self,
-        button: QAbstractButton | iCommandBarItem,
+        button: str | iCommandBarButton,
         group: Optional[Union[str, iCommandBarGroup]] = None,
-    ) -> QAbstractButton | iCommandBarItem:        
-        if not isinstance(button, QAbstractButton):
-            raise TypeError("CommandBar.AddButton expects a QAbstractButton subclass")
-
+    ) -> iCommandBarButton:        
+        
         group: CommandBarGroup = self._resolveGroup(group)
         if group is None:
-            self.Layout.addWidget(button)
-            return button
-            
-        return group.AddButton(button)
+            return super().addButton(button)                
+        return group.addButton(button)
 
-    def AddGroup(self, name: str) -> CommandBarGroup:
+    def addGroup(self, name: str) -> CommandBarGroup:
         if name in self._groups: 
             return self._groups[name]
         
@@ -65,13 +66,13 @@ class CommandBar(QWidget, ComponentBase, iCommandBar):
         self.Layout.addWidget(lGroup)
         return lGroup
 
-    def AddStretch(self, stretch: int = 1) -> None:
+    def addStretch(self, stretch: int = 1) -> None:
         self.Layout.addStretch(stretch)
 
     def setSpacingSize(self, size: int) -> None:
         self.Layout.setSpacing(size)
 
-    def Clear(self) -> None:
+    def clear(self) -> None:
         while self.Layout.count():
             lItem = self.Layout.takeAt(0)
             if lItem is None:
@@ -81,9 +82,6 @@ class CommandBar(QWidget, ComponentBase, iCommandBar):
                 lWidget.setParent(None)
                 lWidget.deleteLater()
         self._groups.clear()
-
-    def GetGroup(self, name: str) -> Optional[CommandBarGroup]:
-        return self._groups.get(name)
 
     # ==================================================================================
     def _resolveGroup(self, group: Union[str, CommandBarGroup]) -> CommandBarGroup:
@@ -95,4 +93,4 @@ class CommandBar(QWidget, ComponentBase, iCommandBar):
 
         lExisting = self._groups.get(group)
         if lExisting is not None: return lExisting
-        return self.AddGroup(name=group)
+        return self.addGroup(name=group)
