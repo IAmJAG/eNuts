@@ -13,6 +13,7 @@ from utilities import createTask, getRunningLoop
 # ==================================================================================
 _T = TypeVar("_T", bound=type)
 _WORKFLOW_PREFIX = "_w"
+_ASYNC_PREFIX = "_a"
 _WORKFLOW_METADATA = "__jagfx_workflow__"
 _WORKFLOW_ASYNC = "__jagfx_workflow_async__"
 _WORKFLOW_GUARD = "__jagfx_workflow_active__"
@@ -20,19 +21,31 @@ _WORKFLOW_INIT_WRAPPED = "__jagfx_workflow_init_wrapped__"
 _WORKFLOW_SUBCLASS_WRAPPED = "__jagfx_workflow_subclass_wrapped__"
 
 # ==================================================================================
-def _workflow_method_name(name: str) -> str:
-    if not name or name.startswith(_WORKFLOW_PREFIX):
-        raise ValueError(f"Workflow name {name!r} must be a non-empty name without the {_WORKFLOW_PREFIX!r} prefix.")
+def _normalize_workflow_name(name: str) -> str:
+    """Normalize an explicit workflow name to a ``_w...`` or ``_a...`` method name."""
+    if not name:
+        raise ValueError("Workflow name must be a non-empty string.")
 
+    if name.startswith(_WORKFLOW_PREFIX) or name.startswith(_ASYNC_PREFIX):
+        if name in (_WORKFLOW_PREFIX, _ASYNC_PREFIX):
+            raise ValueError(
+                f"Workflow name {name!r} must include a name after the prefix."
+            )
+        return name
+
+    # Explicit bare names default to the synchronous ``_w`` prefix.
     return f"{_WORKFLOW_PREFIX}{name}"
 
 # ==================================================================================
 def _discover_workflows(cls: type) -> tuple[str, ...]:
-    """Discover workflow methods defined directly on ``cls``."""
+    """Discover ``_w...`` and ``_a...`` methods defined directly on ``cls``."""
     return tuple(
         name
         for name, value in cls.__dict__.items()
-        if name.startswith(_WORKFLOW_PREFIX) and callable(value)
+        if (
+            (name.startswith(_WORKFLOW_PREFIX) or name.startswith(_ASYNC_PREFIX))
+            and callable(value)
+        )
     )
 
 # ==================================================================================
@@ -51,7 +64,9 @@ def _run_workflow(instance: object) -> None:
                 f"Workflow method {name!r} was not found on {type(instance).__name__}."
             )
 
-        if loop is not None:
+        # ``_a...`` methods are scheduled when a loop is available and async_ is True.
+        # ``_w...`` methods (and ``_a...`` when no loop / async_=False) run synchronously.
+        if name.startswith(_ASYNC_PREFIX) and loop is not None:
             async def _runner(m=method):
                 m()
 
@@ -159,16 +174,22 @@ def workflow(*names: str, async_: bool = True) -> Callable[[_T], _T]: ...
 def workflow(*args, async_: bool = True):
     """Decorate a class with an automatic post-construction workflow.
 
-    ``@workflow`` discovers ``_w...`` methods defined directly on the decorated
-    class. ``@workflow("InitializeUI", "InitializeState")`` explicitly defines
-    the execution order. Workflow metadata is inherited normally by subclasses;
-    a subclass decorated with ``@workflow`` replaces that metadata rather than
-    merging with its base class.
+    ``@workflow`` discovers methods defined directly on the decorated class whose
+    names start with ``_w`` (synchronous) or ``_a`` (async-capable). Explicit
+    names via ``@workflow("InitializeUI", "_aLoadState")`` define execution
+    order; bare names default to the ``_w`` prefix, while names already starting
+    with ``_w`` / ``_a`` are used as-is.
 
-    ``async_`` (default ``True``) prefers scheduling each ``_w...`` method on a
-    running asyncio loop (wrapping the synchronous call in a one-liner
-    coroutine). When no loop is running, or when ``async_=False``, the methods
-    are invoked synchronously — the original behaviour.
+    Execution rules for each discovered/listed method:
+
+    - ``_w...`` — always invoked synchronously.
+    - ``_a...`` — when ``async_=True`` (default) and a running asyncio loop is
+      present, the synchronous body is wrapped in a one-liner coroutine and
+      scheduled via ``utilities.createTask``; otherwise it is called directly.
+
+    ``async_`` only affects ``_a...`` methods. Workflow metadata is inherited
+    normally by subclasses; a subclass decorated with ``@workflow`` replaces
+    that metadata rather than merging with its base class.
 
     The construction boundary is propagated through ``__init_subclass__`` so a
     subclass workflow runs only after that subclass's own ``__init__`` returns.
@@ -187,7 +208,7 @@ def workflow(*args, async_: bool = True):
         if not all(isinstance(name, str) for name in args):
             raise TypeError("Workflow names must be strings.")
 
-        names = tuple(_workflow_method_name(name) for name in args)
+        names = tuple(_normalize_workflow_name(name) for name in args)
         if len(names) != len(set(names)):
             raise ValueError("Workflow names must be unique.")
         cls = None
