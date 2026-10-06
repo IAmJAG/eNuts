@@ -180,25 +180,6 @@ class Page(QWidget, ComponentBase):
         self._header.Description = value
 
     @property
-    def Content(self) -> QWidget:
-        return self._content
-
-    @Content.setter
-    def Content(self, widget: QWidget) -> None:
-        """Replace content-host children with ``widget`` (reparented into the host)."""
-        while self._layout.count():
-            lItem = self._layout.takeAt(0)
-            if lItem is None:
-                continue
-            lW = lItem.widget()
-            if lW is not None:
-                lW.setParent(None)
-                lW.deleteLater()
-        if widget is not None:
-            widget.setParent(self._content)
-            self._layout.addWidget(widget)
-
-    @property
     def CommandBarState(self) -> bool:
         return bool(self._commandBar)
 
