@@ -1,6 +1,7 @@
 # ==================================================================================
 # src/jAGQt/widgets/__header.py
 # ==================================================================================
+from traceback import format_exc
 from typing import Optional
 
 # ==================================================================================
@@ -35,39 +36,69 @@ class Header(QFrame, ComponentBase):
         self._description = description
 
     def _wInitializeUI(self) -> None:
-        objName: str = self.OBJECT_NAME
-        self.setObjectName(objName)
-        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        try:
+            debug("[header] step1 objectName/attrs")
+            objName: str = self.OBJECT_NAME
+            self.setObjectName(objName)
+            self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
-        titleText: str = self._title
-        descriptionText: str = self._description
+            titleText: str = self._title
+            descriptionText: str = self._description
+            debug(f"[header] step2 titleText={titleText!r} desc={descriptionText!r}")
 
-        del self._title
-        del self._description
+            del self._title
+            del self._description
 
-        title: QLabel = QLabel(titleText)
-        title.setObjectName(f"{objName}_TITLE")
+            debug("[header] step3 QLabel title")
+            title: QLabel = QLabel(titleText)
+            title.setObjectName(f"{objName}_TITLE")
+            debug(
+                f"[header] step3b title parent={title.parent()!r} "
+                f"isWindow={title.isWindow()} visible={title.isVisible()}"
+            )
 
-        description: QLabel = QLabel(descriptionText)
-        description.setObjectName(f"{objName}_DESCRIPTION")
+            debug("[header] step4 QLabel description")
+            description: QLabel = QLabel(descriptionText)
+            description.setObjectName(f"{objName}_DESCRIPTION")
+            debug(
+                f"[header] step4b desc parent={description.parent()!r} "
+                f"isWindow={description.isWindow()} visible={description.isVisible()}"
+            )
 
-        outerLayout: QBoxLayout = newLayout(
-            QBoxLayout,
-            spacing=0,
-            margins=(0, 0, 0, 0),
-            direction=QBoxLayout.Direction.TopToBottom,
-        )
-        outerLayout.addWidget(title)
-        outerLayout.addWidget(description)
+            debug("[header] step5 newLayout")
+            outerLayout: QBoxLayout = newLayout(
+                QBoxLayout,
+                spacing=0,
+                margins=(0, 0, 0, 0),
+                direction=QBoxLayout.Direction.TopToBottom,
+            )
 
-        self.setLayout(outerLayout)
-        self._layout: QBoxLayout = outerLayout
-        self._title: QLabel = title
-        self._description: QLabel = description
+            debug("[header] step6 addWidget title+description")
+            outerLayout.addWidget(title)
+            outerLayout.addWidget(description)
 
-        # Safe now: labels are children of Header via the layout.
-        title.setVisible(bool(titleText))
-        description.setVisible(bool(descriptionText))
+            debug("[header] step7 setLayout")
+            self.setLayout(outerLayout)
+            self._layout: QBoxLayout = outerLayout
+            self._title: QLabel = title
+            self._description: QLabel = description
+            debug(
+                f"[header] step7b after setLayout title.parent={title.parent()!r} "
+                f"header.isWindow={self.isWindow()} header.visible={self.isVisible()}"
+            )
+
+            debug("[header] step8 setVisible on labels")
+            title.setVisible(bool(titleText))
+            description.setVisible(bool(descriptionText))
+            debug(
+                f"[header] step8b title.visible={title.isVisible()} "
+                f"desc.visible={description.isVisible()} "
+                f"header.visible={self.isVisible()} header.isWindow={self.isWindow()}"
+            )
+            debug("[header] _wInitializeUI DONE")
+        except Exception:
+            error(f"[header] _wInitializeUI FAIL\n{format_exc()}")
+            raise
 
     # ==================================================================================
     @property
