@@ -65,7 +65,7 @@ def _discover_workflows(cls: type) -> tuple[str, ...]:
 def _run_workflow(instance: object) -> None:
     names = getattr(type(instance), _WORKFLOW_METADATA, None)
     if names is None:
-        _trace(f"{type(instance).__name__}: no workflow metadata — skip")
+        _trace(f"{type(instance).__name__}: no workflow metadata - skip")
         return
 
     preferAsync: bool = getattr(type(instance), _WORKFLOW_ASYNC, True)
@@ -131,7 +131,7 @@ def _wrap_init(cls: type, original_init: Callable) -> None:
 
         if outermost:
             try:
-                _trace(f"{type(self).__name__}.__init__: body done → _run_workflow")
+                _trace(f"{type(self).__name__}.__init__: body done -> _run_workflow")
                 _run_workflow(self)
                 _trace(f"{type(self).__name__}.__init__: workflow complete")
 
