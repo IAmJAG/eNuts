@@ -99,7 +99,8 @@ class SettingsPage(Page):
 
     # ==================================================================================
     def _buildUI(self) -> None:
-        lRoot = QWidget()
+        # parent into the Page content host — never a floating root
+        lRoot = QWidget(self.Content)
         lRoot.setObjectName("SettingsRoot")
         lOuter = QVBoxLayout(lRoot)
         lOuter.setContentsMargins(0, 0, 0, 0)
