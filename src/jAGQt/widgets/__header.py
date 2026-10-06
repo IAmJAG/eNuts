@@ -43,14 +43,13 @@ class Header(QFrame, ComponentBase):
         titleText: str = self._title
         descriptionText: str = self._description
 
-        # parent=self — never create floating labels
+        # Build first; do NOT setVisible while parentless — that opens top-level windows.
+        # Layout.addWidget + setLayout reparents; visibility is applied only after that.
         title: QLabel = QLabel(titleText)
         title.setObjectName(f"{objName}_TITLE")
-        title.setVisible(bool(titleText))
 
         description: QLabel = QLabel(descriptionText)
         description.setObjectName(f"{objName}_DESCRIPTION")
-        description.setVisible(bool(descriptionText))
 
         outerLayout: QBoxLayout = newLayout(
             QBoxLayout,
@@ -65,6 +64,10 @@ class Header(QFrame, ComponentBase):
         self._layout: QBoxLayout = outerLayout
         self._title: QLabel = title
         self._description: QLabel = description
+
+        # Safe now: labels are children of Header via the layout.
+        title.setVisible(bool(titleText))
+        description.setVisible(bool(descriptionText))
 
     # ==================================================================================
     @property
