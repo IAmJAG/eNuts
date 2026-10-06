@@ -3,7 +3,7 @@
 # ==================================================================================================
 from asyncio import CancelledError, Event, set_event_loop
 from ctypes import windll
-from sys import platform
+from sys import platform, stdout
 from traceback import format_exc
 
 # ==================================================================================================
@@ -88,11 +88,15 @@ async def main(app: QApplication, *args, **kwargs):
     lShutdownEvent: Event = Event()
 
     def _onAboutToQuit() -> None:
+        print(f"[main] aboutToQuit topLevels={_topLevelSummary(app)}", flush=True)
         debug(f"[main] aboutToQuit topLevels={_topLevelSummary(app)}")
         lShutdownEvent.set()
 
     app.aboutToQuit.connect(_onAboutToQuit)
-    app.setQuitOnLastWindowClosed(True)
+    # DIAGNOSTIC: False so parentless Page/Header/CommandBar reparent during build
+    # cannot trigger automatic QApplication.quit(). Restore True after show() if needed.
+    app.setQuitOnLastWindowClosed(False)
+    print("[main] quitOnLastWindowClosed=False (diagnostic)", flush=True)
 
     if platform == "win32":
         windll.shell32.SetCurrentProcessExplicitAppUserModelID(cfg.applicationId)
@@ -102,17 +106,20 @@ async def main(app: QApplication, *args, **kwargs):
         _applyThemePalette(app, lTheme)
         app.setStyleSheet(cfg.styleSheet)
 
-        debug(f"[main] before MainWindow topLevels={_topLevelSummary(app)}")
+        print(f"[main] before MainWindow topLevels={_topLevelSummary(app)}", flush=True)
         lWin: MainWindow = MainWindow(*args, **kwargs)
-        debug(
+        print(
             f"[main] after MainWindow visible={lWin.isVisible()} "
-            f"topLevels={_topLevelSummary(app)}"
+            f"topLevels={_topLevelSummary(app)}",
+            flush=True,
         )
 
         lWin.show()
-        debug(
+        app.setQuitOnLastWindowClosed(True)
+        print(
             f"[main] after show visible={lWin.isVisible()} "
-            f"topLevels={_topLevelSummary(app)}"
+            f"topLevels={_topLevelSummary(app)}",
+            flush=True,
         )
 
         await lShutdownEvent.wait()
@@ -121,6 +128,7 @@ async def main(app: QApplication, *args, **kwargs):
         raise
 
     except Exception as ex:
+        print(f"[main] EXCEPTION {type(ex).__name__}: {ex}\n{format_exc()}", flush=True)
         error(f"[main] Unhandled exception: {type(ex).__name__}: {ex}")
         error(f"[main] traceback:\n{format_exc()}")
 
