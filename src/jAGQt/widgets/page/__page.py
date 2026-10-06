@@ -63,15 +63,10 @@ class Page(QWidget, ComponentBase):
         self.setObjectName(OBJNAME)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
-        # parent=self — never create floating children
-        pageHeader: Header = Header(
-            title=titleText,
-            description=descriptionText,
-            parent=self,
-        )
+        pageHeader: Header = Header( title=titleText, description=descriptionText)
         pageHeader.setObjectName(f"{OBJNAME}_HEADER")
 
-        content: QWidget = QWidget(self)
+        content: QWidget = QWidget()
         content.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         content.setObjectName(f"{OBJNAME}_CONTENT")
 
@@ -79,7 +74,7 @@ class Page(QWidget, ComponentBase):
         content.setLayout(cntLayout)
 
         commandBar: Optional[iCommandBar] = (
-            CommandBar(parent=self) if isCommandBarOn else None
+            CommandBar() if isCommandBarOn else None
         )
 
         mainLayout: QBoxLayout = newLayout(
@@ -96,10 +91,8 @@ class Page(QWidget, ComponentBase):
         self._header: Header = pageHeader
         self._content: QWidget = content
         self._commandBar: Optional[iCommandBar] = commandBar
-        self._mainLayout: QBoxLayout = mainLayout
 
         self.setLayout(mainLayout)
-        # content-area layout used by addWidget / addSpacer
         self._layout: QBoxLayout = cntLayout
 
     def addComponent(self, component: iComponentBase) -> None:

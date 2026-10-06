@@ -44,11 +44,11 @@ class Header(QFrame, ComponentBase):
         descriptionText: str = self._description
 
         # parent=self — never create floating labels
-        title: QLabel = QLabel(titleText, self)
+        title: QLabel = QLabel(titleText)
         title.setObjectName(f"{objName}_TITLE")
         title.setVisible(bool(titleText))
 
-        description: QLabel = QLabel(descriptionText, self)
+        description: QLabel = QLabel(descriptionText)
         description.setObjectName(f"{objName}_DESCRIPTION")
         description.setVisible(bool(descriptionText))
 

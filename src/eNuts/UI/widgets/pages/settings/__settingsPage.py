@@ -94,8 +94,8 @@ class SettingsPage(Page):
         )
         self.setObjectName("SettingsPage")
 
-        self._buildUI()
-        self._loadCurrentTheme()
+        # self._buildUI()
+        # self._loadCurrentTheme()
 
     # ==================================================================================
     def _buildUI(self) -> None:
