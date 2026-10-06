@@ -5,6 +5,7 @@ from __future__ import annotations
 
 # ==================================================================================
 from functools import wraps
+from traceback import format_exc
 from typing import Callable, TypeVar, overload
 
 # ==================================================================================
@@ -19,6 +20,16 @@ _WORKFLOW_ASYNC = "__jagfx_workflow_async__"
 _WORKFLOW_GUARD = "__jagfx_workflow_active__"
 _WORKFLOW_INIT_WRAPPED = "__jagfx_workflow_init_wrapped__"
 _WORKFLOW_SUBCLASS_WRAPPED = "__jagfx_workflow_subclass_wrapped__"
+
+
+# ==================================================================================
+def _trace(msg: str) -> None:
+    """Best-effort verbose log; never raise from the tracer itself."""
+    try:
+        debug(f"[workflow] {msg}")
+    except Exception:
+        pass
+
 
 # ==================================================================================
 def _normalize_workflow_name(name: str) -> str:
@@ -36,6 +47,7 @@ def _normalize_workflow_name(name: str) -> str:
     # Explicit bare names default to the synchronous ``_w`` prefix.
     return f"{_WORKFLOW_PREFIX}{name}"
 
+
 # ==================================================================================
 def _discover_workflows(cls: type) -> tuple[str, ...]:
     """Discover ``_w...`` and ``_a...`` methods defined directly on ``cls``."""
@@ -48,14 +60,21 @@ def _discover_workflows(cls: type) -> tuple[str, ...]:
         )
     )
 
+
 # ==================================================================================
 def _run_workflow(instance: object) -> None:
     names = getattr(type(instance), _WORKFLOW_METADATA, None)
     if names is None:
+        _trace(f"{type(instance).__name__}: no workflow metadata — skip")
         return
 
     preferAsync: bool = getattr(type(instance), _WORKFLOW_ASYNC, True)
     loop = getRunningLoop() if preferAsync else None
+
+    _trace(
+        f"{type(instance).__name__}: run stages={list(names)} "
+        f"async_={preferAsync} loop={'yes' if loop is not None else 'no'}"
+    )
 
     for name in names:
         method = getattr(instance, name, None)
@@ -67,38 +86,61 @@ def _run_workflow(instance: object) -> None:
         # ``_a...`` methods are scheduled when a loop is available and async_ is True.
         # ``_w...`` methods (and ``_a...`` when no loop / async_=False) run synchronously.
         if name.startswith(_ASYNC_PREFIX) and loop is not None:
-            async def _runner(m=method):
-                m()
+            _trace(f"{type(instance).__name__}.{name}: SCHEDULE async")
+
+            async def _runner(m=method, stage=name, clsName=type(instance).__name__):
+                _trace(f"{clsName}.{stage}: BEGIN (async task)")
+                try:
+                    m()
+                    _trace(f"{clsName}.{stage}: END (async task)")
+                except Exception:
+                    _trace(f"{clsName}.{stage}: FAIL (async task)\n{format_exc()}")
+                    raise
 
             createTask(_runner)
         else:
-            method()
+            _trace(f"{type(instance).__name__}.{name}: BEGIN (sync)")
+            try:
+                method()
+                _trace(f"{type(instance).__name__}.{name}: END (sync)")
+            except Exception:
+                _trace(f"{type(instance).__name__}.{name}: FAIL (sync)\n{format_exc()}")
+                raise
+
 
 # ==================================================================================
 def _wrap_init(cls: type, original_init: Callable) -> None:
-    if getattr(original_init, _WORKFLOW_INIT_WRAPPED, False): return
+    if getattr(original_init, _WORKFLOW_INIT_WRAPPED, False):
+        return
 
     @wraps(original_init)
     def wrapped_init(self, *init_args, **init_kwargs):
         outermost = not getattr(self, _WORKFLOW_GUARD, False)
-        if outermost: setattr(self, _WORKFLOW_GUARD, True)
+        if outermost:
+            setattr(self, _WORKFLOW_GUARD, True)
+            _trace(f"{type(self).__name__}.__init__: ENTER outermost")
 
         try:
             original_init(self, *init_args, **init_kwargs)
 
         except BaseException:
-            if outermost: delattr(self, _WORKFLOW_GUARD)
+            if outermost:
+                _trace(f"{type(self).__name__}.__init__: FAIL in body\n{format_exc()}")
+                delattr(self, _WORKFLOW_GUARD)
             raise
 
         if outermost:
             try:
+                _trace(f"{type(self).__name__}.__init__: body done → _run_workflow")
                 _run_workflow(self)
+                _trace(f"{type(self).__name__}.__init__: workflow complete")
 
             finally:
                 delattr(self, _WORKFLOW_GUARD)
 
     setattr(wrapped_init, _WORKFLOW_INIT_WRAPPED, True)
     cls.__init__ = wrapped_init
+
 
 # ==================================================================================
 def _prepare_subclass(cls: type) -> None:
@@ -107,6 +149,7 @@ def _prepare_subclass(cls: type) -> None:
     original_init = cls.__dict__.get("__init__")
 
     if original_init is None:
+
         def generated_init(self, *init_args, **init_kwargs):
             super(cls, self).__init__(*init_args, **init_kwargs)
 
@@ -134,6 +177,7 @@ def _prepare_subclass(cls: type) -> None:
     setattr(wrapped_hook, _WORKFLOW_SUBCLASS_WRAPPED, True)
     cls.__init_subclass__ = classmethod(wrapped_hook)
 
+
 # ==================================================================================
 def _install_subclass_hook(cls: type) -> None:
     """Install propagation for a workflow root that has no inherited hook."""
@@ -154,6 +198,7 @@ def _install_subclass_hook(cls: type) -> None:
             original_hook_function(subclass, **kwargs)
             _prepare_subclass(subclass)
     else:
+
         @wraps(object.__init_subclass__)
         def wrapped_hook(subclass, **kwargs):
             super(cls, subclass).__init_subclass__(**kwargs)
@@ -167,8 +212,10 @@ def _install_subclass_hook(cls: type) -> None:
 @overload
 def workflow(cls: _T) -> _T: ...
 
+
 @overload
 def workflow(*names: str, async_: bool = True) -> Callable[[_T], _T]: ...
+
 
 # ==================================================================================
 def workflow(*args, async_: bool = True):
@@ -228,6 +275,7 @@ def workflow(*args, async_: bool = True):
             _wrap_init(target, target.__dict__["__init__"])
 
         else:
+
             def generated_init(self, *init_args, **init_kwargs):
                 super(target, self).__init__(*init_args, **init_kwargs)
 
