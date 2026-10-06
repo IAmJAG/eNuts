@@ -24,6 +24,15 @@ from ..UI.windows import MainWindow
 C_DARK_THEMES = frozenset({"dark", "dracula", "ironman", "material"})
 
 
+def _topLevelSummary(app: QApplication) -> str:
+    lWidgets = app.topLevelWidgets()
+    lParts = [
+        f"{type(w).__name__}(name={w.objectName()!r},vis={w.isVisible()},win={w.isWindow()})"
+        for w in lWidgets
+    ]
+    return f"count={len(lWidgets)} {lParts}"
+
+
 def _applyThemePalette(app: QApplication, theme: str) -> None:
     """Override system palette so text is never black-on-dark (or white-on-light)."""
     lPal = QPalette(app.palette())
@@ -74,47 +83,41 @@ def _applyThemePalette(app: QApplication, theme: str) -> None:
 
 # ==================================================================================================
 async def main(app: QApplication, *args, **kwargs):
-    debug("[main] enter async main")
     cfg: iENUTSConfiguration | iApplicationConfiguration = eNutsConfiguration()
-    debug("[main] config loaded")
 
     lShutdownEvent: Event = Event()
-    app.aboutToQuit.connect(lambda: debug("[main] aboutToQuit fired") or lShutdownEvent.set())
+
+    def _onAboutToQuit() -> None:
+        debug(f"[main] aboutToQuit topLevels={_topLevelSummary(app)}")
+        lShutdownEvent.set()
+
+    app.aboutToQuit.connect(_onAboutToQuit)
     app.setQuitOnLastWindowClosed(True)
-    debug("[main] quitOnLastWindowClosed=True")
 
     if platform == "win32":
         windll.shell32.SetCurrentProcessExplicitAppUserModelID(cfg.applicationId)
 
     try:
         lTheme = str(getattr(cfg, "style", None) or "ironman").strip().lower()
-        debug(f"[main] theme={lTheme!r} — applying palette + stylesheet")
         _applyThemePalette(app, lTheme)
         app.setStyleSheet(cfg.styleSheet)
-        debug("[main] stylesheet applied")
 
-        debug("[main] constructing MainWindow…")
+        debug(f"[main] before MainWindow topLevels={_topLevelSummary(app)}")
         lWin: MainWindow = MainWindow(*args, **kwargs)
         debug(
-            f"[main] MainWindow constructed id={id(lWin)} "
-            f"visible={lWin.isVisible()} size={lWin.size().width()}x{lWin.size().height()}"
+            f"[main] after MainWindow visible={lWin.isVisible()} "
+            f"topLevels={_topLevelSummary(app)}"
         )
 
-        debug("[main] calling show()")
         lWin.show()
         debug(
-            f"[main] after show() visible={lWin.isVisible()} "
-            f"active={lWin.isActiveWindow()} "
-            f"topLevel={lWin.isWindow()} "
-            f"geometry={lWin.geometry().getRect()}"
+            f"[main] after show visible={lWin.isVisible()} "
+            f"topLevels={_topLevelSummary(app)}"
         )
 
-        debug("[main] waiting on shutdown event")
         await lShutdownEvent.wait()
-        debug("[main] shutdown event set — exiting wait")
 
     except CancelledError:
-        debug("[main] CancelledError")
         raise
 
     except Exception as ex:
@@ -123,24 +126,19 @@ async def main(app: QApplication, *args, **kwargs):
 
     finally:
         if not lShutdownEvent.is_set():
-            debug("[main] finally: forcing shutdown event")
             lShutdownEvent.set()
 
-    debug("[main] app.quit()")
     app.quit()
 
 
 # ==================================================================================================
 def program(*args):
-    debug("[main] program() start")
     app: QApplication = QApplication()
     loop: QEventLoop = QEventLoop(app)
 
     set_event_loop(loop)
-    debug("[main] event loop set — run_until_complete(main)")
     with loop:
         loop.run_until_complete(main(app))
-    debug("[main] program() end")
 
 
 # ==================================================================================================
