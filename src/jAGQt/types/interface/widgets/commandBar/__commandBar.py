@@ -1,18 +1,17 @@
 # ==================================================================================
 # src/jAGQt/widgets/workspace/__commandBar.py
 # ==================================================================================
-from typing import Optional, Protocol, Union, overload, runtime_checkable
+from typing import TYPE_CHECKING, Optional, Protocol, Union, overload, runtime_checkable
 
 # ==================================================================================
 from ...components import iComponentBase
-from .__commandBarBase import iCommandBarBase
 from .__commandBarButton import iCommandBarButton
 from .__commandBarGroup import iCommandBarGroup
 
 
 # ==================================================================================
 @runtime_checkable
-class iCommandBar(iCommandBarBase, iComponentBase, Protocol):
+class iCommandBar(iComponentBase, Protocol):
     @overload
     def addButton(self, button: str) -> iCommandBarButton: ...
     @overload
@@ -40,7 +39,23 @@ class iCommandBar(iCommandBarBase, iComponentBase, Protocol):
         return super().addButton(lButtonInstance, group)
 
     @overload
+    def removeButton(self, button: str): ...
+    @overload
+    def removeButton(self, button: iCommandBarButton): ...
+    def removeButton(self, button: str | iCommandBarButton): ...
+
+    @overload
+    def contains(self, button: str) -> bool: ...
+    @overload
+    def contains(self, button: iCommandBarButton) -> bool: ...    
+    def contains(self, button: str |iCommandBarButton) -> bool: ...
+
+    @overload
     def addGroup(self, name: str): ...
     @overload
     def addGroup(self, group: iCommandBarGroup): ...
     def addGroup(self, name: str | iCommandBarGroup) -> iCommandBarGroup: ...
+
+    def clear(self) -> None: ...
+
+    
