@@ -27,7 +27,7 @@ class Shell(iShell):
     """Application shell: owns SideBar composition, Workspace content host, and device registry."""
 
     def intializeUI(self: iMainWindowBase) -> None:
-        debug("[shell] intializeUI BEGIN")
+        print("[shell] intializeUI BEGIN", flush=True)
         try:
             self.Layout.setDirection(QBoxLayout.Direction.LeftToRight)
             self.ContentSpacing = 0
@@ -52,8 +52,9 @@ class Shell(iShell):
             self.Layout.addWidget(self._workspace, 1)
 
             self._navigateTo("Dashboard")
-            debug(f"[shell] intializeUI END pages={self._workspace.Count}")
+            print(f"[shell] intializeUI END pages={self._workspace.Count}", flush=True)
         except Exception:
+            print(f"[shell] intializeUI FAIL\n{format_exc()}", flush=True)
             error(f"[shell] intializeUI FAIL\n{format_exc()}")
             raise
 
@@ -123,21 +124,22 @@ class Shell(iShell):
         ]
 
         for lTitle, lDescription in lPages:
-            debug(f"[shell] before Page({lTitle!r})")
+            print(f"[shell] before Page({lTitle!r})", flush=True)
             lPage: Page = Page(title=lTitle, description=lDescription, commandBarOn=True)
-            debug(
+            print(
                 f"[shell] after Page({lTitle!r}) "
-                f"isWindow={lPage.isWindow()} visible={lPage.isVisible()}"
+                f"isWindow={lPage.isWindow()} visible={lPage.isVisible()}",
+                flush=True,
             )
             self._workspace.AddPage(lPage, name=lTitle)
-            debug(f"[shell] after AddPage({lTitle!r}) isWindow={lPage.isWindow()}")
+            print(f"[shell] after AddPage({lTitle!r}) isWindow={lPage.isWindow()}", flush=True)
 
         lRecorder = KAndGRecorderPage(shell=self, parent=self._workspace)
         self._workspace.AddPage(lRecorder, name="K&G Recorder")
 
         lSettings = SettingsPage(parent=self._workspace)
         self._workspace.AddPage(lSettings, name="Settings")
-        debug(f"[shell] _buildPages done count={self._workspace.Count}")
+        print(f"[shell] _buildPages done count={self._workspace.Count}", flush=True)
 
     # ==================================================================================
     def AddDevice(self, device: iDevice) -> None:
