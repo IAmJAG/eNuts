@@ -117,7 +117,7 @@ class Shell(iShell):
         ]
 
         for lTitle, lDescription in lPages:
-            lPage: Page = Page(title=lTitle, description=lDescription, parent=self._workspace)
+            lPage: Page = Page(title=lTitle, description=lDescription, commandBarOn=True)
             self._workspace.AddPage(lPage, name=lTitle)
 
         lRecorder = KAndGRecorderPage(shell=self, parent=self._workspace)

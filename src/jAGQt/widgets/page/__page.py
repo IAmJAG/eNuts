@@ -73,9 +73,7 @@ class Page(QWidget, ComponentBase):
         cntLayout: QBoxLayout = newLayout(QBoxLayout, spacing=0, margins=(0, 0, 0, 0))
         content.setLayout(cntLayout)
 
-        commandBar: Optional[iCommandBar] = (
-            CommandBar() if isCommandBarOn else None
-        )
+        commandBar: Optional[iCommandBar] = CommandBar() if isCommandBarOn else None
 
         mainLayout: QBoxLayout = newLayout(
             QBoxLayout,

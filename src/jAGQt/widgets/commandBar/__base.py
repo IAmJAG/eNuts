@@ -26,7 +26,7 @@ QtPolicy = QSizePolicy.Policy
 # ==================================================================================
 class _commandBarBase:
     def _wInitializeUI(self: QWidget) -> None:
-        self.Layout = newLayout(QHBoxLayout, spacing=0, margins=(0, 0, 0, 0))
+        self.Layout = newLayout(QBoxLayout, spacing=0, margins=(0, 0, 0, 0))
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self._buttons: Dict[str, iCommandBarButton]
 
