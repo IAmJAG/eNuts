@@ -1,4 +1,3 @@
-```qss
 QMainWindow,
 QWidget {
     background-color: #181818;
@@ -286,4 +285,3 @@ QLabel#SideBarText,
 QLabel#SideBarGroupTitle {
     color: inherit;
 }
-```
