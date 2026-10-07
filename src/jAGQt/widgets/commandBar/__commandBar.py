@@ -23,7 +23,7 @@ QtPolicy = QSizePolicy.Policy
 # ==================================================================================
 
 # ==================================================================================
-@workflow("InitializeUI")
+@workflow("InitializeBase", "InitializeUI")
 class CommandBar(QWidget, ComponentBase, _commandBarBase):
     OBJECT_NAME = "W_COMMANDBAR"
     def __init__(self, *args, **kwargs) -> None:
@@ -31,8 +31,7 @@ class CommandBar(QWidget, ComponentBase, _commandBarBase):
         self._groups: Dict[str, ICBG] = dict[str, ICBG]()
         self._buttons: list[ICBB] = list[ICBB]()
 
-    def _wInitializeUI(self) -> None:
-        super()._wInitializeShell()
+    def _wInitializeUI(self) -> None:        
         self.setObjectName(self.OBJECT_NAME)
         self.setSizePolicy(QtPolicy.Expanding, QtPolicy.Fixed)
         self.Layout = newLayout(QBoxLayout, spacing=0, margins=(0, 0, 0, 0))

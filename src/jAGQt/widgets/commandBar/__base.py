@@ -20,7 +20,7 @@ QtPolicy = QSizePolicy.Policy
 
 # ==================================================================================
 class _commandBarBase:
-    def _wInitializeShell(self: QWidget) -> None:
+    def _wInitializeBase(self: QWidget) -> None:
         self.Layout = newLayout(QBoxLayout, spacing=0, margins=(0, 0, 0, 0))
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self._buttons: List[iCommandBarButton] = list[iCommandBarButton]()        
@@ -41,20 +41,14 @@ class _commandBarBase:
 
     # ==================================================================================
     def removeButton(self, button: str | iCommandBarButton) -> None:
-        if not self.contains(button): return
         if isinstance(button, str):
-            for btn in self._buttons:
-                if btn.text() == button:
-                    button: iCommandBarButton = btn
+            button = next((b for b in self._buttons if b.text() == button), None)
 
-            btnIdx: int = self._buttons.index(button)
-            button: iCommandBarButton = self._buttons.pop(btnIdx)
-
-        btn: QAbstractButton = button
-        layout: QBoxLayout = self.Layout
-        if btn: layout.removeWidget(btn)
-        btn.setParent(None)
-        btn.deleteLater()
+        if button not in self._buttons: return
+        self._buttons.remove(button)
+        self.Layout.removeWidget(button)
+        button.setParent(None)
+        button.deleteLater()
 
     # ==================================================================================
     def clear(self) -> None:

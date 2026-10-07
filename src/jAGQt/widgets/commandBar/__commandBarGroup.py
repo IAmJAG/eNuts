@@ -16,7 +16,7 @@ from .__base import _commandBarBase
 
 
 # ==================================================================================
-@workflow("InitializeUI")
+@workflow("InitializeBase")
 class CommandBarGroup(QWidget, ComponentBase, _commandBarBase):
     OBJECT_NAME = "C_COMMANDBAR_GROUP"
     def __init__(self, name: str, *args, **kwargs) -> None:
