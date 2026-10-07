@@ -4,27 +4,15 @@ from PySide6.QtWidgets import QPushButton
 
 # ==================================================================================
 class _commandBarButtonBase:
-    def emit(self: QPushButton, signal: str, *args, **kwargs):
-        try:                
-            with self._lock:
-                try:
-                    self.setDisabled(True)
-                    super().emit(signal, *args, **kwargs)
-
-                except Exception as ex:
-                    raise ex
-
-                finally:
-                    self.setDisabled(False)
-
-        except Exception as ex:
-            raise ex
-
-        finally:
-            self.setDisabled(False)
-
-    def text(self) -> str:
-        return super().text()
-
-    def setText(self, text: str): 
-        super().setText(text)
+    def emit(self: QPushButton, signal: str, *args, **kwargs) -> None:
+        with self._lock:
+            self.setDisabled(True)
+            try:
+                lSig = getattr(self, signal, None)
+                if lSig is None or not hasattr(lSig, "emit"):
+                    raise AttributeError(
+                        f"{type(self).__name__} has no signal named {signal!r}"
+                    )
+                lSig.emit(*args, **kwargs)
+            finally:
+                self.setDisabled(False)

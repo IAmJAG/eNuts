@@ -1,7 +1,7 @@
 # ==================================================================================
 # src/jAGQt/widgets/commandBar/__commandBar.py
 # ==================================================================================
-from typing import Dict, Optional, Type, Union
+from typing import Dict, Optional, Union
 
 # ==================================================================================
 from PySide6.QtWidgets import QAbstractButton, QBoxLayout, QSizePolicy, QWidget
@@ -12,7 +12,6 @@ from jAGFx.workflow import workflow
 # ==================================================================================
 from ...types.interface.widgets.commandBar import iCommandBarButton as ICBB
 from ...types.interface.widgets.commandBar import iCommandBarGroup as ICBG
-from ...utilities import newLayout
 from ..components import ComponentBase
 from .__base import _commandBarBase
 from .__commandBarGroup import CommandBarGroup
@@ -22,38 +21,40 @@ from .commandBarButton import CommandBarButton
 QtPolicy = QSizePolicy.Policy
 # ==================================================================================
 
+
 # ==================================================================================
 @workflow("InitializeBase", "InitializeUI")
 class CommandBar(QWidget, ComponentBase, _commandBarBase):
     OBJECT_NAME = "W_COMMANDBAR"
+
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._groups: Dict[str, ICBG] = dict[str, ICBG]()
         self._buttons: list[ICBB] = list[ICBB]()
 
-    def _wInitializeUI(self) -> None:        
+    def _wInitializeUI(self) -> None:
         self.setObjectName(self.OBJECT_NAME)
         self.setSizePolicy(QtPolicy.Expanding, QtPolicy.Fixed)
-        self.Layout = newLayout(QBoxLayout, spacing=0, margins=(0, 0, 0, 0))
 
     def _assertButton(self, button: QAbstractButton) -> None:
         if not isinstance(button, ICBB):
-            raise TypeError("CommandBar.AddButton expects a iCommandBarButton contractor")
+            raise TypeError(
+                "CommandBar.addButton expects a iCommandBarButton contractor"
+            )
 
     def addButton(self, button: str | ICBB, group: str | ICBG = None) -> ICBB:
-        if isinstance(button, str): 
+        if isinstance(button, str):
             button: ICBB = CommandBarButton(button)
 
         lGroup: Optional[ICBG] = self._resolveGroup(group)
-        if lGroup is None: 
+        if lGroup is None:
             return super().addButton(button)
         return lGroup.addButton(button)
 
     def addGroup(self, name: str) -> ICBG:
-        if name.strip() == "": 
-            warning("addGroup: Group name cannot be empty")
-            return None
-        
+        if name.strip() == "":
+            raise ValueError("addGroup: Group name cannot be empty")
+
         if name in self._groups:
             return self._groups[name]
 
@@ -71,23 +72,27 @@ class CommandBar(QWidget, ComponentBase, _commandBarBase):
     def clear(self) -> None:
         while self.Layout.count():
             lItem = self.Layout.takeAt(0)
-            if lItem is None: continue
+            if lItem is None:
+                continue
             lWidget = lItem.widget()
             if lWidget is not None:
                 lWidget.setParent(None)
                 lWidget.deleteLater()
         self._groups.clear()
+        self._buttons.clear()
 
     # ==================================================================================
     def _resolveGroup(self, group: Optional[Union[str, ICBG]]) -> Optional[ICBG]:
-        if group is None: return None
+        if group is None:
+            return None
         if isinstance(group, ICBG):
-            if group not in self._groups.values():                
+            if group not in self._groups.values():
                 self.Layout.addWidget(group)
                 self._groups.update({group.Name: group})
             return group
 
         lExisting = self._groups.get(group)
-        if lExisting is not None: return lExisting
-        
+        if lExisting is not None:
+            return lExisting
+
         return self.addGroup(name=group)
