@@ -3,11 +3,9 @@
 # ==================================================================================
 from PySide6.QtWidgets import QBoxLayout
 
+# ==================================================================================
+from ...components import iComponentBase
+
 
 # ==================================================================================
-class iWindowBase:
-    def __init__(self, name: str = None, frameless: bool = False, *args, **kwargs): ...
-    @property
-    def Name(self) -> str: ...
-    @property
-    def Layout(self) -> QBoxLayout: ...
+class iWindowBase(iComponentBase): ...

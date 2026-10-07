@@ -1,7 +1,7 @@
 # ==================================================================================================
 from inspect import FrameInfo, currentframe, getframeinfo, getmodule
 from os.path import abspath, basename
-from traceback import FrameSummary
+from traceback import FrameSummary, format_exception
 
 # ==================================================================================================
 from types import FrameType, ModuleType
@@ -74,22 +74,31 @@ def getCallableFromFrame(frame: FrameType):
 
 # ==================================================================================================
 def formatTrace(err) -> List[str]:
+    """Return stack-trace lines for any exception.
+
+    Prefer a custom getTrace() when present; otherwise use stdlib traceback.
+    Always returns a list (never None) so callers can safely extend.
+    """
     try:
-        if hasattr(err, "getTrace"):            
+        if hasattr(err, "getTrace"):
             lTrace: Dict[str, Any] = err.getTrace()
-                    
-            traceStr: List[str] = list[str]()
+
+            traceStr: List[str] = []
             traceStr.append(f"{TAB}{lTrace['Message']}:")
             traceStr.append(f"{TAB}Process: {lTrace['Origin']['Process']}")
             traceStr.append(f"{TAB}Thread: {lTrace['Origin']['ThreadId']} -> {lTrace['Origin']['ThreadName']}")
             traceStr.append(f"{LF}{TAB}Sources:")
-            for origins in err.getTrace()["Sources"]:
-                if origins["File"].endswith("__init__.py") or origins["Package"].endswith(IGNORE_MODULES): continue
+            for origins in lTrace["Sources"]:
+                if origins["File"].endswith("__init__.py") or origins["Package"].endswith(IGNORE_MODULES):
+                    continue
                 traceStr.append(f"{TAB * 2}{origins['File']}:{origins['LineNo']}")
 
             return traceStr
 
-        return None
+        # Standard Exception path — always emit a usable traceback
+        lLines: List[str] = format_exception(type(err), err, err.__traceback__)
+        # strip trailing newlines so the formatter can re-join cleanly
+        return [line.rstrip("\n") for line in lLines if line.strip()]
 
     except Exception as ex:
         raise ex
