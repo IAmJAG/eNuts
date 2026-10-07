@@ -21,8 +21,9 @@ class eNutsConfiguration(ApplicationConfiguration, iENUTSConfiguration, iConfigu
         self._savePath = os.path.join(CONFIG_PATH, "appconfig.json")
         self._assetFoder: str ="assets"
         self._LDPath: str = ""
-        self._styleSheet = ""
-        self.Properties.extend(["LDPath", "assetFolder"])
+        self._style: str = ""
+        self._themePath: str = ""
+        self.Properties.extend(["LDPath", "assetFolder", "style", "themePath"])
         self.load()
 
     @property
@@ -38,15 +39,27 @@ class eNutsConfiguration(ApplicationConfiguration, iENUTSConfiguration, iConfigu
         self._LDPath = value
 
     @property
-    def styleSheet(self):
-        return self._styleSheet
+    def style(self):
+        return self._style
+
+    @style.setter
+    def style(self, value):
+        self._style = value
+
+    @property
+    def themePath(self):
+        return self._themePath
+
+    @themePath.setter
+    def themePath(self, value):
+        self._themePath = value
     
     def save(self, path=None) -> iENUTSConfiguration:
         super().save(path)
-        self._styleSheet = getStyleSheet(os.path.join(CONFIG_PATH, f"{self.style}.qss"))
         return self
     
     def load(self, path=None) -> iENUTSConfiguration:
         super().load(path)
-        self._styleSheet = getStyleSheet(os.path.join(CONFIG_PATH, f"{self.style}.qss"))
         return self
+
+    

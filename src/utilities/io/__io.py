@@ -46,6 +46,7 @@ def getStyleSheet(filePath: str) -> str:
     if os.path.exists(filePath):
         with open(filePath, "r") as f:
             return f.read()
+
     else:
         raise FileNotFoundError(f"File {filePath} not found")
 

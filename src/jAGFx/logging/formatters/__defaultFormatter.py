@@ -1,8 +1,12 @@
 # ==================================================================================
+import inspect
 from logging import Formatter
 
 # ==================================================================================
 import colorlog
+
+# ==================================================================================
+from utilities import getCallersFrame
 
 # ==================================================================================
 from ..data import CallerInformation
@@ -49,7 +53,6 @@ class DefaultFormatter(Formatter):
     def format(self, record):
         try:
             coloredFormatter: colorlog.ColoredFormatter = self._coloredFormatter
-
             lCaller = getattr(record, "caller", None)
             if lCaller is None:
                 lCaller = CallerInformation("", "", "NOT", "MINE", "", 0)

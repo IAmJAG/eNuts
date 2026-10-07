@@ -2,4 +2,5 @@ QMainWindow,
 QWidget {
     background-color: #0e1014;
     color: #f5f7fa;
+    border-radius: 0px;
 }
