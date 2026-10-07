@@ -52,7 +52,7 @@ class _commandBarBase:
 
         btn: QAbstractButton = button
         layout: QBoxLayout = self.Layout
-        if bool(button): layout.removeWidget(btn)
+        if btn: layout.removeWidget(btn)
         btn.setParent(None)
         btn.deleteLater()
 
