@@ -1,7 +1,289 @@
+```qss
 QMainWindow,
 QWidget {
-    background: #181818;
+    background-color: #181818;
     color: #d4d4d4;
-    font-family: "Segoe UI", "Arial", sans-serif;
-    font-size: 12px;
 }
+
+/* ==================================================================================
+   Main window
+   ================================================================================== */
+
+QMainWindow {
+    background-color: #181818;
+    color: #d4d4d4;
+}
+
+/* ==================================================================================
+   Command bar
+   ================================================================================== */
+
+QWidget#W_COMMANDBAR {
+    background-color: #202020;
+    color: #d4d4d4;
+    border-top: 1px solid #303030;
+}
+
+QPushButton#C_COMMANDBAR_BUTTON {
+    background-color: #252525;
+    color: #d4d4d4;
+    border: 1px solid #383838;
+}
+
+QPushButton#C_COMMANDBAR_BUTTON:hover {
+    background-color: #303030;
+    border-color: #505050;
+}
+
+QPushButton#C_COMMANDBAR_BUTTON:pressed {
+    background-color: #383838;
+    border-color: #606060;
+}
+
+QPushButton#C_COMMANDBAR_BUTTON:focus {
+    border-color: #007acc;
+}
+
+QPushButton#C_COMMANDBAR_BUTTON:disabled {
+    background-color: #1c1c1c;
+    color: #666666;
+    border-color: #282828;
+}
+
+/* ==================================================================================
+   Common controls
+   ================================================================================== */
+
+QPushButton {
+    background-color: #252525;
+    color: #d4d4d4;
+    border: 1px solid #383838;
+}
+
+QPushButton:hover {
+    background-color: #303030;
+}
+
+QPushButton:pressed {
+    background-color: #3a3a3a;
+}
+
+QPushButton:disabled {
+    background-color: #1c1c1c;
+    color: #666666;
+}
+
+QLineEdit,
+QTextEdit,
+QPlainTextEdit,
+QSpinBox,
+QDoubleSpinBox,
+QComboBox {
+    background-color: #202020;
+    color: #d4d4d4;
+    border: 1px solid #383838;
+    selection-background-color: #264f78;
+    selection-color: #ffffff;
+}
+
+QLineEdit:focus,
+QTextEdit:focus,
+QPlainTextEdit:focus,
+QSpinBox:focus,
+QDoubleSpinBox:focus,
+QComboBox:focus {
+    border-color: #007acc;
+}
+
+QComboBox QAbstractItemView {
+    background-color: #202020;
+    color: #d4d4d4;
+    border: 1px solid #383838;
+    selection-background-color: #264f78;
+    selection-color: #ffffff;
+}
+
+/* ==================================================================================
+   Tabs
+   ================================================================================== */
+
+QTabWidget::pane {
+    background-color: #181818;
+    border: 1px solid #303030;
+}
+
+QTabBar::tab {
+    background-color: #202020;
+    color: #999999;
+    border: 1px solid #303030;
+    padding: 7px 14px;
+}
+
+QTabBar::tab:hover {
+    color: #d4d4d4;
+    background-color: #282828;
+}
+
+QTabBar::tab:selected {
+    color: #ffffff;
+    background-color: #303030;
+    border-bottom-color: #007acc;
+}
+
+/* ==================================================================================
+   Groups
+   ================================================================================== */
+
+QGroupBox {
+    background-color: #1c1c1c;
+    color: #d4d4d4;
+    border: 1px solid #303030;
+    margin-top: 10px;
+    padding: 8px;
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    left: 8px;
+    padding: 0px 4px;
+    color: #bdbdbd;
+}
+
+/* ==================================================================================
+   Lists / trees / tables
+   ================================================================================== */
+
+QListWidget,
+QTreeWidget,
+QTableWidget {
+    background-color: #1c1c1c;
+    color: #d4d4d4;
+    alternate-background-color: #202020;
+    border: 1px solid #303030;
+}
+
+QListWidget::item,
+QTreeWidget::item {
+    padding: 5px;
+}
+
+QListWidget::item:hover,
+QTreeWidget::item:hover {
+    background-color: #282828;
+}
+
+QListWidget::item:selected,
+QTreeWidget::item:selected {
+    background-color: #264f78;
+    color: #ffffff;
+}
+
+/* ==================================================================================
+   Menus
+   ================================================================================== */
+
+QMenu {
+    background-color: #202020;
+    color: #d4d4d4;
+    border: 1px solid #383838;
+}
+
+QMenu::item {
+    padding: 6px 20px 6px 8px;
+}
+
+QMenu::item:selected {
+    background-color: #264f78;
+    color: #ffffff;
+}
+
+QMenu::separator {
+    height: 1px;
+    background-color: #383838;
+    margin: 4px 0px;
+}
+
+QToolTip {
+    background-color: #252525;
+    color: #ffffff;
+    border: 1px solid #505050;
+}
+
+/* ==================================================================================
+   Scrollbars
+   ================================================================================== */
+
+QScrollBar:vertical,
+QScrollBar:horizontal {
+    background-color: #181818;
+}
+
+QScrollBar::handle:vertical,
+QScrollBar::handle:horizontal {
+    background-color: #444444;
+}
+
+QScrollBar::handle:vertical:hover,
+QScrollBar::handle:horizontal:hover {
+    background-color: #5a5a5a;
+}
+
+/* ==================================================================================
+   SideBar
+   ================================================================================== */
+
+QWidget#SideBar {
+    background-color: #151515;
+    color: #d4d4d4;
+    border-right: 1px solid #303030;
+}
+
+QWidget#SideBarHeader {
+    background-color: #1c1c1c;
+    color: #ffffff;
+    border-bottom: 1px solid #303030;
+}
+
+QWidget#SideBarContent {
+    background-color: #151515;
+}
+
+QWidget#SideBarItem {
+    background-color: transparent;
+    color: #bdbdbd;
+}
+
+QWidget#SideBarItem:hover {
+    background-color: #252525;
+    color: #ffffff;
+}
+
+QWidget#SideBarItemSelected {
+    background-color: #264f78;
+    color: #ffffff;
+}
+
+QFrame#SideBarGroupHeader {
+    background-color: transparent;
+    color: #bdbdbd;
+}
+
+QFrame#SideBarGroupHeader:hover {
+    background-color: #252525;
+    color: #ffffff;
+}
+
+QFrame#SideBarGroupHeaderSelected {
+    background-color: #303030;
+    color: #ffffff;
+}
+
+QWidget#SideBarGroupBody {
+    background-color: #181818;
+}
+
+QLabel#SideBarText,
+QLabel#SideBarGroupTitle {
+    color: inherit;
+}
+```

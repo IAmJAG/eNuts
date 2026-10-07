@@ -7,11 +7,10 @@ from typing import List
 # ==================================================================================
 from PySide6.QtWidgets import QBoxLayout
 
-from jAGQt.types.interface.widgets.commandBar import iCommandBar
-
 # ==================================================================================
+from jAGQt.types.interface.widgets.commandBar import iCommandBar, iCommandBarButton
 from jAGQt.types.interface.window import iMainWindowBase
-from jAGQt.widgets.commandBar import CommandBar
+from jAGQt.widgets.commandBar import CommandBar, CommandBarButton
 
 # ==================================================================================
 from ..types.interface.application import iENUTSService, iShell
@@ -27,7 +26,9 @@ class Shell(iShell):
             self.ContentMargins = 0
 
             commandBar: iCommandBar = CommandBar()
-            commandBar.addButton("File")
+            cmdBtn: iCommandBarButton = commandBar.addButton("File")
+            cmdBtn.clicked.connect(lambda: print("File"))
+            commandBar.addStretch()
             layout.addStretch()
             layout.addWidget(commandBar)
 

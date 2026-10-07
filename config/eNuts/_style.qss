@@ -3,3 +3,148 @@ QWidget {
     font-family: "Segoe UI", "Arial", sans-serif;
     font-size: 12px;
 }
+
+/* ==================================================================================
+Main window
+================================================================================== */
+
+QMainWindow {
+    border: 0px;
+}
+
+QMainWindow>QWidget {
+    border: 0px;
+}
+
+/* ==================================================================================
+Command bar
+Active in:
+eNuts -> Shell -> CommandBar
+Object name:
+W_COMMANDBAR
+================================================================================== */
+
+QWidget#W_COMMANDBAR {
+    min-height: 42px;
+    max-height: 42px;
+    padding: 0px 8px;
+    border: 0px;
+    border-top: 1px solid rgba(255, 255, 255, 18);
+}
+
+QWidget#W_COMMANDBAR>QWidget {
+    background: transparent;
+    border: 0px;
+}
+
+/* ==================================================================================
+Command bar button
+Active instance:
+"File"
+Object name:
+C_COMMANDBAR_BUTTON
+================================================================================== */
+
+QPushButton#C_COMMANDBAR_BUTTON {
+    min-height: 30px;
+    max-height: 30px;
+    min-width: 72px;
+
+    padding: 0px 14px;
+    margin: 6px 2px;
+
+    border: 1px solid rgba(255, 255, 255, 28);
+    border-radius: 0px;
+    outline: none;    
+}
+
+QPushButton#C_COMMANDBAR_BUTTON:hover {
+    background: rgba(255, 255, 255, 14);
+    border-color: rgba(255, 255, 255, 48);
+}
+
+QPushButton#C_COMMANDBAR_BUTTON:pressed {
+    background: rgba(255, 255, 255, 24);
+    border-color: rgba(255, 255, 255, 64);
+}
+
+QPushButton#C_COMMANDBAR_BUTTON:focus {
+    border: 1px solid rgba(255, 193, 7, 150);
+}
+
+QPushButton#C_COMMANDBAR_BUTTON:disabled {
+    background: transparent;
+    border-color: rgba(255, 255, 255, 12);
+}
+
+/* ==================================================================================
+Generic controls
+================================================================================== */
+
+QPushButton {
+    border-radius: 0px;
+}
+
+QAbstractButton:focus,
+QLineEdit:focus,
+QComboBox:focus,
+QSpinBox:focus,
+QDoubleSpinBox:focus {
+    outline: none;
+}
+
+/* ==================================================================================
+Menus / tooltips
+================================================================================== */
+
+QToolTip,
+QMenu {
+    padding: 4px;
+    border-radius: 0px;
+}
+
+QMenu::item {
+    padding: 6px 20px 6px 8px;
+}
+
+QMenu::separator {
+    height: 1px;
+    margin: 4px 0px;
+}
+
+/* ==================================================================================
+Scrollbars
+================================================================================== */
+
+QScrollBar:vertical {
+    width: 8px;
+    margin: 0px;
+}
+
+QScrollBar:horizontal {
+    height: 8px;
+    margin: 0px;
+}
+
+QScrollBar::handle:vertical,
+QScrollBar::handle:horizontal {
+    min-height: 24px;
+    min-width: 24px;
+    border-radius: 0px;
+}
+
+QScrollBar::add-line:vertical,
+QScrollBar::sub-line:vertical,
+QScrollBar::add-line:horizontal,
+QScrollBar::sub-line:horizontal {
+    width: 0px;
+    height: 0px;
+    border: 0px;
+}
+
+QScrollBar::add-page:vertical,
+QScrollBar::sub-page:vertical,
+QScrollBar::add-page:horizontal,
+QScrollBar::sub-page:horizontal {
+    background: transparent;
+}

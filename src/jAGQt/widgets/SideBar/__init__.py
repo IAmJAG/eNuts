@@ -1,7 +1,5 @@
 # ==================================================================================
-# src/jAGQt/widgets/SideBar/__init__.py
-# ==================================================================================
-from .__sideBar import DockPosition, SideBar
+from .__sideBar import SideBar
 from .components import (
     IconPosition,
     ItemDisplayMode,
@@ -19,7 +17,6 @@ from .components import (
 # ==================================================================================
 __all__ = [
     "SideBar",
-    "DockPosition",
     "SideBarIcon",
     "SideBarText",
     "SideBarItem",
