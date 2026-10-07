@@ -1,6 +1,4 @@
 # ==================================================================================
-# src/jAGQt/widgets/commandBar/__base.py
-# ==================================================================================
 from typing import List
 
 # ==================================================================================
@@ -22,7 +20,7 @@ QtPolicy = QSizePolicy.Policy
 
 # ==================================================================================
 class _commandBarBase:
-    def _wInitializeUI(self: QWidget) -> None:
+    def _wInitializeShell(self: QWidget) -> None:
         self.Layout = newLayout(QBoxLayout, spacing=0, margins=(0, 0, 0, 0))
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self._buttons: List[iCommandBarButton] = list[iCommandBarButton]()        
@@ -45,6 +43,10 @@ class _commandBarBase:
     def removeButton(self, button: str | iCommandBarButton) -> None:
         if not self.contains(button): return
         if isinstance(button, str):
+            for btn in self._buttons:
+                if btn.text() == button:
+                    button: iCommandBarButton = btn
+
             btnIdx: int = self._buttons.index(button)
             button: iCommandBarButton = self._buttons.pop(btnIdx)
 
@@ -68,5 +70,5 @@ class _commandBarBase:
         self._buttons.clear()
 
     # ==================================================================================
-    def contains(self, button: iCommandBarButton) -> bool:        
-        return button in self._buttons.values()
+    def contains(self, button: iCommandBarButton) -> bool:
+        return button in self._buttons

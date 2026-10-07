@@ -19,7 +19,7 @@ from ..types.interface.application import iENUTSService, iShell
 
 # ==================================================================================
 class Shell(iShell):
-    def _wInitializeUI(self: iMainWindowBase) -> None:
+    def _wInitializeShell(self: iMainWindowBase) -> None:
         try:
             layout: QBoxLayout = self.Layout
             layout.setDirection(QBoxLayout.Direction.TopToBottom)
@@ -30,7 +30,6 @@ class Shell(iShell):
             commandBar.addButton("File")
             layout.addStretch()
             layout.addWidget(commandBar)
-
 
         except Exception as ex:
             error("[shell] intializeUI FAIL", ex)

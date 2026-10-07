@@ -28,11 +28,11 @@ class CommandBar(QWidget, ComponentBase, _commandBarBase):
     OBJECT_NAME = "W_COMMANDBAR"
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self._groups: Dict[str, ICBG] = Dict[str, ICBG]()
+        self._groups: Dict[str, ICBG] = dict[str, ICBG]()
         self._buttons: list[ICBB] = list[ICBB]()
 
     def _wInitializeUI(self) -> None:
-        super()._wInitializeUI()
+        super()._wInitializeShell()
         self.setObjectName(self.OBJECT_NAME)
         self.setSizePolicy(QtPolicy.Expanding, QtPolicy.Fixed)
         self.Layout = newLayout(QBoxLayout, spacing=0, margins=(0, 0, 0, 0))
