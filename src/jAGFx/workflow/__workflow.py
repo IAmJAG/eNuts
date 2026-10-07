@@ -1,6 +1,4 @@
 # ==================================================================================
-# src/jAGFx/workflow/__workflow.py
-# ==================================================================================
 from __future__ import annotations
 
 # ==================================================================================
@@ -13,8 +11,9 @@ from utilities import createTask, getRunningLoop
 
 # ==================================================================================
 _T = TypeVar("_T", bound=type)
-_WORKFLOW_PREFIX = "_w"
-_ASYNC_PREFIX = "_a"
+_SYNC_WF_PREFIX = "_w"
+_ASYNC_WF_PREFIX = "_a"
+
 _WORKFLOW_METADATA = "__jagfx_workflow__"
 _WORKFLOW_ASYNC = "__jagfx_workflow_async__"
 _WORKFLOW_GUARD = "__jagfx_workflow_active__"
@@ -23,29 +22,20 @@ _WORKFLOW_SUBCLASS_WRAPPED = "__jagfx_workflow_subclass_wrapped__"
 
 
 # ==================================================================================
-def _trace(msg: str) -> None:
-    """Best-effort verbose log; never raise from the tracer itself."""
-    try:
-        debug(f"[workflow] {msg}")
-    except Exception:
-        pass
-
-
-# ==================================================================================
 def _normalize_workflow_name(name: str) -> str:
     """Normalize an explicit workflow name to a ``_w...`` or ``_a...`` method name."""
     if not name:
         raise ValueError("Workflow name must be a non-empty string.")
 
-    if name.startswith(_WORKFLOW_PREFIX) or name.startswith(_ASYNC_PREFIX):
-        if name in (_WORKFLOW_PREFIX, _ASYNC_PREFIX):
+    if name.startswith(_SYNC_WF_PREFIX) or name.startswith(_ASYNC_WF_PREFIX):
+        if name in (_SYNC_WF_PREFIX, _ASYNC_WF_PREFIX):
             raise ValueError(
                 f"Workflow name {name!r} must include a name after the prefix."
             )
         return name
 
     # Explicit bare names default to the synchronous ``_w`` prefix.
-    return f"{_WORKFLOW_PREFIX}{name}"
+    return f"{_SYNC_WF_PREFIX}{name}"
 
 
 # ==================================================================================
@@ -55,7 +45,7 @@ def _discover_workflows(cls: type) -> tuple[str, ...]:
         name
         for name, value in cls.__dict__.items()
         if (
-            (name.startswith(_WORKFLOW_PREFIX) or name.startswith(_ASYNC_PREFIX))
+            (name.startswith(_SYNC_WF_PREFIX) or name.startswith(_ASYNC_WF_PREFIX))
             and callable(value)
         )
     )
@@ -64,18 +54,10 @@ def _discover_workflows(cls: type) -> tuple[str, ...]:
 # ==================================================================================
 def _run_workflow(instance: object) -> None:
     names = getattr(type(instance), _WORKFLOW_METADATA, None)
-    if names is None:
-        _trace(f"{type(instance).__name__}: no workflow metadata - skip")
-        return
-
+    
     preferAsync: bool = getattr(type(instance), _WORKFLOW_ASYNC, True)
     loop = getRunningLoop() if preferAsync else None
-
-    _trace(
-        f"{type(instance).__name__}: run stages={list(names)} "
-        f"async_={preferAsync} loop={'yes' if loop is not None else 'no'}"
-    )
-
+    
     for name in names:
         method = getattr(instance, name, None)
         if not callable(method):
@@ -85,26 +67,18 @@ def _run_workflow(instance: object) -> None:
 
         # ``_a...`` methods are scheduled when a loop is available and async_ is True.
         # ``_w...`` methods (and ``_a...`` when no loop / async_=False) run synchronously.
-        if name.startswith(_ASYNC_PREFIX) and loop is not None:
-            _trace(f"{type(instance).__name__}.{name}: SCHEDULE async")
-
+        if name.startswith(_ASYNC_WF_PREFIX) and loop is not None:
             async def _runner(m=method, stage=name, clsName=type(instance).__name__):
-                _trace(f"{clsName}.{stage}: BEGIN (async task)")
                 try:
                     m()
-                    _trace(f"{clsName}.{stage}: END (async task)")
                 except Exception:
-                    _trace(f"{clsName}.{stage}: FAIL (async task)\n{format_exc()}")
                     raise
 
             createTask(_runner)
         else:
-            _trace(f"{type(instance).__name__}.{name}: BEGIN (sync)")
             try:
                 method()
-                _trace(f"{type(instance).__name__}.{name}: END (sync)")
             except Exception:
-                _trace(f"{type(instance).__name__}.{name}: FAIL (sync)\n{format_exc()}")
                 raise
 
 
@@ -118,22 +92,18 @@ def _wrap_init(cls: type, original_init: Callable) -> None:
         outermost = not getattr(self, _WORKFLOW_GUARD, False)
         if outermost:
             setattr(self, _WORKFLOW_GUARD, True)
-            _trace(f"{type(self).__name__}.__init__: ENTER outermost")
 
         try:
             original_init(self, *init_args, **init_kwargs)
 
         except BaseException:
             if outermost:
-                _trace(f"{type(self).__name__}.__init__: FAIL in body\n{format_exc()}")
                 delattr(self, _WORKFLOW_GUARD)
             raise
 
         if outermost:
             try:
-                _trace(f"{type(self).__name__}.__init__: body done -> _run_workflow")
                 _run_workflow(self)
-                _trace(f"{type(self).__name__}.__init__: workflow complete")
 
             finally:
                 delattr(self, _WORKFLOW_GUARD)
