@@ -19,7 +19,7 @@ from ..types.interface.application import iENUTSService, iShell
 
 # ==================================================================================
 class Shell(iShell):
-    def _wIntializeUI(self: iMainWindowBase) -> None:
+    def _wInitializeUI(self: iMainWindowBase) -> None:
         try:
             layout: QBoxLayout = self.Layout
             layout.setDirection(QBoxLayout.Direction.TopToBottom)

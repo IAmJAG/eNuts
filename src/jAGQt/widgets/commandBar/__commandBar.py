@@ -28,7 +28,7 @@ class CommandBar(QWidget, ComponentBase, _commandBarBase):
     OBJECT_NAME = "W_COMMANDBAR"
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self._groups: Dict[str, ICBG] = Dict[str, ICBG]
+        self._groups: Dict[str, ICBG] = Dict[str, ICBG]()
         self._buttons: list[ICBB] = list[ICBB]()
 
     def _wInitializeUI(self) -> None:

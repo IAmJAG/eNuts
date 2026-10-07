@@ -45,11 +45,12 @@ class _commandBarBase:
     def removeButton(self, button: str | iCommandBarButton) -> None:
         if not self.contains(button): return
         if isinstance(button, str):
-            button: iCommandBarButton = self._buttons.pop(button, None)
+            btnIdx: int = self._buttons.index(button)
+            button: iCommandBarButton = self._buttons.pop(btnIdx)
 
         btn: QAbstractButton = button
         layout: QBoxLayout = self.Layout
-        if bool(button): layout.removeWidget(button)
+        if bool(button): layout.removeWidget(btn)
         btn.setParent(None)
         btn.deleteLater()
 
@@ -67,7 +68,5 @@ class _commandBarBase:
         self._buttons.clear()
 
     # ==================================================================================
-    def contains(self, button: str | iCommandBarButton) -> bool:        
-        if isinstance(button, str): 
-            return button in self._buttons.keys()
+    def contains(self, button: iCommandBarButton) -> bool:        
         return button in self._buttons.values()
