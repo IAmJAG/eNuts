@@ -1,6 +1,10 @@
 # ==================================================================================
+from PySide6.QtWidgets import QPushButton
+
+
+# ==================================================================================
 class _commandBarButtonBase:
-    def emit(self, signal: str, *args, **kwargs):
+    def emit(self: QPushButton, signal: str, *args, **kwargs):
         try:                
             with self._lock:
                 try:

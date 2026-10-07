@@ -1,14 +1,13 @@
 # ==================================================================================
 # src/jAGQt/widgets/commandBar/__base.py
 # ==================================================================================
-from typing import Dict
+from typing import List
 
 # ==================================================================================
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QAbstractButton,
     QBoxLayout,
-    QHBoxLayout,
     QSizePolicy,
     QWidget,
 )
@@ -16,8 +15,6 @@ from PySide6.QtWidgets import (
 # ==================================================================================
 from ...types.interface.widgets.commandBar import iCommandBarButton
 from ...utilities import newLayout
-from ..commandBar import commandBarButton
-from ..components import ComponentBase
 
 # ==================================================================================
 QtPolicy = QSizePolicy.Policy
@@ -28,23 +25,20 @@ class _commandBarBase:
     def _wInitializeUI(self: QWidget) -> None:
         self.Layout = newLayout(QBoxLayout, spacing=0, margins=(0, 0, 0, 0))
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        self._buttons: Dict[str, iCommandBarButton]
+        self._buttons: List[iCommandBarButton] = list[iCommandBarButton]()        
 
     # ==================================================================================
-    def _assertIsButton(self, button: iCommandBarButton) -> None:
+    def _assertIsButton(self: QWidget, button: iCommandBarButton) -> None:
         if not isinstance(button, iCommandBarButton):
             raise TypeError(
                 "addButton expects a QAbstractButton subclass or a CommandBarButton."
             )
 
     # ==================================================================================
-    def addButton(self, button: str | iCommandBarButton) -> iCommandBarButton: 
-        if isinstance(button, str):
-            button: iCommandBarButton = commandBarButton(caption=button)
-
+    def addButton(self: QWidget, button: iCommandBarButton) -> iCommandBarButton: 
         layout: QBoxLayout = self.Layout
         layout.addWidget(button)
-        self._buttons.update(button)
+        self._buttons.append(button)
         return button
 
     # ==================================================================================
