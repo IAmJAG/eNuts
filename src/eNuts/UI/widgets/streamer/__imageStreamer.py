@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Optional
 
 # ==================================================================================
-from av import VideoCodecContext, VideoFrame
+from av import InvalidDataError, VideoCodecContext, VideoFrame
 from PySide6.QtCore import Qt, Slot
 from PySide6.QtGui import QImage, QKeyEvent, QMouseEvent, QPixmap, QWheelEvent
 
@@ -83,6 +83,9 @@ class imageStreamer(Image):
 
         try:
             lDecoded: VideoFrame | None = frame.decode(self._decoder, toGPU=False)
+        except InvalidDataError:
+            # Common before the first keyframe / after a mid-stream config update.
+            return
         except Exception as ex:
             error(f"[{self.__class__.__name__}] decode failed", ex)
             return

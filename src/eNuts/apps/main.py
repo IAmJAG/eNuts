@@ -1,6 +1,7 @@
 # ==================================================================================================
 from asyncio import CancelledError, Event, set_event_loop
 from ctypes import windll
+from logging import WARNING, getLogger
 from sys import platform
 from typing import List
 
@@ -21,11 +22,12 @@ from ..utilities import applyStyleSheet, loadStyleSheet
 # ==================================================================================================
 async def main(app: QApplication, *args, **kwargs):
     cfg: iENUTSConfiguration | iApplicationConfiguration = eNutsConfiguration()
-    
+
     lShutdownEvent: Event = Event()
 
-    def _onAboutToQuit() -> None: lShutdownEvent.set()
-    
+    def _onAboutToQuit() -> None:
+        lShutdownEvent.set()
+
     app.aboutToQuit.connect(_onAboutToQuit)
     app.setQuitOnLastWindowClosed(False)
 
@@ -36,11 +38,11 @@ async def main(app: QApplication, *args, **kwargs):
         styleSheets: List[str] = loadStyleSheet(cfg.themePath, cfg.style)
         applyStyleSheet(app, styleSheets)
 
-        lWin: MainWindow = MainWindow(*args, **kwargs)        
+        lWin: MainWindow = MainWindow(*args, **kwargs)
         lWin.show()
 
         await lWin.initializeInstance()
-        
+
         app.setQuitOnLastWindowClosed(True)
 
         await lShutdownEvent.wait()
@@ -57,10 +59,18 @@ async def main(app: QApplication, *args, **kwargs):
 
     app.quit()
 
+
 # ==================================================================================================
 def program(*args):
     app: QApplication = QApplication()
     loop: QEventLoop = QEventLoop(app)
+
+    # Prevent asyncio debug spam ("Got events from poll", "Invoking event callback").
+    loop.set_debug(False)
+    for lName in ("asyncio", "asyncio.proactor", "asyncio.windows_events"):
+        lLogger = getLogger(lName)
+        lLogger.setLevel(WARNING)
+        lLogger.propagate = False
 
     set_event_loop(loop)
     with loop:
