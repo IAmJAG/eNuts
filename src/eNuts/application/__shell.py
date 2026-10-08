@@ -56,6 +56,16 @@ class Shell(iShell):
         try:
             self._sideBar: SideBar = SideBar(title="eNuts")
             self._sideBar.DockSideChanged.connect(self._onSideBarDockChanged)
+
+            self._sideBar.AddItem(text="Home")
+            lDevices = self._sideBar.AddGroup(title="Devices")
+            lDevices.AddItem(text="Emulator")
+            lDevices.AddItem(text="USB Device")
+            lTools = self._sideBar.AddGroup(title="Tools", startCollapsed=True)
+            lTools.AddItem(text="Recorder")
+            lTools.AddItem(text="Settings")
+            self._sideBar.AddStretch()
+
             lLayout: QBoxLayout = self.Layout
             lLayout.insertWidget(0, self._sideBar)
 

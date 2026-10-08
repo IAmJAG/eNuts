@@ -1,7 +1,7 @@
 # ==================================================================================
 from .__dockControl import SideBarDockControl
 from .__sideBarContent import SideBarContent
-from .__sideBarGroup import SideBarGroup, SideBarGroupHeader
+from .__sideBarGroup import SideBarGroup
 from .__sideBarHeader import SideBarHeader
 from .__sideBarIcon import SideBarIcon
 from .__sideBarIcons import MakeBurgerIcon, MakeCloseIcon
@@ -22,7 +22,6 @@ __all__ = [
     "SideBarContent",
     "SideBarHeader",
     "SideBarGroup",
-    "SideBarGroupHeader",
     "SideBarDockControl",
     "MakeBurgerIcon",
     "MakeCloseIcon",

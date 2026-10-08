@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Callable, List, Optional, Union
 
 # ==================================================================================
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 
@@ -28,10 +28,7 @@ from .__sideBarSeparator import SeparatorType, SideBarSeparator
 
 # ==================================================================================
 class SideBarGroup(QWidget, ComponentBase):
-    """Nested section: header SideBarItem (no chevron) + rollable body of items.
-
-    Header click toggles the body. Selection cascade is owned by SideBar.
-    """
+    """Nested section: header SideBarItem (no chevron) + rollable body of items."""
 
     Toggled = Signal(bool)
     ItemClicked = Signal(object)
@@ -53,7 +50,7 @@ class SideBarGroup(QWidget, ComponentBase):
 
         self.setObjectName("SideBarGroup")
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
-        self.setAttribute(__import__("PySide6.QtCore", fromlist=["Qt"]).Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
         self._collapsed: bool = bool(startCollapsed)
         self._iconSize: int = max(1, int(iconSize))
@@ -195,7 +192,6 @@ class SideBarGroup(QWidget, ComponentBase):
         else:
             self.Collapse(animate=animate)
 
-    # ==================================================================================
     @property
     def Collapsed(self) -> bool:
         return self._collapsed
@@ -219,7 +215,6 @@ class SideBarGroup(QWidget, ComponentBase):
     def Depth(self) -> int:
         return self._depth
 
-    # ==================================================================================
     def _onHeaderClicked(self, _item: SideBarItem) -> None:
         if self._sidebarCollapsed:
             self.ItemClicked.emit(self._header)
