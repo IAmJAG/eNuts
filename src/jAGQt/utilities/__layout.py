@@ -1,7 +1,5 @@
 # ==================================================================================
-# src/jAGQt/utilities/__layout.py
-# ==================================================================================
-from typing import List, Optional, Set, Tuple, overload
+from typing import List, Optional, Set, Tuple
 
 # ==================================================================================
 from PySide6.QtCore import QMargins
@@ -16,51 +14,23 @@ from PySide6.QtWidgets import (
 
 
 # ==================================================================================
-@overload
 def newLayout(
-    layout: type[QBoxLayout],
+    layout: type[QBoxLayout] = QBoxLayout,
     spacing: int = 0,
     margins: tuple[int, int, int, int] | int = (0, 0, 0, 0),
     direction: QBoxLayout.Direction = QBoxLayout.Direction.TopToBottom,
-) -> QBoxLayout: ...
+) -> QBoxLayout:
+    """Create a QBoxLayout with spacing, margins, and direction.
 
-
-@overload
-def newLayout(
-    layout: type[QLayout],
-    spacing: int = 0,
-    margins: tuple[int, int, int, int] | int = (0, 0, 0, 0),
-    direction: None = None,
-) -> QLayout: ...
-
-
-def newLayout(
-    layout: type[QLayout],
-    spacing: int = 0,
-    margins: tuple[int, int, int, int] | int = (0, 0, 0, 0),
-    direction: Optional[QBoxLayout.Direction] = None,
-) -> QLayout:
-    """Create a layout with spacing and margins applied.
-
-    Direction control is only valid for QBoxLayout subclasses.
-    - QBoxLayout: direction defaults to TopToBottom when omitted.
-    - Other QLayout types: direction must be None (default); passing a
-      direction raises TypeError.
+    Only QBoxLayout is supported. Orientation is controlled solely by *direction*
+    — never construct QHBoxLayout/QVBoxLayout here (their ctors reject Direction).
     """
-    if issubclass(layout, QBoxLayout):
-        lDirection = (
-            direction
-            if direction is not None
-            else QBoxLayout.Direction.TopToBottom
+    if not issubclass(layout, QBoxLayout):
+        raise TypeError(
+            f"newLayout only accepts QBoxLayout, got {layout.__name__}"
         )
-        lLayout: QLayout = layout(lDirection)
 
-    else:
-        if direction is not None:
-            raise TypeError(
-                "direction is only supported when layout is a QBoxLayout subclass"
-            )
-        lLayout = layout()
+    lLayout: QBoxLayout = QBoxLayout(direction)
 
     if isinstance(margins, int):
         lLayout.setContentsMargins(margins, margins, margins, margins)
@@ -78,7 +48,6 @@ def contentMargins(values: List[int] | Tuple[int, ...] | Set[int] | int) -> QMar
     if isinstance(values, Tuple | Set):
         values = list(values)
 
-    # Handle list
     if isinstance(values, list):
         lLen = len(values)
         if lLen == 1:
@@ -124,7 +93,6 @@ def _replaceNestedLayout(parent: QLayout, index: int, newLayout: QLayout) -> Non
     elif isinstance(parent, QFormLayout):
         parent.insertRow(index, newLayout)
     elif isinstance(parent, QGridLayout):
-        # Grid loses row/col unless recorded; fall back to addLayout
         parent.addLayout(newLayout, 0, 0)
     else:
         parent.addChildLayout(newLayout)
@@ -137,8 +105,6 @@ def replaceLayout(widget: QWidget, oldLayout: QLayout | None, newLayout: QLayout
     temporary QWidget: transferring ownership to a throwaway widget lets its C++ destructor
     run immediately and delete the layout, leaving the real widget with a dangling pointer.
     """
-    # A QMainWindow owns a Qt-internal QMainWindowLayout which must never be detached from
-    # its window, so the layout swap happens on the central widget instead.
     if isinstance(widget, QMainWindow):
         lCentral: QWidget = widget.centralWidget()
         if lCentral is None:
@@ -148,7 +114,8 @@ def replaceLayout(widget: QWidget, oldLayout: QLayout | None, newLayout: QLayout
 
     if oldLayout is None or oldLayout is newLayout:
         lTop = widget.layout()
-        if lTop is not None and lTop is not newLayout: lTop.setParent(None)
+        if lTop is not None and lTop is not newLayout:
+            lTop.setParent(None)
         widget.setLayout(newLayout)
         return
 

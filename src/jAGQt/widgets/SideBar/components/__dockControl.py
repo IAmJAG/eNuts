@@ -7,7 +7,7 @@ from typing import Optional
 # ==================================================================================
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QMouseEvent
-from PySide6.QtWidgets import QHBoxLayout, QSizePolicy, QWidget
+from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 
 # ==================================================================================
 from jAGQt.icons import MakeArrowLeftIcon, MakeArrowRightIcon
@@ -55,10 +55,11 @@ class SideBarDockControl(QWidget, ComponentBase):
         self._arrow.setCursor(Qt.CursorShape.PointingHandCursor)
         self._arrow.mousePressEvent = self._onArrowClicked  # type: ignore
 
-        self._layout: QHBoxLayout = newLayout(
-            QHBoxLayout,
+        self._layout: QBoxLayout = newLayout(
+            QBoxLayout,
             spacing=0,
             margins=(4, 4, 4, 4),
+            direction=QBoxLayout.Direction.LeftToRight,
         )
         self.setLayout(self._layout)
         self._rebuild()
