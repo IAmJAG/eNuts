@@ -6,11 +6,12 @@ from typing import Optional
 
 # ==================================================================================
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QMouseEvent
+from PySide6.QtGui import QIcon, QMouseEvent
 from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 
 # ==================================================================================
 from jAGQt.icons import MakeBurgerIcon, MakeCloseIcon
+from jAGQt.icons.animations import IconMorphAnimation
 
 # ==================================================================================
 from ....utilities import newLayout
@@ -23,13 +24,7 @@ from .__sideBarText import SideBarText
 
 # ==================================================================================
 class SideBarHeader(QWidget, ComponentBase):
-    """Header strip: [burger|X icon] [title].
-
-    - Expanded: burger + title visible
-    - Collapsed: X only (title hidden)
-    - Icon is always square; size is a single int
-    - Title typography comes from QSS only
-    """
+    """Header strip: [burger|X icon] [title]. Morph animates icon swap."""
 
     CollapseRequested = Signal()
 
@@ -50,9 +45,11 @@ class SideBarHeader(QWidget, ComponentBase):
 
         self._collapsed: bool = False
         self._iconSize: int = max(1, int(iconSize))
+        self._burgerIcon: QIcon = MakeBurgerIcon(self._iconSize)
+        self._closeIcon: QIcon = MakeCloseIcon(self._iconSize)
 
         self._toggleIcon: SideBarIcon = SideBarIcon(
-            icon=MakeBurgerIcon(self._iconSize),
+            icon=self._burgerIcon,
             iconSize=self._iconSize,
             parent=self,
         )
@@ -74,18 +71,25 @@ class SideBarHeader(QWidget, ComponentBase):
         self._layout.addWidget(self._toggleIcon)
         self._layout.addWidget(self._titleWidget, 1)
 
-        self._applyCollapsedVisual()
+        self._morph: IconMorphAnimation = IconMorphAnimation(
+            target=self._toggleIcon,
+            iconSize=self._iconSize,
+            durationMs=160,
+            parent=self,
+        )
+
+        self._applyCollapsedVisual(animate=False)
 
     # ==================================================================================
     def SetTitle(self, title: str) -> None:
         self.Title = title
 
-    def SetCollapsed(self, collapsed: bool) -> None:
+    def SetCollapsed(self, collapsed: bool, animate: bool = True) -> None:
         lValue: bool = bool(collapsed)
         if lValue is self._collapsed:
             return
         self._collapsed = lValue
-        self._applyCollapsedVisual()
+        self._applyCollapsedVisual(animate=animate)
 
     def SetIconSize(self, iconSize: int) -> None:
         self.IconSize = iconSize
@@ -109,8 +113,11 @@ class SideBarHeader(QWidget, ComponentBase):
         if lSize == self._iconSize:
             return
         self._iconSize = lSize
+        self._burgerIcon = MakeBurgerIcon(lSize)
+        self._closeIcon = MakeCloseIcon(lSize)
         self._toggleIcon.IconSize = lSize
-        self._refreshToggleIcon()
+        self._morph.SetIconSize(lSize)
+        self._refreshToggleIcon(animate=False)
 
     @property
     def Collapsed(self) -> bool:
@@ -121,14 +128,17 @@ class SideBarHeader(QWidget, ComponentBase):
         self.SetCollapsed(value)
 
     # ==================================================================================
-    def _refreshToggleIcon(self) -> None:
-        if self._collapsed:
-            self._toggleIcon.SetIcon(MakeCloseIcon(self._iconSize))
+    def _refreshToggleIcon(self, animate: bool = True) -> None:
+        lStart: QIcon = self._closeIcon if not self._collapsed else self._burgerIcon
+        lEnd: QIcon = self._closeIcon if self._collapsed else self._burgerIcon
+        if animate:
+            self._morph.SetIcons(lStart, lEnd)
+            self._morph.Start()
         else:
-            self._toggleIcon.SetIcon(MakeBurgerIcon(self._iconSize))
+            self._toggleIcon.SetIcon(lEnd)
 
-    def _applyCollapsedVisual(self) -> None:
-        self._refreshToggleIcon()
+    def _applyCollapsedVisual(self, animate: bool = True) -> None:
+        self._refreshToggleIcon(animate=animate)
         self._titleWidget.setVisible(not self._collapsed)
         self.setProperty("collapsed", "true" if self._collapsed else "false")
         self.style().unpolish(self)

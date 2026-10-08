@@ -1,169 +1,148 @@
 # ==================================================================================
-# src/jAGQt/widgets/SideBar/components/__sideBarGroup.py
-# ==================================================================================
-from typing import Callable, Optional, Union
+from __future__ import annotations
 
 # ==================================================================================
-from PySide6.QtCore import QEasingCurve, Qt, Signal
+from typing import Callable, List, Optional, Union
+
+# ==================================================================================
+from PySide6.QtCore import Signal
 from PySide6.QtGui import QIcon, QPixmap
-from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QStyle, QWidget
-
-from ....utilities import AnimateProperty, newLayout
+from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 
 # ==================================================================================
+from jAGQt.animations import RollAnimation
+
+# ==================================================================================
+from ....utilities import newLayout
 from ...components import ComponentBase
 
 # ==================================================================================
-from .__sideBarIcon import SideBarIcon
-from .__sideBarItem import IconPosition, ItemDisplayMode, SideBarItem
+from .__sideBarItem import (
+    IconPosition,
+    ItemDisplayMode,
+    ItemRole,
+    SideBarItem,
+)
 from .__sideBarSeparator import SeparatorType, SideBarSeparator
 
 
 # ==================================================================================
-class SideBarGroupHeader(SideBarItem):
-    """Group header built on SideBarItem (selection / hover / QSS as one unit).
-
-    Header-only features layered on the base item:
-      1. Distinct objectName for QSS hierarchy
-      2. Expand/collapse indicator (trailing icon)
-      3. Title label objectName for section typography
-      4. Indicator visibility when the whole sidebar is collapsed
-    """
-
-    def __init__(
-        self, title: str = "", icon: Optional[Union[QIcon, QPixmap, str]] = None,
-        iconSize: int = 20, parent: Optional[QWidget] = None, *args, **kwargs,
-    ) -> None:
-        super().__init__(
-            text=title, icon=icon, displayMode=ItemDisplayMode.IconAndText,
-            iconPosition=IconPosition.Left, iconSize=iconSize, spacing=6,
-            parent=parent, *args, **kwargs,
-        )
-
-        # 1) Header identity for QSS (overrides SideBarItem objectName)
-        self.setObjectName("SideBarGroupHeader")
-
-        # 3) Section title typography hook
-        self.TextWidget.setObjectName("SideBarGroupTitle")
-
-        # 2) Expand/collapse indicator
-        lIndicatorSize = max(12, min(iconSize - 4, 16))
-        self._indicator = SideBarIcon(icon=None, iconSize=lIndicatorSize, parent=self)
-        self._indicator.setObjectName("SideBarGroupIndicator")
-        self._indicator.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
-        self._indicator.setAutoFillBackground(False)
-
-        self._rebuildLayout()
-
-    # ----- header features -----------------------------------------------------
-    def SetExpanded(self, expanded: bool) -> None:
-        """Update trailing indicator for expanded vs collapsed group body."""
-        lStyle = self.style()
-        if expanded:
-            lIcon = lStyle.standardIcon(QStyle.StandardPixmap.SP_ArrowDown)
-        else:
-            lIcon = lStyle.standardIcon(QStyle.StandardPixmap.SP_ArrowRight)
-        self._indicator.SetIcon(lIcon)
-
-    def SetIndicatorVisible(self, visible: bool) -> None:
-        self._indicator.setVisible(bool(visible))
-
-    @property
-    def Indicator(self) -> SideBarIcon:
-        return self._indicator
-
-    # ----- layout: base item + trailing indicator -----------------------------
-    def _rebuildLayout(self) -> None:
-        # Base icon + text arrangement from SideBarItem
-        super()._rebuildLayout()
-
-        # Drop the trailing stretch SideBarItem adds, then append indicator
-        if self._layout.count() > 0:
-            lLast = self._layout.itemAt(self._layout.count() - 1)
-            if lLast is not None and lLast.spacerItem() is not None:
-                self._layout.takeAt(self._layout.count() - 1)
-
-        if hasattr(self, "_indicator"):
-            self._layout.addWidget(self._indicator)
-
-
-# ==================================================================================
 class SideBarGroup(QWidget, ComponentBase):
-    """Collapsible section composed of SideBarGroupHeader + body of SideBarItems.
+    """Nested section: header SideBarItem (no chevron) + rollable body of items.
 
-    Selection / hover styling is entirely owned by the header (a SideBarItem).
+    Header click toggles the body. Selection cascade is owned by SideBar.
     """
 
     Toggled = Signal(bool)
     ItemClicked = Signal(object)
 
     def __init__(
-        self, title: str = "", icon: Optional[Union[QIcon, QPixmap, str]] = None,
-        iconSize: int = 20, startCollapsed: bool = False, animationDurationMs: int = 180,
-        spacing: int = 2, parent: Optional[QWidget] = None, *args, **kwargs,
+        self,
+        title: str = "",
+        icon: Optional[Union[QIcon, QPixmap, str]] = None,
+        iconSize: int = 20,
+        depth: int = 0,
+        startCollapsed: bool = False,
+        animationDurationMs: int = 180,
+        spacing: int = 2,
+        parent: Optional[QWidget] = None,
+        *args,
+        **kwargs,
     ) -> None:
         super().__init__(parent, *args, **kwargs)
 
         self.setObjectName("SideBarGroup")
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
-        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.setAttribute(__import__("PySide6.QtCore", fromlist=["Qt"]).Qt.WidgetAttribute.WA_StyledBackground, True)
 
-        self._collapsed: bool = startCollapsed
-        self._selected: bool = False
-        self._iconSize: int = max(1, iconSize)
-        self._animationDurationMs: int = max(0, animationDurationMs)
-        self._activeAnimation = None
-        self._cachedSelectedItem: Optional[SideBarItem] = None
+        self._collapsed: bool = bool(startCollapsed)
+        self._iconSize: int = max(1, int(iconSize))
+        self._depth: int = max(0, int(depth))
+        self._childIconSize: int = max(1, self._iconSize - 2)
+        self._animationDurationMs: int = max(0, int(animationDurationMs))
         self._sidebarCollapsed: bool = False
+        self._items: List[SideBarItem] = []
 
-        # Header = SideBarItem + header features
-        self._header = SideBarGroupHeader(
-            title=title,
+        self._header: SideBarItem = SideBarItem(
+            text=title,
             icon=icon,
+            displayMode=ItemDisplayMode.IconAndText,
+            iconPosition=IconPosition.Left,
             iconSize=self._iconSize,
+            depth=self._depth,
+            role=ItemRole.Header,
+            spacing=6,
             parent=self,
         )
+        self._header.setObjectName("SideBarGroupHeader")
+        self._header.TextWidget.setObjectName("SideBarGroupTitle")
         self._header.Clicked.connect(self._onHeaderClicked)
 
-        self._body = QWidget(self)
+        self._body: QWidget = QWidget(self)
         self._body.setObjectName("SideBarGroupBody")
         self._body.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
 
         self._bodyLayout: QBoxLayout = newLayout(
-            QBoxLayout, spacing=spacing, margins=(4, 0, 4, 4)
+            QBoxLayout,
+            spacing=spacing,
+            margins=(4, 0, 4, 4),
+            direction=QBoxLayout.Direction.TopToBottom,
         )
-        self._bodyLayout.setDirection(QBoxLayout.Direction.TopToBottom)
-        self._bodyLayout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self._body.setLayout(self._bodyLayout)
 
-        self._layout: QBoxLayout = newLayout(QBoxLayout, spacing=0, margins=(0, 0, 0, 0))
-        self._layout.setDirection(QBoxLayout.Direction.TopToBottom)
+        self._layout: QBoxLayout = newLayout(
+            QBoxLayout,
+            spacing=0,
+            margins=(0, 0, 0, 0),
+            direction=QBoxLayout.Direction.TopToBottom,
+        )
         self.setLayout(self._layout)
         self._layout.addWidget(self._header)
         self._layout.addWidget(self._body)
+
+        self._roll: RollAnimation = RollAnimation(
+            target=self._body,
+            durationMs=self._animationDurationMs,
+            parent=self,
+        )
 
         self._applyCollapsedState(animate=False)
 
     # ==================================================================================
     def AddItem(
-        self, text: str = "", icon: Optional[Union[QIcon, QPixmap, str]] = None,
+        self,
+        text: str = "",
+        icon: Optional[Union[QIcon, QPixmap, str]] = None,
         displayMode: ItemDisplayMode = ItemDisplayMode.IconAndText,
-        iconPosition: IconPosition = IconPosition.Left, iconSize: Optional[int] = None,
+        iconPosition: IconPosition = IconPosition.Left,
+        iconSize: Optional[int] = None,
         callback: Optional[Callable] = None,
     ) -> SideBarItem:
-        lSize = iconSize if iconSize is not None else self._iconSize
-        lItem = SideBarItem(
-            text=text, icon=icon, displayMode=displayMode, iconPosition=iconPosition,
-            iconSize=lSize, callback=callback, parent=self._body,
+        lSize: int = iconSize if iconSize is not None else self._childIconSize
+        lItem: SideBarItem = SideBarItem(
+            text=text,
+            icon=icon,
+            displayMode=displayMode,
+            iconPosition=iconPosition,
+            iconSize=lSize,
+            depth=self._depth + 1,
+            role=ItemRole.Leaf,
+            callback=callback,
+            parent=self._body,
         )
         lItem.Clicked.connect(self._onChildItemClicked)
         self._bodyLayout.addWidget(lItem)
+        self._items.append(lItem)
         if self._sidebarCollapsed:
             lItem.DisplayMode = ItemDisplayMode.IconOnly
         return lItem
 
-    def AddSeparator(self, separatorType: SeparatorType = SeparatorType.Line) -> SideBarSeparator:
-        lSep = SideBarSeparator(separatorType=separatorType, parent=self._body)
+    def AddSeparator(
+        self, separatorType: SeparatorType = SeparatorType.Line
+    ) -> SideBarSeparator:
+        lSep: SideBarSeparator = SideBarSeparator(
+            separatorType=separatorType, parent=self._body
+        )
         self._bodyLayout.addWidget(lSep)
         return lSep
 
@@ -171,48 +150,26 @@ class SideBarGroup(QWidget, ComponentBase):
         self._bodyLayout.addStretch(stretch)
 
     def Clear(self) -> None:
-        self._cachedSelectedItem = None
+        self._items.clear()
         while self._bodyLayout.count():
             lItem = self._bodyLayout.takeAt(0)
             if lItem.widget():
                 lItem.widget().setParent(None)
                 lItem.widget().deleteLater()
 
-    def ContainsItem(self, item: SideBarItem) -> bool:
-        for lIdx in range(self._bodyLayout.count()):
-            lW = self._bodyLayout.itemAt(lIdx)
-            if lW and lW.widget() is item:
-                return True
-        return False
-
-    def GetDefaultItem(self) -> Optional[SideBarItem]:
-        for lIdx in range(self._bodyLayout.count()):
-            lW = self._bodyLayout.itemAt(lIdx)
-            if lW and isinstance(lW.widget(), SideBarItem):
-                return lW.widget()
-        return None
-
-    def GetSelectionTarget(self) -> Optional[SideBarItem]:
-        if self._cachedSelectedItem is not None and self.ContainsItem(self._cachedSelectedItem):
-            return self._cachedSelectedItem
-        return self.GetDefaultItem()
+    def Items(self) -> List[SideBarItem]:
+        return list(self._items)
 
     def SetSidebarCollapsed(self, collapsed: bool) -> None:
         self._sidebarCollapsed = bool(collapsed)
-        lMode = ItemDisplayMode.IconOnly if self._sidebarCollapsed else ItemDisplayMode.IconAndText
-
-        self._header.TextWidget.setVisible(not self._sidebarCollapsed)
-        self._header.SetIndicatorVisible(not self._sidebarCollapsed)
-        if self._sidebarCollapsed:
-            self._header.DisplayMode = ItemDisplayMode.IconOnly
-        else:
-            self._header.DisplayMode = ItemDisplayMode.IconAndText
-
-        for lIdx in range(self._bodyLayout.count()):
-            lW = self._bodyLayout.itemAt(lIdx)
-            if lW and isinstance(lW.widget(), SideBarItem):
-                lW.widget().DisplayMode = lMode
-
+        lMode = (
+            ItemDisplayMode.IconOnly
+            if self._sidebarCollapsed
+            else ItemDisplayMode.IconAndText
+        )
+        self._header.DisplayMode = lMode
+        for lItem in self._items:
+            lItem.DisplayMode = lMode
         if self._sidebarCollapsed:
             self.Collapse(animate=False)
 
@@ -238,6 +195,7 @@ class SideBarGroup(QWidget, ComponentBase):
         else:
             self.Collapse(animate=animate)
 
+    # ==================================================================================
     @property
     def Collapsed(self) -> bool:
         return self._collapsed
@@ -250,106 +208,53 @@ class SideBarGroup(QWidget, ComponentBase):
             self.Expand()
 
     @property
-    def Selected(self) -> bool:
-        return self._selected
-
-    @Selected.setter
-    def Selected(self, value: bool) -> None:
-        lValue = bool(value)
-        if lValue == self._selected:
-            return
-        self._selected = lValue
-        # Selection highlight is owned by the base item machinery
-        self._header.Selected = lValue
-
-    @property
-    def Title(self) -> str:
-        return self._header.Text
-
-    @Title.setter
-    def Title(self, value: str) -> None:
-        self._header.Text = value
-
-    @property
-    def IconSize(self) -> int:
-        return self._iconSize
-
-    @IconSize.setter
-    def IconSize(self, value: int) -> None:
-        lSize = max(1, int(value))
-        if lSize == self._iconSize: return
-        self._iconSize = lSize
-        self._header.IconSize = lSize
-
-    @property
-    def AnimationDurationMs(self) -> int:
-        return self._animationDurationMs
-
-    @AnimationDurationMs.setter
-    def AnimationDurationMs(self, value: int) -> None:
-        self._animationDurationMs = max(0, int(value))
-
-    @property
-    def HeaderWidget(self) -> SideBarGroupHeader:
+    def HeaderWidget(self) -> SideBarItem:
         return self._header
 
     @property
     def BodyWidget(self) -> QWidget:
         return self._body
 
+    @property
+    def Depth(self) -> int:
+        return self._depth
+
+    # ==================================================================================
     def _onHeaderClicked(self, _item: SideBarItem) -> None:
         if self._sidebarCollapsed:
+            self.ItemClicked.emit(self._header)
             return
-
-        self.Expand(animate=True)
-
-        lTarget = self.GetSelectionTarget()
-        if lTarget is not None:
-            self._cachedSelectedItem = lTarget
-            self.ItemClicked.emit(lTarget)
-
-        else:
-            self.Selected = True
+        self.Toggle(animate=True)
+        self.ItemClicked.emit(self._header)
 
     def _onChildItemClicked(self, item: SideBarItem) -> None:
-        self._cachedSelectedItem = item
         self.ItemClicked.emit(item)
 
-    def _applyFinalBodyHeight(self) -> None:
-        if self._collapsed:
-            self._body.setMaximumHeight(0)
-            self._body.setVisible(False)
-        else:
-            self._body.setVisible(True)
-            self._body.setMaximumHeight(16777215)
-
     def _applyCollapsedState(self, animate: bool = True) -> None:
-        self._header.SetExpanded(not self._collapsed)
-
         if self._collapsed:
-            lTargetHeight = 0
-            lStart = self._body.height() if self._body.isVisible() else 0
+            lStart: int = self._body.height() if self._body.isVisible() else 0
+            if not animate or self._animationDurationMs <= 0:
+                self._body.setMaximumHeight(0)
+                self._body.setVisible(False)
+                return
+            self._roll.SetRange(lStart, 0)
+            self._roll.Start()
         else:
             self._body.setVisible(True)
             self._body.setMaximumHeight(16777215)
-            lTargetHeight = max(0, self._body.sizeHint().height())
-            lStart = 0 if not self._body.isVisible() else self._body.height()
-            if lStart <= 0:
-                lStart = 0
+            lTarget: int = max(0, self._body.sizeHint().height())
+            if not animate or self._animationDurationMs <= 0:
+                self._body.setMaximumHeight(16777215)
+                return
+            self._body.setMaximumHeight(max(1, lTarget))
+            self._roll.SetRange(0, lTarget)
+            self._roll.Finished.connect(self._onRollExpandFinished)
+            self._roll.Start()
 
-        if not animate or self._animationDurationMs <= 0 or lStart == lTargetHeight:
-            self._applyFinalBodyHeight()
-            return
-
-        self._body.setVisible(True)
-        self._body.setMaximumHeight(max(lStart, lTargetHeight, 1))
-
-        self._activeAnimation = AnimateProperty(
-            self._body, "maximumHeight", lStart, lTargetHeight,
-            durationMs=self._animationDurationMs, easing=QEasingCurve.Type.OutCubic,
-            onFinished=self._onAnimationFinished,
-        )
-
-    def _onAnimationFinished(self) -> None:
-        self._activeAnimation = None
-        self._applyFinalBodyHeight()
+    def _onRollExpandFinished(self) -> None:
+        try:
+            self._roll.Finished.disconnect(self._onRollExpandFinished)
+        except (RuntimeError, TypeError):
+            pass
+        if not self._collapsed:
+            self._body.setMaximumHeight(16777215)
