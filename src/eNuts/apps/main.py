@@ -1,7 +1,8 @@
 # ==================================================================================================
 from asyncio import CancelledError, Event, set_event_loop
 from ctypes import windll
-from logging import WARNING, getLogger
+from logging import CRITICAL, Filter, LogRecord, WARNING, getLogger, root
+from os import environ
 from sys import platform
 from typing import List
 
@@ -17,6 +18,44 @@ from ..configuration import eNutsConfiguration
 from ..types.interface.configuration import iENUTSConfiguration
 from ..UI.windows import MainWindow
 from ..utilities import applyStyleSheet, loadStyleSheet
+
+
+# ==================================================================================================
+class _AsyncioProactorNoiseFilter(Filter):
+    _C_NOISE = (
+        "Got events from poll",
+        "Invoking event callback",
+        "Using proactor",
+        "is running after closing",
+    )
+
+    def filter(self, record: LogRecord) -> bool:
+        if record.name.startswith("asyncio"):
+            return record.levelno >= WARNING
+        try:
+            lMsg = record.getMessage()
+        except Exception:
+            return True
+        for lNoise in self._C_NOISE:
+            if lNoise in lMsg:
+                return False
+        return True
+
+
+# ==================================================================================================
+def _silenceAsyncioLogs() -> None:
+    environ["PYTHONASYNCIODEBUG"] = "0"
+    lFilter = _AsyncioProactorNoiseFilter()
+    for lName in ("asyncio", "asyncio.proactor", "asyncio.windows_events"):
+        lLogger = getLogger(lName)
+        lLogger.setLevel(CRITICAL)
+        lLogger.propagate = False
+        for lHandler in list(lLogger.handlers):
+            lLogger.removeHandler(lHandler)
+        lLogger.addFilter(lFilter)
+    root.addFilter(lFilter)
+    for lHandler in list(root.handlers):
+        lHandler.addFilter(lFilter)
 
 
 # ==================================================================================================
@@ -65,14 +104,12 @@ def program(*args):
     app: QApplication = QApplication()
     loop: QEventLoop = QEventLoop(app)
 
-    # Prevent asyncio debug spam ("Got events from poll", "Invoking event callback").
     loop.set_debug(False)
-    for lName in ("asyncio", "asyncio.proactor", "asyncio.windows_events"):
-        lLogger = getLogger(lName)
-        lLogger.setLevel(WARNING)
-        lLogger.propagate = False
+    _silenceAsyncioLogs()
 
     set_event_loop(loop)
+    _silenceAsyncioLogs()  # again after loop is installed
+
     with loop:
         loop.run_until_complete(main(app))
 
