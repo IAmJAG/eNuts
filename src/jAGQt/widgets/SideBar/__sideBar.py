@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Optional
 
 # ==================================================================================
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 
 # ==================================================================================
@@ -14,18 +14,23 @@ from ..components import ComponentBase
 
 # ==================================================================================
 from .__options import sideBarConfig
+from .components import SideBarHeader
 
 
 # ==================================================================================
 class SideBar(QWidget, ComponentBase):
-    """Phase 1 — outer frame only.
+    """Dockable side bar frame + header (Phase 2).
 
-    Owns width contract, vertical layout, and two reserved hosts
-    (header + content) for later phases. No header or items yet.
+    Header is internal. Content host is private until Phase 3.
+    Collapse currently updates header visuals only (width animation later).
     """
+
+    CollapseRequested = Signal()
+    CollapsedChanged = Signal(bool)
 
     def __init__(
         self,
+        title: str = "",
         config: Optional[sideBarConfig] = None,
         parent: Optional[QWidget] = None,
         *args,
@@ -34,6 +39,7 @@ class SideBar(QWidget, ComponentBase):
         super().__init__(parent, *args, **kwargs)
 
         self._config: sideBarConfig = config if config is not None else sideBarConfig()
+        self._collapsed: bool = bool(self._config.startCollapsed)
 
         self.setObjectName("SideBar")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
@@ -52,12 +58,12 @@ class SideBar(QWidget, ComponentBase):
         )
         self.setLayout(self._layout)
 
-        # Reserved hosts for Phase 2 (header) and Phase 3 (buttons/content)
-        self._headerHost: QWidget = QWidget(self)
-        self._headerHost.setObjectName("SideBarHeaderHost")
-        self._headerHost.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        self._header: SideBarHeader = SideBarHeader(
+            title=title,
+            iconSize=self._config.iconSize,
+            parent=self,
         )
+        self._header.CollapseRequested.connect(self._onHeaderCollapseRequested)
 
         self._contentHost: QWidget = QWidget(self)
         self._contentHost.setObjectName("SideBarContentHost")
@@ -65,8 +71,29 @@ class SideBar(QWidget, ComponentBase):
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
 
-        self._layout.addWidget(self._headerHost)
+        self._layout.addWidget(self._header)
         self._layout.addWidget(self._contentHost, 1)
+
+        if self._collapsed:
+            self._header.SetCollapsed(True)
+
+    # ==================================================================================
+    def SetTitle(self, title: str) -> None:
+        self._header.SetTitle(title)
+
+    def SetCollapsed(self, collapsed: bool) -> None:
+        lValue: bool = bool(collapsed)
+        if lValue is self._collapsed:
+            return
+        self._collapsed = lValue
+        self._header.SetCollapsed(lValue)
+        self.setProperty("collapsed", "true" if lValue else "false")
+        self.style().unpolish(self)
+        self.style().polish(self)
+        self.CollapsedChanged.emit(lValue)
+
+    def ToggleCollapse(self) -> None:
+        self.SetCollapsed(not self._collapsed)
 
     # ==================================================================================
     @property
@@ -74,9 +101,22 @@ class SideBar(QWidget, ComponentBase):
         return self._config
 
     @property
-    def HeaderHost(self) -> QWidget:
-        return self._headerHost
+    def Title(self) -> str:
+        return self._header.Title
+
+    @Title.setter
+    def Title(self, value: str) -> None:
+        self._header.Title = value
 
     @property
-    def ContentHost(self) -> QWidget:
-        return self._contentHost
+    def Collapsed(self) -> bool:
+        return self._collapsed
+
+    @Collapsed.setter
+    def Collapsed(self, value: bool) -> None:
+        self.SetCollapsed(value)
+
+    # ==================================================================================
+    def _onHeaderCollapseRequested(self) -> None:
+        self.ToggleCollapse()
+        self.CollapseRequested.emit()

@@ -54,7 +54,7 @@ class Shell(iShell):
 
     def _wInitializeSideBar(self: iMainWindowBase) -> None:
         try:
-            self._sideBar: SideBar = SideBar()
+            self._sideBar: SideBar = SideBar(title="eNuts")
             lLayout: QBoxLayout = self.Layout
             lLayout.insertWidget(0, self._sideBar)
 
