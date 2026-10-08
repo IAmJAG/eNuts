@@ -50,10 +50,8 @@ def isSCRCPYServerDeployed(
 
 # ==================================================================================
 def pushSCRCPYServer(
-    device: AdbDevice,
-    androidPath: str = ANDROID_PATH,
-    serverPath: str = SERVER_PATH,
-    JARName: str = JAR_NAME,
+    device: AdbDevice, androidPath: str = ANDROID_PATH,
+    serverPath: str = SERVER_PATH, JARName: str = JAR_NAME,
     timeout: int = 3000,
 ):
     # retry every 100ms
@@ -79,10 +77,8 @@ def pushSCRCPYServer(
 
 
 def deployServer(
-    device: AdbDevice,
-    cfg: SCRCPYServerConfig,
-    serverPath: str = SERVER_PATH,
-    timeout: int = 3000,
+    device: AdbDevice, cfg: SCRCPYServerConfig,
+    serverPath: str = SERVER_PATH, timeout: int = 3000,
 ) -> AdbConnection:
     try:
         androidPath: str = cfg.AndroidPath

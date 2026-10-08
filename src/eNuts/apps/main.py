@@ -1,9 +1,6 @@
 # ==================================================================================================
-# src/eNuts/apps/main.py
-# ==================================================================================================
 from asyncio import CancelledError, Event, set_event_loop
 from ctypes import windll
-from os import path
 from sys import platform
 from typing import List
 
@@ -28,6 +25,7 @@ async def main(app: QApplication, *args, **kwargs):
     lShutdownEvent: Event = Event()
 
     def _onAboutToQuit() -> None: lShutdownEvent.set()
+    
     app.aboutToQuit.connect(_onAboutToQuit)
     app.setQuitOnLastWindowClosed(False)
 
@@ -41,6 +39,8 @@ async def main(app: QApplication, *args, **kwargs):
         lWin: MainWindow = MainWindow(*args, **kwargs)        
         lWin.show()
 
+        lWin.initializeInstance()
+        
         app.setQuitOnLastWindowClosed(True)
 
         await lShutdownEvent.wait()

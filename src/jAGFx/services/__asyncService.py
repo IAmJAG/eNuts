@@ -13,17 +13,14 @@ from .__subscription import AsyncSubscription
 
 
 # ==================================================================================
-class AsyncService(iService, AsyncSubscription):
+class AsyncService(AsyncSubscription, iService):
     C_DEFAULT_FORCE_AFTER: float = 0.1
 
     def __init__(
-        self,
-        work: Callable[..., Awaitable] | None = None,
-        name: str | None = None,
-        throttle: float = 0.0,
+        self, work: Callable[..., Awaitable] | None = None,
+        name: str | None = None, throttle: float = 0.0,
     ) -> None:
-        AsyncSubscription.__init__(self)
-
+        super().__init__()
         if throttle < 0.0:
             raise ValueError("throttle must be greater than or equal to zero")
 

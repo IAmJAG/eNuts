@@ -37,7 +37,7 @@ DEF_FILE_FORMATTER: Dict[str, Any] = {
     "class": DefaultFormatter,
     "kwargs": {
         "style": "{",
-        "fmt": "[{asctime}][{levelname:<8}][{caller}] {message}",
+        "fmt": "[{asctime}][{levelname:<8}] {message}",
         "datefmt": "%Y%m%d",
     },
 },
@@ -47,9 +47,9 @@ DEF_FILE_FORMATTER: Dict[str, Any] = {
 fmtList = [
     "%(light_black)s[%(asctime)s]%(reset)s",
     "%(log_color)s[%(levelname)-8s]%(reset)s ",
-    "%(log_color)s[%(caller)-8s]%(reset)s ",
     "%(message_log_color)s%(message)s%(reset)s",
 ]
+# "%(log_color)s[%(caller)-8s]%(reset)s ",
 C_LOG_FORMAT = "".join(fmtList)
 C_LOG_COLORS = {
     "DEBUG": "light_black",

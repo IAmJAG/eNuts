@@ -13,10 +13,10 @@ from ..data import CallerInformation
 
 fmtList = [
     "%(light_black)s[%(asctime)s]%(reset)s",
-    "%(log_color)s[%(levelname)-8s]%(reset)s ",
-    "%(log_color)s[%(caller)-8s]%(reset)s ",
+    "%(log_color)s[%(levelname)-8s]%(reset)s ",    
     "%(message_log_color)s%(message)s%(reset)s",
 ]
+# "%(log_color)s[%(caller)-8s]%(reset)s ",
 C_LOG_FORMAT = "".join(fmtList)
 C_LOG_COLORS = {
     "DEBUG": "light_black",

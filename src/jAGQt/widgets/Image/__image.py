@@ -1,6 +1,4 @@
 # ==================================================================================
-# src/jAGQt/widgets/Image/__image.py
-# ==================================================================================
 import os
 from typing import Literal, Optional, Union
 
@@ -27,24 +25,18 @@ from ..components import ComponentBase
 # ==================================================================================
 Backend = Literal["software", "opengl"]
 
-
 # ==================================================================================
 class Image(QWidget, ComponentBase):
-    """Fast image viewer with zoom / pan.
-
-    backend="software"  → pure QWidget + cached scaled QPixmap (default)
-    backend="opengl"    → QOpenGLWidget child (GPU-backed)    """
-
     onResize: Signal = Signal(QSize)
     onZoomChanged: Signal = Signal(float)
 
-    # ------------------------------------------------------------------
     def __init__(
-        self, bg: Union[str, QColor] = "lightgray",
-        backend: Backend = "software", *args, **kwargs,
+        self,
+        bg: Union[str, QColor] = "lightgray", 
+        backend: Backend = "software", *args, **kwargs
     ) -> None:
+        
         super().__init__(*args, **kwargs)
-
         self._backend: Backend = backend
         self._image: Optional[QPixmap] = None
         self._zoom: float = 100.0
@@ -64,7 +56,7 @@ class Image(QWidget, ComponentBase):
 
         self.setupUI()
 
-    # ------------------------------------------------------------------
+# ==================================================================================
     def setupUI(self) -> None:
         self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, True)
         self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground, True)
@@ -77,9 +69,9 @@ class Image(QWidget, ComponentBase):
             self._gl.setGeometry(self.rect())
             self._gl.show()
 
-    # ------------------------------------------------------------------
-    # PROPERTIES
-    # ------------------------------------------------------------------
+# ==================================================================================
+# PROPERTIES
+# ==================================================================================
     @property
     def backend(self) -> Backend:
         return self._backend
@@ -151,16 +143,16 @@ class Image(QWidget, ComponentBase):
         if self._gl is not None:
             self._gl.setImage(self._image)
 
-    # ------------------------------------------------------------------
+# ==================================================================================
     def setBackgroundColor(self, color: Union[str, QColor]) -> None:
         self._backgroundColor = QColor(color) if isinstance(color, str) else color
         if self._gl is not None:
             self._gl.setBackgroundColor(self._backgroundColor)
         self._requestUpdate()
 
-    # ------------------------------------------------------------------
-    # LOGIC
-    # ------------------------------------------------------------------
+# ==================================================================================
+# LOGIC
+# ==================================================================================
     def resetView(self) -> None:
         if self._image is None or self._image.isNull() or self.width() <= 0 or self.height() <= 0:
             self._zoom = 100.0
@@ -236,9 +228,9 @@ class Image(QWidget, ComponentBase):
         qimg = QImage(t.data_ptr(), w, h, t.stride(0), fmt).copy()
         return QPixmap.fromImage(qimg)
 
-    # ------------------------------------------------------------------
-    # EVENTS
-    # ------------------------------------------------------------------
+# ==================================================================================
+# EVENTS
+# ==================================================================================
     def resizeEvent(self, event: QResizeEvent) -> None:
         self.onResize.emit(event.size())
         if self._gl is not None:
@@ -313,17 +305,10 @@ class Image(QWidget, ComponentBase):
         self._requestUpdate()
         event.accept()
 
-
 # ==================================================================================
 # OpenGL renderer (private)
 # ==================================================================================
 class _GLView(QOpenGLWidget):
-    """GPU-backed view used when Image(backend="opengl").
-
-    Uses QPainter over the GL context for maximum cross-platform reliability
-    with pure PySide6 (no fixed-function pipeline / no PyOpenGL dependency).
-    """
-
     def __init__(self, parent: Image) -> None:
         super().__init__(parent)
         self._owner = parent

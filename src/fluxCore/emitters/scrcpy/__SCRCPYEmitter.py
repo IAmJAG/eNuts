@@ -37,14 +37,11 @@ MAX_FPS = 60
 BITRATE = 4000000
 # ==================================================================================
 
-
 # ==================================================================================
 class SCRCPYEmitter(AsyncService, SCRCPY):
-    """Async video/control emitter. Satisfies iSCRCPYEmitter structurally."""
-
     def __init__(self, serial: str, name: str | None = None) -> None:
-        SCRCPY.__init__(self, serial=serial, name=name)
-        AsyncService.__init__(self, work=self.work, name=name)
+        SCRCPY.__init__(self, serial=serial, name=name)        
+        AsyncService.__init__(self, work=self.work, name=self.name)
         self._vSocket: iVideoSocket | None = None
         self._cSocket: iControlSocket | None = None
         self._streamServer: AdbConnection | None = None
@@ -55,15 +52,11 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
     # ==================================================================================
     @property
     def ControlSocket(self) -> iControlSocket | None:
-        """Public control-channel accessor. Returns None when unavailable."""
-        if not hasattr(self, "_cSocket"):
-            return None
+        if not hasattr(self, "_cSocket"): return None
         return self._cSocket
 
     # ==================================================================================
     def _startServerLogDrain(self, streamServer: AdbConnection) -> None:
-        """Prevent scrcpy-server from blocking on a full stdout pipe."""
-
         def _drain() -> None:
             try:
                 while not self._serverLogStop.is_set():
@@ -90,7 +83,6 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         self._serverLogThread = None
 
     async def work(self, *args, **kwargs):
-        """Drain the video socket continuously until the service is stopped."""
         sckt: iVideoSocket = self._vSocket
         if sckt is None: return
 
@@ -107,7 +99,6 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
                     await asyncWait(0)
                     continue
 
-                # qasync + Windows IOCP: yield so overlapped reads can complete
                 await asyncWait(0)
 
         finally:
@@ -137,12 +128,8 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         device: AdbDevice = adb.device(serial=self.id)
 
         cfg: SCRCPYServerConfig = SCRCPYServerConfig(
-            androidPath=ANDROID_PATH,
-            jarName=JAR_NAME,
-            maxSize=MAX_SIZE,
-            maxFps=MAX_FPS,
-            bitrate=BITRATE,
-            logLevel="warn",
+            androidPath=ANDROID_PATH, jarName=JAR_NAME, maxSize=MAX_SIZE,
+            maxFps=MAX_FPS, bitrate=BITRATE, logLevel="warn",
         )
 
         streamServer: AdbConnection = deployServer(
