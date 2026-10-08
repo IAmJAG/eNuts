@@ -39,7 +39,7 @@ async def main(app: QApplication, *args, **kwargs):
         lWin: MainWindow = MainWindow(*args, **kwargs)        
         lWin.show()
 
-        lWin.initializeInstance()
+        await lWin.initializeInstance()
         
         app.setQuitOnLastWindowClosed(True)
 

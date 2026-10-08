@@ -31,8 +31,7 @@ class Shell(iShell):
             image: imageStreamer = imageStreamer()
 
             commandBar: iCommandBar = CommandBar()
-            cmdBtn: iCommandBarButton = commandBar.addButton("File")
-            cmdBtn.clicked.connect(lambda: print("File"))
+            cmdBtn: iCommandBarButton = commandBar.addButton("File")            
             commandBar.addStretch()
 
             layout.addWidget(image)
@@ -45,13 +44,13 @@ class Shell(iShell):
         pass
 
     # ==================================================================================    
-    def initializeInstance(self: iMainWindowBase) -> None:
+    async def initializeInstance(self: iMainWindowBase) -> None:
         try:
             # devices: Dict[str, AdbDevice] = {d.serial: d for d in adb.device_list()}
             # device: AdbDevice = devices.get("emulator-5560", None)
             # if device is None: return
             emitter: SCRCPYEmitter = SCRCPYEmitter("emulator-5560")
-            emitter.initialize()
+            await emitter.initialize()
             emitter.subscribe("ON_FRAME", lambda frame: print("frame: ", frame.pts))
             emitter.start()
 

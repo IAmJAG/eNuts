@@ -4,7 +4,7 @@
 import os
 
 # ==================================================================================
-from asyncio import AbstractEventLoop, CancelledError, Task, get_running_loop
+from asyncio import AbstractEventLoop, CancelledError, get_running_loop
 from socket import socket
 from threading import Event as ThreadEvent
 from threading import Thread
@@ -15,7 +15,6 @@ from av import InvalidDataError, VideoCodecContext
 
 # ==================================================================================
 from jAGFx.services import AsyncService
-from utilities import createTask
 
 # ==================================================================================
 from ...devices import SCRCPY
@@ -38,11 +37,14 @@ MAX_FPS = 60
 BITRATE = 4000000
 # ==================================================================================
 
+
 # ==================================================================================
 class SCRCPYEmitter(AsyncService, SCRCPY):
+    """Async video/control emitter. Satisfies iSCRCPYEmitter structurally."""
+
     def __init__(self, serial: str, name: str | None = None) -> None:
-        SCRCPY.__init__(self, serial=serial, name=name)        
-        AsyncService.__init__(self, work=self.work, name=self.name)
+        SCRCPY.__init__(self, serial=serial, name=name)
+        AsyncService.__init__(self, work=self.work, name=name)
         self._vSocket: iVideoSocket | None = None
         self._cSocket: iControlSocket | None = None
         self._streamServer: AdbConnection | None = None
@@ -53,11 +55,15 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
     # ==================================================================================
     @property
     def ControlSocket(self) -> iControlSocket | None:
-        if not hasattr(self, "_cSocket"): return None
+        """Public control-channel accessor. Returns None when unavailable."""
+        if not hasattr(self, "_cSocket"):
+            return None
         return self._cSocket
 
     # ==================================================================================
     def _startServerLogDrain(self, streamServer: AdbConnection) -> None:
+        """Prevent scrcpy-server from blocking on a full stdout pipe."""
+
         def _drain() -> None:
             try:
                 while not self._serverLogStop.is_set():
@@ -84,6 +90,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         self._serverLogThread = None
 
     async def work(self, *args, **kwargs):
+        """Drain the video socket continuously until the service is stopped."""
         sckt: iVideoSocket = self._vSocket
         if sckt is None: return
 
@@ -100,6 +107,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
                     await asyncWait(0)
                     continue
 
+                # qasync + Windows IOCP: yield so overlapped reads can complete
                 await asyncWait(0)
 
         finally:
@@ -125,12 +133,16 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         self._name = lName
         self.update(codecId=lCodecId, width=lWidth, height=lHeight)
 
-    def initialize(self, GPUID: int = 0, GPUReady: bool = True) -> None:
+    async def initialize(self, GPUID: int = 0, GPUReady: bool = True) -> None:
         device: AdbDevice = adb.device(serial=self.id)
 
         cfg: SCRCPYServerConfig = SCRCPYServerConfig(
-            androidPath=ANDROID_PATH, jarName=JAR_NAME, maxSize=MAX_SIZE,
-            maxFps=MAX_FPS, bitrate=BITRATE, logLevel="warn",
+            androidPath=ANDROID_PATH,
+            jarName=JAR_NAME,
+            maxSize=MAX_SIZE,
+            maxFps=MAX_FPS,
+            bitrate=BITRATE,
+            logLevel="warn",
         )
 
         streamServer: AdbConnection = deployServer(
@@ -151,18 +163,8 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         cSCKT: socket = getSCRCPYADBSocket(device, scid=cfg.Scid, timeout=3000)
         self._cSocket = ControlSocket(cSCKT, loop=asyncLoop)
 
-        task: Task = createTask(self._updateMetadata, self._vSocket)
+        await self._updateMetadata(self._vSocket)
 
-        def _onMetadataDone(fut: Task) -> None:
-            try:
-                fut.result()  # re-raise if _updateMetadata failed
-            except Exception as ex:
-                error(f"[{self.__class__.__name__}] metadata update failed", ex)
-                return
-
-            # codecId is now correct (written by _updateMetadata → self.update)
-            self._codecContext = createCodecContext(
-                self.codecId, GPUID=GPUID, GPUReady=GPUReady
-            )
-
-        task.add_done_callback(_onMetadataDone)
+        self._codecContext = createCodecContext(
+            self.codecId, GPUID=GPUID, GPUReady=GPUReady
+        )
