@@ -4,18 +4,15 @@
 import random
 
 # ==================================================================================
-from typing import runtime_checkable
+from jAGFx.serializer import Serializable
 
 # ==================================================================================
-from jAGFx.serializer import Serializeable
-
-# ==================================================================================
-from ..contracts.geometry.__point import iPoint
+from ..interface.geometry.__point import iPoint
 from .__point import Point
 
 
 # ==================================================================================
-class Rectangle(Serializeable):
+class Rectangle(Serializable):
     def __init__(self, x: float, y: float, width: float, height: float):
         super().__init__()
         self._x: float | int = float(x)

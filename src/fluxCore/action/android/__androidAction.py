@@ -15,7 +15,7 @@ from .enums.__eCommands import eCommandType
 
 
 # ==================================================================================
-class AndroidAction(Action, iActionMetadata, iAndroidAction):
+class AndroidAction(iAndroidAction, Action):
     def __init__(
         self,
         name: str = None,
