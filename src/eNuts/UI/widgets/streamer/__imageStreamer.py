@@ -7,7 +7,14 @@ from typing import Optional
 # ==================================================================================
 from av import InvalidDataError, VideoCodecContext, VideoFrame
 from PySide6.QtCore import Qt, Slot
-from PySide6.QtGui import QImage, QKeyEvent, QMouseEvent, QPixmap, QWheelEvent
+from PySide6.QtGui import (
+    QImage,
+    QKeyEvent,
+    QMouseEvent,
+    QPixmap,
+    QResizeEvent,
+    QWheelEvent,
+)
 
 # ==================================================================================
 from jAGQt.widgets.image import Image
@@ -29,6 +36,7 @@ class imageStreamer(Image):
         self._deviceWidth: int = 0
         self._deviceHeight: int = 0
         self._captureInput: bool = True
+        self._fitOnResize: bool = True
 
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setMouseTracking(True)
@@ -73,6 +81,22 @@ class imageStreamer(Image):
     @CaptureInput.setter
     def CaptureInput(self, enabled: bool) -> None:
         self._captureInput = bool(enabled)
+
+    @property
+    def FitOnResize(self) -> bool:
+        """When True, refit the stream to the widget on every resize (MainWindow included)."""
+        return self._fitOnResize
+
+    @FitOnResize.setter
+    def FitOnResize(self, enabled: bool) -> None:
+        self._fitOnResize = bool(enabled)
+
+    # ==================================================================================
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        super().resizeEvent(event)
+        if self._fitOnResize and self._hasFrame and self._image is not None:
+            self.resetView()
+            self._requestUpdate()
 
     # ==================================================================================
     @Slot(object)
