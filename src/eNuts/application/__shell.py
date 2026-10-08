@@ -22,19 +22,19 @@ from ..UI.widgets.streamer import imageStreamer
 # ==================================================================================
 class Shell(iShell):
     def _wInitializeShell(self: iMainWindowBase) -> None:
-        try:            
+        try:
             layout: QBoxLayout = self.Layout
             layout.setDirection(QBoxLayout.Direction.TopToBottom)
             self.ContentSpacing = 0
             self.ContentMargins = 0
 
-            image: imageStreamer = imageStreamer()
+            self._imageStreamer: imageStreamer = imageStreamer()
 
             commandBar: iCommandBar = CommandBar()
-            cmdBtn: iCommandBarButton = commandBar.addButton("File")            
+            cmdBtn: iCommandBarButton = commandBar.addButton("File")
             commandBar.addStretch()
 
-            layout.addWidget(image)
+            layout.addWidget(self._imageStreamer)
             layout.addWidget(commandBar)
 
         except Exception as ex:
@@ -43,15 +43,18 @@ class Shell(iShell):
     def _wInitializeSideBar(self: iMainWindowBase) -> None:
         pass
 
-    # ==================================================================================    
+    # ==================================================================================
     async def initializeInstance(self: iMainWindowBase) -> None:
         try:
-            # devices: Dict[str, AdbDevice] = {d.serial: d for d in adb.device_list()}
-            # device: AdbDevice = devices.get("emulator-5560", None)
-            # if device is None: return
             emitter: SCRCPYEmitter = SCRCPYEmitter("emulator-5560")
             await emitter.initialize()
-            emitter.subscribe("ON_FRAME", lambda frame: print("frame: ", frame.pts))
+
+            self._imageStreamer.Decoder = emitter.CodecContext
+            self._imageStreamer.ControlSocket = emitter.ControlSocket
+            self._imageStreamer.DeviceWidth = emitter.width
+            self._imageStreamer.DeviceHeight = emitter.height
+
+            emitter.subscribe("ON_FRAME", self._imageStreamer.OnFrame)
             emitter.start()
 
             self._emitter = emitter

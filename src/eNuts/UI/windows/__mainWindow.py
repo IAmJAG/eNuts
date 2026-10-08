@@ -16,7 +16,11 @@ class MainWindow(MainWindowBase, ApplicationInformation, Shell):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__("ENUTS_WINDOW", *args, **kwargs)
 
-    def closeEvent(self, event) -> None:        
-        if hasattr(self, "_emitter") and self._emitter is not None: 
-            self._emitter.stop()            
+    def closeEvent(self, event) -> None:
+        if hasattr(self, "_emitter") and self._emitter is not None:
+            try:
+                if getattr(self._emitter, "isRunning", False):
+                    self._emitter.stop()
+            except RuntimeError:
+                pass
         super().closeEvent(event)

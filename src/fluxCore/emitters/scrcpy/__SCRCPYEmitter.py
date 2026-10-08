@@ -60,6 +60,11 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
             return None
         return self._cSocket
 
+    @property
+    def CodecContext(self) -> VideoCodecContext | None:
+        """Public decoder context for frame consumers (e.g. imageStreamer)."""
+        return self._codecContext
+
     # ==================================================================================
     def _startServerLogDrain(self, streamServer: AdbConnection) -> None:
         """Prevent scrcpy-server from blocking on a full stdout pipe."""
@@ -73,13 +78,16 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
                     except Exception:
                         break
 
-                    if not lChunk: break
+                    if not lChunk:
+                        break
 
             finally:
                 pass
 
         self._serverLogStop.clear()
-        self._serverLogThread = Thread(target=_drain, name=f"scrcpy-log-{self.id}", daemon=True)
+        self._serverLogThread = Thread(
+            target=_drain, name=f"scrcpy-log-{self.id}", daemon=True
+        )
         self._serverLogThread.start()
 
     def _stopServerLogDrain(self) -> None:
@@ -92,7 +100,8 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
     async def work(self, *args, **kwargs):
         """Drain the video socket continuously until the service is stopped."""
         sckt: iVideoSocket = self._vSocket
-        if sckt is None: return
+        if sckt is None:
+            return
 
         try:
             while self.isRunning:
