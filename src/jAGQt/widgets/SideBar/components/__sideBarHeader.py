@@ -10,12 +10,14 @@ from PySide6.QtGui import QMouseEvent
 from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 
 # ==================================================================================
+from jAGQt.icons import MakeBurgerIcon, MakeCloseIcon
+
+# ==================================================================================
 from ....utilities import newLayout
 from ...components import ComponentBase
 
 # ==================================================================================
 from .__sideBarIcon import SideBarIcon
-from .__sideBarIcons import MakeBurgerIcon, MakeCloseIcon
 from .__sideBarText import SideBarText
 
 

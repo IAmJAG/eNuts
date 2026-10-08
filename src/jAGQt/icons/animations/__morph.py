@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Optional
 
 # ==================================================================================
-from PySide6.QtCore import QEasingCurve, QObject, QVariantAnimation
+from PySide6.QtCore import QEasingCurve, QObject, Qt, QVariantAnimation
 from PySide6.QtGui import QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QLabel, QWidget
 
@@ -15,10 +15,7 @@ from .__base import IconAnimationBase
 
 # ==================================================================================
 class IconMorphAnimation(IconAnimationBase):
-    """Cross-fade morph from one icon to another on a QLabel (or any widget with setPixmap).
-
-    Progress 0 → start icon, 1 → end icon. Intermediate frames blend both pixmaps.
-    """
+    """Cross-fade morph from one icon to another on a QLabel (or setPixmap target)."""
 
     def __init__(
         self,
@@ -64,22 +61,17 @@ class IconMorphAnimation(IconAnimationBase):
 
     def _onProgress(self, value: object) -> None:
         lT: float = float(value)
-        lSize = self._iconSize
+        lSize: int = self._iconSize
         lStart: QPixmap = self._startIcon.pixmap(lSize, lSize)
         lEnd: QPixmap = self._endIcon.pixmap(lSize, lSize)
         lFrame: QPixmap = QPixmap(lSize, lSize)
-        lFrame.fill(Qt.GlobalColor.transparent)  # type: ignore[name-defined]
-
-        from PySide6.QtCore import Qt as _Qt
-
-        lFrame.fill(_Qt.GlobalColor.transparent)
+        lFrame.fill(Qt.GlobalColor.transparent)
         lPainter: QPainter = QPainter(lFrame)
         lPainter.setOpacity(1.0 - lT)
         lPainter.drawPixmap(0, 0, lStart)
         lPainter.setOpacity(lT)
         lPainter.drawPixmap(0, 0, lEnd)
         lPainter.end()
-
         self._applyPixmap(lFrame)
 
     def _applyPixmap(self, pixmap: QPixmap) -> None:

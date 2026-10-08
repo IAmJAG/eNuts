@@ -9,24 +9,28 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 
 # ==================================================================================
+from jAGQt.types import DockPosition
+
+# ==================================================================================
 from ...utilities import newLayout
 from ..components import ComponentBase
 
 # ==================================================================================
 from .__options import sideBarConfig
-from .components import SideBarHeader
+from .components import SideBarDockControl, SideBarHeader
 
 
 # ==================================================================================
 class SideBar(QWidget, ComponentBase):
-    """Dockable side bar frame + header (Phase 2).
+    """Side bar frame + header + dock control.
 
-    Header is internal. Content host is private until Phase 3.
-    Collapse currently updates header visuals only (width animation later).
+    Header and dock control are internal.
+    Collapse updates header visuals; width animation wires later via DrawerAnimation.
     """
 
     CollapseRequested = Signal()
     CollapsedChanged = Signal(bool)
+    DockSideChanged = Signal(object)
 
     def __init__(
         self,
@@ -40,6 +44,7 @@ class SideBar(QWidget, ComponentBase):
 
         self._config: sideBarConfig = config if config is not None else sideBarConfig()
         self._collapsed: bool = bool(self._config.startCollapsed)
+        self._dockPosition: DockPosition = self._config.dockPosition
 
         self.setObjectName("SideBar")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
@@ -71,9 +76,19 @@ class SideBar(QWidget, ComponentBase):
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
 
+        lDockIconSize: int = max(12, min(self._config.iconSize, 18))
+        self._dockControl: SideBarDockControl = SideBarDockControl(
+            dockPosition=self._dockPosition,
+            iconSize=lDockIconSize,
+            parent=self,
+        )
+        self._dockControl.DockFlipRequested.connect(self._onDockFlipRequested)
+
         self._layout.addWidget(self._header)
         self._layout.addWidget(self._contentHost, 1)
+        self._layout.addWidget(self._dockControl)
 
+        self._applyDockProperty()
         if self._collapsed:
             self._header.SetCollapsed(True)
 
@@ -94,6 +109,22 @@ class SideBar(QWidget, ComponentBase):
 
     def ToggleCollapse(self) -> None:
         self.SetCollapsed(not self._collapsed)
+
+    def SetDockSide(self, position: DockPosition) -> None:
+        if position is self._dockPosition:
+            return
+        self._dockPosition = position
+        self._dockControl.SetDockPosition(position)
+        self._applyDockProperty()
+        self.DockSideChanged.emit(position)
+
+    def ToggleDockSide(self) -> None:
+        lNext = (
+            DockPosition.Right
+            if self._dockPosition is DockPosition.Left
+            else DockPosition.Left
+        )
+        self.SetDockSide(lNext)
 
     # ==================================================================================
     @property
@@ -116,7 +147,26 @@ class SideBar(QWidget, ComponentBase):
     def Collapsed(self, value: bool) -> None:
         self.SetCollapsed(value)
 
+    @property
+    def DockSide(self) -> DockPosition:
+        return self._dockPosition
+
+    @DockSide.setter
+    def DockSide(self, value: DockPosition) -> None:
+        self.SetDockSide(value)
+
     # ==================================================================================
+    def _applyDockProperty(self) -> None:
+        self.setProperty(
+            "dockSide",
+            "left" if self._dockPosition is DockPosition.Left else "right",
+        )
+        self.style().unpolish(self)
+        self.style().polish(self)
+
     def _onHeaderCollapseRequested(self) -> None:
         self.ToggleCollapse()
         self.CollapseRequested.emit()
+
+    def _onDockFlipRequested(self) -> None:
+        self.ToggleDockSide()

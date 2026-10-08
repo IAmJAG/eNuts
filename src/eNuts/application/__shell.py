@@ -10,10 +10,11 @@ from PySide6.QtWidgets import QBoxLayout, QWidget
 
 # ==================================================================================
 from fluxCore.emitters.scrcpy import SCRCPYEmitter
+from jAGQt.types import DockPosition
 from jAGQt.types.interface.widgets.commandBar import iCommandBar, iCommandBarButton
 from jAGQt.types.interface.window import iMainWindowBase
 from jAGQt.widgets.commandBar import CommandBar
-from jAGQt.widgets.sideBar import SideBar
+from jAGQt.widgets.SideBar import SideBar
 
 # ==================================================================================
 from ..types.interface.application import iENUTSService, iShell
@@ -29,7 +30,6 @@ class Shell(iShell):
             self.ContentSpacing = 0
             self.ContentMargins = 0
 
-            # Center column: streamer + command bar (vertical)
             lCenter: QWidget = QWidget()
             lCenterLayout: QBoxLayout = QBoxLayout(QBoxLayout.Direction.TopToBottom)
             lCenterLayout.setContentsMargins(0, 0, 0, 0)
@@ -55,11 +55,23 @@ class Shell(iShell):
     def _wInitializeSideBar(self: iMainWindowBase) -> None:
         try:
             self._sideBar: SideBar = SideBar(title="eNuts")
+            self._sideBar.DockSideChanged.connect(self._onSideBarDockChanged)
             lLayout: QBoxLayout = self.Layout
             lLayout.insertWidget(0, self._sideBar)
 
         except Exception as ex:
             error(f"[{self.__class__.__name__}] InitializeSideBar FAIL", ex)
+
+    def _onSideBarDockChanged(self, position: DockPosition) -> None:
+        try:
+            lLayout: QBoxLayout = self.Layout
+            lLayout.removeWidget(self._sideBar)
+            if position is DockPosition.Left:
+                lLayout.insertWidget(0, self._sideBar)
+            else:
+                lLayout.addWidget(self._sideBar)
+        except Exception as ex:
+            error(f"[{self.__class__.__name__}] SideBar dock change FAIL", ex)
 
     # ==================================================================================
     async def initializeInstance(self: iMainWindowBase) -> None:

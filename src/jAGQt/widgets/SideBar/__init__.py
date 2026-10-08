@@ -3,10 +3,12 @@ from .__sideBar import SideBar
 from .components import (
     IconPosition,
     ItemDisplayMode,
+    ItemRole,
     MakeBurgerIcon,
     MakeCloseIcon,
     SeparatorType,
     SideBarContent,
+    SideBarDockControl,
     SideBarGroup,
     SideBarGroupHeader,
     SideBarHeader,
@@ -23,6 +25,7 @@ __all__ = [
     "SideBarText",
     "SideBarItem",
     "ItemDisplayMode",
+    "ItemRole",
     "IconPosition",
     "SideBarSeparator",
     "SeparatorType",
@@ -30,6 +33,7 @@ __all__ = [
     "SideBarHeader",
     "SideBarGroup",
     "SideBarGroupHeader",
+    "SideBarDockControl",
     "MakeBurgerIcon",
     "MakeCloseIcon",
 ]

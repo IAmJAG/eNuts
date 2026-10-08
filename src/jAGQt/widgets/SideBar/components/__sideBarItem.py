@@ -1,5 +1,6 @@
 # ==================================================================================
-# src/jAGQt/widgets/SideBar/components/__sideBarItem.py
+from __future__ import annotations
+
 # ==================================================================================
 from enum import Enum, auto
 from typing import Callable, Optional, Union
@@ -9,9 +10,8 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QIcon, QMouseEvent, QPixmap
 from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 
-from ....utilities import newLayout
-
 # ==================================================================================
+from ....utilities import newLayout
 from ...components import ComponentBase
 
 # ==================================================================================
@@ -33,15 +33,35 @@ class IconPosition(Enum):
     Bottom = auto()
 
 
+class ItemRole(Enum):
+    Leaf = auto()
+    Header = auto()
+
+
 # ==================================================================================
 class SideBarItem(QWidget, ComponentBase):
-    Clicked = Signal(object)  # emits self
+    """Equal interactive unit for leaves and headers.
+
+    Code only sets depth / role / active / selected for QSS.
+    No font size or weight is applied in Python.
+    """
+
+    Clicked = Signal(object)
+
     def __init__(
-        self, text: str = "", icon: Optional[Union[QIcon, QPixmap, str]] = None,
+        self,
+        text: str = "",
+        icon: Optional[Union[QIcon, QPixmap, str]] = None,
         displayMode: ItemDisplayMode = ItemDisplayMode.IconAndText,
-        iconPosition: IconPosition = IconPosition.Left, iconSize: int = 24,
-        spacing: int = 8, callback: Optional[Callable] = None, parent: Optional[QWidget] = None,
-        *args, **kwargs,
+        iconPosition: IconPosition = IconPosition.Left,
+        iconSize: int = 24,
+        depth: int = 0,
+        role: ItemRole = ItemRole.Leaf,
+        spacing: int = 8,
+        callback: Optional[Callable] = None,
+        parent: Optional[QWidget] = None,
+        *args,
+        **kwargs,
     ) -> None:
         super().__init__(parent, *args, **kwargs)
 
@@ -54,6 +74,9 @@ class SideBarItem(QWidget, ComponentBase):
         self._iconPosition: IconPosition = iconPosition
         self._callback: Optional[Callable] = callback
         self._selected: bool = False
+        self._active: bool = False
+        self._depth: int = max(0, int(depth))
+        self._role: ItemRole = role
 
         self._iconWidget = SideBarIcon(icon=icon, iconSize=iconSize, parent=self)
         self._textWidget = SideBarText(text=text, parent=self)
@@ -62,8 +85,9 @@ class SideBarItem(QWidget, ComponentBase):
         self.setLayout(self._layout)
 
         self._rebuildLayout()
+        self._applyStateProperties()
 
-    # ================================================================================== public API
+    # ==================================================================================
     def SetText(self, text: str) -> None:
         self._textWidget.Text = text
 
@@ -76,7 +100,16 @@ class SideBarItem(QWidget, ComponentBase):
     def SetSelected(self, selected: bool) -> None:
         self.Selected = selected
 
-    # ================================================================================== properties
+    def SetActive(self, active: bool) -> None:
+        self.Active = active
+
+    def SetDepth(self, depth: int) -> None:
+        self.Depth = depth
+
+    def SetRole(self, role: ItemRole) -> None:
+        self.Role = role
+
+    # ==================================================================================
     @property
     def Text(self) -> str:
         return self._textWidget.Text
@@ -94,12 +127,36 @@ class SideBarItem(QWidget, ComponentBase):
         self._iconWidget.IconSize = value
 
     @property
+    def Depth(self) -> int:
+        return self._depth
+
+    @Depth.setter
+    def Depth(self, value: int) -> None:
+        lDepth: int = max(0, int(value))
+        if lDepth == self._depth:
+            return
+        self._depth = lDepth
+        self._applyStateProperties()
+
+    @property
+    def Role(self) -> ItemRole:
+        return self._role
+
+    @Role.setter
+    def Role(self, value: ItemRole) -> None:
+        if value is self._role:
+            return
+        self._role = value
+        self._applyStateProperties()
+
+    @property
     def DisplayMode(self) -> ItemDisplayMode:
         return self._displayMode
 
     @DisplayMode.setter
     def DisplayMode(self, value: ItemDisplayMode) -> None:
-        if value == self._displayMode: return
+        if value == self._displayMode:
+            return
         self._displayMode = value
         self._rebuildLayout()
 
@@ -120,12 +177,25 @@ class SideBarItem(QWidget, ComponentBase):
 
     @Selected.setter
     def Selected(self, value: bool) -> None:
-        if value == self._selected: return
-        self._selected = bool(value)
-        self.setProperty("selected", "true" if self._selected else "false")
-        self.style().unpolish(self)
-        self.style().polish(self)
-        self.update()
+        lValue: bool = bool(value)
+        if lValue is self._selected:
+            return
+        self._selected = lValue
+        self._applyStateProperties()
+
+    @property
+    def Active(self) -> bool:
+        return self._active
+
+    @Active.setter
+    def Active(self, value: bool) -> None:
+        lValue: bool = bool(value)
+        if lValue is self._active:
+            return
+        self._active = lValue
+        if lValue:
+            self._selected = True
+        self._applyStateProperties()
 
     @property
     def IconWidget(self) -> SideBarIcon:
@@ -135,11 +205,12 @@ class SideBarItem(QWidget, ComponentBase):
     def TextWidget(self) -> SideBarText:
         return self._textWidget
 
-    # ================================================================================== events
+    # ==================================================================================
     def mousePressEvent(self, event: QMouseEvent) -> None:
         if event.button() == Qt.MouseButton.LeftButton:
             self.Clicked.emit(self)
-            if self._callback is not None: self._callback(self)
+            if self._callback is not None:
+                self._callback(self)
         super().mousePressEvent(event)
 
     def enterEvent(self, event) -> None:
@@ -156,11 +227,19 @@ class SideBarItem(QWidget, ComponentBase):
         self.update()
         super().leaveEvent(event)
 
-    # ================================================================================== private
+    # ==================================================================================
+    def _applyStateProperties(self) -> None:
+        self.setProperty("depth", str(self._depth))
+        self.setProperty("role", "header" if self._role is ItemRole.Header else "leaf")
+        self.setProperty("selected", "true" if self._selected else "false")
+        self.setProperty("active", "true" if self._active else "false")
+        self.style().unpolish(self)
+        self.style().polish(self)
+        self.update()
+
     def _rebuildLayout(self) -> None:
-        # Only detach from layout — keep parent=self so widgets never become
-        # transient top-level windows (which flash as mini-windows on screen).
-        while self._layout.count(): self._layout.takeAt(0)
+        while self._layout.count():
+            self._layout.takeAt(0)
 
         lShowIcon = self._displayMode in (ItemDisplayMode.IconOnly, ItemDisplayMode.IconAndText)
         lShowText = self._displayMode in (ItemDisplayMode.TextOnly, ItemDisplayMode.IconAndText)
@@ -170,21 +249,17 @@ class SideBarItem(QWidget, ComponentBase):
 
         if self._iconPosition in (IconPosition.Left, IconPosition.Right):
             self._layout.setDirection(QBoxLayout.Direction.LeftToRight)
-
         else:
             self._layout.setDirection(QBoxLayout.Direction.TopToBottom)
 
         if self._iconPosition in (IconPosition.Left, IconPosition.Top):
             if lShowIcon:
                 self._layout.addWidget(self._iconWidget)
-
             if lShowText:
                 self._layout.addWidget(self._textWidget, 1)
-
         else:
             if lShowText:
                 self._layout.addWidget(self._textWidget, 1)
-
             if lShowIcon:
                 self._layout.addWidget(self._iconWidget)
 
