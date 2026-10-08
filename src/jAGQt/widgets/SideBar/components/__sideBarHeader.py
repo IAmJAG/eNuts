@@ -1,33 +1,44 @@
 # ==================================================================================
-# src/jAGQt/widgets/SideBar/components/__sideBarHeader.py
+from __future__ import annotations
+
 # ==================================================================================
 from typing import Optional
 
 # ==================================================================================
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QIcon, QMouseEvent
-from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QStyle, QWidget
-
-from ....utilities import newLayout
+from PySide6.QtGui import QMouseEvent
+from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 
 # ==================================================================================
+from ....utilities import newLayout
 from ...components import ComponentBase
 
 # ==================================================================================
 from .__sideBarIcon import SideBarIcon
+from .__sideBarIcons import MakeBurgerIcon, MakeCloseIcon
 from .__sideBarText import SideBarText
 
 
 # ==================================================================================
 class SideBarHeader(QWidget, ComponentBase):
-    """Independent header region for the SideBar (title + optional collapse control)."""
+    """Header strip: [burger|X icon] [title].
+
+    - Expanded: burger + title visible
+    - Collapsed: X only (title hidden)
+    - Icon is always square; size is a single int
+    - Title typography comes from QSS only
+    """
 
     CollapseRequested = Signal()
 
     def __init__(
-        self, title: str = "", icon: Optional[object] = None, iconSize: int = 20,
-        showCollapseButton: bool = True, spacing: int = 8, parent: Optional[QWidget] = None,
-        *args, **kwargs,
+        self,
+        title: str = "",
+        iconSize: int = 20,
+        spacing: int = 8,
+        parent: Optional[QWidget] = None,
+        *args,
+        **kwargs,
     ) -> None:
         super().__init__(parent, *args, **kwargs)
 
@@ -35,47 +46,49 @@ class SideBarHeader(QWidget, ComponentBase):
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
-        self._showCollapseButton: bool = showCollapseButton
         self._collapsed: bool = False
-        self._collapseIconSize: int = max(14, min(iconSize, 18))
+        self._iconSize: int = max(1, int(iconSize))
 
-        self._iconWidget = SideBarIcon(icon=icon, iconSize=iconSize, parent=self)
-        self._titleWidget = SideBarText(text=title, parent=self)
-        self._titleWidget.setObjectName("SideBarHeaderTitle")
-
-        self._collapseButton = SideBarIcon(
-            icon=None,
-            iconSize=self._collapseIconSize,
+        self._toggleIcon: SideBarIcon = SideBarIcon(
+            icon=MakeBurgerIcon(self._iconSize),
+            iconSize=self._iconSize,
             parent=self,
         )
-        self._collapseButton.setObjectName("SideBarHeaderCollapse")
-        self._collapseButton.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._collapseButton.mousePressEvent = self._onCollapseClicked  # type: ignore
+        self._toggleIcon.setObjectName("SideBarHeaderToggle")
+        self._toggleIcon.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._toggleIcon.mousePressEvent = self._onToggleClicked  # type: ignore
+
+        self._titleWidget: SideBarText = SideBarText(text=title, parent=self)
+        self._titleWidget.setObjectName("SideBarHeaderTitle")
 
         self._layout: QBoxLayout = newLayout(
-            QBoxLayout, spacing=spacing, margins=(8, 8, 9, 8)
+            QBoxLayout,
+            spacing=spacing,
+            margins=(8, 8, 8, 8),
+            direction=QBoxLayout.Direction.LeftToRight,
         )
-        self._layout.setDirection(QBoxLayout.Direction.LeftToRight)
         self.setLayout(self._layout)
 
-        self._rebuild()
-        self._refreshCollapseIcon()
+        self._layout.addWidget(self._toggleIcon)
+        self._layout.addWidget(self._titleWidget, 1)
 
-    # ================================================================================== public API
+        self._applyCollapsedVisual()
+
+    # ==================================================================================
     def SetTitle(self, title: str) -> None:
         self.Title = title
 
-    def SetIcon(self, icon) -> None:
-        self._iconWidget.SetIcon(icon)
-
     def SetCollapsed(self, collapsed: bool) -> None:
-        lValue = bool(collapsed)
-        if lValue == self._collapsed:
+        lValue: bool = bool(collapsed)
+        if lValue is self._collapsed:
             return
         self._collapsed = lValue
-        self._refreshCollapseIcon()
+        self._applyCollapsedVisual()
 
-    # ================================================================================== properties
+    def SetIconSize(self, iconSize: int) -> None:
+        self.IconSize = iconSize
+
+    # ==================================================================================
     @property
     def Title(self) -> str:
         return self._titleWidget.Text
@@ -85,49 +98,40 @@ class SideBarHeader(QWidget, ComponentBase):
         self._titleWidget.Text = value
 
     @property
-    def ShowCollapseButton(self) -> bool:
-        return self._showCollapseButton
+    def IconSize(self) -> int:
+        return self._iconSize
 
-    @ShowCollapseButton.setter
-    def ShowCollapseButton(self, value: bool) -> None:
-        if value == self._showCollapseButton: return
-        self._showCollapseButton = bool(value)
-        self._rebuild()
-
-    @property
-    def IconWidget(self) -> SideBarIcon:
-        return self._iconWidget
-
-    @property
-    def TitleWidget(self) -> SideBarText:
-        return self._titleWidget
+    @IconSize.setter
+    def IconSize(self, value: int) -> None:
+        lSize: int = max(1, int(value))
+        if lSize == self._iconSize:
+            return
+        self._iconSize = lSize
+        self._toggleIcon.IconSize = lSize
+        self._refreshToggleIcon()
 
     @property
-    def CollapseButton(self) -> SideBarIcon:
-        return self._collapseButton
+    def Collapsed(self) -> bool:
+        return self._collapsed
 
-    # ================================================================================== private
-    def _standardIcon(self, standardPixmap: QStyle.StandardPixmap) -> QIcon:
-        return self.style().standardIcon(standardPixmap)
+    @Collapsed.setter
+    def Collapsed(self, value: bool) -> None:
+        self.SetCollapsed(value)
 
-    def _refreshCollapseIcon(self) -> None:
+    # ==================================================================================
+    def _refreshToggleIcon(self) -> None:
         if self._collapsed:
-            lIcon = self._standardIcon(QStyle.StandardPixmap.SP_ArrowRight)
+            self._toggleIcon.SetIcon(MakeCloseIcon(self._iconSize))
         else:
-            lIcon = self._standardIcon(QStyle.StandardPixmap.SP_ArrowLeft)
-        self._collapseButton.SetIcon(lIcon)
+            self._toggleIcon.SetIcon(MakeBurgerIcon(self._iconSize))
 
-    def _rebuild(self) -> None:
-        # Detach from layout only — keep parent so no top-level window flashes
-        while self._layout.count():
-            self._layout.takeAt(0)
+    def _applyCollapsedVisual(self) -> None:
+        self._refreshToggleIcon()
+        self._titleWidget.setVisible(not self._collapsed)
+        self.setProperty("collapsed", "true" if self._collapsed else "false")
+        self.style().unpolish(self)
+        self.style().polish(self)
 
-        self._layout.addWidget(self._iconWidget)
-        self._layout.addWidget(self._titleWidget, 1)
-
-        if self._showCollapseButton:
-            self._layout.addWidget(self._collapseButton)
-
-    def _onCollapseClicked(self, event: QMouseEvent) -> None:
+    def _onToggleClicked(self, event: QMouseEvent) -> None:
         if event.button() == Qt.MouseButton.LeftButton:
             self.CollapseRequested.emit()

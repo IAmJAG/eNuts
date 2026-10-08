@@ -3,6 +3,8 @@ from .__sideBar import SideBar
 from .components import (
     IconPosition,
     ItemDisplayMode,
+    MakeBurgerIcon,
+    MakeCloseIcon,
     SeparatorType,
     SideBarContent,
     SideBarGroup,
@@ -28,4 +30,6 @@ __all__ = [
     "SideBarHeader",
     "SideBarGroup",
     "SideBarGroupHeader",
+    "MakeBurgerIcon",
+    "MakeCloseIcon",
 ]
