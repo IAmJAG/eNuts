@@ -5,8 +5,6 @@ from time import sleep
 from typing import Any
 
 # ==================================================================================
-# Import the protocol module directly to avoid loading types.interface.action.__init__
-# (which pulls iAndroidAction → action.android → cycle).
 from ..types.interface.action.__actionMetadata import iActionMetadata
 
 # ==================================================================================

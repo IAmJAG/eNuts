@@ -7,7 +7,6 @@ from struct import pack
 from utilities import createTask
 
 # ==================================================================================
-# Submodule imports avoid circular load of types.interface.action / action.android
 from ...types.interface.action.__actionMetadata import iActionMetadata
 from ...types.interface.action.__androidAction import iAndroidAction
 from ...types.interface.sockets import iControlSocket
