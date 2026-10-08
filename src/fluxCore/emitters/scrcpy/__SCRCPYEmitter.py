@@ -153,10 +153,16 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
 
         task: Task = createTask(self._updateMetadata, self._vSocket)
 
-        def _createCodec(_codecId: str, _GPUID: int = 0, _GPUReady: bool = True) -> None:
+        def _onMetadataDone(fut: Task) -> None:
+            try:
+                fut.result()  # re-raise if _updateMetadata failed
+            except Exception as ex:
+                error(f"[{self.__class__.__name__}] metadata update failed", ex)
+                return
+
+            # codecId is now correct (written by _updateMetadata → self.update)
             self._codecContext = createCodecContext(
-                _codecId, GPUID=_GPUID, GPUReady=_GPUReady
+                self.codecId, GPUID=GPUID, GPUReady=GPUReady
             )
 
-        codecId: str = self._codecId
-        task.add_done_callback(_createCodec, codecId, GPUID, GPUReady)
+        task.add_done_callback(_onMetadataDone)

@@ -52,7 +52,7 @@ class Shell(iShell):
             # if device is None: return
             emitter: SCRCPYEmitter = SCRCPYEmitter("emulator-5560")
             emitter.initialize()
-            emitter.subscribe("ON_FRAME", lambda frame: print(frame))
+            emitter.subscribe("ON_FRAME", lambda frame: print("frame: ", frame.pts))
             emitter.start()
 
             self._emitter = emitter
