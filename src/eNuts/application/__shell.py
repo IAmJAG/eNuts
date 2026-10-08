@@ -14,7 +14,7 @@ from jAGQt.types import DockPosition
 from jAGQt.types.interface.widgets.commandBar import iCommandBar, iCommandBarButton
 from jAGQt.types.interface.window import iMainWindowBase
 from jAGQt.widgets.commandBar import CommandBar
-from jAGQt.widgets.SideBar import SideBar
+from jAGQt.widgets.sideBar import SideBar
 
 # ==================================================================================
 from ..types.interface.application import iENUTSService, iShell
