@@ -36,7 +36,10 @@ def _program(module: str, app: str, clean: bool = False, *args, **kwargs):
 
 # ==================================================================================================
 def program(args: list = argv):
-    setupLogging("", LOG_LEVEL)    
+    setupLogging("", LOG_LEVEL)
+    # asyncio/proactor emits high-volume DEBUG ("Got events from poll", "Invoking event callback")
+    # under Windows IOCP; keep app VERBOSE but mute the stdlib asyncio logger.
+    getLogger("asyncio").setLevel(WARNING)
     lArgs, lKWArgs = ProcessArguments(args)
     return _program(*lArgs, **lKWArgs)
 
