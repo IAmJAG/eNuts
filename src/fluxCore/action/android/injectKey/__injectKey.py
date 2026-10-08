@@ -1,27 +1,25 @@
 # ==================================================================================
-# src/fluxCore/actions/androidAction/injectKey/__injectKey.py
+# src/fluxCore/action/android/injectKey/__injectKey.py
 # ==================================================================================
-from concurrent.futures import ThreadPoolExecutor
 from struct import pack
 
 # ==================================================================================
 from ....types.interface.sockets import iControlSocket
 from ..__androidAction import AndroidAction as Action
-from ..enums import (
-    eCommandType,
-    eKeyCode,
-    eKeyState,
-    eMetaState,
-)
+from ..enums import eCommandType, eKeyCode, eKeyState, eMetaState
 
 
 # ==================================================================================
 class InjectKey(Action):
     def __init__(self, keyCode: eKeyCode, releaseDelay: float = 0, *args, **kwargs):
-        super().__init__(None, eCommandType.INJECT_KEYCODE, *args, **kwargs)
-        self.name = f"{self.name}_{keyCode.name}".upper()
-        self._pkgPress: bytes = pack(">BIII", eKeyState.DOWN.value, keyCode.value, 0, eMetaState.NONE.value)
-        self._pkgRelease: bytes = pack(">BIII", eKeyState.UP.value, keyCode.value, 0, eMetaState.NONE.value)
+        lName = f"ANDROID_ACTION_INJECT_KEYCODE_{keyCode.name}"
+        super().__init__(lName, eCommandType.INJECT_KEYCODE, *args, **kwargs)
+        self._pkgPress: bytes = pack(
+            ">BIII", eKeyState.DOWN.value, keyCode.value, 0, eMetaState.NONE.value
+        )
+        self._pkgRelease: bytes = pack(
+            ">BIII", eKeyState.UP.value, keyCode.value, 0, eMetaState.NONE.value
+        )
         self._releaseDelay: float = releaseDelay
 
     def execute(self, control: iControlSocket):
@@ -30,4 +28,3 @@ class InjectKey(Action):
         self.wait(self._releaseDelay)
         super().execute(control, self._pkgRelease)
         self.delayAfter()
-        

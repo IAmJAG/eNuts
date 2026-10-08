@@ -24,15 +24,14 @@ class Scroll(Action):
         *args,
         **kwargs,
     ):
-        super().__init__(None, eCommandType.INJECT_SCROLL_EVENT, *args, **kwargs)
-        self.name = f"{self.name}_{x}x{y}_H{hScroll}_V{vScroll}".upper()
+        lName = f"ANDROID_ACTION_INJECT_SCROLL_{int(x)}x{int(y)}"
+        super().__init__(lName, eCommandType.INJECT_SCROLL_EVENT, *args, **kwargs)
 
         lWidth = int(resolution.x)
         lHeight = int(resolution.y)
-        lX = int(min(max(x, 0), max(lWidth - 1, 0)))
-        lY = int(min(max(y, 0), max(lHeight - 1, 0)))
+        lX = int(min(max(x, 0), max(lWidth - 1, 0))) if lWidth > 0 else int(x)
+        lY = int(min(max(y, 0), max(lHeight - 1, 0))) if lHeight > 0 else int(y)
 
-        # scrcpy control: x, y, screen_w, screen_h, hscroll (f32), vscroll (f32), buttons
         self._pkg: bytes = pack(
             ">IIHHffI",
             lX,
