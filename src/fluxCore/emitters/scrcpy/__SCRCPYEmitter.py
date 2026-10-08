@@ -4,7 +4,7 @@
 import os
 
 # ==================================================================================
-from asyncio import AbstractEventLoop, CancelledError, get_running_loop
+from asyncio import AbstractEventLoop, CancelledError, Task, get_running_loop
 from socket import socket
 from threading import Event as ThreadEvent
 from threading import Thread
@@ -15,6 +15,7 @@ from av import InvalidDataError, VideoCodecContext
 
 # ==================================================================================
 from jAGFx.services import AsyncService
+from utilities import createTask
 
 # ==================================================================================
 from ...devices import SCRCPY
@@ -124,7 +125,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         self._name = lName
         self.update(codecId=lCodecId, width=lWidth, height=lHeight)
 
-    async def initialize(self, GPUID: int = 0, GPUReady: bool = True) -> None:
+    def initialize(self, GPUID: int = 0, GPUReady: bool = True) -> None:
         device: AdbDevice = adb.device(serial=self.id)
 
         cfg: SCRCPYServerConfig = SCRCPYServerConfig(
@@ -150,8 +151,12 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         cSCKT: socket = getSCRCPYADBSocket(device, scid=cfg.Scid, timeout=3000)
         self._cSocket = ControlSocket(cSCKT, loop=asyncLoop)
 
-        await self._updateMetadata(self._vSocket)
+        task: Task = createTask(self._updateMetadata, self._vSocket)
 
-        self._codecContext = createCodecContext(
-            self.codecId, GPUID=GPUID, GPUReady=GPUReady
-        )
+        def _createCodec(_codecId: str, _GPUID: int = 0, _GPUReady: bool = True) -> None:
+            self._codecContext = createCodecContext(
+                _codecId, GPUID=_GPUID, GPUReady=_GPUReady
+            )
+
+        codecId: str = self._codecId
+        task.add_done_callback(_createCodec, codecId, GPUID, GPUReady)
