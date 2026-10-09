@@ -4,6 +4,7 @@ from __future__ import annotations
 # ==================================================================================
 from enum import Enum, auto
 from typing import Callable, Optional, Union
+from uuid import uuid4
 
 # ==================================================================================
 from PySide6.QtCore import Qt, Signal
@@ -59,6 +60,7 @@ class SideBarItem(QWidget, ComponentBase):
         role: ItemRole = ItemRole.Leaf,
         spacing: int = 8,
         callback: Optional[Callable] = None,
+        id: Optional[str] = None,
         parent: Optional[QWidget] = None,
         *args,
         **kwargs,
@@ -70,6 +72,7 @@ class SideBarItem(QWidget, ComponentBase):
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
+        self._id: str = str(uuid4()) if id is None else str(id)
         self._displayMode: ItemDisplayMode = displayMode
         self._iconPosition: IconPosition = iconPosition
         self._callback: Optional[Callable] = callback
@@ -110,6 +113,14 @@ class SideBarItem(QWidget, ComponentBase):
         self.Role = role
 
     # ==================================================================================
+    @property
+    def Id(self) -> str:
+        return self._id
+
+    @Id.setter
+    def Id(self, value: str) -> None:
+        self._id = str(value)
+
     @property
     def Text(self) -> str:
         return self._textWidget.Text

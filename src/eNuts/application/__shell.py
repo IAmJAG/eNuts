@@ -11,11 +11,10 @@ from PySide6.QtWidgets import QBoxLayout, QWidget
 # ==================================================================================
 from fluxCore.emitters.scrcpy import SCRCPYEmitter
 from jAGQt.types import DockPosition
-from jAGQt.types.interface.widgets.commandBar import iCommandBar, iCommandBarButton
 from jAGQt.types.interface.window import iMainWindowBase
-from jAGQt.widgets.commandBar import CommandBar
 from jAGQt.widgets.page import Page
 from jAGQt.widgets.sideBar import SideBar, SideBarItem
+from jAGQt.widgets.workspace import Workspace
 
 # ==================================================================================
 from ..types.interface.application import iENUTSService, iShell
@@ -24,6 +23,10 @@ from ..UI.widgets.streamer import imageStreamer
 # ==================================================================================
 _C_SIDEBAR_COLLAPSED = "sideBar/collapsed"
 _C_SIDEBAR_DOCK = "sideBar/dockSide"
+
+_C_PAGE_DASHBOARD = "page.dashboard"
+_C_PAGE_RECORDER = "page.recorder"
+_C_PAGE_SCREENSHOT = "page.screenshot"
 
 
 # ==================================================================================
@@ -63,14 +66,31 @@ class Shell(iShell):
             center.setLayout(centerLayout)
 
             self._imageStreamer: imageStreamer = imageStreamer()
+            self._workspace: Workspace = Workspace()
 
-            recorder: Page = Page("Recorder", "Key & Gesture Recorder", commandBarOn=True)
-            recorder.addWidget(self._imageStreamer)
-            recorder.addCommand("Start", )            
-            recorder.addCommandStretch()            
-            centerLayout.addWidget(recorder)
+            lDashboard: Page = Page(
+                "Dashboard", "Overview", id=_C_PAGE_DASHBOARD
+            )
+            lRecorder: Page = Page(
+                "Recorder",
+                "Key & Gesture Recorder",
+                commandBarOn=True,
+                id=_C_PAGE_RECORDER,
+            )
+            lRecorder.addWidget(self._imageStreamer)
+            lRecorder.addCommand("Start")
+            lRecorder.addCommandStretch()
+            lScreenshot: Page = Page(
+                "Screenshot", "Capture device screen", id=_C_PAGE_SCREENSHOT
+            )
 
-            layout.addWidget(center, 1)            
+            self._workspace.AddPage(lDashboard)
+            self._workspace.AddPage(lRecorder)
+            self._workspace.AddPage(lScreenshot)
+            self._workspace.SetCurrentPage(_C_PAGE_RECORDER)
+
+            centerLayout.addWidget(self._workspace)
+            layout.addWidget(center, 1)
 
         except Exception as ex:
             error(f"[{self.__class__.__name__}] InitializeUI FAIL", ex)
@@ -80,22 +100,41 @@ class Shell(iShell):
             sideBar: SideBar = SideBar(title="eNuts")
             sideBar.DockSideChanged.connect(self._onSideBarDockChanged)
             sideBar.CollapsedChanged.connect(self._onSideBarCollapsedChanged)
+            sideBar.ItemClicked.connect(self._onSideBarItemClicked)
 
-            sideBar.AddItem(text="Dashboard")
+            lDashItem = sideBar.AddItem(text="Dashboard", id=_C_PAGE_DASHBOARD)
+
             devices = sideBar.AddGroup(title="Devices")
             devices.AddItem(text="Emulator")
 
-            dataCollector = sideBar.AddGroup(title="Data Collector", startCollapsed=True)
-            dataCollector.AddItem(text="Screenshot")
-            dataCollector.AddItem(text="Recorder")
+            dataCollector = sideBar.AddGroup(
+                title="Data Collector", startCollapsed=True
+            )
+            lShotItem = dataCollector.AddItem(
+                text="Screenshot", id=_C_PAGE_SCREENSHOT
+            )
+            lRecItem = dataCollector.AddItem(
+                text="Recorder", id=_C_PAGE_RECORDER
+            )
 
             training = sideBar.AddGroup(title="Training", startCollapsed=True)
             training.AddItem(text="<empty>")
 
-            lTools = sideBar.AddGroup(title="Tools", startCollapsed=True)
-            
+            sideBar.AddGroup(title="Tools", startCollapsed=True)
             sideBar.AddStretch()
-            self._sideBar = sideBar            
+
+            self._sideBar = sideBar
+
+            # Workspace owns the item → page map
+            lDashboard = self._workspace.GetPage(_C_PAGE_DASHBOARD)
+            lScreenshot = self._workspace.GetPage(_C_PAGE_SCREENSHOT)
+            lRecorder = self._workspace.GetPage(_C_PAGE_RECORDER)
+            if lDashboard is not None:
+                self._workspace.Link(lDashItem, lDashboard)
+            if lScreenshot is not None:
+                self._workspace.Link(lShotItem, lScreenshot)
+            if lRecorder is not None:
+                self._workspace.Link(lRecItem, lRecorder)
 
             self._restoreSideBarState()
 
@@ -109,20 +148,30 @@ class Shell(iShell):
         except Exception as ex:
             error(f"[{self.__class__.__name__}] InitializeSideBar FAIL", ex)
 
+    def _onSideBarItemClicked(self, item: SideBarItem) -> None:
+        try:
+            if item is None:
+                return
+            self._workspace.NavigateByItem(item)
+        except Exception as ex:
+            error(f"[{self.__class__.__name__}] SideBar navigate FAIL", ex)
+
     def _restoreSideBarState(self: iMainWindowBase) -> None:
         try:
-            if not hasattr(self, "Settings"): return
+            if not hasattr(self, "Settings"):
+                return
 
-            settings: SideBar = self.Settings
+            settings = self.Settings
 
-            collapsed = _asBool(settings.value(_C_SIDEBAR_COLLAPSED, False), default=False)
+            collapsed = _asBool(
+                settings.value(_C_SIDEBAR_COLLAPSED, False), default=False
+            )
             dockRaw = settings.value(_C_SIDEBAR_DOCK, "left")
             dock = str(dockRaw).strip().lower() if dockRaw is not None else "left"
 
-            sideBar = self._sideBar
-            
-            if dock not in ("left", "right"): dock = "left"
-            sideBar.RestoreState(collapsed, dock)
+            if dock not in ("left", "right"):
+                dock = "left"
+            self._sideBar.RestoreState(collapsed, dock)
 
         except Exception as ex:
             error(f"[{self.__class__.__name__}] Restore SideBar state FAIL", ex)
@@ -132,7 +181,6 @@ class Shell(iShell):
             if not hasattr(self, "Settings") or not hasattr(self, "_sideBar"):
                 return
             lState = self._sideBar.ExportState()
-            # Store as int 0/1 so round-trip is unambiguous across platforms
             self.Settings.setValue(
                 _C_SIDEBAR_COLLAPSED, 1 if lState["collapsed"] else 0
             )

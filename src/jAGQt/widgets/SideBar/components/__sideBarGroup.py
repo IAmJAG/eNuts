@@ -118,6 +118,7 @@ class SideBarGroup(QWidget, ComponentBase):
         iconPosition: IconPosition = IconPosition.Left,
         iconSize: Optional[int] = None,
         callback: Optional[Callable] = None,
+        id: Optional[str] = None,
     ) -> SideBarItem:
         lSize: int = iconSize if iconSize is not None else self._childIconSize
         lItem: SideBarItem = SideBarItem(
@@ -129,6 +130,7 @@ class SideBarGroup(QWidget, ComponentBase):
             depth=self._depth + 1,
             role=ItemRole.Leaf,
             callback=callback,
+            id=id,
             parent=self._body,
         )
         lItem.Clicked.connect(self._onChildItemClicked)
