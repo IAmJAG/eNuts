@@ -1,17 +1,15 @@
 # ==================================================================================
-# src/jAGQt/widgets/__header.py
+# src/jAGQt/widgets/header/__header.py
 # ==================================================================================
-from enum import Enum, auto
 from typing import Optional, Union
 
 # ==================================================================================
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
     QBoxLayout,
     QFrame,
     QLabel,
-    QSizePolicy,
     QWidget,
 )
 
@@ -20,11 +18,9 @@ from jAGFx.workflow import workflow
 # ==================================================================================
 from ...utilities import newLayout
 from ..components import ComponentBase
-from .__headerIcon import _headerIcon
+from .__headerIcon import IconType, _headerIcon
 from .__iconPosition import IconPosition
 
-# ==================================================================================
-IconType = Optional[Union[QIcon, QPixmap, str]]
 
 # ==================================================================================
 @workflow("InitializeUI")
@@ -33,16 +29,19 @@ class Header(QFrame, ComponentBase):
 
     def __init__(
         self,
-        title: str = "jAGQt Page", description: str = "",
-        icon: IconType = None, iconSize: int = 24,
+        title: str = "jAGQt Page",
+        description: str = "",
+        icon: IconType = None,
+        iconSize: int = 24,
         iconFormat: IconPosition = IconPosition.TitleRow,
-        *args, **kwargs,
+        *args,
+        **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
         self._title = title
         self._description = description
         self._icon: IconType = icon
-        self._iconSize = iconSize
+        self._iconSize = max(1, int(iconSize))
         self._iconFormat = iconFormat
 
     def _wInitializeUI(self) -> None:
@@ -128,7 +127,7 @@ class Header(QFrame, ComponentBase):
 
         self._title: QLabel = lTitle
         self._description: QLabel = lDescription
-        self._iconWidget: _HeaderIcon = lIconWidget
+        self._iconWidget: _headerIcon = lIconWidget
         self._textColumn: QWidget = lTextColumn
         self._titleRow: QBoxLayout = lTitleRow
         self._titleRowWidget: QWidget = lTitleRowWidget
@@ -137,7 +136,7 @@ class Header(QFrame, ComponentBase):
         self._descHost: QWidget = lDescHost
         self._descHostLayout: QBoxLayout = lDescHostLayout
         self._iconSize: int = lIconSize
-        self._iconFormat: HeaderIconFormat = lIconFormat
+        self._iconFormat: IconPosition = lIconFormat
 
         if not lDescriptionText:
             lDescription.hide()
@@ -162,7 +161,7 @@ class Header(QFrame, ComponentBase):
 
         lHasIcon: bool = self._iconWidget.HasIcon
 
-        if self._iconFormat is HeaderIconFormat.SpanRows and lHasIcon:
+        if self._iconFormat is IconPosition.SpanRows and lHasIcon:
             # Format 2: [icon | title/description stack]
             self._titleRowWidget.hide()
             self._descHost.hide()
@@ -214,11 +213,11 @@ class Header(QFrame, ComponentBase):
         self._applyFormat()
 
     @property
-    def IconFormat(self) -> HeaderIconFormat:
+    def IconFormat(self) -> IconPosition:
         return self._iconFormat
 
     @IconFormat.setter
-    def IconFormat(self, value: HeaderIconFormat) -> None:
+    def IconFormat(self, value: IconPosition) -> None:
         if value is self._iconFormat:
             return
         self._iconFormat = value

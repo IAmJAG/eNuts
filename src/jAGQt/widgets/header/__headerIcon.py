@@ -1,23 +1,28 @@
 # ==================================================================================
-from typing import Optional, Type, Union
+# src/jAGQt/widgets/header/__headerIcon.py
+# ==================================================================================
+from typing import Optional, Union
 
+# ==================================================================================
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import QLabel, QSizePolicy
 
 # ==================================================================================
-IconType: Type[Type]= Optional[Union[QIcon, QPixmap, str]]
-Policy: Type[Type] = QSizePolicy.Policy
+IconType = Optional[Union[QIcon, QPixmap, str]]
+Policy = QSizePolicy.Policy
 
 
 # ==================================================================================
 class _headerIcon(QLabel):
+    """Fixed square icon label used inside Header."""
+
     def __init__(
         self, icon: IconType = None, iconSize: int = 24, *args, **kwargs
     ) -> None:
         super().__init__(*args, **kwargs)
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.setSizePolicy(Policy.Expanding, Policy.Fixed)
+        self.setSizePolicy(Policy.Fixed, Policy.Fixed)
         self.setScaledContents(False)
         self._iconSize: int = max(1, int(iconSize))
         self._icon: Optional[Union[QIcon, QPixmap]] = None
