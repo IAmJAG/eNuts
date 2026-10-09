@@ -14,10 +14,7 @@ from torch import Tensor, nn
 from torchvision import models
 
 # ==================================================================================
-from ..types.interface.policies import (
-    iPolicyNet,
-    iSymanticPredictor,
-)
+from ...types.interface.policies import iSymanticPredictor
 
 # ==================================================================================
 DEFAULT_OPTIONS: dict[str, Any] = {
@@ -405,7 +402,6 @@ class SemanticPredictorPolicy(nn.Module, iSymanticPredictor):
 
         Input:
             frameSequence: [T,C,H,W] or [B,T,C,H,W]
-
         Output:
             [B,ACTION_EMBEDDING_DIM]
         """
@@ -577,48 +573,28 @@ class SemanticPredictorPolicy(nn.Module, iSymanticPredictor):
     # Checkpointing
     # ------------------------------------------------------------------
 
-    def saveCheckpoint(
-        self,
-        path: str | Path,
-        optimizer: torch.optim.Optimizer | None = None,
-        epoch: int | None = None,
-        step: int | None = None,
-        extra: dict[str, Any] | None = None,
+    def save(
+        self, path: str | Path, 
+        optimizer: torch.optim.Optimizer | None = None
     ) -> None:
-        """
-        Save model weights and configuration.
-
-        The transient frame buffer is intentionally not saved.
-        """
+        
         checkpoint: dict[str, Any] = {
             "version": self.CHECKPOINT_VERSION,
             "model_state": self.state_dict(),
             "options": self.options,
-            "epoch": epoch,
-            "step": step,
-            "extra": extra or {},
         }
 
         if optimizer is not None:
-            checkpoint["optimizer_state"] = optimizer.state_dict()
+            checkpoint["optimizer_state"] = optimizer.state_dict()            
 
         torch.save(checkpoint, path)
 
     @classmethod
-    def loadCheckpoint(
-        cls,
-        path: str | Path,
-        device: str | torch.device = "cpu",
+    def load(
+        cls, path: str | Path,
+        device: str | torch.device = "CUDA",
         optimizer: torch.optim.Optimizer | None = None,
-    ) -> tuple[SemanticPredictorPolicy, dict[str, Any]]:
-        """
-        Load a checkpoint.
-
-        Returns:
-            model, checkpoint metadata
-        """
-        # Only load checkpoints from trusted sources: this checkpoint
-        # contains Python metadata as well as tensor state.
+    ) -> tuple[iSymanticPredictor, dict[str, Any]]:
         checkpoint = torch.load(
             path,
             map_location=device,
@@ -628,10 +604,7 @@ class SemanticPredictorPolicy(nn.Module, iSymanticPredictor):
         if checkpoint.get("version") != cls.CHECKPOINT_VERSION:
             raise ValueError("Unsupported SemanticPredictorPolicy checkpoint version")
 
-        model = cls(
-            options=checkpoint["options"],
-        )
-
+        model = cls(options=checkpoint["options"],)
         model.load_state_dict(checkpoint["model_state"])
 
         model.to(device)
@@ -640,5 +613,4 @@ class SemanticPredictorPolicy(nn.Module, iSymanticPredictor):
             optimizer.load_state_dict(checkpoint["optimizer_state"])
 
         model.reset()
-
-        return model, checkpoint
+        return model
