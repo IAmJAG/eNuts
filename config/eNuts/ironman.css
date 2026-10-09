@@ -133,51 +133,133 @@ QToolTip {
     border: 1px solid #ffca28;
 }
 
+/* ==================================================================================
+   SideBar — Ironman
+   Code sets: depth, role, active, selected, collapsed, dockSide
+   ================================================================================== */
+
 QWidget#SideBar {
     background-color: #0b0e12;
     border-right: 1px solid #303740;
 }
 
+QWidget#SideBar[dockSide="right"] {
+    border-right: 0px;
+    border-left: 1px solid #303740;
+}
+
 QWidget#SideBarHeader {
     background-color: #12161c;
     border-bottom: 1px solid #303740;
+    min-height: 44px;
 }
 
-QWidget#SideBarContent {
+QLabel#SideBarHeaderTitle {
+    color: #f5f7fa;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+QWidget#SideBarContent,
+QWidget#SideBarContentContainer {
     background-color: #0b0e12;
 }
 
-QWidget#SideBarItem {
-    background-color: transparent;
-    color: #aeb6c0;
+QWidget#SideBarDockControl {
+    background-color: #12161c;
+    border-top: 1px solid #303740;
+    min-height: 28px;
+    max-height: 28px;
 }
 
-QWidget#SideBarItem:hover {
+/* --- items: base --- */
+QWidget#SideBarItem,
+QWidget#SideBarGroupHeader {
+    background-color: transparent;
+    color: #aeb6c0;
+    border: 0px;
+    border-left: 2px solid transparent;
+    padding: 2px 4px;
+    min-height: 28px;
+}
+
+QWidget#SideBarItem:hover,
+QWidget#SideBarGroupHeader:hover,
+QWidget#SideBarItem[hover="true"],
+QWidget#SideBarGroupHeader[hover="true"] {
     background-color: #20262e;
     color: #ffffff;
 }
 
-QWidget#SideBarItemSelected,
-QFrame#SideBarGroupHeaderSelected {
+/* depth 0 — parent / top: slightly larger + bolder (theme only) */
+QWidget#SideBarItem[depth="0"],
+QWidget#SideBarGroupHeader[depth="0"] {
+    font-size: 13px;
+    font-weight: 600;
+    min-height: 30px;
+}
+
+/* depth 1+ — children: slightly smaller */
+QWidget#SideBarItem[depth="1"],
+QWidget#SideBarGroupHeader[depth="1"] {
+    font-size: 12px;
+    font-weight: 400;
+    min-height: 26px;
+    padding-left: 8px;
+}
+
+QWidget#SideBarItem[depth="2"],
+QWidget#SideBarGroupHeader[depth="2"] {
+    font-size: 11px;
+    font-weight: 400;
+    min-height: 24px;
+    padding-left: 14px;
+}
+
+/* selected ancestor — dimmer than active; dimmer as hierarchy climbs via depth */
+QWidget#SideBarItem[selected="true"],
+QWidget#SideBarGroupHeader[selected="true"] {
+    background-color: #3a1518;
+    color: #e8c4c4;
+    border-left: 2px solid #8b1e1e;
+}
+
+QWidget#SideBarItem[selected="true"][depth="0"],
+QWidget#SideBarGroupHeader[selected="true"][depth="0"] {
+    background-color: #2e1214;
+    color: #d4a8a8;
+    border-left-color: #6b1717;
+}
+
+/* active — brightest (current leaf / focus) */
+QWidget#SideBarItem[active="true"],
+QWidget#SideBarGroupHeader[active="true"] {
     background-color: #8b1e1e;
     color: #ffffff;
+    border-left: 2px solid #ffca28;
 }
 
-QFrame#SideBarGroupHeader {
-    background-color: transparent;
-    color: #aeb6c0;
+QWidget#SideBarItem[active="true"]:hover,
+QWidget#SideBarGroupHeader[active="true"]:hover {
+    background-color: #a02424;
 }
 
-QFrame#SideBarGroupHeader:hover {
-    background-color: #20262e;
-    color: #ffffff;
+/* header role accent */
+QWidget#SideBarItem[role="header"],
+QWidget#SideBarGroupHeader {
+    color: #c5ccd6;
 }
 
 QWidget#SideBarGroupBody {
-    background-color: #12161c;
+    background-color: #0e1218;
 }
 
 QLabel#SideBarText,
 QLabel#SideBarGroupTitle {
     color: inherit;
+    background: transparent;
+}
+
+QLabel#SideBarIcon {
+    background: transparent;
 }
