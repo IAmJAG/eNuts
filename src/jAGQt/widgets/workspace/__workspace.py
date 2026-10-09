@@ -45,8 +45,12 @@ class Workspace(QWidget, ComponentBase):
         self._nameToId: Dict[str, str] = {}
         self._itemToPage: Dict[str, str] = {}
 
-        self._layout: QBoxLayout = newLayout(QBoxLayout, spacing=0, margins=0)
-        self.Layout.addWidget(self._stack, 1)  # stretch — fill host
+        # Must install on the widget. Assigning self._layout alone does not
+        # call setLayout; ComponentBase.Layout would then point at an orphan.
+        lLayout: QBoxLayout = newLayout(QBoxLayout, spacing=0, margins=0)
+        self.setLayout(lLayout)
+        self._layout: QBoxLayout = lLayout
+        lLayout.addWidget(self._stack, 1)
 
         self._stack.currentChanged.connect(self._onStackChanged)
 
