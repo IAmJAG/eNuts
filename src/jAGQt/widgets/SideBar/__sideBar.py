@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Callable, List, Optional, Union
 
 # ==================================================================================
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QPointF, Qt, Signal
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 
@@ -37,7 +37,7 @@ class SideBar(QWidget, ComponentBase):
     """Side bar: header, nested content, dock control.
 
     Collapse: drawer in / rubber-band out.
-    Dock flip: transpose arrow + optional lightning flash.
+    Dock flip: transpose arrow + lightning across the window.
     Selection: one active item; ancestor headers selected (QSS by depth).
     """
 
@@ -119,7 +119,7 @@ class SideBar(QWidget, ComponentBase):
             parent=self,
         )
         self._lightning: LightningShootAnimation = LightningShootAnimation(
-            durationMs=420,
+            durationMs=380,
             parent=self,
         )
 
@@ -239,7 +239,7 @@ class SideBar(QWidget, ComponentBase):
 
         lRunLightning = bool(animate and self._useLightningOnDock)
         if lRunLightning:
-            self._lightning.SetEndpoints(self, self)
+            self._prepareDockLightning(position)
 
         self._dockPosition = position
         self._dockControl.SetDockPosition(position, animate=animate)
@@ -323,6 +323,22 @@ class SideBar(QWidget, ComponentBase):
         self.SetDockSide(value)
 
     # ==================================================================================
+    def _prepareDockLightning(self, newSide: DockPosition) -> None:
+        lHost = self.window()
+        if lHost is None:
+            return
+
+        lMidY = float(lHost.height()) * 0.5
+        lMargin = 24.0
+        if self._dockPosition is DockPosition.Left:
+            lStart = QPointF(lMargin, lMidY)
+            lEnd = QPointF(float(lHost.width()) - lMargin, lMidY)
+        else:
+            lStart = QPointF(float(lHost.width()) - lMargin, lMidY)
+            lEnd = QPointF(lMargin, lMidY)
+
+        self._lightning.SetPathPoints(lHost, lStart, lEnd, affectOpacity=False)
+
     def _applyDockProperty(self) -> None:
         self.setProperty(
             "dockSide",

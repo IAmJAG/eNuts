@@ -64,12 +64,21 @@ class Shell(iShell):
             self._sideBar.CollapsedChanged.connect(self._onSideBarCollapsedChanged)
 
             self._sideBar.AddItem(text="Home")
+
             lDevices = self._sideBar.AddGroup(title="Devices")
             lDevices.AddItem(text="Emulator")
             lDevices.AddItem(text="USB Device")
+            lRemote = lDevices.AddGroup(title="Remote", startCollapsed=True)
+            lRemote.AddItem(text="SSH Bridge")
+            lRemote.AddItem(text="Cloud Node")
+
             lTools = self._sideBar.AddGroup(title="Tools", startCollapsed=True)
             lTools.AddItem(text="Recorder")
             lTools.AddItem(text="Settings")
+            lDebug = lTools.AddGroup(title="Debug")
+            lDebug.AddItem(text="Logs")
+            lDebug.AddItem(text="Inspector")
+
             self._sideBar.AddStretch()
 
             self._restoreSideBarState()
