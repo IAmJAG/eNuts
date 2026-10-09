@@ -37,7 +37,7 @@ class SideBar(QWidget, ComponentBase):
     """Side bar: header, nested content, dock control.
 
     Collapse: drawer in / rubber-band out.
-    Dock flip: transpose arrow + optional lightning to the opposite edge.
+    Dock flip: transpose arrow + optional lightning flash.
     Selection: one active item; ancestor headers selected (QSS by depth).
     """
 
@@ -211,11 +211,9 @@ class SideBar(QWidget, ComponentBase):
         self.setMaximumWidth(max(lStart, lEnd, self._expandedWidth))
 
         if lValue:
-            # Collapse inward — smooth drawer
             self._drawer.SetRange(lStart, lEnd)
             self._drawer.Start()
         else:
-            # Expand outward — rubber-band overshoot
             self._rubber.SetRange(lStart, lEnd, overshootPx=16)
             self._rubber.Start()
 
@@ -239,21 +237,16 @@ class SideBar(QWidget, ComponentBase):
         if position is self._dockPosition:
             return
 
-        lOld = self._dockPosition
-        if animate and self._useLightningOnDock:
-            # Lightning from dock control toward opposite side of the window
-            self._lightning.SetEndpoints(self._dockControl, self._dockControl)
-            # Retarget: animate from current bar center to window opposite edge
-            lHost = self.window()
-            if lHost is not None:
-                self._lightning.SetEndpoints(self, self)
+        lRunLightning = bool(animate and self._useLightningOnDock)
+        if lRunLightning:
+            self._lightning.SetEndpoints(self, self)
 
         self._dockPosition = position
         self._dockControl.SetDockPosition(position, animate=animate)
         self._applyDockProperty()
         self.DockSideChanged.emit(position)
 
-        if animate and self._useLightningOnDock and lHost is not None:
+        if lRunLightning:
             self._lightning.Start()
 
     def ToggleDockSide(self) -> None:
