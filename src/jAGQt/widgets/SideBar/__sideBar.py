@@ -69,7 +69,7 @@ class SideBar(QWidget, ComponentBase):
         self.setMaximumWidth(initial)
 
         self._layout: QBoxLayout = newLayout(
-            QBoxLayout,spacing=0, margins=(0, 0, 0, 0),
+            QBoxLayout, spacing=0, margins=(0, 0, 0, 0),
             direction=QBoxLayout.Direction.TopToBottom,
         )
         self.setLayout(self._layout)
@@ -92,7 +92,7 @@ class SideBar(QWidget, ComponentBase):
 
         self._widthAnim: RubberBandAnimation = RubberBandAnimation(
             target=self, durationMs=max(self._config.animationDuration, 400),
-            overshootPx=32, undershootPx=12
+            overshootPx=32, undershootPx=12,
         )
 
         self._lightning: LightningShootAnimation = LightningShootAnimation(
@@ -106,9 +106,13 @@ class SideBar(QWidget, ComponentBase):
 
     # ==================================================================================
     def AddItem(
-        self, text: str = "", icon: Optional[Union[QIcon, QPixmap, str]] = None,
+        self,
+        text: str = "",
+        icon: Optional[Union[QIcon, QPixmap, str]] = None,
         displayMode: ItemDisplayMode = ItemDisplayMode.IconAndText,
-        iconSize: Optional[int] = None, callback: Optional[Callable] = None,
+        iconSize: Optional[int] = None,
+        callback: Optional[Callable] = None,
+        id: Optional[str] = None,
     ) -> SideBarItem:
         lSize: int = iconSize if iconSize is not None else self._config.iconSize
         lItem: SideBarItem = SideBarItem(
@@ -119,6 +123,7 @@ class SideBar(QWidget, ComponentBase):
             depth=0,
             role=ItemRole.Leaf,
             callback=callback,
+            id=id,
             parent=self._content.Container,
         )
         lItem.Clicked.connect(self._onItemClicked)
@@ -300,7 +305,6 @@ class SideBar(QWidget, ComponentBase):
         self._dockAnimating = True
         self._pendingDock = position
 
-        # Source = current SideBar center in host coords
         lSrcGlobal = self.mapToGlobal(self.rect().center())
         lSrc = QPointF(lHost.mapFromGlobal(lSrcGlobal))
         lSize = QPointF(float(self.width()), float(max(self.height(), 120)))
@@ -325,7 +329,6 @@ class SideBar(QWidget, ComponentBase):
         self._lightning.Start()
 
     def _onLightningMidpoint(self) -> None:
-        """Tentacle arrived — reparent SideBar to the destination edge while still hidden."""
         if self._pendingDock is None:
             return
         self._applyDockSide(self._pendingDock, animateArrow=True)
