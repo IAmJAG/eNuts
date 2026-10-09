@@ -92,7 +92,7 @@ class Shell(iShell):
             self._workspace.AddPage(lScreenshot)
             self._workspace.SetCurrentPage(_C_PAGE_RECORDER)
 
-            centerLayout.addWidget(self._workspace, 1)  # stretch — fill center
+            centerLayout.addWidget(self._workspace, 1)
             layout.addWidget(center, 1)
 
         except Exception as ex:
@@ -137,6 +137,10 @@ class Shell(iShell):
                 self._workspace.Link(lShotItem, lScreenshot)
             if lRecorder is not None:
                 self._workspace.Link(lRecItem, lRecorder)
+
+            # Match SideBar selection to the default Workspace page
+            dataCollector.Expand(animate=False)
+            sideBar.SelectItem(lRecItem)
 
             self._restoreSideBarState()
 
