@@ -309,3 +309,118 @@ QLabel#SideBarHeaderTitle {
 QLabel#SideBarIcon {
     background: transparent;
 }
+
+/* ==================================================================================
+   Page — Ironman (W_PAGE / Header / Content)
+   Page.OBJECT_NAME = W_PAGE
+   Page sets Header objectName → W_PAGE_HEADER
+   Header children retain W_HEADER_* (from Header.OBJECT_NAME at init)
+   ================================================================================== */
+
+QWidget#W_PAGE {
+    background-color: #0e1014;
+    color: #f5f7fa;
+}
+
+/* Header host (Page-owned name + standalone Header name) */
+QWidget#W_PAGE_HEADER,
+QFrame#W_HEADER {
+    background-color: #12161c;
+    color: #f5f7fa;
+    border-bottom: 1px solid #3a4250;
+}
+
+/* Title — high contrast */
+QLabel#W_HEADER_TITLE {
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 15px;
+    background: transparent;
+}
+
+/* Description — secondary, still readable */
+QLabel#W_HEADER_DESCRIPTION {
+    color: #aeb6c0;
+    font-size: 11px;
+    font-weight: 400;
+    background: transparent;
+}
+
+/* Icon host */
+QWidget#W_HEADER_ICON {
+    background: transparent;
+}
+
+/* Layout hosts inside Header — keep transparent so header bg shows through */
+QWidget#W_HEADER_TEXT,
+QWidget#W_HEADER_TITLE_ROW,
+QWidget#W_HEADER_SPAN_ROW,
+QWidget#W_HEADER_DESC_HOST {
+    background: transparent;
+    color: #f5f7fa;
+    border: 0px;
+}
+
+/* Content area under the header */
+QWidget#W_PAGE_CONTENT {
+    background-color: #0e1014;
+    color: #f5f7fa;
+}
+
+/* Settings page specifics (when SettingsPage is shown) */
+QWidget#SettingsPage {
+    background-color: #0e1014;
+    color: #f5f7fa;
+}
+
+QWidget#SettingsRoot {
+    background-color: #0e1014;
+    color: #f5f7fa;
+}
+
+QGroupBox#SettingsAppearancePanel {
+    background-color: #12161c;
+    color: #f5f7fa;
+    border: 1px solid #303740;
+}
+
+QGroupBox#SettingsAppearancePanel::title {
+    color: #e8edf5;
+    subcontrol-origin: margin;
+    left: 10px;
+    padding: 0 4px;
+}
+
+QComboBox#ThemeCombo {
+    background-color: #161b22;
+    color: #f5f7fa;
+    border: 1px solid #343b45;
+    min-height: 28px;
+    padding: 2px 8px;
+}
+
+QComboBox#ThemeCombo:hover {
+    border-color: #e53935;
+}
+
+QComboBox#ThemeCombo:focus {
+    border-color: #ffca28;
+}
+
+QPushButton#ApplyThemeBtn {
+    background-color: #161b22;
+    color: #f5f7fa;
+    border: 1px solid #343b45;
+    min-height: 30px;
+    padding: 0 16px;
+}
+
+QPushButton#ApplyThemeBtn:hover {
+    background-color: #20262e;
+    border-color: #e53935;
+}
+
+QPushButton#ApplyThemeBtn:pressed {
+    background-color: #2b1516;
+    border-color: #ffca28;
+}
