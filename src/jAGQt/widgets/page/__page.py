@@ -59,12 +59,17 @@ class Page(QWidget, ComponentBase):
 
         self.setObjectName(OBJNAME)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
 
-        pageHeader: Header = Header( title=titleText, description=descriptionText)
+        pageHeader: Header = Header(title=titleText, description=descriptionText)
         pageHeader.setObjectName(f"{OBJNAME}_HEADER")
 
         content: QWidget = QWidget()
-        content.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        content.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
         content.setObjectName(f"{OBJNAME}_CONTENT")
 
         cntLayout: QBoxLayout = newLayout(QBoxLayout, spacing=0, margins=(0, 0, 0, 0))
@@ -79,7 +84,7 @@ class Page(QWidget, ComponentBase):
             direction=QBoxLayout.Direction.TopToBottom,
         )
         mainLayout.addWidget(pageHeader)
-        mainLayout.addWidget(content)
+        mainLayout.addWidget(content, 1)  # stretch — fills remaining height
         if commandBar is not None:
             mainLayout.addWidget(commandBar)
 
@@ -117,11 +122,13 @@ class Page(QWidget, ComponentBase):
         self, button: str | iCommandBarButton,
         group: Optional[str | iCommandBarGroup] = None,
     ) -> None:
-        if not self._assertCommandBar(): return
+        if not self._assertCommandBar():
+            return
         self._commandBar.addButton(button, group)
 
     def addCommandStretch(self, stretch: int = 1) -> None:
-        if not self._assertCommandBar(): return
+        if not self._assertCommandBar():
+            return
         self._commandBar.addStretch(stretch)
 
     def addCommandGroup(self, name: str | iCommandBarGroup) -> None:
@@ -182,7 +189,6 @@ class Page(QWidget, ComponentBase):
             return
         if value:
             self._commandBar = CommandBar(parent=self)
-
         else:
             self._commandBar.deleteLater()
             self._commandBar = None

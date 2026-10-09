@@ -33,15 +33,20 @@ class Workspace(QWidget, ComponentBase):
         super().__init__(parent, *args, **kwargs)
 
         self.setObjectName("Workspace")
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
 
         self._stack: QStackedWidget = QStackedWidget(self)
-        self._pages: Dict[str, Page] = {}           # pageId → Page
-        self._nameToId: Dict[str, str] = {}         # optional name → pageId
-        self._itemToPage: Dict[str, str] = {}       # itemId → pageId
+        self._stack.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
+        self._pages: Dict[str, Page] = {}
+        self._nameToId: Dict[str, str] = {}
+        self._itemToPage: Dict[str, str] = {}
 
         self._layout: QBoxLayout = newLayout(QBoxLayout, spacing=0, margins=0)
-        self.Layout.addWidget(self._stack)
+        self.Layout.addWidget(self._stack, 1)  # stretch — fill host
 
         self._stack.currentChanged.connect(self._onStackChanged)
 
@@ -51,6 +56,9 @@ class Workspace(QWidget, ComponentBase):
         if lPageId in self._pages:
             return
 
+        page.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
         self._stack.addWidget(page)
         self._pages[lPageId] = page
         lKey = name if name is not None else page.Title

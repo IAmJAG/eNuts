@@ -6,7 +6,7 @@ from time import sleep
 from typing import Any, List
 
 # ==================================================================================
-from PySide6.QtWidgets import QBoxLayout, QWidget
+from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 
 # ==================================================================================
 from fluxCore.emitters.scrcpy import SCRCPYEmitter
@@ -60,6 +60,9 @@ class Shell(iShell):
             self.ContentMargins = 0
 
             center: QWidget = QWidget()
+            center.setSizePolicy(
+                QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+            )
             centerLayout: QBoxLayout = QBoxLayout(QBoxLayout.Direction.TopToBottom)
             centerLayout.setContentsMargins(0, 0, 0, 0)
             centerLayout.setSpacing(0)
@@ -89,7 +92,7 @@ class Shell(iShell):
             self._workspace.AddPage(lScreenshot)
             self._workspace.SetCurrentPage(_C_PAGE_RECORDER)
 
-            centerLayout.addWidget(self._workspace)
+            centerLayout.addWidget(self._workspace, 1)  # stretch — fill center
             layout.addWidget(center, 1)
 
         except Exception as ex:
@@ -125,7 +128,6 @@ class Shell(iShell):
 
             self._sideBar = sideBar
 
-            # Workspace owns the item → page map
             lDashboard = self._workspace.GetPage(_C_PAGE_DASHBOARD)
             lScreenshot = self._workspace.GetPage(_C_PAGE_SCREENSHOT)
             lRecorder = self._workspace.GetPage(_C_PAGE_RECORDER)
