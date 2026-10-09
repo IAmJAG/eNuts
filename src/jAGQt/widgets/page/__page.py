@@ -40,7 +40,7 @@ class Page(QWidget, ComponentBase):
         *args, **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
-        self._id: str = str(uuid4()) if id is None else id
+        self._id: str | UUID = uuid4() if id is None else id
 
         # temp until _wInitializeUI
         self._title = title

@@ -1,8 +1,8 @@
 # ==================================================================================
 # src/jAGQt/widgets/workspace/__workspace.py
 # ==================================================================================
-from typing import Dict, Optional
 from traceback import format_exc
+from typing import Dict, Optional
 
 # ==================================================================================
 from PySide6.QtCore import Signal
