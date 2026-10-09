@@ -10,7 +10,7 @@ from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 
 # ==================================================================================
-from jAGQt.animations import DrawerAnimation, LightningShootAnimation, RubberBandAnimation
+from jAGQt.animations import RubberBandAnimation
 from jAGQt.types import DockPosition
 
 # ==================================================================================
@@ -36,7 +36,7 @@ from .components import (
 class SideBar(QWidget, ComponentBase):
     """Side bar: header, nested content, dock control.
 
-    Collapse: drawer in / rubber-band out.
+    Collapse / expand: rubber-band width (overshoot → undershoot → settle).
     Dock flip: transpose arrow + lightning across the window.
     Selection: one active item; ancestor headers selected (QSS by depth).
     """
@@ -75,8 +75,8 @@ class SideBar(QWidget, ComponentBase):
 
         lInitial: int = lCollapsed if self._collapsed else lExpanded
         self.setFixedWidth(lInitial)
-        self.setMinimumWidth(lCollapsed)
-        self.setMaximumWidth(lExpanded)
+        self.setMinimumWidth(lInitial)
+        self.setMaximumWidth(lInitial)
 
         self._layout: QBoxLayout = newLayout(
             QBoxLayout,
@@ -107,17 +107,16 @@ class SideBar(QWidget, ComponentBase):
         self._layout.addWidget(self._content, 1)
         self._layout.addWidget(self._dockControl)
 
-        self._drawer: DrawerAnimation = DrawerAnimation(
+        self._widthAnim: RubberBandAnimation = RubberBandAnimation(
             target=self,
-            durationMs=self._config.animationDuration,
+            durationMs=max(self._config.animationDuration, 400),
+            overshootPx=32,
+            undershootPx=12,
             parent=self,
         )
-        self._rubber: RubberBandAnimation = RubberBandAnimation(
-            target=self,
-            durationMs=max(self._config.animationDuration, 280),
-            overshootPx=16,
-            parent=self,
-        )
+
+        from jAGQt.animations import LightningShootAnimation
+
         self._lightning: LightningShootAnimation = LightningShootAnimation(
             durationMs=380,
             parent=self,
@@ -208,14 +207,13 @@ class SideBar(QWidget, ComponentBase):
 
         lStart: int = self.width()
         lEnd: int = self._collapsedWidth if lValue else self._expandedWidth
-        self.setMaximumWidth(max(lStart, lEnd, self._expandedWidth))
 
+        # Expand: stronger stretch past target. Collapse: smaller overshoot past collapsed.
         if lValue:
-            self._drawer.SetRange(lStart, lEnd)
-            self._drawer.Start()
+            self._widthAnim.SetRange(lStart, lEnd, overshootPx=14, undershootPx=6)
         else:
-            self._rubber.SetRange(lStart, lEnd, overshootPx=16)
-            self._rubber.Start()
+            self._widthAnim.SetRange(lStart, lEnd, overshootPx=36, undershootPx=14)
+        self._widthAnim.Start()
 
         self._header.SetCollapsed(lValue, animate=True)
         for lGroup in self._groups:
@@ -275,7 +273,8 @@ class SideBar(QWidget, ComponentBase):
         self._collapsed = lCollapsed
         lWidth = self._collapsedWidth if lCollapsed else self._expandedWidth
         self.setFixedWidth(lWidth)
-        self.setMaximumWidth(self._expandedWidth)
+        self.setMinimumWidth(lWidth)
+        self.setMaximumWidth(lWidth)
         self._header.SetCollapsed(lCollapsed, animate=False)
         for lGroup in self._groups:
             lGroup.SetSidebarCollapsed(lCollapsed)
