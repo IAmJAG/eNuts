@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 # ==================================================================================
-from typing import Dict, List
+from typing import Any, Dict, List
 
 # ==================================================================================
 from adbutils import AdbDevice, adb
@@ -24,6 +24,27 @@ from ..UI.widgets.streamer import imageStreamer
 # ==================================================================================
 _C_SIDEBAR_COLLAPSED = "sideBar/collapsed"
 _C_SIDEBAR_DOCK = "sideBar/dockSide"
+
+
+# ==================================================================================
+def _asBool(value: Any, default: bool = False) -> bool:
+    """Parse QSettings values safely.
+
+    QSettings often returns the strings "true"/"false". ``bool("false")`` is
+    True in Python, which incorrectly forced the SideBar to start collapsed.
+    """
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value != 0
+    lText = str(value).strip().lower()
+    if lText in ("1", "true", "yes", "on"):
+        return True
+    if lText in ("0", "false", "no", "off", ""):
+        return False
+    return default
 
 
 # ==================================================================================
@@ -98,8 +119,11 @@ class Shell(iShell):
             if not hasattr(self, "Settings"):
                 return
             lSettings = self.Settings
-            lCollapsed = bool(lSettings.value(_C_SIDEBAR_COLLAPSED, False))
-            lDock = str(lSettings.value(_C_SIDEBAR_DOCK, "left"))
+            lCollapsed = _asBool(lSettings.value(_C_SIDEBAR_COLLAPSED, False), default=False)
+            lDockRaw = lSettings.value(_C_SIDEBAR_DOCK, "left")
+            lDock = str(lDockRaw).strip().lower() if lDockRaw is not None else "left"
+            if lDock not in ("left", "right"):
+                lDock = "left"
             self._sideBar.RestoreState(lCollapsed, lDock)
         except Exception as ex:
             error(f"[{self.__class__.__name__}] Restore SideBar state FAIL", ex)
@@ -109,8 +133,12 @@ class Shell(iShell):
             if not hasattr(self, "Settings") or not hasattr(self, "_sideBar"):
                 return
             lState = self._sideBar.ExportState()
-            self.Settings.setValue(_C_SIDEBAR_COLLAPSED, lState["collapsed"])
+            # Store as int 0/1 so round-trip is unambiguous across platforms
+            self.Settings.setValue(
+                _C_SIDEBAR_COLLAPSED, 1 if lState["collapsed"] else 0
+            )
             self.Settings.setValue(_C_SIDEBAR_DOCK, lState["dockSide"])
+            self.Settings.sync()
         except Exception as ex:
             error(f"[{self.__class__.__name__}] Save SideBar state FAIL", ex)
 

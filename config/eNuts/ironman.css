@@ -134,49 +134,54 @@ QToolTip {
 }
 
 /* ==================================================================================
-   SideBar — Ironman
-   Code sets: depth, role, active, selected, collapsed, dockSide
+   SideBar — Ironman (high-contrast foreground)
+   Qt does not reliably honor color: inherit on QLabel — set labels explicitly.
    ================================================================================== */
 
 QWidget#SideBar {
-    background-color: #0b0e12;
-    border-right: 1px solid #303740;
+    background-color: #141820;
+    border-right: 1px solid #3a4250;
+    color: #f5f7fa;
 }
 
 QWidget#SideBar[dockSide="right"] {
     border-right: 0px;
-    border-left: 1px solid #303740;
+    border-left: 1px solid #3a4250;
 }
 
 QWidget#SideBarHeader {
-    background-color: #12161c;
-    border-bottom: 1px solid #303740;
+    background-color: #1a2029;
+    border-bottom: 1px solid #3a4250;
     min-height: 44px;
+    color: #ffffff;
 }
 
 QLabel#SideBarHeaderTitle {
-    color: #f5f7fa;
+    color: #ffffff;
     font-weight: 600;
     font-size: 13px;
+    background: transparent;
 }
 
 QWidget#SideBarContent,
 QWidget#SideBarContentContainer {
-    background-color: #0b0e12;
+    background-color: #141820;
+    color: #f5f7fa;
 }
 
 QWidget#SideBarDockControl {
-    background-color: #12161c;
-    border-top: 1px solid #303740;
+    background-color: #1a2029;
+    border-top: 1px solid #3a4250;
     min-height: 28px;
     max-height: 28px;
+    color: #f5f7fa;
 }
 
-/* --- items: base --- */
+/* --- items: base — bright readable text --- */
 QWidget#SideBarItem,
 QWidget#SideBarGroupHeader {
     background-color: transparent;
-    color: #aeb6c0;
+    color: #e8edf5;
     border: 0px;
     border-left: 2px solid transparent;
     padding: 2px 4px;
@@ -187,25 +192,25 @@ QWidget#SideBarItem:hover,
 QWidget#SideBarGroupHeader:hover,
 QWidget#SideBarItem[hover="true"],
 QWidget#SideBarGroupHeader[hover="true"] {
-    background-color: #20262e;
+    background-color: #252c38;
     color: #ffffff;
 }
 
-/* depth 0 — parent / top: slightly larger + bolder (theme only) */
 QWidget#SideBarItem[depth="0"],
 QWidget#SideBarGroupHeader[depth="0"] {
     font-size: 13px;
     font-weight: 600;
     min-height: 30px;
+    color: #f5f7fa;
 }
 
-/* depth 1+ — children: slightly smaller */
 QWidget#SideBarItem[depth="1"],
 QWidget#SideBarGroupHeader[depth="1"] {
     font-size: 12px;
     font-weight: 400;
     min-height: 26px;
     padding-left: 8px;
+    color: #dce3ee;
 }
 
 QWidget#SideBarItem[depth="2"],
@@ -214,50 +219,91 @@ QWidget#SideBarGroupHeader[depth="2"] {
     font-weight: 400;
     min-height: 24px;
     padding-left: 14px;
+    color: #c8d0dc;
 }
 
-/* selected ancestor — dimmer than active; dimmer as hierarchy climbs via depth */
+/* selected ancestor */
 QWidget#SideBarItem[selected="true"],
 QWidget#SideBarGroupHeader[selected="true"] {
-    background-color: #3a1518;
-    color: #e8c4c4;
-    border-left: 2px solid #8b1e1e;
+    background-color: #4a1c20;
+    color: #ffe8e8;
+    border-left: 2px solid #e53935;
 }
 
 QWidget#SideBarItem[selected="true"][depth="0"],
 QWidget#SideBarGroupHeader[selected="true"][depth="0"] {
-    background-color: #2e1214;
-    color: #d4a8a8;
-    border-left-color: #6b1717;
+    background-color: #3a1619;
+    color: #ffd6d6;
+    border-left-color: #c62828;
 }
 
-/* active — brightest (current leaf / focus) */
+/* active */
 QWidget#SideBarItem[active="true"],
 QWidget#SideBarGroupHeader[active="true"] {
-    background-color: #8b1e1e;
+    background-color: #b71c1c;
     color: #ffffff;
     border-left: 2px solid #ffca28;
 }
 
 QWidget#SideBarItem[active="true"]:hover,
 QWidget#SideBarGroupHeader[active="true"]:hover {
-    background-color: #a02424;
+    background-color: #c62828;
+    color: #ffffff;
 }
 
-/* header role accent */
 QWidget#SideBarItem[role="header"],
 QWidget#SideBarGroupHeader {
-    color: #c5ccd6;
+    color: #f0f4fa;
 }
 
 QWidget#SideBarGroupBody {
-    background-color: #0e1218;
+    background-color: #10141a;
 }
 
+/* Labels must set color directly — inherit is unreliable in Qt Style Sheets */
 QLabel#SideBarText,
 QLabel#SideBarGroupTitle {
-    color: inherit;
+    color: #e8edf5;
     background: transparent;
+}
+
+QWidget#SideBarItem[depth="0"] QLabel#SideBarText,
+QWidget#SideBarGroupHeader[depth="0"] QLabel#SideBarText,
+QWidget#SideBarGroupHeader[depth="0"] QLabel#SideBarGroupTitle {
+    color: #f5f7fa;
+}
+
+QWidget#SideBarItem[depth="1"] QLabel#SideBarText,
+QWidget#SideBarGroupHeader[depth="1"] QLabel#SideBarText,
+QWidget#SideBarGroupHeader[depth="1"] QLabel#SideBarGroupTitle {
+    color: #dce3ee;
+}
+
+QWidget#SideBarItem[depth="2"] QLabel#SideBarText,
+QWidget#SideBarGroupHeader[depth="2"] QLabel#SideBarText {
+    color: #c8d0dc;
+}
+
+QWidget#SideBarItem[active="true"] QLabel#SideBarText,
+QWidget#SideBarGroupHeader[active="true"] QLabel#SideBarText,
+QWidget#SideBarGroupHeader[active="true"] QLabel#SideBarGroupTitle {
+    color: #ffffff;
+}
+
+QWidget#SideBarItem[selected="true"] QLabel#SideBarText,
+QWidget#SideBarGroupHeader[selected="true"] QLabel#SideBarText,
+QWidget#SideBarGroupHeader[selected="true"] QLabel#SideBarGroupTitle {
+    color: #ffe8e8;
+}
+
+QWidget#SideBarItem[hover="true"] QLabel#SideBarText,
+QWidget#SideBarGroupHeader[hover="true"] QLabel#SideBarText,
+QWidget#SideBarGroupHeader[hover="true"] QLabel#SideBarGroupTitle {
+    color: #ffffff;
+}
+
+QLabel#SideBarHeaderTitle {
+    color: #ffffff;
 }
 
 QLabel#SideBarIcon {
