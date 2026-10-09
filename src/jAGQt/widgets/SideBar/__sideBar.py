@@ -22,39 +22,28 @@ from .__options import sideBarConfig
 from .components import (
     ItemDisplayMode,
     ItemRole,
+    SeparatorType,
     SideBarContent,
     SideBarDockControl,
     SideBarGroup,
     SideBarHeader,
     SideBarItem,
     SideBarSeparator,
-    SeparatorType,
 )
 
 
 # ==================================================================================
 class SideBar(QWidget, ComponentBase):
-    """Side bar: header, nested content, dock control.
-
-    Collapse / expand: rubber-band width.
-    Dock flip: lightning ball → tentacle → rematerialize on the other edge.
-    """
-
     CollapseRequested = Signal()
     CollapsedChanged = Signal(bool)
     DockSideChanged = Signal(object)
     ItemClicked = Signal(object)
 
     def __init__(
-        self,
-        title: str = "",
-        config: Optional[sideBarConfig] = None,
-        parent: Optional[QWidget] = None,
-        *args,
-        **kwargs,
+        self, title: str = "", config: Optional[sideBarConfig] = None,
+        parent: Optional[QWidget] = None, *args, **kwargs,
     ) -> None:
         super().__init__(parent, *args, **kwargs)
-
         self._config: sideBarConfig = config if config is not None else sideBarConfig()
         self._collapsed: bool = bool(self._config.startCollapsed)
         self._dockPosition: DockPosition = self._config.dockPosition
@@ -69,38 +58,31 @@ class SideBar(QWidget, ComponentBase):
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
 
-        lExpanded: int = self._config.expandedWidth
-        lCollapsed: int = self._config.collapsedWidth
-        self._expandedWidth: int = lExpanded
-        self._collapsedWidth: int = lCollapsed
+        expanded: int = self._config.expandedWidth
+        collapsed: int = self._config.collapsedWidth
+        self._expandedWidth: int = expanded
+        self._collapsedWidth: int = collapsed
 
-        lInitial: int = lCollapsed if self._collapsed else lExpanded
-        self.setFixedWidth(lInitial)
-        self.setMinimumWidth(lInitial)
-        self.setMaximumWidth(lInitial)
+        initial: int = collapsed if self._collapsed else expanded
+        self.setFixedWidth(initial)
+        self.setMinimumWidth(initial)
+        self.setMaximumWidth(initial)
 
         self._layout: QBoxLayout = newLayout(
-            QBoxLayout,
-            spacing=0,
-            margins=(0, 0, 0, 0),
+            QBoxLayout,spacing=0, margins=(0, 0, 0, 0),
             direction=QBoxLayout.Direction.TopToBottom,
         )
         self.setLayout(self._layout)
 
         self._header: SideBarHeader = SideBarHeader(
-            title=title,
-            iconSize=self._config.iconSize,
-            parent=self,
+            title=title, iconSize=self._config.iconSize,
         )
         self._header.CollapseRequested.connect(self._onHeaderCollapseRequested)
 
         self._content: SideBarContent = SideBarContent(parent=self)
-
         lDockIconSize: int = max(12, min(self._config.iconSize, 18))
         self._dockControl: SideBarDockControl = SideBarDockControl(
-            dockPosition=self._dockPosition,
-            iconSize=lDockIconSize,
-            parent=self,
+            dockPosition=self._dockPosition, iconSize=lDockIconSize,
         )
         self._dockControl.DockFlipRequested.connect(self._onDockFlipRequested)
 
@@ -109,16 +91,12 @@ class SideBar(QWidget, ComponentBase):
         self._layout.addWidget(self._dockControl)
 
         self._widthAnim: RubberBandAnimation = RubberBandAnimation(
-            target=self,
-            durationMs=max(self._config.animationDuration, 400),
-            overshootPx=32,
-            undershootPx=12,
-            parent=self,
+            target=self, durationMs=max(self._config.animationDuration, 400),
+            overshootPx=32, undershootPx=12
         )
 
         self._lightning: LightningShootAnimation = LightningShootAnimation(
             durationMs=720,
-            parent=self,
         )
         self._lightning.Finished.connect(self._onLightningFinished)
 
@@ -128,12 +106,9 @@ class SideBar(QWidget, ComponentBase):
 
     # ==================================================================================
     def AddItem(
-        self,
-        text: str = "",
-        icon: Optional[Union[QIcon, QPixmap, str]] = None,
+        self, text: str = "", icon: Optional[Union[QIcon, QPixmap, str]] = None,
         displayMode: ItemDisplayMode = ItemDisplayMode.IconAndText,
-        iconSize: Optional[int] = None,
-        callback: Optional[Callable] = None,
+        iconSize: Optional[int] = None, callback: Optional[Callable] = None,
     ) -> SideBarItem:
         lSize: int = iconSize if iconSize is not None else self._config.iconSize
         lItem: SideBarItem = SideBarItem(

@@ -114,13 +114,15 @@ class Page(QWidget, ComponentBase):
         return True
 
     def addCommand(
-        self,
-        button: str | iCommandBarButton,
+        self, button: str | iCommandBarButton,
         group: Optional[str | iCommandBarGroup] = None,
     ) -> None:
-        if not self._assertCommandBar():
-            return
+        if not self._assertCommandBar(): return
         self._commandBar.addButton(button, group)
+
+    def addCommandStretch(self, stretch: int = 1) -> None:
+        if not self._assertCommandBar(): return
+        self._commandBar.addStretch(stretch)
 
     def addCommandGroup(self, name: str | iCommandBarGroup) -> None:
         if not self._assertCommandBar():

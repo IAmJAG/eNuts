@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 # ==================================================================================
-from typing import Any, Dict, List
+from time import sleep
+from typing import Any, List
 
 # ==================================================================================
-from adbutils import AdbDevice, adb
 from PySide6.QtWidgets import QBoxLayout, QWidget
 
 # ==================================================================================
@@ -15,7 +15,7 @@ from jAGQt.types.interface.widgets.commandBar import iCommandBar, iCommandBarBut
 from jAGQt.types.interface.window import iMainWindowBase
 from jAGQt.widgets.commandBar import CommandBar
 from jAGQt.widgets.page import Page
-from jAGQt.widgets.sideBar import SideBar
+from jAGQt.widgets.sideBar import SideBar, SideBarItem
 
 # ==================================================================================
 from ..types.interface.application import iENUTSService, iShell
@@ -56,49 +56,46 @@ class Shell(iShell):
             self.ContentSpacing = 0
             self.ContentMargins = 0
 
-            lCenter: QWidget = QWidget()
-            lCenterLayout: QBoxLayout = QBoxLayout(QBoxLayout.Direction.TopToBottom)
-            lCenterLayout.setContentsMargins(0, 0, 0, 0)
-            lCenterLayout.setSpacing(0)
-            lCenter.setLayout(lCenterLayout)
+            center: QWidget = QWidget()
+            centerLayout: QBoxLayout = QBoxLayout(QBoxLayout.Direction.TopToBottom)
+            centerLayout.setContentsMargins(0, 0, 0, 0)
+            centerLayout.setSpacing(0)
+            center.setLayout(centerLayout)
 
             self._imageStreamer: imageStreamer = imageStreamer()
 
             recorder: Page = Page("Recorder", "Key & Gesture Recorder", commandBarOn=True)
             recorder.addWidget(self._imageStreamer)
             recorder.addCommand("Start", )            
-            
-            lCenterLayout.addWidget(recorder)
+            recorder.addCommandStretch()            
+            centerLayout.addWidget(recorder)
 
-            layout.addWidget(lCenter, 1)
-            self._wInitializeSideBar()
+            layout.addWidget(center, 1)            
 
         except Exception as ex:
             error(f"[{self.__class__.__name__}] InitializeUI FAIL", ex)
 
-    def _wInitializeSideBar(self: iMainWindowBase) -> None:
+    def _initializeSideBar(self: iMainWindowBase) -> None:
         try:
-            self._sideBar: SideBar = SideBar(title="eNuts")
-            self._sideBar.DockSideChanged.connect(self._onSideBarDockChanged)
-            self._sideBar.CollapsedChanged.connect(self._onSideBarCollapsedChanged)
+            sideBar: SideBar = SideBar(title="eNuts")
+            sideBar.DockSideChanged.connect(self._onSideBarDockChanged)
+            sideBar.CollapsedChanged.connect(self._onSideBarCollapsedChanged)
 
-            self._sideBar.AddItem(text="Home")
+            sideBar.AddItem(text="Dashboard")
+            devices = sideBar.AddGroup(title="Devices")
+            devices.AddItem(text="Emulator")
 
-            lDevices = self._sideBar.AddGroup(title="Devices")
-            lDevices.AddItem(text="Emulator")
-            lDevices.AddItem(text="USB Device")
-            lRemote = lDevices.AddGroup(title="Remote", startCollapsed=True)
-            lRemote.AddItem(text="SSH Bridge")
-            lRemote.AddItem(text="Cloud Node")
+            dataCollector = sideBar.AddGroup(title="Data Collector", startCollapsed=True)
+            dataCollector.AddItem(text="Screenshot")
+            dataCollector.AddItem(text="Recorder")
 
-            lTools = self._sideBar.AddGroup(title="Tools", startCollapsed=True)
-            lTools.AddItem(text="Recorder")
-            lTools.AddItem(text="Settings")
-            lDebug = lTools.AddGroup(title="Debug")
-            lDebug.AddItem(text="Logs")
-            lDebug.AddItem(text="Inspector")
+            training = sideBar.AddGroup(title="Training", startCollapsed=True)
+            training.AddItem(text="<empty>")
 
-            self._sideBar.AddStretch()
+            lTools = sideBar.AddGroup(title="Tools", startCollapsed=True)
+            
+            sideBar.AddStretch()
+            self._sideBar = sideBar            
 
             self._restoreSideBarState()
 
@@ -114,15 +111,19 @@ class Shell(iShell):
 
     def _restoreSideBarState(self: iMainWindowBase) -> None:
         try:
-            if not hasattr(self, "Settings"):
-                return
-            lSettings = self.Settings
-            lCollapsed = _asBool(lSettings.value(_C_SIDEBAR_COLLAPSED, False), default=False)
-            lDockRaw = lSettings.value(_C_SIDEBAR_DOCK, "left")
-            lDock = str(lDockRaw).strip().lower() if lDockRaw is not None else "left"
-            if lDock not in ("left", "right"):
-                lDock = "left"
-            self._sideBar.RestoreState(lCollapsed, lDock)
+            if not hasattr(self, "Settings"): return
+
+            settings: SideBar = self.Settings
+
+            collapsed = _asBool(settings.value(_C_SIDEBAR_COLLAPSED, False), default=False)
+            dockRaw = settings.value(_C_SIDEBAR_DOCK, "left")
+            dock = str(dockRaw).strip().lower() if dockRaw is not None else "left"
+
+            sideBar = self._sideBar
+            
+            if dock not in ("left", "right"): dock = "left"
+            sideBar.RestoreState(collapsed, dock)
+
         except Exception as ex:
             error(f"[{self.__class__.__name__}] Restore SideBar state FAIL", ex)
 
@@ -158,7 +159,9 @@ class Shell(iShell):
     # ==================================================================================
     async def initializeInstance(self: iMainWindowBase) -> None:
         try:
-            emitter: SCRCPYEmitter = SCRCPYEmitter("emulator-5560")
+            self._initializeSideBar()
+            sleep(0.1)
+            emitter: SCRCPYEmitter = SCRCPYEmitter("emulator-5566")
             await emitter.initialize()
 
             self._imageStreamer.Decoder = emitter.CodecContext
