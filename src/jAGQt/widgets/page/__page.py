@@ -173,13 +173,16 @@ class Page(QWidget, ComponentBase):
     def CommandBarState(self) -> bool:
         return bool(self._commandBar)
 
-    def setCommandBarState(self, value: bool) -> None:
+    @CommandBarState.setter
+    def CommandBarState(self, value: bool) -> None:
+        self._setCommandBarState(value)
+
+    def _setCommandBarState(self, value: bool) -> None:
         if bool(self._commandBar) == value:
             return
         if value:
             self._commandBar = CommandBar(parent=self)
-            self._mainLayout.addWidget(self._commandBar)
+
         else:
-            self._mainLayout.removeWidget(self._commandBar)
             self._commandBar.deleteLater()
             self._commandBar = None
