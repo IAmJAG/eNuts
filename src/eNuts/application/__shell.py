@@ -161,7 +161,7 @@ class Shell(iShell):
         try:
             self._initializeSideBar()
             sleep(0.1)
-            emitter: SCRCPYEmitter = SCRCPYEmitter("emulator-5566")
+            emitter: SCRCPYEmitter = SCRCPYEmitter("emulator-5560")
             await emitter.initialize()
 
             self._imageStreamer.Decoder = emitter.CodecContext
