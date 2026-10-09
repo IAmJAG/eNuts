@@ -22,6 +22,11 @@ from ..UI.widgets.streamer import imageStreamer
 
 
 # ==================================================================================
+_C_SIDEBAR_COLLAPSED = "sideBar/collapsed"
+_C_SIDEBAR_DOCK = "sideBar/dockSide"
+
+
+# ==================================================================================
 class Shell(iShell):
     def _wInitializeShell(self: iMainWindowBase) -> None:
         try:
@@ -56,6 +61,7 @@ class Shell(iShell):
         try:
             self._sideBar: SideBar = SideBar(title="eNuts")
             self._sideBar.DockSideChanged.connect(self._onSideBarDockChanged)
+            self._sideBar.CollapsedChanged.connect(self._onSideBarCollapsedChanged)
 
             self._sideBar.AddItem(text="Home")
             lDevices = self._sideBar.AddGroup(title="Devices")
@@ -66,11 +72,38 @@ class Shell(iShell):
             lTools.AddItem(text="Settings")
             self._sideBar.AddStretch()
 
+            self._restoreSideBarState()
+
             lLayout: QBoxLayout = self.Layout
-            lLayout.insertWidget(0, self._sideBar)
+            lDock = self._sideBar.DockSide
+            if lDock is DockPosition.Right:
+                lLayout.addWidget(self._sideBar)
+            else:
+                lLayout.insertWidget(0, self._sideBar)
 
         except Exception as ex:
             error(f"[{self.__class__.__name__}] InitializeSideBar FAIL", ex)
+
+    def _restoreSideBarState(self: iMainWindowBase) -> None:
+        try:
+            if not hasattr(self, "Settings"):
+                return
+            lSettings = self.Settings
+            lCollapsed = bool(lSettings.value(_C_SIDEBAR_COLLAPSED, False))
+            lDock = str(lSettings.value(_C_SIDEBAR_DOCK, "left"))
+            self._sideBar.RestoreState(lCollapsed, lDock)
+        except Exception as ex:
+            error(f"[{self.__class__.__name__}] Restore SideBar state FAIL", ex)
+
+    def _saveSideBarState(self: iMainWindowBase) -> None:
+        try:
+            if not hasattr(self, "Settings") or not hasattr(self, "_sideBar"):
+                return
+            lState = self._sideBar.ExportState()
+            self.Settings.setValue(_C_SIDEBAR_COLLAPSED, lState["collapsed"])
+            self.Settings.setValue(_C_SIDEBAR_DOCK, lState["dockSide"])
+        except Exception as ex:
+            error(f"[{self.__class__.__name__}] Save SideBar state FAIL", ex)
 
     def _onSideBarDockChanged(self, position: DockPosition) -> None:
         try:
@@ -80,8 +113,12 @@ class Shell(iShell):
                 lLayout.insertWidget(0, self._sideBar)
             else:
                 lLayout.addWidget(self._sideBar)
+            self._saveSideBarState()
         except Exception as ex:
             error(f"[{self.__class__.__name__}] SideBar dock change FAIL", ex)
+
+    def _onSideBarCollapsedChanged(self, _collapsed: bool) -> None:
+        self._saveSideBarState()
 
     # ==================================================================================
     async def initializeInstance(self: iMainWindowBase) -> None:

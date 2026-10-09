@@ -7,10 +7,10 @@ from typing import Callable, List, Optional, Union
 # ==================================================================================
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QIcon, QPixmap
-from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 
 # ==================================================================================
-from jAGQt.animations import DrawerAnimation
+from jAGQt.animations import DrawerAnimation, LightningShootAnimation, RubberBandAnimation
 from jAGQt.types import DockPosition
 
 # ==================================================================================
@@ -20,7 +20,6 @@ from ..components import ComponentBase
 # ==================================================================================
 from .__options import sideBarConfig
 from .components import (
-    IconPosition,
     ItemDisplayMode,
     ItemRole,
     SideBarContent,
@@ -37,9 +36,9 @@ from .components import (
 class SideBar(QWidget, ComponentBase):
     """Side bar: header, nested content, dock control.
 
-    - Collapse uses DrawerAnimation on width
-    - Header icon morphs burger ↔ X
-    - Selection: one active item; ancestors get selected (QSS by depth)
+    Collapse: drawer in / rubber-band out.
+    Dock flip: transpose arrow + optional lightning to the opposite edge.
+    Selection: one active item; ancestor headers selected (QSS by depth).
     """
 
     CollapseRequested = Signal()
@@ -63,6 +62,7 @@ class SideBar(QWidget, ComponentBase):
         self._activeItem: Optional[SideBarItem] = None
         self._groups: List[SideBarGroup] = []
         self._rootItems: List[SideBarItem] = []
+        self._useLightningOnDock: bool = True
 
         self.setObjectName("SideBar")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
@@ -112,13 +112,21 @@ class SideBar(QWidget, ComponentBase):
             durationMs=self._config.animationDuration,
             parent=self,
         )
+        self._rubber: RubberBandAnimation = RubberBandAnimation(
+            target=self,
+            durationMs=max(self._config.animationDuration, 280),
+            overshootPx=16,
+            parent=self,
+        )
+        self._lightning: LightningShootAnimation = LightningShootAnimation(
+            durationMs=420,
+            parent=self,
+        )
 
         self._applyDockProperty()
         if self._collapsed:
             self._header.SetCollapsed(True, animate=False)
 
-    # ==================================================================================
-    # Content API
     # ==================================================================================
     def AddItem(
         self,
@@ -200,9 +208,16 @@ class SideBar(QWidget, ComponentBase):
 
         lStart: int = self.width()
         lEnd: int = self._collapsedWidth if lValue else self._expandedWidth
-        self._drawer.SetRange(lStart, lEnd)
-        self.setMaximumWidth(max(lStart, lEnd))
-        self._drawer.Start()
+        self.setMaximumWidth(max(lStart, lEnd, self._expandedWidth))
+
+        if lValue:
+            # Collapse inward — smooth drawer
+            self._drawer.SetRange(lStart, lEnd)
+            self._drawer.Start()
+        else:
+            # Expand outward — rubber-band overshoot
+            self._rubber.SetRange(lStart, lEnd, overshootPx=16)
+            self._rubber.Start()
 
         self._header.SetCollapsed(lValue, animate=True)
         for lGroup in self._groups:
@@ -220,13 +235,26 @@ class SideBar(QWidget, ComponentBase):
     def ToggleCollapse(self) -> None:
         self.SetCollapsed(not self._collapsed)
 
-    def SetDockSide(self, position: DockPosition) -> None:
+    def SetDockSide(self, position: DockPosition, animate: bool = True) -> None:
         if position is self._dockPosition:
             return
+
+        lOld = self._dockPosition
+        if animate and self._useLightningOnDock:
+            # Lightning from dock control toward opposite side of the window
+            self._lightning.SetEndpoints(self._dockControl, self._dockControl)
+            # Retarget: animate from current bar center to window opposite edge
+            lHost = self.window()
+            if lHost is not None:
+                self._lightning.SetEndpoints(self, self)
+
         self._dockPosition = position
-        self._dockControl.SetDockPosition(position)
+        self._dockControl.SetDockPosition(position, animate=animate)
         self._applyDockProperty()
         self.DockSideChanged.emit(position)
+
+        if animate and self._useLightningOnDock and lHost is not None:
+            self._lightning.Start()
 
     def ToggleDockSide(self) -> None:
         lNext = (
@@ -238,6 +266,39 @@ class SideBar(QWidget, ComponentBase):
 
     def SelectItem(self, item: SideBarItem) -> None:
         self._applySelection(item)
+
+    def RestoreState(self, collapsed: bool, dockSide: str) -> None:
+        """Apply persisted state without animation."""
+        lDock = (
+            DockPosition.Right
+            if str(dockSide).lower() == "right"
+            else DockPosition.Left
+        )
+        self._dockPosition = lDock
+        self._dockControl.SetDockPosition(lDock, animate=False)
+        self._applyDockProperty()
+
+        lCollapsed = bool(collapsed)
+        self._collapsed = lCollapsed
+        lWidth = self._collapsedWidth if lCollapsed else self._expandedWidth
+        self.setFixedWidth(lWidth)
+        self.setMaximumWidth(self._expandedWidth)
+        self._header.SetCollapsed(lCollapsed, animate=False)
+        for lGroup in self._groups:
+            lGroup.SetSidebarCollapsed(lCollapsed)
+        for lItem in self._rootItems:
+            lItem.DisplayMode = (
+                ItemDisplayMode.IconOnly if lCollapsed else ItemDisplayMode.IconAndText
+            )
+        self.setProperty("collapsed", "true" if lCollapsed else "false")
+        self.style().unpolish(self)
+        self.style().polish(self)
+
+    def ExportState(self) -> dict:
+        return {
+            "collapsed": self._collapsed,
+            "dockSide": "right" if self._dockPosition is DockPosition.Right else "left",
+        }
 
     # ==================================================================================
     @property
@@ -291,8 +352,7 @@ class SideBar(QWidget, ComponentBase):
     def _allItems(self) -> List[SideBarItem]:
         lResult: List[SideBarItem] = list(self._rootItems)
         for lGroup in self._groups:
-            lResult.append(lGroup.HeaderWidget)
-            lResult.extend(lGroup.Items())
+            lResult.extend(lGroup.CollectItems())
         return lResult
 
     def _applySelection(self, item: SideBarItem) -> None:
@@ -303,12 +363,8 @@ class SideBar(QWidget, ComponentBase):
         item.Active = True
         self._activeItem = item
 
-        # Ancestors: group header for children inside a group
         for lGroup in self._groups:
-            if item is lGroup.HeaderWidget:
-                lGroup.HeaderWidget.Selected = True
-                break
-            if item in lGroup.Items():
-                lGroup.HeaderWidget.Selected = True
-                # Header is ancestor — selected but not active unless it is the item
-                break
+            lChain = lGroup.FindAncestorHeaders(item)
+            for lHeader in lChain:
+                if lHeader is not item:
+                    lHeader.Selected = True

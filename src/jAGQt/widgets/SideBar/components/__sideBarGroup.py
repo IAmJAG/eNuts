@@ -28,7 +28,10 @@ from .__sideBarSeparator import SeparatorType, SideBarSeparator
 
 # ==================================================================================
 class SideBarGroup(QWidget, ComponentBase):
-    """Nested section: header SideBarItem (no chevron) + rollable body of items."""
+    """Nested section: header SideBarItem (no chevron) + rollable body.
+
+    Supports nested groups via AddGroup (depth + 1).
+    """
 
     Toggled = Signal(bool)
     ItemClicked = Signal(object)
@@ -59,6 +62,7 @@ class SideBarGroup(QWidget, ComponentBase):
         self._animationDurationMs: int = max(0, int(animationDurationMs))
         self._sidebarCollapsed: bool = False
         self._items: List[SideBarItem] = []
+        self._childGroups: List[SideBarGroup] = []
 
         self._header: SideBarItem = SideBarItem(
             text=title,
@@ -134,6 +138,30 @@ class SideBarGroup(QWidget, ComponentBase):
             lItem.DisplayMode = ItemDisplayMode.IconOnly
         return lItem
 
+    def AddGroup(
+        self,
+        title: str = "",
+        icon: Optional[Union[QIcon, QPixmap, str]] = None,
+        iconSize: Optional[int] = None,
+        startCollapsed: bool = False,
+    ) -> "SideBarGroup":
+        lSize: int = iconSize if iconSize is not None else self._childIconSize
+        lGroup: SideBarGroup = SideBarGroup(
+            title=title,
+            icon=icon,
+            iconSize=lSize,
+            depth=self._depth + 1,
+            startCollapsed=startCollapsed,
+            animationDurationMs=self._animationDurationMs,
+            parent=self._body,
+        )
+        lGroup.ItemClicked.connect(self.ItemClicked.emit)
+        self._bodyLayout.addWidget(lGroup)
+        self._childGroups.append(lGroup)
+        if self._sidebarCollapsed:
+            lGroup.SetSidebarCollapsed(True)
+        return lGroup
+
     def AddSeparator(
         self, separatorType: SeparatorType = SeparatorType.Line
     ) -> SideBarSeparator:
@@ -148,6 +176,7 @@ class SideBarGroup(QWidget, ComponentBase):
 
     def Clear(self) -> None:
         self._items.clear()
+        self._childGroups.clear()
         while self._bodyLayout.count():
             lItem = self._bodyLayout.takeAt(0)
             if lItem.widget():
@@ -156,6 +185,29 @@ class SideBarGroup(QWidget, ComponentBase):
 
     def Items(self) -> List[SideBarItem]:
         return list(self._items)
+
+    def ChildGroups(self) -> List["SideBarGroup"]:
+        return list(self._childGroups)
+
+    def CollectItems(self) -> List[SideBarItem]:
+        """Header + leaves + recursive nested group items."""
+        lResult: List[SideBarItem] = [self._header]
+        lResult.extend(self._items)
+        for lGroup in self._childGroups:
+            lResult.extend(lGroup.CollectItems())
+        return lResult
+
+    def FindAncestorHeaders(self, item: SideBarItem) -> List[SideBarItem]:
+        """Return header chain from this group if *item* is under it."""
+        if item is self._header:
+            return [self._header]
+        if item in self._items:
+            return [self._header]
+        for lGroup in self._childGroups:
+            lChain = lGroup.FindAncestorHeaders(item)
+            if lChain:
+                return [self._header] + lChain
+        return []
 
     def SetSidebarCollapsed(self, collapsed: bool) -> None:
         self._sidebarCollapsed = bool(collapsed)
@@ -167,6 +219,8 @@ class SideBarGroup(QWidget, ComponentBase):
         self._header.DisplayMode = lMode
         for lItem in self._items:
             lItem.DisplayMode = lMode
+        for lGroup in self._childGroups:
+            lGroup.SetSidebarCollapsed(collapsed)
         if self._sidebarCollapsed:
             self.Collapse(animate=False)
 

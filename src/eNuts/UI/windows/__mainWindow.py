@@ -17,6 +17,11 @@ class MainWindow(MainWindowBase, ApplicationInformation, Shell):
         super().__init__("ENUTS_WINDOW", *args, **kwargs)
 
     def closeEvent(self, event) -> None:
+        if hasattr(self, "_saveSideBarState"):
+            try:
+                self._saveSideBarState()
+            except Exception:
+                pass
         if hasattr(self, "_emitter") and self._emitter is not None:
             try:
                 if getattr(self._emitter, "isRunning", False):

@@ -6,11 +6,12 @@ from typing import Optional
 
 # ==================================================================================
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QMouseEvent
+from PySide6.QtGui import QIcon, QMouseEvent
 from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 
 # ==================================================================================
 from jAGQt.icons import MakeArrowLeftIcon, MakeArrowRightIcon
+from jAGQt.icons.animations import IconTransposeAnimation
 from jAGQt.types import DockPosition
 
 # ==================================================================================
@@ -23,11 +24,7 @@ from .__sideBarIcon import SideBarIcon
 
 # ==================================================================================
 class SideBarDockControl(QWidget, ComponentBase):
-    """Bottom dock flip control.
-
-    Dock left  → right arrow at bottom-right edge
-    Dock right → left arrow at bottom-left edge
-    """
+    """Bottom dock flip control with optional arrow transpose animation."""
 
     DockFlipRequested = Signal()
 
@@ -62,21 +59,48 @@ class SideBarDockControl(QWidget, ComponentBase):
             direction=QBoxLayout.Direction.LeftToRight,
         )
         self.setLayout(self._layout)
-        self._rebuild()
+
+        self._transpose: IconTransposeAnimation = IconTransposeAnimation(
+            target=self._arrow,
+            iconSize=self._iconSize,
+            durationMs=140,
+            parent=self,
+        )
+        self._transpose.Finished.connect(self._onTransposeFinished)
+        self._pendingPosition: Optional[DockPosition] = None
+
+        self._rebuild(animate=False)
 
     # ==================================================================================
-    def SetDockPosition(self, position: DockPosition) -> None:
+    def SetDockPosition(self, position: DockPosition, animate: bool = True) -> None:
         if position is self._dockPosition:
             return
-        self._dockPosition = position
-        self._rebuild()
+        if animate:
+            self._pendingPosition = position
+            lCurrent: QIcon = (
+                MakeArrowRightIcon(self._iconSize)
+                if self._dockPosition is DockPosition.Left
+                else MakeArrowLeftIcon(self._iconSize)
+            )
+            self._transpose.SetIcon(lCurrent)
+            self._transpose.SetIconSize(self._iconSize)
+            self._transpose.Start()
+        else:
+            self._dockPosition = position
+            self._rebuild(animate=False)
 
     @property
     def DockPosition(self) -> DockPosition:
         return self._dockPosition
 
     # ==================================================================================
-    def _rebuild(self) -> None:
+    def _onTransposeFinished(self) -> None:
+        if self._pendingPosition is not None:
+            self._dockPosition = self._pendingPosition
+            self._pendingPosition = None
+            self._rebuild(animate=False)
+
+    def _rebuild(self, animate: bool = False) -> None:
         while self._layout.count():
             self._layout.takeAt(0)
 
