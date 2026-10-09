@@ -12,7 +12,7 @@ from jAGQt.utilities import newLayout
 
 # ==================================================================================
 from jAGQt.widgets.components import ComponentBase
-from jAGQt.widgets.SideBar.components import SideBarItem
+from jAGQt.widgets.sideBar.components import SideBarItem
 
 # ==================================================================================
 from ..page.__page import Page
