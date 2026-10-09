@@ -14,12 +14,12 @@ from jAGQt.types import DockPosition
 from jAGQt.types.interface.widgets.commandBar import iCommandBar, iCommandBarButton
 from jAGQt.types.interface.window import iMainWindowBase
 from jAGQt.widgets.commandBar import CommandBar
+from jAGQt.widgets.page import Page
 from jAGQt.widgets.sideBar import SideBar
 
 # ==================================================================================
 from ..types.interface.application import iENUTSService, iShell
 from ..UI.widgets.streamer import imageStreamer
-
 
 # ==================================================================================
 _C_SIDEBAR_COLLAPSED = "sideBar/collapsed"
@@ -64,15 +64,13 @@ class Shell(iShell):
 
             self._imageStreamer: imageStreamer = imageStreamer()
 
-            commandBar: iCommandBar = CommandBar()
-            cmdBtn: iCommandBarButton = commandBar.addButton("File")
-            commandBar.addStretch()
-
-            lCenterLayout.addWidget(self._imageStreamer)
-            lCenterLayout.addWidget(commandBar)
+            recorder: Page = Page("Recorder", "Key & Gesture Recorder", commandBarOn=True)
+            recorder.addWidget(self._imageStreamer)
+            recorder.addCommand("Start", )            
+            
+            lCenterLayout.addWidget(recorder)
 
             layout.addWidget(lCenter, 1)
-
             self._wInitializeSideBar()
 
         except Exception as ex:

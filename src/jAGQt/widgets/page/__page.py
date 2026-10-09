@@ -35,12 +35,9 @@ class Page(QWidget, ComponentBase):
 
     def __init__(
         self,
-        title: str = "jAGQt Page",
-        description: str = "",
-        commandBarOn: bool = False,
-        id: Optional[str] = None,
-        *args,
-        **kwargs,
+        title: str = "jAGQt Page", description: str = "",
+        commandBarOn: bool = False, id: Optional[str] = None,
+        *args, **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
         self._id: str = str(uuid4()) if id is None else id
