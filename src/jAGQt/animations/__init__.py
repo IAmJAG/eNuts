@@ -1,6 +1,7 @@
 # ==================================================================================
 from .__base import AnimationBase
 from .__drawer import DrawerAnimation
+from .__lightning import LightningShootAnimation
 from .__roll import RollAnimation
 from .__rubberBand import RubberBandAnimation
 
@@ -10,4 +11,5 @@ __all__ = [
     "DrawerAnimation",
     "RubberBandAnimation",
     "RollAnimation",
+    "LightningShootAnimation",
 ]

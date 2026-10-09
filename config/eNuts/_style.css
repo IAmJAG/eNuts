@@ -27,10 +27,6 @@ QWidget#W_COMMANDBAR>QWidget {
 
 /* ==================================================================================
 Command bar button
-Active instance:
-"File"
-Object name:
-C_COMMANDBAR_BUTTON
 ================================================================================== */
 
 QPushButton#C_COMMANDBAR_BUTTON {
@@ -43,7 +39,7 @@ QPushButton#C_COMMANDBAR_BUTTON {
 
     border: 1px solid rgba(255, 255, 255, 28);
     border-radius: 0px;
-    outline: none;    
+    outline: none;
 }
 
 QPushButton#C_COMMANDBAR_BUTTON:hover {
@@ -135,4 +131,26 @@ QScrollBar::sub-page:vertical,
 QScrollBar::add-page:horizontal,
 QScrollBar::sub-page:horizontal {
     background: transparent;
+}
+
+/* ==================================================================================
+SideBar — structural (theme supplies colors)
+================================================================================== */
+
+QWidget#SideBar {
+    border: 0px;
+}
+
+QWidget#SideBarHeader {
+    min-height: 44px;
+}
+
+QWidget#SideBarItem,
+QWidget#SideBarGroupHeader {
+    border-radius: 0px;
+}
+
+QWidget#SideBarDockControl {
+    min-height: 28px;
+    max-height: 28px;
 }
