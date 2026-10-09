@@ -10,7 +10,7 @@ from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 
 # ==================================================================================
-from jAGQt.animations import RubberBandAnimation
+from jAGQt.animations import LightningShootAnimation, RubberBandAnimation
 from jAGQt.types import DockPosition
 
 # ==================================================================================
@@ -36,9 +36,8 @@ from .components import (
 class SideBar(QWidget, ComponentBase):
     """Side bar: header, nested content, dock control.
 
-    Collapse / expand: rubber-band width (overshoot → undershoot → settle).
-    Dock flip: transpose arrow + lightning across the window.
-    Selection: one active item; ancestor headers selected (QSS by depth).
+    Collapse / expand: rubber-band width.
+    Dock flip: lightning ball → tentacle → rematerialize on the other edge.
     """
 
     CollapseRequested = Signal()
@@ -63,6 +62,8 @@ class SideBar(QWidget, ComponentBase):
         self._groups: List[SideBarGroup] = []
         self._rootItems: List[SideBarItem] = []
         self._useLightningOnDock: bool = True
+        self._dockAnimating: bool = False
+        self._pendingDock: Optional[DockPosition] = None
 
         self.setObjectName("SideBar")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
@@ -115,12 +116,11 @@ class SideBar(QWidget, ComponentBase):
             parent=self,
         )
 
-        from jAGQt.animations import LightningShootAnimation
-
         self._lightning: LightningShootAnimation = LightningShootAnimation(
-            durationMs=380,
+            durationMs=720,
             parent=self,
         )
+        self._lightning.Finished.connect(self._onLightningFinished)
 
         self._applyDockProperty()
         if self._collapsed:
@@ -208,7 +208,6 @@ class SideBar(QWidget, ComponentBase):
         lStart: int = self.width()
         lEnd: int = self._collapsedWidth if lValue else self._expandedWidth
 
-        # Expand: stronger stretch past target. Collapse: smaller overshoot past collapsed.
         if lValue:
             self._widthAnim.SetRange(lStart, lEnd, overshootPx=14, undershootPx=6)
         else:
@@ -234,18 +233,14 @@ class SideBar(QWidget, ComponentBase):
     def SetDockSide(self, position: DockPosition, animate: bool = True) -> None:
         if position is self._dockPosition:
             return
+        if self._dockAnimating:
+            return
 
-        lRunLightning = bool(animate and self._useLightningOnDock)
-        if lRunLightning:
-            self._prepareDockLightning(position)
+        if animate and self._useLightningOnDock:
+            self._startDockLightning(position)
+            return
 
-        self._dockPosition = position
-        self._dockControl.SetDockPosition(position, animate=animate)
-        self._applyDockProperty()
-        self.DockSideChanged.emit(position)
-
-        if lRunLightning:
-            self._lightning.Start()
+        self._applyDockSide(position, animateArrow=animate)
 
     def ToggleDockSide(self) -> None:
         lNext = (
@@ -259,7 +254,6 @@ class SideBar(QWidget, ComponentBase):
         self._applySelection(item)
 
     def RestoreState(self, collapsed: bool, dockSide: str) -> None:
-        """Apply persisted state without animation."""
         lDock = (
             DockPosition.Right
             if str(dockSide).lower() == "right"
@@ -322,21 +316,55 @@ class SideBar(QWidget, ComponentBase):
         self.SetDockSide(value)
 
     # ==================================================================================
-    def _prepareDockLightning(self, newSide: DockPosition) -> None:
+    def _startDockLightning(self, position: DockPosition) -> None:
         lHost = self.window()
         if lHost is None:
+            self._applyDockSide(position, animateArrow=True)
             return
 
-        lMidY = float(lHost.height()) * 0.5
-        lMargin = 24.0
-        if self._dockPosition is DockPosition.Left:
-            lStart = QPointF(lMargin, lMidY)
-            lEnd = QPointF(float(lHost.width()) - lMargin, lMidY)
-        else:
-            lStart = QPointF(float(lHost.width()) - lMargin, lMidY)
-            lEnd = QPointF(lMargin, lMidY)
+        self._dockAnimating = True
+        self._pendingDock = position
 
-        self._lightning.SetPathPoints(lHost, lStart, lEnd, affectOpacity=False)
+        # Source = current SideBar center in host coords
+        lSrcGlobal = self.mapToGlobal(self.rect().center())
+        lSrc = QPointF(lHost.mapFromGlobal(lSrcGlobal))
+        lSize = QPointF(float(self.width()), float(max(self.height(), 120)))
+
+        lMidY = float(lHost.height()) * 0.5
+        lHalfW = float(self.width()) * 0.5
+        lMargin = 8.0 + lHalfW
+        if position is DockPosition.Right:
+            lDst = QPointF(float(lHost.width()) - lMargin, lMidY)
+        else:
+            lDst = QPointF(lMargin, lMidY)
+
+        self._lightning.SetPathPoints(
+            lHost,
+            lSrc,
+            lDst,
+            sourceSize=lSize,
+            destSize=lSize,
+            hideSource=True,
+            onMidpoint=self._onLightningMidpoint,
+        )
+        self._lightning.Start()
+
+    def _onLightningMidpoint(self) -> None:
+        """Tentacle arrived — reparent SideBar to the destination edge while still hidden."""
+        if self._pendingDock is None:
+            return
+        self._applyDockSide(self._pendingDock, animateArrow=True)
+
+    def _onLightningFinished(self) -> None:
+        self._dockAnimating = False
+        self._pendingDock = None
+        self.setVisible(True)
+
+    def _applyDockSide(self, position: DockPosition, animateArrow: bool = True) -> None:
+        self._dockPosition = position
+        self._dockControl.SetDockPosition(position, animate=animateArrow)
+        self._applyDockProperty()
+        self.DockSideChanged.emit(position)
 
     def _applyDockProperty(self) -> None:
         self.setProperty(
