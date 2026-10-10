@@ -95,11 +95,15 @@ class Page(QWidget, ComponentBase):
         self.setLayout(mainLayout)
         self._layout: QBoxLayout = cntLayout
 
-    def addComponent(self, component: iComponentBase) -> None:
-        self.addWidget(component)
+    def addComponent(self, component: iComponentBase, stretch: int = 1) -> None:
+        self.addWidget(component, stretch=stretch)
 
-    def addWidget(self, widget: QWidget) -> None:
-        self.Layout.addWidget(widget)
+    def addWidget(self, widget: QWidget, stretch: int = 1) -> None:
+        """Add to page content. stretch=1 (default) fills remaining content area."""
+        widget.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
+        self.Layout.addWidget(widget, stretch)
 
     def addSpacer(
         self,

@@ -6,7 +6,7 @@ from __future__ import annotations
 from typing import Optional, Tuple
 
 # ==================================================================================
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QMouseEvent, QShowEvent
 from PySide6.QtWidgets import QSizePolicy, QWidget
 
@@ -25,7 +25,7 @@ from .__resizeController import ResizeController
 
 # ==================================================================================
 class DashboardGrid(QWidget, ComponentBase):
-    """Host: fixed 64px cell units; drag float + swap/push; resize grow-push."""
+    """Host: fixed 64px cell units; fills parent content area; drag/resize."""
 
     OBJECT_NAME = "DashboardGrid"
 
@@ -51,10 +51,24 @@ class DashboardGrid(QWidget, ComponentBase):
         self.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
-        self.setVisible(True)  # host itself is fine once parented by Page
+        self.setMinimumSize(0, 0)
 
         self._drag.Attach(self)
         self._resize.Attach(self)
+
+    # ==================================================================================
+    def sizeHint(self) -> QSize:
+        lMargin = self._margins
+        lGap = self._model.Gap
+        lCell = self._model.CellSize
+        lCols = self._model.Columns
+        lRows = max(1, self._model.RowCount())
+        lW = 2 * lMargin + lCols * lCell + max(0, lCols - 1) * lGap
+        lH = 2 * lMargin + lRows * lCell + max(0, lRows - 1) * lGap
+        return QSize(lW, lH)
+
+    def minimumSizeHint(self) -> QSize:
+        return QSize(0, 0)
 
     # ==================================================================================
     @property
@@ -107,11 +121,12 @@ class DashboardGrid(QWidget, ComponentBase):
 
         if isinstance(card, QWidget):
             card.setParent(self)
-            card.hide()  # never flash as top-level; ApplyLayout / showEvent reveals
+            card.hide()
 
         self._drag.OnCardAdded(card)
         self._resize.OnCardAdded(card)
         self.ApplyLayout()
+        self.updateGeometry()
         return lPlacement
 
     def RemoveCard(self, card: iCard) -> bool:
@@ -122,6 +137,7 @@ class DashboardGrid(QWidget, ComponentBase):
             card.hide()
             card.setParent(None)
         self.ApplyLayout()
+        self.updateGeometry()
         return lOk
 
     def Clear(self) -> None:
@@ -134,6 +150,7 @@ class DashboardGrid(QWidget, ComponentBase):
                 lCard.setParent(None)
         self._model.Clear()
         self.ApplyLayout()
+        self.updateGeometry()
 
     def TryMove(
         self,
@@ -225,7 +242,6 @@ class DashboardGrid(QWidget, ComponentBase):
 
     def showEvent(self, event: QShowEvent) -> None:
         super().showEvent(event)
-        # Reveal cards only once the grid itself is on-screen (after main window show)
         self.ApplyLayout()
 
     def resizeEvent(self, event) -> None:
