@@ -5,10 +5,15 @@
 
 # ==================================================================================
 class dashboardConfig:
-    """Grid metrics. cellSize is the fixed icon-unit (default 64x64)."""
+    """Grid metrics. cellSize is the fixed icon-unit (default 64x64).
+
+    columns is only a seed / fallback. At runtime DashboardGrid derives the
+    live column count from available width so the unit grid reaches the edges.
+    """
 
     def __init__(self, **kwargs) -> None:
-        self._columns: int = 12
+        self._columns: int = 12  # seed until first resize
+        self._minColumns: int = 1
         self._gap: int = 8
         self._cellSize: int = 64
         self._margins: int = 8
@@ -25,6 +30,10 @@ class dashboardConfig:
     @property
     def columns(self) -> int:
         return self._columns
+
+    @property
+    def minColumns(self) -> int:
+        return max(1, int(self._minColumns))
 
     @property
     def gap(self) -> int:

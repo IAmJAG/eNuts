@@ -25,7 +25,7 @@ from .__resizeController import ResizeController
 
 # ==================================================================================
 class DashboardGrid(QWidget, ComponentBase):
-    """Host: fixed 64px cell units; fills parent content area; drag/resize."""
+    """Host: 64px units; columns fit available width; rows unbounded."""
 
     OBJECT_NAME = "DashboardGrid"
 
@@ -46,6 +46,7 @@ class DashboardGrid(QWidget, ComponentBase):
         )
         self._model: GridModel = GridModel(self._config)
         self._margins: int = self._config.margins
+        self._minColumns: int = self._config.minColumns
         self._resolver: LayoutResolver = LayoutResolver()
         self._drag: DragController = DragController(self)
         self._resize: ResizeController = ResizeController(self)
@@ -58,7 +59,6 @@ class DashboardGrid(QWidget, ComponentBase):
         self.setMinimumSize(0, 0)
 
         if self._C_DEBUG_EDGE:
-            # Temporary: cyan border + tint so host bounds are obvious
             self.setStyleSheet(
                 "#DashboardGrid {"
                 "  background-color: rgba(0, 180, 255, 35);"
@@ -82,6 +82,26 @@ class DashboardGrid(QWidget, ComponentBase):
 
     def minimumSizeHint(self) -> QSize:
         return QSize(0, 0)
+
+    def ColumnsForWidth(self, width: int) -> int:
+        """How many 64px cells fit in *width* (host-local pixels)."""
+        lMargin = self._margins
+        lGap = self._model.Gap
+        lCell = self._model.CellSize
+        lInner = max(0, int(width) - 2 * lMargin)
+        if lCell <= 0:
+            return self._minColumns
+        # first cell needs cellSize; each extra needs gap + cellSize
+        lCols = (lInner + lGap) // (lCell + lGap)
+        return max(self._minColumns, int(lCols))
+
+    def SyncColumns(self) -> bool:
+        """Recompute column count from current width. Returns True if changed."""
+        lCols = self.ColumnsForWidth(self.width())
+        if lCols == self._model.Columns:
+            return False
+        self._model.ClampToColumns(lCols)
+        return True
 
     # ==================================================================================
     @property
@@ -111,10 +131,15 @@ class DashboardGrid(QWidget, ComponentBase):
         colSpan: Optional[int] = None,
         rowSpan: Optional[int] = None,
     ) -> Optional[iCardPlacement]:
+        # Ensure columns match current host width before placing
+        if self.width() > 0:
+            self.SyncColumns()
+
         lColSpan = colSpan if colSpan is not None else card.PreferredColSpan
         lRowSpan = rowSpan if rowSpan is not None else card.PreferredRowSpan
         lColSpan = max(card.MinColSpan, int(lColSpan))
         lRowSpan = max(card.MinRowSpan, int(lRowSpan))
+        lColSpan = min(lColSpan, self._model.Columns)
 
         if col is None or row is None:
             lSlot = self._model.FindAutoSlot(lColSpan, lRowSpan)
@@ -127,6 +152,8 @@ class DashboardGrid(QWidget, ComponentBase):
                 lRow = row
         else:
             lCol, lRow = int(col), int(row)
+            if lCol + lColSpan > self._model.Columns:
+                lCol = max(0, self._model.Columns - lColSpan)
 
         lPlacement = CardPlacement(card, lCol, lRow, lColSpan, lRowSpan)
         if not self._model.AddPlacement(lPlacement):
@@ -223,6 +250,9 @@ class DashboardGrid(QWidget, ComponentBase):
         return (lCol, lRow)
 
     def ApplyLayout(self, skipCard: Optional[iCard] = None) -> None:
+        if self.width() > 0:
+            self.SyncColumns()
+
         lSkip = skipCard
         if lSkip is None and self._drag.IsDragging:
             lSkip = self._drag.CurrentCard

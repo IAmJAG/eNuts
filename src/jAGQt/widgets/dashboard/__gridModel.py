@@ -115,3 +115,19 @@ class GridModel:
     def FindAutoSlot(self, colSpan: int, rowSpan: int) -> Optional[tuple[int, int]]:
         self._rebuildOccupancy()
         return self._occupancy.FindNearestFree(colSpan, rowSpan)
+
+    def ClampToColumns(self, columns: int) -> None:
+        """Shrink / shift placements so every card fits within *columns*."""
+        lCols = max(1, int(columns))
+        for lP in self._placements:
+            lMinC = max(1, lP.Card.MinColSpan)
+            if lP.ColSpan > lCols:
+                lP.ColSpan = lCols
+            if lP.ColSpan < lMinC:
+                lP.ColSpan = min(lMinC, lCols)
+            if lP.Col + lP.ColSpan > lCols:
+                lP.Col = max(0, lCols - lP.ColSpan)
+            if lP.Col < 0:
+                lP.Col = 0
+        self._columns = lCols
+        self._rebuildOccupancy()

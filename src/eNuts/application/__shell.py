@@ -53,7 +53,7 @@ def _asBool(value: Any, default: bool = False) -> bool:
 
 # ==================================================================================
 def _seedDashboard(grid: DashboardGrid) -> None:
-    """Seed cards on a 12-col × 64px unit grid."""
+    """Seed cards — spans are in 64px cell units; columns follow host width."""
     lStatus = Card(
         title="Status",
         minColSpan=2,
@@ -106,6 +106,7 @@ def _seedDashboard(grid: DashboardGrid) -> None:
     )
     lLog.SetBodyWidget(QLabel("Recent events"))
 
+    # Explicit cols assume a reasonably wide host; SyncColumns clamps if needed
     grid.AddCard(lStatus, col=0, row=0, colSpan=4, rowSpan=2)
     grid.AddCard(lLive, col=4, row=0, colSpan=3, rowSpan=4)
     grid.AddCard(lStats, col=7, row=0, colSpan=3, rowSpan=2)
@@ -137,8 +138,15 @@ class Shell(iShell):
             lDashboard: Page = Page(
                 "Dashboard", "Overview", id=_C_PAGE_DASHBOARD
             )
+            # columns seed only; live count comes from host width / 64px unit
             lGrid: DashboardGrid = DashboardGrid(
-                config=dashboardConfig(columns=12, gap=8, cellSize=64, margins=8)
+                config=dashboardConfig(
+                    columns=12,
+                    minColumns=1,
+                    gap=8,
+                    cellSize=64,
+                    margins=8,
+                )
             )
             _seedDashboard(lGrid)
             lDashboard.addWidget(lGrid)
