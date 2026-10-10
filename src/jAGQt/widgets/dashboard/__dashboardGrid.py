@@ -7,7 +7,7 @@ from typing import Optional, Tuple
 
 # ==================================================================================
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QMouseEvent
+from PySide6.QtGui import QMouseEvent, QShowEvent
 from PySide6.QtWidgets import QSizePolicy, QWidget
 
 # ==================================================================================
@@ -25,7 +25,7 @@ from .__resizeController import ResizeController
 
 # ==================================================================================
 class DashboardGrid(QWidget, ComponentBase):
-    """Host: model → geometry; drag float + move-push; resize grow-push."""
+    """Host: fixed 64px cell units; drag float + swap/push; resize grow-push."""
 
     OBJECT_NAME = "DashboardGrid"
 
@@ -51,6 +51,7 @@ class DashboardGrid(QWidget, ComponentBase):
         self.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
+        self.setVisible(True)  # host itself is fine once parented by Page
 
         self._drag.Attach(self)
         self._resize.Attach(self)
@@ -106,7 +107,7 @@ class DashboardGrid(QWidget, ComponentBase):
 
         if isinstance(card, QWidget):
             card.setParent(self)
-            card.show()
+            card.hide()  # never flash as top-level; ApplyLayout / showEvent reveals
 
         self._drag.OnCardAdded(card)
         self._resize.OnCardAdded(card)
@@ -160,27 +161,16 @@ class DashboardGrid(QWidget, ComponentBase):
         if lColSpan + lP.Col > self._model.Columns:
             return False
 
-        if lColSpan < lP.ColSpan or lRowSpan < lP.RowSpan:
-            # pure shrink (or mixed shrink on one axis) — self only for the
-            # reduced axes; if the other axis grew, use grow path
-            if lColSpan <= lP.ColSpan and lRowSpan <= lP.RowSpan:
-                lChanged = self._resolver.ResolveShrink(
-                    self._model, lP, lColSpan, lRowSpan
-                )
-                if lChanged is None:
-                    return False
-            else:
-                lChanged = self._resolver.ResolveGrow(
-                    self._model, lP, lColSpan, lRowSpan
-                )
-                if lChanged is None:
-                    return False
+        if lColSpan <= lP.ColSpan and lRowSpan <= lP.RowSpan:
+            lChanged = self._resolver.ResolveShrink(
+                self._model, lP, lColSpan, lRowSpan
+            )
         else:
             lChanged = self._resolver.ResolveGrow(
                 self._model, lP, lColSpan, lRowSpan
             )
-            if lChanged is None:
-                return False
+        if lChanged is None:
+            return False
 
         self._model.Occupancy.Rebuild(self._model.Placements, self._model.Columns)
         self.ApplyLayout()
@@ -190,21 +180,14 @@ class DashboardGrid(QWidget, ComponentBase):
         lMargin = self._margins
         lGap = self._model.Gap
         lCols = self._model.Columns
-        lRows = max(1, self._model.RowCount())
-        lW = max(0, self.width())
-        lH = max(0, self.height())
+        lCell = self._model.CellSize
 
-        lInnerW = max(0, lW - 2 * lMargin - lGap * (lCols - 1))
-        lCellW = lInnerW // lCols if lCols else 0
-        lInnerH = max(0, lH - 2 * lMargin - lGap * (lRows - 1))
-        lMinCellH = self._model.CellMinHeight
-        lCellH = max(lMinCellH, lInnerH // lRows if lRows else lMinCellH)
-
-        if lCellW <= 0 or lCellH <= 0:
+        if lCell <= 0:
             return (0, 0)
 
-        lCol = (int(x) - lMargin) // (lCellW + lGap)
-        lRow = (int(y) - lMargin) // (lCellH + lGap)
+        lStep = lCell + lGap
+        lCol = (int(x) - lMargin) // lStep
+        lRow = (int(y) - lMargin) // lStep
         lCol = max(0, min(lCols - 1, lCol))
         lRow = max(0, lRow)
         return (lCol, lRow)
@@ -214,19 +197,10 @@ class DashboardGrid(QWidget, ComponentBase):
         if lSkip is None and self._drag.IsDragging:
             lSkip = self._drag.CurrentCard
 
-        lW = max(0, self.width())
-        lH = max(0, self.height())
         lMargin = self._margins
         lGap = self._model.Gap
-        lCols = self._model.Columns
-        lRows = max(1, self._model.RowCount())
-
-        lInnerW = max(0, lW - 2 * lMargin - lGap * (lCols - 1))
-        lCellW = lInnerW // lCols if lCols else 0
-
-        lInnerH = max(0, lH - 2 * lMargin - lGap * (lRows - 1))
-        lMinCellH = self._model.CellMinHeight
-        lCellH = max(lMinCellH, lInnerH // lRows if lRows else lMinCellH)
+        lCell = self._model.CellSize
+        lReveal = self.isVisible()
 
         for lP in self._model.Placements:
             lCard = lP.Card
@@ -235,16 +209,24 @@ class DashboardGrid(QWidget, ComponentBase):
             if lSkip is not None and lCard is lSkip:
                 lCard.raise_()
                 continue
-            lX = lMargin + lP.Col * (lCellW + lGap)
-            lY = lMargin + lP.Row * (lCellH + lGap)
-            lCw = lP.ColSpan * lCellW + (lP.ColSpan - 1) * lGap
-            lCh = lP.RowSpan * lCellH + (lP.RowSpan - 1) * lGap
+            lX = lMargin + lP.Col * (lCell + lGap)
+            lY = lMargin + lP.Row * (lCell + lGap)
+            lCw = lP.ColSpan * lCell + (lP.ColSpan - 1) * lGap
+            lCh = lP.RowSpan * lCell + (lP.RowSpan - 1) * lGap
             lCard.setGeometry(lX, lY, max(0, lCw), max(0, lCh))
-            lCard.show()
+            if lReveal:
+                lCard.show()
+            else:
+                lCard.hide()
             lCard.raise_()
 
         if lSkip is not None and isinstance(lSkip, QWidget):
             lSkip.raise_()
+
+    def showEvent(self, event: QShowEvent) -> None:
+        super().showEvent(event)
+        # Reveal cards only once the grid itself is on-screen (after main window show)
+        self.ApplyLayout()
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)

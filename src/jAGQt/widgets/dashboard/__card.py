@@ -38,6 +38,8 @@ class Card(QFrame, ComponentBase):
         **kwargs,
     ) -> None:
         super().__init__(parent, *args, **kwargs)
+        # Never surface as a top-level window before the host parents us
+        self.setVisible(False)
         self._id: str | UUID = uuid4() if id is None else id
         self._titleText: str = title
         self._minColSpan: int = max(1, int(minColSpan))
@@ -61,6 +63,8 @@ class Card(QFrame, ComponentBase):
         self.setProperty("variant", lVariant)
         self.setProperty("dragging", "false")
         self.setProperty("resizing", "false")
+        # Keep hidden until DashboardGrid parents and shows us
+        self.setVisible(False)
 
         lTitle: QLabel = QLabel(lTitleText)
         lTitle.setObjectName(f"{lObjName}_Title")
@@ -102,6 +106,7 @@ class Card(QFrame, ComponentBase):
             if lW is not None:
                 lW.setParent(None)
                 lW.deleteLater()
+        widget.setParent(self._body)
         self._bodyLayout.addWidget(widget, 1)
 
     def SetDragging(self, value: bool) -> None:

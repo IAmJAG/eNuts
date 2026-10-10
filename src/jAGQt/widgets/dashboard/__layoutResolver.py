@@ -29,7 +29,7 @@ class _WorkingPlacement:
 
 # ==================================================================================
 class LayoutResolver:
-    """Collision resolution: move-push, grow-shrink-others, shrink-self."""
+    """Collision resolution: swap-equal, move-push, grow-shrink-others, shrink-self."""
 
     def __init__(self, maxRowSearch: int = 64) -> None:
         self._maxRowSearch: int = max(8, int(maxRowSearch))
@@ -50,6 +50,9 @@ class LayoutResolver:
         if newCol == placement.Col and newRow == placement.Row:
             return [placement]
 
+        lOriginCol = placement.Col
+        lOriginRow = placement.Row
+
         lWork = self._snapshot(model)
         lMoverKey = id(placement)
         if lMoverKey not in lWork:
@@ -61,13 +64,48 @@ class LayoutResolver:
         lBlockers = self._overlapsFromWork(
             lWork, lMoverKey, newCol, newRow, placement.ColSpan, placement.RowSpan
         )
+
+        # Equivalent exchange: same span as mover → swap with origin
+        if len(lBlockers) == 1:
+            lBlocker = lBlockers[0]
+            if (
+                lBlocker.ColSpan == lMover.ColSpan
+                and lBlocker.RowSpan == lMover.RowSpan
+            ):
+                lBlocker.Col = lOriginCol
+                lBlocker.Row = lOriginRow
+                if self._isConsistent(lWork, lColumns):
+                    return self._commit(lWork, placement)
+                # fall through to push if swap inconsistent (should not happen)
+
+        # Equal size among multiple overlaps: if one blocker matches mover size
+        # and sits at the target origin cell, prefer swap with that one first
+        for lBlocker in list(lBlockers):
+            if (
+                lBlocker.ColSpan == lMover.ColSpan
+                and lBlocker.RowSpan == lMover.RowSpan
+                and lBlocker.Col == newCol
+                and lBlocker.Row == newRow
+            ):
+                lBlocker.Col = lOriginCol
+                lBlocker.Row = lOriginRow
+                lBlockers = self._overlapsFromWork(
+                    lWork,
+                    lMoverKey,
+                    newCol,
+                    newRow,
+                    placement.ColSpan,
+                    placement.RowSpan,
+                )
+                break
+
         for lBlocker in lBlockers:
             lSlot = self._findFreeFor(
                 lWork,
                 lColumns,
                 lBlocker,
-                preferCol=newCol,
-                preferRow=newRow,
+                preferCol=lOriginCol,
+                preferRow=lOriginRow,
                 excludeKeys={lMoverKey, id(lBlocker.Source)},
             )
             if lSlot is None:
@@ -101,7 +139,6 @@ class LayoutResolver:
         lGrow.ColSpan = lColSpan
         lGrow.RowSpan = lRowSpan
 
-        # Pass 1: relocate blockers that fit elsewhere at current size
         for _ in range(16):
             lBlockers = self._overlapsFromWork(
                 lWork, lGrowKey, lGrow.Col, lGrow.Row, lGrow.ColSpan, lGrow.RowSpan
@@ -122,7 +159,6 @@ class LayoutResolver:
                     lBlocker.Col, lBlocker.Row = lSlot
                     lProgress = True
                     continue
-                # Pass 2: shrink blocker toward min until no overlap or min hit
                 if self._shrinkAwayFrom(
                     lWork, lBlocker, lGrow, lColumns, excludeKey=lGrowKey
                 ):
@@ -213,7 +249,6 @@ class LayoutResolver:
         columns: int,
         excludeKey: int,
     ) -> bool:
-        """Reduce blocker span / shift until no overlap with grower or mins hit."""
         lMinC = blocker.Source.Card.MinColSpan
         lMinR = blocker.Source.Card.MinRowSpan
         lChanged = False
@@ -225,39 +260,20 @@ class LayoutResolver:
             ):
                 return lChanged
 
-            # Prefer shrinking the axis of deepest intrusion
-            lGrewRight = grower.Col + grower.ColSpan
-            lGrewBottom = grower.Row + grower.RowSpan
-
-            if blocker.Col < lGrewRight and blocker.ColSpan > lMinC:
-                # cut from left (shift right) or reduce width
-                if blocker.Col < grower.Col + grower.ColSpan and blocker.Col >= grower.Col:
+            if blocker.ColSpan > lMinC:
+                if blocker.Col >= grower.Col:
                     blocker.Col += 1
                     blocker.ColSpan = max(lMinC, blocker.ColSpan - 1)
-                    lChanged = True
-                    continue
-                if blocker.ColSpan > lMinC:
+                else:
                     blocker.ColSpan -= 1
-                    lChanged = True
-                    continue
-
-            if blocker.Row < lGrewBottom and blocker.RowSpan > lMinR:
-                if blocker.Row >= grower.Row:
-                    blocker.Row += 1
-                    blocker.RowSpan = max(lMinR, blocker.RowSpan - 1)
-                    lChanged = True
-                    continue
-                if blocker.RowSpan > lMinR:
-                    blocker.RowSpan -= 1
-                    lChanged = True
-                    continue
-
-            if blocker.ColSpan > lMinC:
-                blocker.ColSpan -= 1
                 lChanged = True
                 continue
             if blocker.RowSpan > lMinR:
-                blocker.RowSpan -= 1
+                if blocker.Row >= grower.Row:
+                    blocker.Row += 1
+                    blocker.RowSpan = max(lMinR, blocker.RowSpan - 1)
+                else:
+                    blocker.RowSpan -= 1
                 lChanged = True
                 continue
             break

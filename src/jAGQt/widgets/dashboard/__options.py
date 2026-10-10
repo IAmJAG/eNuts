@@ -5,16 +5,22 @@
 
 # ==================================================================================
 class dashboardConfig:
+    """Grid metrics. cellSize is the fixed icon-unit (default 64x64)."""
+
     def __init__(self, **kwargs) -> None:
-        self._columns: int = 4
-        self._gap: int = 12
-        self._cellMinHeight: int = 120
-        self._margins: int = 12
+        self._columns: int = 12
+        self._gap: int = 8
+        self._cellSize: int = 64
+        self._margins: int = 8
 
         for k, v in kwargs.items():
             attrb: str = f"_{k}"
             if hasattr(self, attrb):
                 setattr(self, attrb, v)
+
+        # Back-compat: cellMinHeight maps to cellSize if provided alone
+        if "cellMinHeight" in kwargs and "cellSize" not in kwargs:
+            self._cellSize = max(1, int(kwargs["cellMinHeight"]))
 
     @property
     def columns(self) -> int:
@@ -25,8 +31,13 @@ class dashboardConfig:
         return self._gap
 
     @property
+    def cellSize(self) -> int:
+        return self._cellSize
+
+    @property
     def cellMinHeight(self) -> int:
-        return self._cellMinHeight
+        """Alias for cellSize (height of one cell unit)."""
+        return self._cellSize
 
     @property
     def margins(self) -> int:

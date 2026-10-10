@@ -53,13 +53,13 @@ def _asBool(value: Any, default: bool = False) -> bool:
 
 # ==================================================================================
 def _seedDashboard(grid: DashboardGrid) -> None:
-    """Phase 1 seed cards — mixed spans to prove the static grid."""
+    """Seed cards on a 12-col × 64px unit grid."""
     lStatus = Card(
         title="Status",
-        minColSpan=1,
-        minRowSpan=1,
-        preferredColSpan=2,
-        preferredRowSpan=1,
+        minColSpan=2,
+        minRowSpan=2,
+        preferredColSpan=4,
+        preferredRowSpan=2,
         variant="status",
     )
     lHint = QLabel("System overview")
@@ -68,46 +68,49 @@ def _seedDashboard(grid: DashboardGrid) -> None:
 
     lLive = Card(
         title="Live",
-        minColSpan=1,
+        minColSpan=2,
         minRowSpan=2,
-        preferredColSpan=1,
-        preferredRowSpan=2,
+        preferredColSpan=3,
+        preferredRowSpan=4,
         variant="live",
     )
     lLive.SetBodyWidget(QLabel("Preview slot"))
 
     lStats = Card(
         title="Stats",
-        minColSpan=1,
-        preferredColSpan=1,
-        preferredRowSpan=1,
+        minColSpan=2,
+        minRowSpan=2,
+        preferredColSpan=3,
+        preferredRowSpan=2,
         variant="stat",
     )
     lStats.SetBodyWidget(QLabel("—"))
 
     lActions = Card(
         title="Quick Actions",
-        minColSpan=1,
-        preferredColSpan=2,
-        preferredRowSpan=1,
+        minColSpan=2,
+        minRowSpan=2,
+        preferredColSpan=4,
+        preferredRowSpan=2,
         variant="actions",
     )
     lActions.SetBodyWidget(QLabel("Start / Capture"))
 
     lLog = Card(
         title="Activity",
-        minColSpan=2,
-        preferredColSpan=4,
-        preferredRowSpan=1,
+        minColSpan=4,
+        minRowSpan=2,
+        preferredColSpan=12,
+        preferredRowSpan=2,
         variant="log",
     )
     lLog.SetBodyWidget(QLabel("Recent events"))
 
-    grid.AddCard(lStatus, col=0, row=0, colSpan=2, rowSpan=1)
-    grid.AddCard(lLive, col=2, row=0, colSpan=1, rowSpan=2)
-    grid.AddCard(lStats, col=3, row=0, colSpan=1, rowSpan=1)
-    grid.AddCard(lActions, col=0, row=1, colSpan=2, rowSpan=1)
-    grid.AddCard(lLog, col=0, row=2, colSpan=4, rowSpan=1)
+    grid.AddCard(lStatus, col=0, row=0, colSpan=4, rowSpan=2)
+    grid.AddCard(lLive, col=4, row=0, colSpan=3, rowSpan=4)
+    grid.AddCard(lStats, col=7, row=0, colSpan=3, rowSpan=2)
+    grid.AddCard(lActions, col=0, row=2, colSpan=4, rowSpan=2)
+    grid.AddCard(lLog, col=0, row=4, colSpan=12, rowSpan=2)
 
 
 # ==================================================================================
@@ -135,7 +138,7 @@ class Shell(iShell):
                 "Dashboard", "Overview", id=_C_PAGE_DASHBOARD
             )
             lGrid: DashboardGrid = DashboardGrid(
-                config=dashboardConfig(columns=4, gap=12, cellMinHeight=120)
+                config=dashboardConfig(columns=12, gap=8, cellSize=64, margins=8)
             )
             _seedDashboard(lGrid)
             lDashboard.addWidget(lGrid)
@@ -205,7 +208,6 @@ class Shell(iShell):
             if lRecorder is not None:
                 self._workspace.Link(lRecItem, lRecorder)
 
-            # Match SideBar selection to the default Workspace page
             dataCollector.Expand(animate=False)
             sideBar.SelectItem(lRecItem)
 

@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 from typing import Dict, List, Optional
-from uuid import UUID
 
 # ==================================================================================
 from jAGQt.types.interface.widgets.dashboard import iCard, iCardPlacement
@@ -22,7 +21,7 @@ class GridModel:
         lCfg = config if config is not None else dashboardConfig()
         self._columns: int = max(1, lCfg.columns)
         self._gap: int = max(0, lCfg.gap)
-        self._cellMinHeight: int = max(1, lCfg.cellMinHeight)
+        self._cellSize: int = max(1, lCfg.cellSize)
         self._placements: List[iCardPlacement] = []
         self._byCardId: Dict[str, iCardPlacement] = {}
         self._occupancy: OccupancyMap = OccupancyMap()
@@ -47,8 +46,12 @@ class GridModel:
         return self._gap
 
     @property
+    def CellSize(self) -> int:
+        return self._cellSize
+
+    @property
     def CellMinHeight(self) -> int:
-        return self._cellMinHeight
+        return self._cellSize
 
     @property
     def Placements(self) -> List[iCardPlacement]:
