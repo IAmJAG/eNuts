@@ -8,6 +8,7 @@ from uuid import UUID, uuid4
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QBoxLayout,
+    QLayout,
     QSizePolicy,
     QSpacerItem,
     QWidget,
@@ -73,6 +74,7 @@ class Page(QWidget, ComponentBase):
         content.setObjectName(f"{OBJNAME}_CONTENT")
 
         cntLayout: QBoxLayout = newLayout(QBoxLayout, spacing=0, margins=(0, 0, 0, 0))
+        cntLayout.setSizeConstraint(QLayout.SizeConstraint.SetNoConstraint)
         content.setLayout(cntLayout)
 
         commandBar: Optional[iCommandBar] = CommandBar() if isCommandBarOn else None
@@ -83,6 +85,7 @@ class Page(QWidget, ComponentBase):
             margins=(0, 0, 0, 0),
             direction=QBoxLayout.Direction.TopToBottom,
         )
+        mainLayout.setSizeConstraint(QLayout.SizeConstraint.SetNoConstraint)
         mainLayout.addWidget(pageHeader)
         mainLayout.addWidget(content, 1)  # stretch — fills remaining height
         if commandBar is not None:
@@ -93,16 +96,19 @@ class Page(QWidget, ComponentBase):
         self._commandBar: Optional[iCommandBar] = commandBar
 
         self.setLayout(mainLayout)
+        # Page.Layout (ComponentBase) targets the *content* slot, not mainLayout
         self._layout: QBoxLayout = cntLayout
 
     def addComponent(self, component: iComponentBase, stretch: int = 1) -> None:
         self.addWidget(component, stretch=stretch)
 
     def addWidget(self, widget: QWidget, stretch: int = 1) -> None:
+        """Add to W_PAGE_CONTENT. stretch must be passed — default 1 fills area."""
         widget.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
-        self.Layout.addWidget(widget)
+        widget.setMinimumSize(0, 0)
+        self.Layout.addWidget(widget, stretch)
 
     def addSpacer(
         self,
