@@ -424,3 +424,71 @@ QPushButton#ApplyThemeBtn:pressed {
     background-color: #2b1516;
     border-color: #ffca28;
 }
+
+/* ==================================================================================
+   Dashboard — Card + DashboardGrid
+   ================================================================================== */
+
+QWidget#DashboardGrid {
+    background-color: #0e1014;
+    color: #f5f7fa;
+    border: 0px;
+}
+
+QFrame#Card {
+    background-color: #12161c;
+    color: #f5f7fa;
+    border: 1px solid #303740;
+    border-radius: 6px;
+}
+
+QFrame#Card:hover {
+    border-color: #e53935;
+}
+
+QFrame#Card[dragging="true"] {
+    border-color: #ffca28;
+    background-color: #1b2027;
+}
+
+QFrame#Card[resizing="true"] {
+    border-color: #ffca28;
+}
+
+QFrame#Card[variant="status"] {
+    border-left: 3px solid #e53935;
+}
+
+QFrame#Card[variant="live"] {
+    border-left: 3px solid #ffca28;
+}
+
+QFrame#Card[variant="stat"] {
+    border-left: 3px solid #4caf50;
+}
+
+QFrame#Card[variant="actions"] {
+    border-left: 3px solid #42a5f5;
+}
+
+QFrame#Card[variant="log"] {
+    border-left: 3px solid #7e57c2;
+}
+
+QLabel#Card_Title {
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 12px;
+    background: transparent;
+}
+
+QWidget#Card_Body {
+    background: transparent;
+    color: #aeb6c0;
+}
+
+QLabel#Card_BodyHint {
+    color: #aeb6c0;
+    font-size: 11px;
+    background: transparent;
+}
