@@ -3,13 +3,15 @@ from __future__ import annotations
 
 # ==================================================================================
 from time import sleep
-from typing import Any, List
+from typing import Any, Dict, List, Optional
 
 # ==================================================================================
+from adbutils import adb
 from PySide6.QtWidgets import QBoxLayout, QLabel, QSizePolicy, QWidget
 
 # ==================================================================================
 from fluxCore.emitters.scrcpy import SCRCPYEmitter
+from fluxCore.types.interface.device import iDevice
 from jAGQt.types import DockPosition
 from jAGQt.types.interface.window import iMainWindowBase
 from jAGQt.widgets.dashboard import Card, DashboardGrid, dashboardConfig
@@ -20,6 +22,7 @@ from jAGQt.widgets.workspace import Workspace
 # ==================================================================================
 from ..types.interface.application import iENUTSService, iShell
 from ..UI.widgets.streamer import imageStreamer
+from .__streamBind import StreamPipeline
 
 # ==================================================================================
 _C_SIDEBAR_COLLAPSED = "sideBar/collapsed"
@@ -106,7 +109,6 @@ def _seedDashboard(grid: DashboardGrid) -> None:
     )
     lLog.SetBodyWidget(QLabel("Recent events"))
 
-    # Explicit cols assume a reasonably wide host; SyncColumns clamps if needed
     grid.AddCard(lStatus, col=0, row=0, colSpan=4, rowSpan=2)
     grid.AddCard(lLive, col=4, row=0, colSpan=3, rowSpan=4)
     grid.AddCard(lStats, col=7, row=0, colSpan=3, rowSpan=2)
@@ -116,6 +118,56 @@ def _seedDashboard(grid: DashboardGrid) -> None:
 
 # ==================================================================================
 class Shell(iShell):
+    # ==================================================================================
+    # Global device registry (iShell) — state is lazy (Shell is mixed into MainWindow)
+    # ==================================================================================
+    def _ensureDeviceState(self) -> None:
+        if not hasattr(self, "_devices"):
+            self._devices: Dict[str, iDevice] = {}
+        if not hasattr(self, "_selectedDeviceId"):
+            self._selectedDeviceId: Optional[str] = None
+
+    @property
+    def Devices(self) -> Dict[str, iDevice]:
+        self._ensureDeviceState()
+        return dict(self._devices)
+
+    def AddDevice(self, device: iDevice) -> None:
+        self._ensureDeviceState()
+        if device is None:
+            return
+        lId = str(device.id)
+        self._devices[lId] = device
+
+    def RemoveDevice(self, device: iDevice) -> None:
+        self._ensureDeviceState()
+        if device is None:
+            return
+        lId = str(device.id)
+        if self._selectedDeviceId == lId:
+            self._unbindLivePipeline()
+            self._selectedDeviceId = None
+        self._devices.pop(lId, None)
+
+    @property
+    def SelectedDevice(self) -> Optional[iDevice]:
+        self._ensureDeviceState()
+        if self._selectedDeviceId is None:
+            return None
+        return self._devices.get(self._selectedDeviceId)
+
+    def SelectDevice(self, deviceId: str | None) -> None:
+        self._ensureDeviceState()
+        if deviceId is None:
+            self._unbindLivePipeline()
+            self._selectedDeviceId = None
+            return
+        lId = str(deviceId)
+        if lId not in self._devices:
+            return
+        self._selectedDeviceId = lId
+
+    # ==================================================================================
     def _wInitializeShell(self: iMainWindowBase) -> None:
         try:
             layout: QBoxLayout = self.Layout
@@ -134,11 +186,11 @@ class Shell(iShell):
 
             self._imageStreamer: imageStreamer = imageStreamer()
             self._workspace: Workspace = Workspace()
+            self._streamPipeline = StreamPipeline(self._imageStreamer)
 
             lDashboard: Page = Page(
                 "Dashboard", "Overview", id=_C_PAGE_DASHBOARD
             )
-            # columns seed only; live count comes from host width / 64px unit
             lGrid: DashboardGrid = DashboardGrid(
                 config=dashboardConfig(
                     columns=12,
@@ -288,22 +340,74 @@ class Shell(iShell):
         self._saveSideBarState()
 
     # ==================================================================================
+    # Discovery → register → select → bind
+    # ==================================================================================
+    async def _discoverDevices(self) -> List[str]:
+        """Return adb serials available now. Empty list if none."""
+        try:
+            lList = adb.device_list()
+            return [str(d.serial) for d in lList if getattr(d, "serial", None)]
+        except Exception as ex:
+            error(f"[{self.__class__.__name__}] device discovery FAIL", ex)
+            return []
+
+    async def _startDeviceSession(self, serial: str) -> Optional[SCRCPYEmitter]:
+        try:
+            emitter: SCRCPYEmitter = SCRCPYEmitter(serial)
+            await emitter.initialize()
+            emitter.start()
+            return emitter
+        except Exception as ex:
+            error(
+                f"[{self.__class__.__name__}] start session FAIL serial={serial}",
+                ex,
+            )
+            return None
+
+    def _bindLivePipeline(self, device: iDevice) -> None:
+        if not hasattr(self, "_streamPipeline") or self._streamPipeline is None:
+            return
+        if not hasattr(self, "_imageStreamer"):
+            return
+        self._streamPipeline.Bind(device)
+        if hasattr(device, "subscribe"):
+            device.subscribe("ON_FRAME", self._streamPipeline.OnFrame)
+
+    def _unbindLivePipeline(self) -> None:
+        if not hasattr(self, "_streamPipeline") or self._streamPipeline is None:
+            return
+        lDevice = self.SelectedDevice
+        if lDevice is not None and hasattr(lDevice, "unsubscribe"):
+            try:
+                lDevice.unsubscribe("ON_FRAME", self._streamPipeline.OnFrame)
+            except Exception:
+                pass
+        self._streamPipeline.Unbind()
+
+    # ==================================================================================
     async def initializeInstance(self: iMainWindowBase) -> None:
         try:
             self._initializeSideBar()
             sleep(0.1)
-            emitter: SCRCPYEmitter = SCRCPYEmitter("emulator-5560")
-            await emitter.initialize()
 
-            self._imageStreamer.Decoder = emitter.CodecContext
-            self._imageStreamer.ControlSocket = emitter.ControlSocket
-            self._imageStreamer.DeviceWidth = emitter.width
-            self._imageStreamer.DeviceHeight = emitter.height
+            lSerials = await self._discoverDevices()
+            if not lSerials:
+                warning(
+                    f"[{self.__class__.__name__}] no adb devices; live stream idle"
+                )
+                return
 
-            emitter.subscribe("ON_FRAME", self._imageStreamer.OnFrame)
-            emitter.start()
+            lPreferred = "emulator-5560"
+            lSerial = lPreferred if lPreferred in lSerials else lSerials[0]
 
+            emitter = await self._startDeviceSession(lSerial)
+            if emitter is None:
+                return
+
+            self.AddDevice(emitter)
             self._emitter = emitter
+            self.SelectDevice(str(emitter.id))
+            self._bindLivePipeline(emitter)
 
         except Exception as ex:
             error(f"[{self.__class__.__name__}] InitializeInstance FAIL", ex)
