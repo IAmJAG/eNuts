@@ -10,7 +10,7 @@ from torch import device as tDevice
 from torch import empty as tEmpty
 
 # ==================================================================================
-from ....types.interface.embeddings.registry import iRegistry, iRegistryItem
+from ...types.interface.embeddingRegistry import iRegistry, iRegistryItem
 from .__registryItem import RegistryItem
 
 

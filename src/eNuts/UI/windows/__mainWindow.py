@@ -28,4 +28,5 @@ class MainWindow(MainWindowBase, ApplicationInformation, Shell):
                     self._emitter.stop()
             except RuntimeError:
                 pass
+            
         super().closeEvent(event)

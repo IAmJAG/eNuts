@@ -11,7 +11,7 @@ from torch import Generator, Tensor, randn
 from torch.nn import functional as F
 
 # ==================================================================================
-from .registry.__registry import Registry
+from .__registry import Registry
 
 
 # ==================================================================================
@@ -41,37 +41,38 @@ def loadRegistryFromJson(filePath: str | Path, dim: int) -> Registry:
         raise FileNotFoundError(f"Registry configuration file not found: {lPath}")
 
     with open(lPath, "r", encoding="utf-8") as lFile:
-        lData = json.load(lFile)
+        data = json.load(lFile)
 
     registry = Registry(lEmbeddingDim=dim)
 
-    for lEntry in lData.get("items", []):
-        lKey = lEntry["key"]
-        lDescription = lEntry.get("description", "")
+    isParameterRegistry = data.get("isParameterRegistry", False)
+    for entry in data.get("entries", []):
+        key = entry["key"]
+        description = entry.get("description", "")
 
-        if lIsParameterRegistry:
-            lValuePayload = lEntry.get("value")
-            if lValuePayload is None:
+        if isParameterRegistry:
+            valuePayload = entry.get("value", None)
+            if valuePayload is None:
                 raise ValueError(
-                    f"Parameter entry '{lKey}' is missing required 'value' field."
-                )
-            lEmbedding = _deterministicEncoder(
-                lIdentifier=lKey,
-                lEmbeddingDim=lEmbeddingDim,
-                lValuePayload=lValuePayload,
+                    f"Parameter entry '{key}' is missing required 'value' field."
+                )            
+            
+            embedding: Tensor = _deterministicEncoder(
+                ident=key, dim=dim,
+                payload=valuePayload,
             )
-            lMetadata = {"description": lDescription, "value": lValuePayload}
-        else:
-            # Intents and Actions depend strictly on their immutable key string
-            lEmbedding = _deterministicEncoder(
-                lIdentifier=lKey, lEmbeddingDim=lEmbeddingDim
-            )
-            lMetadata = {"description": lDescription}
+            metadata = {"description": description, "value": valuePayload}
 
-        lRegistry.register(
-            lKey=lKey,
-            lEmbedding=lEmbedding,
-            lMetadata=lMetadata,
+        else:
+            embedding: Tensor = _deterministicEncoder(
+                ident=key, dim=dim
+            )
+            metadata = {"description": description}
+
+        registry.register(
+            key=key,
+            embedding=embedding,
+            metadata=metadata,
         )
 
-    return lRegistry
+    return registry

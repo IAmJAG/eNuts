@@ -32,7 +32,7 @@ class MainWindowBase(WindowBase):
         self.Settings.setValue("geometry", self.geometry())
         self.Settings.setValue("windowState", int(self.windowState().value))
 
-    def restoreWindowsState(self) -> None:
+    def restoreWindowsState(self) -> None:        
         if self.Settings.contains("geometry"):
             geo = self.Settings.value("geometry")
             if isinstance(geo, QRect) and geo.isValid():
