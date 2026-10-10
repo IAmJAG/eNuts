@@ -2,6 +2,7 @@
 # src/jAGQt/widgets/__init__.py
 # ==================================================================================
 from .commandBar import CommandBar, CommandBarGroup
+from .dashboard import Card, DashboardGrid, dashboardConfig
 from .header import Header, IconPosition
 from .image import Image
 from .page import Page
@@ -18,4 +19,7 @@ __all__ = [
     "CommandBarGroup",
     "Header",
     "IconPosition",
+    "Card",
+    "DashboardGrid",
+    "dashboardConfig",
 ]

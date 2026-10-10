@@ -6,12 +6,13 @@ from time import sleep
 from typing import Any, List
 
 # ==================================================================================
-from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
+from PySide6.QtWidgets import QBoxLayout, QLabel, QSizePolicy, QWidget
 
 # ==================================================================================
 from fluxCore.emitters.scrcpy import SCRCPYEmitter
 from jAGQt.types import DockPosition
 from jAGQt.types.interface.window import iMainWindowBase
+from jAGQt.widgets.dashboard import Card, DashboardGrid, dashboardConfig
 from jAGQt.widgets.page import Page
 from jAGQt.widgets.sideBar import SideBar, SideBarItem
 from jAGQt.widgets.workspace import Workspace
@@ -51,6 +52,65 @@ def _asBool(value: Any, default: bool = False) -> bool:
 
 
 # ==================================================================================
+def _seedDashboard(grid: DashboardGrid) -> None:
+    """Phase 1 seed cards — mixed spans to prove the static grid."""
+    lStatus = Card(
+        title="Status",
+        minColSpan=1,
+        minRowSpan=1,
+        preferredColSpan=2,
+        preferredRowSpan=1,
+        variant="status",
+    )
+    lHint = QLabel("System overview")
+    lHint.setObjectName("Card_BodyHint")
+    lStatus.SetBodyWidget(lHint)
+
+    lLive = Card(
+        title="Live",
+        minColSpan=1,
+        minRowSpan=2,
+        preferredColSpan=1,
+        preferredRowSpan=2,
+        variant="live",
+    )
+    lLive.SetBodyWidget(QLabel("Preview slot"))
+
+    lStats = Card(
+        title="Stats",
+        minColSpan=1,
+        preferredColSpan=1,
+        preferredRowSpan=1,
+        variant="stat",
+    )
+    lStats.SetBodyWidget(QLabel("—"))
+
+    lActions = Card(
+        title="Quick Actions",
+        minColSpan=1,
+        preferredColSpan=2,
+        preferredRowSpan=1,
+        variant="actions",
+    )
+    lActions.SetBodyWidget(QLabel("Start / Capture"))
+
+    lLog = Card(
+        title="Activity",
+        minColSpan=2,
+        preferredColSpan=4,
+        preferredRowSpan=1,
+        variant="log",
+    )
+    lLog.SetBodyWidget(QLabel("Recent events"))
+
+    grid.AddCard(lStatus, col=0, row=0, colSpan=2, rowSpan=1)
+    grid.AddCard(lLive, col=2, row=0, colSpan=1, rowSpan=2)
+    grid.AddCard(lStats, col=3, row=0, colSpan=1, rowSpan=1)
+    grid.AddCard(lActions, col=0, row=1, colSpan=2, rowSpan=1)
+    grid.AddCard(lLog, col=0, row=2, colSpan=4, rowSpan=1)
+
+
+# ==================================================================================
 class Shell(iShell):
     def _wInitializeShell(self: iMainWindowBase) -> None:
         try:
@@ -74,6 +134,13 @@ class Shell(iShell):
             lDashboard: Page = Page(
                 "Dashboard", "Overview", id=_C_PAGE_DASHBOARD
             )
+            lGrid: DashboardGrid = DashboardGrid(
+                config=dashboardConfig(columns=4, gap=12, cellMinHeight=120)
+            )
+            _seedDashboard(lGrid)
+            lDashboard.addWidget(lGrid)
+            self._dashboardGrid = lGrid
+
             lRecorder: Page = Page(
                 "Recorder",
                 "Key & Gesture Recorder",
