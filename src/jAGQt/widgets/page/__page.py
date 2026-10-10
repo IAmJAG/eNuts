@@ -99,11 +99,10 @@ class Page(QWidget, ComponentBase):
         self.addWidget(component, stretch=stretch)
 
     def addWidget(self, widget: QWidget, stretch: int = 1) -> None:
-        """Add to page content. stretch=1 (default) fills remaining content area."""
         widget.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
-        self.Layout.addWidget(widget, stretch)
+        self.Layout.addWidget(widget)
 
     def addSpacer(
         self,
