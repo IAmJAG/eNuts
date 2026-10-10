@@ -3,7 +3,7 @@
 # ==================================================================================
 from __future__ import annotations
 
-from typing import Optional
+from typing import Optional, Tuple
 
 # ==================================================================================
 from PySide6.QtCore import Qt
@@ -15,13 +15,15 @@ from jAGQt.types.interface.widgets.dashboard import iCard, iCardPlacement
 # ==================================================================================
 from ..components import ComponentBase
 from .__cardPlacement import CardPlacement
+from .__dragController import DragController
 from .__gridModel import GridModel
+from .__layoutResolver import LayoutResolver
 from .__options import dashboardConfig
 
 
 # ==================================================================================
 class DashboardGrid(QWidget, ComponentBase):
-    """Host: applies GridModel placements to card geometries (Phase 1 static)."""
+    """Host: model → geometry; Phase 2 move-with-push via LayoutResolver + DragController."""
 
     OBJECT_NAME = "DashboardGrid"
 
@@ -33,9 +35,13 @@ class DashboardGrid(QWidget, ComponentBase):
         **kwargs,
     ) -> None:
         super().__init__(parent, *args, **kwargs)
-        self._config: dashboardConfig = config if config is not None else dashboardConfig()
+        self._config: dashboardConfig = (
+            config if config is not None else dashboardConfig()
+        )
         self._model: GridModel = GridModel(self._config)
         self._margins: int = self._config.margins
+        self._resolver: LayoutResolver = LayoutResolver()
+        self._drag: DragController = DragController(self)
 
         self.setObjectName(self.OBJECT_NAME)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
@@ -43,10 +49,16 @@ class DashboardGrid(QWidget, ComponentBase):
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
 
+        self._drag.Attach(self)
+
     # ==================================================================================
     @property
     def Model(self) -> GridModel:
         return self._model
+
+    @property
+    def Resolver(self) -> LayoutResolver:
+        return self._resolver
 
     def AddCard(
         self,
@@ -77,15 +89,16 @@ class DashboardGrid(QWidget, ComponentBase):
         if not self._model.AddPlacement(lPlacement):
             return None
 
-        # Card is a QWidget in practice; parent under the grid host
         if isinstance(card, QWidget):
             card.setParent(self)
             card.show()
 
+        self._drag.OnCardAdded(card)
         self.ApplyLayout()
         return lPlacement
 
     def RemoveCard(self, card: iCard) -> bool:
+        self._drag.OnCardRemoved(card)
         lOk = self._model.RemoveByCard(card)
         if lOk and isinstance(card, QWidget):
             card.hide()
@@ -96,6 +109,7 @@ class DashboardGrid(QWidget, ComponentBase):
     def Clear(self) -> None:
         for lP in list(self._model.Placements):
             lCard = lP.Card
+            self._drag.OnCardRemoved(lCard)
             if isinstance(lCard, QWidget):
                 lCard.hide()
                 lCard.setParent(None)
@@ -103,22 +117,18 @@ class DashboardGrid(QWidget, ComponentBase):
         self.ApplyLayout()
 
     def TryMove(self, card: iCard, col: int, row: int) -> bool:
-        """Phase 1: relocate only if target region is free (no push yet)."""
         lP = self._model.GetPlacement(card)
         if lP is None:
             return False
-        lOcc = self._model.Occupancy
-        lOcc.Rebuild(self._model.Placements, self._model.Columns)
-        if not lOcc.IsRegionFree(col, row, lP.ColSpan, lP.RowSpan, ignore=lP):
+        lChanged = self._resolver.ResolveMove(self._model, lP, int(col), int(row))
+        if lChanged is None:
             return False
-        lP.Col = col
-        lP.Row = row
         self._model.Occupancy.Rebuild(self._model.Placements, self._model.Columns)
         self.ApplyLayout()
         return True
 
     def TryResize(self, card: iCard, colSpan: int, rowSpan: int) -> bool:
-        """Phase 1: resize only if expanded region is free; shrink always ok."""
+        """Phase 1/2: free-region grow or self-only shrink; push-grow is Phase 3."""
         lP = self._model.GetPlacement(card)
         if lP is None:
             return False
@@ -126,18 +136,49 @@ class DashboardGrid(QWidget, ComponentBase):
         lRowSpan = max(card.MinRowSpan, int(rowSpan))
         if lColSpan + lP.Col > self._model.Columns:
             return False
-        if lColSpan >= lP.ColSpan and lRowSpan >= lP.RowSpan:
+
+        if lColSpan < lP.ColSpan or lRowSpan < lP.RowSpan:
+            lChanged = self._resolver.ResolveShrink(self._model, lP, lColSpan, lRowSpan)
+            if lChanged is None:
+                return False
+        else:
             lOcc = self._model.Occupancy
             lOcc.Rebuild(self._model.Placements, self._model.Columns)
             if not lOcc.IsRegionFree(
                 lP.Col, lP.Row, lColSpan, lRowSpan, ignore=lP
             ):
+                # Phase 3 will use ResolveGrow
                 return False
-        lP.ColSpan = lColSpan
-        lP.RowSpan = lRowSpan
+            lP.ColSpan = lColSpan
+            lP.RowSpan = lRowSpan
+
         self._model.Occupancy.Rebuild(self._model.Placements, self._model.Columns)
         self.ApplyLayout()
         return True
+
+    def CellAt(self, x: int, y: int) -> Optional[Tuple[int, int]]:
+        """Map host-local pixel to (col, row), clamped to grid."""
+        lMargin = self._margins
+        lGap = self._model.Gap
+        lCols = self._model.Columns
+        lRows = max(1, self._model.RowCount())
+        lW = max(0, self.width())
+        lH = max(0, self.height())
+
+        lInnerW = max(0, lW - 2 * lMargin - lGap * (lCols - 1))
+        lCellW = lInnerW // lCols if lCols else 0
+        lInnerH = max(0, lH - 2 * lMargin - lGap * (lRows - 1))
+        lMinCellH = self._model.CellMinHeight
+        lCellH = max(lMinCellH, lInnerH // lRows if lRows else lMinCellH)
+
+        if lCellW <= 0 or lCellH <= 0:
+            return (0, 0)
+
+        lCol = (int(x) - lMargin) // (lCellW + lGap)
+        lRow = (int(y) - lMargin) // (lCellH + lGap)
+        lCol = max(0, min(lCols - 1, lCol))
+        lRow = max(0, lRow)
+        return (lCol, lRow)
 
     def ApplyLayout(self) -> None:
         lW = max(0, self.width())
