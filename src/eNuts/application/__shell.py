@@ -36,7 +36,7 @@ _C_PAGE_SCREENSHOT = "page.screenshot"
 def _asBool(value: Any, default: bool = False) -> bool:
     """Parse QSettings values safely.
 
-    QSettings often returns the strings \"true\"/\"false\". ``bool(\"false\")`` is
+    QSettings often returns the strings "true"/"false". bool("false") is
     True in Python, which incorrectly forced the SideBar to start collapsed.
     """
     if value is None:
@@ -386,7 +386,7 @@ class Shell(iShell):
         self._streamPipeline.Unbind()
 
     async def initializeInstance(self: iMainWindowBase) -> None:
-        """Post-show non-UI bootstrap: discover → session → register → bind.
+        """Post-show non-UI bootstrap: discover -> session -> register -> bind.
 
         Must not build or reparent shell chrome (SideBar, workspace, pages).
         Those run in _wInitializeShell before show().
