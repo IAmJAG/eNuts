@@ -7,6 +7,7 @@ from typing import Optional, Tuple
 
 # ==================================================================================
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QMouseEvent
 from PySide6.QtWidgets import QSizePolicy, QWidget
 
 # ==================================================================================
@@ -19,11 +20,12 @@ from .__dragController import DragController
 from .__gridModel import GridModel
 from .__layoutResolver import LayoutResolver
 from .__options import dashboardConfig
+from .__resizeController import ResizeController
 
 
 # ==================================================================================
 class DashboardGrid(QWidget, ComponentBase):
-    """Host: model → geometry; Phase 2 move-with-push via LayoutResolver + DragController."""
+    """Host: model → geometry; drag float + move-push; resize grow-push."""
 
     OBJECT_NAME = "DashboardGrid"
 
@@ -42,6 +44,7 @@ class DashboardGrid(QWidget, ComponentBase):
         self._margins: int = self._config.margins
         self._resolver: LayoutResolver = LayoutResolver()
         self._drag: DragController = DragController(self)
+        self._resize: ResizeController = ResizeController(self)
 
         self.setObjectName(self.OBJECT_NAME)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
@@ -50,6 +53,7 @@ class DashboardGrid(QWidget, ComponentBase):
         )
 
         self._drag.Attach(self)
+        self._resize.Attach(self)
 
     # ==================================================================================
     @property
@@ -59,6 +63,17 @@ class DashboardGrid(QWidget, ComponentBase):
     @property
     def Resolver(self) -> LayoutResolver:
         return self._resolver
+
+    @property
+    def IsDragging(self) -> bool:
+        return self._drag.IsDragging
+
+    @property
+    def IsResizing(self) -> bool:
+        return self._resize.IsResizing
+
+    def HitResizeEdge(self, widget: QWidget, event: QMouseEvent) -> bool:
+        return self._resize.HitEdge(widget, event) != 0
 
     def AddCard(
         self,
@@ -94,11 +109,13 @@ class DashboardGrid(QWidget, ComponentBase):
             card.show()
 
         self._drag.OnCardAdded(card)
+        self._resize.OnCardAdded(card)
         self.ApplyLayout()
         return lPlacement
 
     def RemoveCard(self, card: iCard) -> bool:
         self._drag.OnCardRemoved(card)
+        self._resize.OnCardRemoved(card)
         lOk = self._model.RemoveByCard(card)
         if lOk and isinstance(card, QWidget):
             card.hide()
@@ -110,13 +127,20 @@ class DashboardGrid(QWidget, ComponentBase):
         for lP in list(self._model.Placements):
             lCard = lP.Card
             self._drag.OnCardRemoved(lCard)
+            self._resize.OnCardRemoved(lCard)
             if isinstance(lCard, QWidget):
                 lCard.hide()
                 lCard.setParent(None)
         self._model.Clear()
         self.ApplyLayout()
 
-    def TryMove(self, card: iCard, col: int, row: int) -> bool:
+    def TryMove(
+        self,
+        card: iCard,
+        col: int,
+        row: int,
+        floatCard: bool = False,
+    ) -> bool:
         lP = self._model.GetPlacement(card)
         if lP is None:
             return False
@@ -124,11 +148,10 @@ class DashboardGrid(QWidget, ComponentBase):
         if lChanged is None:
             return False
         self._model.Occupancy.Rebuild(self._model.Placements, self._model.Columns)
-        self.ApplyLayout()
+        self.ApplyLayout(skipCard=card if floatCard else None)
         return True
 
     def TryResize(self, card: iCard, colSpan: int, rowSpan: int) -> bool:
-        """Phase 1/2: free-region grow or self-only shrink; push-grow is Phase 3."""
         lP = self._model.GetPlacement(card)
         if lP is None:
             return False
@@ -138,26 +161,32 @@ class DashboardGrid(QWidget, ComponentBase):
             return False
 
         if lColSpan < lP.ColSpan or lRowSpan < lP.RowSpan:
-            lChanged = self._resolver.ResolveShrink(self._model, lP, lColSpan, lRowSpan)
+            # pure shrink (or mixed shrink on one axis) — self only for the
+            # reduced axes; if the other axis grew, use grow path
+            if lColSpan <= lP.ColSpan and lRowSpan <= lP.RowSpan:
+                lChanged = self._resolver.ResolveShrink(
+                    self._model, lP, lColSpan, lRowSpan
+                )
+                if lChanged is None:
+                    return False
+            else:
+                lChanged = self._resolver.ResolveGrow(
+                    self._model, lP, lColSpan, lRowSpan
+                )
+                if lChanged is None:
+                    return False
+        else:
+            lChanged = self._resolver.ResolveGrow(
+                self._model, lP, lColSpan, lRowSpan
+            )
             if lChanged is None:
                 return False
-        else:
-            lOcc = self._model.Occupancy
-            lOcc.Rebuild(self._model.Placements, self._model.Columns)
-            if not lOcc.IsRegionFree(
-                lP.Col, lP.Row, lColSpan, lRowSpan, ignore=lP
-            ):
-                # Phase 3 will use ResolveGrow
-                return False
-            lP.ColSpan = lColSpan
-            lP.RowSpan = lRowSpan
 
         self._model.Occupancy.Rebuild(self._model.Placements, self._model.Columns)
         self.ApplyLayout()
         return True
 
     def CellAt(self, x: int, y: int) -> Optional[Tuple[int, int]]:
-        """Map host-local pixel to (col, row), clamped to grid."""
         lMargin = self._margins
         lGap = self._model.Gap
         lCols = self._model.Columns
@@ -180,7 +209,11 @@ class DashboardGrid(QWidget, ComponentBase):
         lRow = max(0, lRow)
         return (lCol, lRow)
 
-    def ApplyLayout(self) -> None:
+    def ApplyLayout(self, skipCard: Optional[iCard] = None) -> None:
+        lSkip = skipCard
+        if lSkip is None and self._drag.IsDragging:
+            lSkip = self._drag.CurrentCard
+
         lW = max(0, self.width())
         lH = max(0, self.height())
         lMargin = self._margins
@@ -199,6 +232,9 @@ class DashboardGrid(QWidget, ComponentBase):
             lCard = lP.Card
             if not isinstance(lCard, QWidget):
                 continue
+            if lSkip is not None and lCard is lSkip:
+                lCard.raise_()
+                continue
             lX = lMargin + lP.Col * (lCellW + lGap)
             lY = lMargin + lP.Row * (lCellH + lGap)
             lCw = lP.ColSpan * lCellW + (lP.ColSpan - 1) * lGap
@@ -206,6 +242,9 @@ class DashboardGrid(QWidget, ComponentBase):
             lCard.setGeometry(lX, lY, max(0, lCw), max(0, lCh))
             lCard.show()
             lCard.raise_()
+
+        if lSkip is not None and isinstance(lSkip, QWidget):
+            lSkip.raise_()
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)

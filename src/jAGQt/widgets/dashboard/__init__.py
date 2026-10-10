@@ -9,6 +9,7 @@ from .__gridModel import GridModel
 from .__layoutResolver import LayoutResolver
 from .__occupancyMap import OccupancyMap
 from .__options import dashboardConfig
+from .__resizeController import ResizeController
 
 # ==================================================================================
 __all__ = [
@@ -18,6 +19,7 @@ __all__ = [
     "GridModel",
     "LayoutResolver",
     "DragController",
+    "ResizeController",
     "DashboardGrid",
     "dashboardConfig",
 ]

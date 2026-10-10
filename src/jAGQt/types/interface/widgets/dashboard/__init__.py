@@ -8,6 +8,7 @@ from .__dragController import iDragController
 from .__gridModel import iGridModel
 from .__layoutResolver import iLayoutResolver
 from .__occupancyMap import iOccupancyMap
+from .__resizeController import iResizeController
 
 # ==================================================================================
 __all__ = [
@@ -18,4 +19,5 @@ __all__ = [
     "iLayoutResolver",
     "iDashboardGrid",
     "iDragController",
+    "iResizeController",
 ]

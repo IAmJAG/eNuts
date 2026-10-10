@@ -20,17 +20,17 @@ if TYPE_CHECKING:
 
 # ==================================================================================
 class DragController(QObject):
-    """Drag cards on DashboardGrid; cell-snapped move with push via TryMove."""
+    """Drag cards: float under cursor, cell-snap + push on move/drop."""
 
     def __init__(self, parent: Optional[QObject] = None) -> None:
         super().__init__(parent)
         self._grid: Optional["DashboardGrid"] = None
         self._dragging: bool = False
         self._card: Optional[iCard] = None
-        self._pressGlobal: QPoint = QPoint()
+        self._grabOffset: QPoint = QPoint()
+        self._cardSize: tuple[int, int] = (0, 0)
         self._originCol: int = 0
         self._originRow: int = 0
-        self._grabOffset: QPoint = QPoint()
         self._lastCell: tuple[int, int] = (-1, -1)
 
     # ----------------------------------------------------------------------------------
@@ -53,7 +53,7 @@ class DragController(QObject):
                     lCard.removeEventFilter(self)
                     lCard.unsetCursor()
         self._grid = None
-        self._endDrag(commit=False)
+        self._endDrag()
 
     def OnCardAdded(self, card: iCard) -> None:
         if self._grid is None:
@@ -71,9 +71,16 @@ class DragController(QObject):
     def IsDragging(self) -> bool:
         return self._dragging
 
+    @property
+    def CurrentCard(self) -> Optional[iCard]:
+        return self._card if self._dragging else None
+
     # ----------------------------------------------------------------------------------
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:
         if self._grid is None:
+            return False
+        # ResizeController may own edge presses — skip if resizing
+        if getattr(self._grid, "IsResizing", False):
             return False
 
         lType = event.type()
@@ -90,6 +97,10 @@ class DragController(QObject):
             return False
         if not isinstance(watched, QWidget):
             return False
+        # Leave edge hits to ResizeController
+        if self._grid is not None and self._grid.HitResizeEdge(watched, event):
+            return False
+
         lCard = self._cardFromWidget(watched)
         if lCard is None:
             return False
@@ -103,30 +114,51 @@ class DragController(QObject):
         self._originCol = lPlacement.Col
         self._originRow = lPlacement.Row
         self._lastCell = (lPlacement.Col, lPlacement.Row)
-        self._pressGlobal = event.globalPosition().toPoint()
+
         if isinstance(lCard, QWidget):
+            lLocal = lCard.mapFromGlobal(event.globalPosition().toPoint())
+            self._grabOffset = lLocal
+            self._cardSize = (lCard.width(), lCard.height())
             lCard.SetDragging(True)
             lCard.setCursor(Qt.CursorShape.ClosedHandCursor)
             lCard.grabMouse()
             lCard.raise_()
-            self._grabOffset = event.position().toPoint()
+            self._floatTo(event.globalPosition().toPoint())
         return True
 
     def _onMove(self, watched: QObject, event: QMouseEvent) -> bool:
         if not self._dragging or self._card is None or self._grid is None:
             return False
 
-        lPosInGrid = self._grid.mapFromGlobal(event.globalPosition().toPoint())
-        lCell = self._grid.CellAt(lPosInGrid.x(), lPosInGrid.y())
+        lGlobal = event.globalPosition().toPoint()
+        self._floatTo(lGlobal)
+
+        lPosInGrid = self._grid.mapFromGlobal(lGlobal)
+        # Use card top-left for cell target (more stable than cursor alone)
+        if isinstance(self._card, QWidget):
+            lTopLeft = self._grid.mapFromGlobal(
+                self._card.mapToGlobal(QPoint(0, 0))
+            )
+            lCell = self._grid.CellAt(lTopLeft.x(), lTopLeft.y())
+        else:
+            lCell = self._grid.CellAt(lPosInGrid.x(), lPosInGrid.y())
+
         if lCell is None:
             return True
 
         lCol, lRow = lCell
+        # Clamp so card span fits
+        lP = self._grid.Model.GetPlacement(self._card)
+        if lP is not None:
+            lCol = max(0, min(lCol, self._grid.Model.Columns - lP.ColSpan))
+
         if (lCol, lRow) == self._lastCell:
             return True
 
-        if self._grid.TryMove(self._card, lCol, lRow):
+        # Preview push of others; keep floating card under cursor
+        if self._grid.TryMove(self._card, lCol, lRow, floatCard=True):
             self._lastCell = (lCol, lRow)
+            self._floatTo(lGlobal)
         return True
 
     def _onRelease(self, watched: QObject, event: QMouseEvent) -> bool:
@@ -134,10 +166,39 @@ class DragController(QObject):
             return False
         if event.button() != Qt.MouseButton.LeftButton:
             return False
-        self._endDrag(commit=True)
+
+        if self._card is not None and self._grid is not None:
+            lGlobal = event.globalPosition().toPoint()
+            if isinstance(self._card, QWidget):
+                lTopLeft = self._grid.mapFromGlobal(
+                    self._card.mapToGlobal(QPoint(0, 0))
+                )
+            else:
+                lTopLeft = self._grid.mapFromGlobal(lGlobal)
+            lCell = self._grid.CellAt(lTopLeft.x(), lTopLeft.y())
+            if lCell is not None:
+                lCol, lRow = lCell
+                lP = self._grid.Model.GetPlacement(self._card)
+                if lP is not None:
+                    lCol = max(0, min(lCol, self._grid.Model.Columns - lP.ColSpan))
+                self._grid.TryMove(self._card, lCol, lRow, floatCard=False)
+
+        self._endDrag()
         return True
 
-    def _endDrag(self, commit: bool) -> None:
+    def _floatTo(self, globalPos: QPoint) -> None:
+        if self._grid is None or self._card is None:
+            return
+        if not isinstance(self._card, QWidget):
+            return
+        lInGrid = self._grid.mapFromGlobal(globalPos)
+        lX = lInGrid.x() - self._grabOffset.x()
+        lY = lInGrid.y() - self._grabOffset.y()
+        lW, lH = self._cardSize
+        self._card.setGeometry(lX, lY, lW, lH)
+        self._card.raise_()
+
+    def _endDrag(self) -> None:
         lCard = self._card
         self._dragging = False
         self._card = None

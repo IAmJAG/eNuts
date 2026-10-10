@@ -11,9 +11,6 @@ from jAGQt.types.interface.widgets.dashboard import (
     iGridModel,
 )
 
-# ==================================================================================
-from .__occupancyMap import OccupancyMap
-
 
 # ==================================================================================
 class _WorkingPlacement:
@@ -32,7 +29,7 @@ class _WorkingPlacement:
 
 # ==================================================================================
 class LayoutResolver:
-    """Collision resolution. Move pushes blockers to free cells of equal size."""
+    """Collision resolution: move-push, grow-shrink-others, shrink-self."""
 
     def __init__(self, maxRowSearch: int = 64) -> None:
         self._maxRowSearch: int = max(8, int(maxRowSearch))
@@ -53,10 +50,7 @@ class LayoutResolver:
         if newCol == placement.Col and newRow == placement.Row:
             return [placement]
 
-        lWork: Dict[int, _WorkingPlacement] = {}
-        for lP in model.Placements:
-            lWork[id(lP)] = _WorkingPlacement(lP)
-
+        lWork = self._snapshot(model)
         lMoverKey = id(placement)
         if lMoverKey not in lWork:
             return None
@@ -64,15 +58,9 @@ class LayoutResolver:
         lMover.Col = newCol
         lMover.Row = newRow
 
-        lOcc = self._buildOcc(lWork, lColumns)
-        lOverlaps = lOcc.GetOverlaps(
-            newCol, newRow, placement.ColSpan, placement.RowSpan, ignore=None
-        )
-        # GetOverlaps uses placement identity in cells — rebuild with working refs
         lBlockers = self._overlapsFromWork(
             lWork, lMoverKey, newCol, newRow, placement.ColSpan, placement.RowSpan
         )
-
         for lBlocker in lBlockers:
             lSlot = self._findFreeFor(
                 lWork,
@@ -86,26 +74,9 @@ class LayoutResolver:
                 return None
             lBlocker.Col, lBlocker.Row = lSlot
 
-        # Final conflict check among all working positions
         if not self._isConsistent(lWork, lColumns):
             return None
-
-        lChanged: List[iCardPlacement] = []
-        for lW in lWork.values():
-            lSrc = lW.Source
-            if (
-                lSrc.Col != lW.Col
-                or lSrc.Row != lW.Row
-                or lSrc.ColSpan != lW.ColSpan
-                or lSrc.RowSpan != lW.RowSpan
-            ):
-                lSrc.Col = lW.Col
-                lSrc.Row = lW.Row
-                lSrc.ColSpan = lW.ColSpan
-                lSrc.RowSpan = lW.RowSpan
-                lChanged.append(lSrc)
-
-        return lChanged if lChanged else [placement]
+        return self._commit(lWork, placement)
 
     def ResolveGrow(
         self,
@@ -114,8 +85,54 @@ class LayoutResolver:
         newColSpan: int,
         newRowSpan: int,
     ) -> Optional[List[iCardPlacement]]:
-        """Phase 3 — reserved."""
-        return None
+        lColumns = model.Columns
+        lColSpan = max(placement.Card.MinColSpan, int(newColSpan))
+        lRowSpan = max(placement.Card.MinRowSpan, int(newRowSpan))
+        if lColSpan < placement.ColSpan and lRowSpan < placement.RowSpan:
+            return None
+        if placement.Col + lColSpan > lColumns:
+            return None
+
+        lWork = self._snapshot(model)
+        lGrowKey = id(placement)
+        if lGrowKey not in lWork:
+            return None
+        lGrow = lWork[lGrowKey]
+        lGrow.ColSpan = lColSpan
+        lGrow.RowSpan = lRowSpan
+
+        # Pass 1: relocate blockers that fit elsewhere at current size
+        for _ in range(16):
+            lBlockers = self._overlapsFromWork(
+                lWork, lGrowKey, lGrow.Col, lGrow.Row, lGrow.ColSpan, lGrow.RowSpan
+            )
+            if not lBlockers:
+                break
+            lProgress = False
+            for lBlocker in lBlockers:
+                lSlot = self._findFreeFor(
+                    lWork,
+                    lColumns,
+                    lBlocker,
+                    preferCol=lGrow.Col + lGrow.ColSpan,
+                    preferRow=lGrow.Row + lGrow.RowSpan,
+                    excludeKeys={lGrowKey, id(lBlocker.Source)},
+                )
+                if lSlot is not None:
+                    lBlocker.Col, lBlocker.Row = lSlot
+                    lProgress = True
+                    continue
+                # Pass 2: shrink blocker toward min until no overlap or min hit
+                if self._shrinkAwayFrom(
+                    lWork, lBlocker, lGrow, lColumns, excludeKey=lGrowKey
+                ):
+                    lProgress = True
+            if not lProgress:
+                return None
+
+        if not self._isConsistent(lWork, lColumns):
+            return None
+        return self._commit(lWork, placement)
 
     def ResolveShrink(
         self,
@@ -128,22 +145,39 @@ class LayoutResolver:
         lRowSpan = max(placement.Card.MinRowSpan, int(newRowSpan))
         if lColSpan > placement.ColSpan or lRowSpan > placement.RowSpan:
             return None
+        if lColSpan == placement.ColSpan and lRowSpan == placement.RowSpan:
+            return [placement]
         placement.ColSpan = lColSpan
         placement.RowSpan = lRowSpan
         return [placement]
 
     # ----------------------------------------------------------------------------------
-    def _buildOcc(
-        self, work: Dict[int, _WorkingPlacement], columns: int
-    ) -> OccupancyMap:
-        # OccupancyMap expects iCardPlacement; use Sources with temp coords via a shim list
-        # We only need geometry checks on work dict — use dedicated helpers instead.
-        return OccupancyMap()
+    def _snapshot(self, model: iGridModel) -> Dict[int, _WorkingPlacement]:
+        return {id(lP): _WorkingPlacement(lP) for lP in model.Placements}
+
+    def _commit(
+        self, work: Dict[int, _WorkingPlacement], anchor: iCardPlacement
+    ) -> List[iCardPlacement]:
+        lChanged: List[iCardPlacement] = []
+        for lW in work.values():
+            lSrc = lW.Source
+            if (
+                lSrc.Col != lW.Col
+                or lSrc.Row != lW.Row
+                or lSrc.ColSpan != lW.ColSpan
+                or lSrc.RowSpan != lW.RowSpan
+            ):
+                lSrc.Col = lW.Col
+                lSrc.Row = lW.Row
+                lSrc.ColSpan = lW.ColSpan
+                lSrc.RowSpan = lW.RowSpan
+                lChanged.append(lSrc)
+        return lChanged if lChanged else [anchor]
 
     def _overlapsFromWork(
         self,
         work: Dict[int, _WorkingPlacement],
-        moverKey: int,
+        ignoreKey: int,
         col: int,
         row: int,
         colSpan: int,
@@ -152,7 +186,7 @@ class LayoutResolver:
         lOut: List[_WorkingPlacement] = []
         lSeen: set[int] = set()
         for lKey, lW in work.items():
-            if lKey == moverKey:
+            if lKey == ignoreKey:
                 continue
             if self._rectsOverlap(
                 col, row, colSpan, rowSpan, lW.Col, lW.Row, lW.ColSpan, lW.RowSpan
@@ -167,7 +201,70 @@ class LayoutResolver:
         c0: int, r0: int, w0: int, h0: int,
         c1: int, r1: int, w1: int, h1: int,
     ) -> bool:
-        return not (c0 + w0 <= c1 or c1 + w1 <= c0 or r0 + h0 <= r1 or r1 + h1 <= r0)
+        return not (
+            c0 + w0 <= c1 or c1 + w1 <= c0 or r0 + h0 <= r1 or r1 + h1 <= r0
+        )
+
+    def _shrinkAwayFrom(
+        self,
+        work: Dict[int, _WorkingPlacement],
+        blocker: _WorkingPlacement,
+        grower: _WorkingPlacement,
+        columns: int,
+        excludeKey: int,
+    ) -> bool:
+        """Reduce blocker span / shift until no overlap with grower or mins hit."""
+        lMinC = blocker.Source.Card.MinColSpan
+        lMinR = blocker.Source.Card.MinRowSpan
+        lChanged = False
+
+        for _ in range(32):
+            if not self._rectsOverlap(
+                grower.Col, grower.Row, grower.ColSpan, grower.RowSpan,
+                blocker.Col, blocker.Row, blocker.ColSpan, blocker.RowSpan,
+            ):
+                return lChanged
+
+            # Prefer shrinking the axis of deepest intrusion
+            lGrewRight = grower.Col + grower.ColSpan
+            lGrewBottom = grower.Row + grower.RowSpan
+
+            if blocker.Col < lGrewRight and blocker.ColSpan > lMinC:
+                # cut from left (shift right) or reduce width
+                if blocker.Col < grower.Col + grower.ColSpan and blocker.Col >= grower.Col:
+                    blocker.Col += 1
+                    blocker.ColSpan = max(lMinC, blocker.ColSpan - 1)
+                    lChanged = True
+                    continue
+                if blocker.ColSpan > lMinC:
+                    blocker.ColSpan -= 1
+                    lChanged = True
+                    continue
+
+            if blocker.Row < lGrewBottom and blocker.RowSpan > lMinR:
+                if blocker.Row >= grower.Row:
+                    blocker.Row += 1
+                    blocker.RowSpan = max(lMinR, blocker.RowSpan - 1)
+                    lChanged = True
+                    continue
+                if blocker.RowSpan > lMinR:
+                    blocker.RowSpan -= 1
+                    lChanged = True
+                    continue
+
+            if blocker.ColSpan > lMinC:
+                blocker.ColSpan -= 1
+                lChanged = True
+                continue
+            if blocker.RowSpan > lMinR:
+                blocker.RowSpan -= 1
+                lChanged = True
+                continue
+            break
+
+        if blocker.Col + blocker.ColSpan > columns:
+            blocker.Col = max(0, columns - blocker.ColSpan)
+        return lChanged
 
     def _findFreeFor(
         self,
@@ -196,7 +293,6 @@ class LayoutResolver:
                     return False
             return True
 
-        # Prefer slots near the intrusion, scan outward by row then col
         lCandidates: List[Tuple[int, int, int]] = []
         for lRow in range(0, self._maxRowSearch):
             for lCol in range(0, columns - lW + 1):
@@ -214,6 +310,8 @@ class LayoutResolver:
         lItems = list(work.values())
         for lI, lA in enumerate(lItems):
             if lA.Col < 0 or lA.Row < 0 or lA.Col + lA.ColSpan > columns:
+                return False
+            if lA.ColSpan < 1 or lA.RowSpan < 1:
                 return False
             for lB in lItems[lI + 1 :]:
                 if self._rectsOverlap(
