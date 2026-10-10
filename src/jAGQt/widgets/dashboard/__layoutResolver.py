@@ -1,8 +1,7 @@
 # ==================================================================================
-# src/jAGQt/widgets/dashboard/__layoutResolver.py
-# ==================================================================================
 from __future__ import annotations
 
+# ==================================================================================
 from typing import Dict, List, Optional, Tuple
 
 # ==================================================================================
@@ -36,27 +35,21 @@ class LayoutResolver:
 
     # ----------------------------------------------------------------------------------
     def ResolveMove(
-        self,
-        model: iGridModel,
-        placement: iCardPlacement,
-        newCol: int,
-        newRow: int,
+        self, model: iGridModel, placement: iCardPlacement,
+        newCol: int, newRow: int,
     ) -> Optional[List[iCardPlacement]]:
         lColumns = model.Columns
-        if newCol < 0 or newRow < 0:
-            return None
-        if newCol + placement.ColSpan > lColumns:
-            return None
-        if newCol == placement.Col and newRow == placement.Row:
-            return [placement]
+
+        if newCol < 0 or newRow < 0: return None
+        if newCol + placement.ColSpan > lColumns: return None
+        if newCol == placement.Col and newRow == placement.Row: return [placement]
 
         lOriginCol = placement.Col
         lOriginRow = placement.Row
 
         lWork = self._snapshot(model)
         lMoverKey = id(placement)
-        if lMoverKey not in lWork:
-            return None
+        if lMoverKey not in lWork: return None
         lMover = lWork[lMoverKey]
         lMover.Col = newCol
         lMover.Row = newRow

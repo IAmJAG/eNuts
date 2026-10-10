@@ -37,6 +37,7 @@ class DashboardGrid(QWidget, ComponentBase):
         **kwargs,
     ) -> None:
         super().__init__(parent, *args, **kwargs)
+        
         self._config: dashboardConfig = (
             config if config is not None else dashboardConfig()
         )
@@ -48,11 +49,9 @@ class DashboardGrid(QWidget, ComponentBase):
 
         self.setObjectName(self.OBJECT_NAME)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        self.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
-        )
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        
         self.setMinimumSize(0, 0)
-
         self._drag.Attach(self)
         self._resize.Attach(self)
 
