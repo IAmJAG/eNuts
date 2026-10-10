@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 # ==================================================================================
-from time import sleep
 from typing import Any, Dict, List, Optional
 
 # ==================================================================================
@@ -37,7 +36,7 @@ _C_PAGE_SCREENSHOT = "page.screenshot"
 def _asBool(value: Any, default: bool = False) -> bool:
     """Parse QSettings values safely.
 
-    QSettings often returns the strings "true"/"false". ``bool("false")`` is
+    QSettings often returns the strings "true"/"false". bool("false") is
     True in Python, which incorrectly forced the SideBar to start collapsed.
     """
     if value is None: return default
@@ -114,51 +113,10 @@ def _seedDashboard(grid: DashboardGrid) -> None:
 
 # ==================================================================================
 class Shell(iShell):
-    def _ensureDeviceState(self) -> None:
-        if not hasattr(self, "_devices"):
-            self._devices: Dict[str, iDevice] = {}
-
-        if not hasattr(self, "_selectedDeviceId"):
-            self._selectedDeviceId: Optional[str] = None
-
-    @property
-    def Devices(self) -> Dict[str, iDevice]:
-        self._ensureDeviceState()
-        return dict(self._devices)
-
-    def AddDevice(self, device: iDevice) -> None:
-        self._ensureDeviceState()
-        if device is None: return
-        lId = str(device.id)
-        self._devices[lId] = device
-
-    def RemoveDevice(self, device: iDevice) -> None:
-        self._ensureDeviceState()
-        if device is None: return
-        lId = str(device.id)
-        if self._selectedDeviceId == lId:
-            self._unbindLivePipeline()
-            self._selectedDeviceId = None
-        self._devices.pop(lId, None)
-
-    @property
-    def SelectedDevice(self) -> Optional[iDevice]:
-        self._ensureDeviceState()
-        if self._selectedDeviceId is None:
-            return None
-        return self._devices.get(self._selectedDeviceId)
-
-    def SelectDevice(self, deviceId: str | None) -> None:
-        self._ensureDeviceState()
-        if deviceId is None:
-            self._unbindLivePipeline()
-            self._selectedDeviceId = None
-            return
-        lId = str(deviceId)
-        if lId not in self._devices:
-            return
-        self._selectedDeviceId = lId
-
+    # ==================================================================================
+    # UI — structural chrome only. Runs synchronously in the MainWindow workflow
+    # (before show). No await in this section: every await after show is a paint
+    # boundary under qasync.
     # ==================================================================================
     def _wInitializeShell(self: iMainWindowBase) -> None:
         try:
@@ -167,113 +125,116 @@ class Shell(iShell):
             self.ContentSpacing = 0
             self.ContentMargins = 0
 
-            center: QWidget = QWidget()
-            center.setSizePolicy(
-                QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
-            )
-            centerLayout: QBoxLayout = QBoxLayout(QBoxLayout.Direction.TopToBottom)
-            centerLayout.setContentsMargins(0, 0, 0, 0)
-            centerLayout.setSpacing(0)
-            center.setLayout(centerLayout)
-
-            self._imageStreamer: imageStreamer = imageStreamer()
-            self._workspace: Workspace = Workspace()
-            self._streamPipeline = StreamPipeline(self._imageStreamer)
-
-            lDashboard: Page = Page(
-                "Dashboard", "Overview", id=_C_PAGE_DASHBOARD
-            )
-            lGrid: DashboardGrid = DashboardGrid(
-                config=dashboardConfig(
-                    columns=12, minColumns=1,
-                    gap=8, cellSize=64, margins=8,
-                )
-            )
-
-            _seedDashboard(lGrid)            
-            lDashboard.addWidget(lGrid)
-            self._dashboardGrid = lGrid
-
-            lRecorder: Page = Page(
-                "Recorder", "Key & Gesture Recorder",
-                commandBarOn=True, id=_C_PAGE_RECORDER,
-            )
-
-            lbl: QLabel = QLabel("DASHBOARD")            
-            lRecorder.addWidget(lbl, 0)
-            lRecorder.addWidget(self._imageStreamer, 1)
-            lRecorder.addCommand("Start")
-            lRecorder.addCommandStretch()
-            lScreenshot: Page = Page(
-                "Screenshot", "Capture device screen", 
-                commandBarOn=True, id=_C_PAGE_SCREENSHOT
-            )
-
-            self._workspace.AddPage(lDashboard)
-            self._workspace.AddPage(lRecorder)
-            self._workspace.AddPage(lScreenshot)
-            self._workspace.SetCurrentPage(_C_PAGE_RECORDER)
-
-            centerLayout.addWidget(self._workspace, 1)
-            layout.addWidget(center, 1)
+            self._buildCenterWorkspace()
+            self._buildSideBar()
 
         except Exception as ex:
-            error(f"[{self.__class__.__name__}] InitializeUI FAIL", ex)
+            error(f"[{self.__class__.__name__}] InitializeShell FAIL", ex)
 
-    def _initializeSideBar(self: iMainWindowBase) -> None:
-        try:
-            sideBar: SideBar = SideBar(title="eNuts")
-            sideBar.DockSideChanged.connect(self._onSideBarDockChanged)
-            sideBar.CollapsedChanged.connect(self._onSideBarCollapsedChanged)
-            sideBar.ItemClicked.connect(self._onSideBarItemClicked)
+    def _buildCenterWorkspace(self: iMainWindowBase) -> None:
+        """Center column: workspace pages + live streamer host."""
+        layout: QBoxLayout = self.Layout
 
-            lDashItem = sideBar.AddItem(text="Dashboard", id=_C_PAGE_DASHBOARD)
+        center: QWidget = QWidget()
+        center.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
+        centerLayout: QBoxLayout = QBoxLayout(QBoxLayout.Direction.TopToBottom)
+        centerLayout.setContentsMargins(0, 0, 0, 0)
+        centerLayout.setSpacing(0)
+        center.setLayout(centerLayout)
 
-            devices = sideBar.AddGroup(title="Devices")
-            devices.AddItem(text="Emulator")
+        self._imageStreamer: imageStreamer = imageStreamer()
+        self._workspace: Workspace = Workspace()
+        self._streamPipeline = StreamPipeline(self._imageStreamer)
 
-            dataCollector = sideBar.AddGroup(
-                title="Data Collector", startCollapsed=True
+        lDashboard: Page = Page("Dashboard", "Overview", id=_C_PAGE_DASHBOARD)
+        lGrid: DashboardGrid = DashboardGrid(
+            config=dashboardConfig(
+                columns=12,
+                minColumns=1,
+                gap=8,
+                cellSize=64,
+                margins=8,
             )
-            lShotItem = dataCollector.AddItem(
-                text="Screenshot", id=_C_PAGE_SCREENSHOT
-            )
-            lRecItem = dataCollector.AddItem(
-                text="Recorder", id=_C_PAGE_RECORDER
-            )
+        )
+        _seedDashboard(lGrid)
+        lDashboard.addWidget(lGrid)
+        self._dashboardGrid = lGrid
 
-            training = sideBar.AddGroup(title="Training", startCollapsed=True)
-            training.AddItem(text="<empty>")
+        lRecorder: Page = Page(
+            "Recorder",
+            "Key & Gesture Recorder",
+            commandBarOn=True,
+            id=_C_PAGE_RECORDER,
+        )
+        lRecorder.addWidget(self._imageStreamer)
+        lRecorder.addCommand("Start")
+        lRecorder.addCommandStretch()
 
-            sideBar.AddGroup(title="Tools", startCollapsed=True)
-            sideBar.AddStretch()
+        lScreenshot: Page = Page(
+            "Screenshot", "Capture device screen", id=_C_PAGE_SCREENSHOT
+        )
 
-            self._sideBar = sideBar
+        self._workspace.AddPage(lDashboard)
+        self._workspace.AddPage(lRecorder)
+        self._workspace.AddPage(lScreenshot)
+        self._workspace.SetCurrentPage(_C_PAGE_RECORDER)
 
-            lDashboard = self._workspace.GetPage(_C_PAGE_DASHBOARD)
-            lScreenshot = self._workspace.GetPage(_C_PAGE_SCREENSHOT)
-            lRecorder = self._workspace.GetPage(_C_PAGE_RECORDER)
-            if lDashboard is not None:
-                self._workspace.Link(lDashItem, lDashboard)
-            if lScreenshot is not None:
-                self._workspace.Link(lShotItem, lScreenshot)
-            if lRecorder is not None:
-                self._workspace.Link(lRecItem, lRecorder)
+        centerLayout.addWidget(self._workspace, 1)
+        layout.addWidget(center, 1)
 
-            dataCollector.Expand(animate=False)
-            sideBar.SelectItem(lRecItem)
+    def _buildSideBar(self: iMainWindowBase) -> None:
+        """SideBar + page links. Must complete before MainWindow.show()."""
+        sideBar: SideBar = SideBar(title="eNuts")
+        sideBar.DockSideChanged.connect(self._onSideBarDockChanged)
+        sideBar.CollapsedChanged.connect(self._onSideBarCollapsedChanged)
+        sideBar.ItemClicked.connect(self._onSideBarItemClicked)
 
-            self._restoreSideBarState()
+        lDashItem = sideBar.AddItem(text="Dashboard", id=_C_PAGE_DASHBOARD)
 
-            lLayout: QBoxLayout = self.Layout
-            lDock = self._sideBar.DockSide
-            if lDock is DockPosition.Right:
-                lLayout.addWidget(self._sideBar)
-            else:
-                lLayout.insertWidget(0, self._sideBar)
+        devices = sideBar.AddGroup(title="Devices")
+        devices.AddItem(text="Emulator")
 
-        except Exception as ex:
-            error(f"[{self.__class__.__name__}] InitializeSideBar FAIL", ex)
+        dataCollector = sideBar.AddGroup(
+            title="Data Collector", startCollapsed=True
+        )
+        lShotItem = dataCollector.AddItem(
+            text="Screenshot", id=_C_PAGE_SCREENSHOT
+        )
+        lRecItem = dataCollector.AddItem(
+            text="Recorder", id=_C_PAGE_RECORDER
+        )
+
+        training = sideBar.AddGroup(title="Training", startCollapsed=True)
+        training.AddItem(text="<empty>")
+
+        sideBar.AddGroup(title="Tools", startCollapsed=True)
+        sideBar.AddStretch()
+
+        self._sideBar = sideBar
+
+        lDashboard = self._workspace.GetPage(_C_PAGE_DASHBOARD)
+        lScreenshot = self._workspace.GetPage(_C_PAGE_SCREENSHOT)
+        lRecorder = self._workspace.GetPage(_C_PAGE_RECORDER)
+        if lDashboard is not None:
+            self._workspace.Link(lDashItem, lDashboard)
+        if lScreenshot is not None:
+            self._workspace.Link(lShotItem, lScreenshot)
+        if lRecorder is not None:
+            self._workspace.Link(lRecItem, lRecorder)
+
+        dataCollector.Expand(animate=False)
+        sideBar.SelectItem(lRecItem)
+
+        self._restoreSideBarState()
+
+        lLayout: QBoxLayout = self.Layout
+        lDock = self._sideBar.DockSide
+        if lDock is DockPosition.Right:
+            lLayout.addWidget(self._sideBar)
+        else:
+            lLayout.insertWidget(0, self._sideBar)
 
     def _onSideBarItemClicked(self, item: SideBarItem) -> None:
         try:
@@ -289,13 +250,11 @@ class Shell(iShell):
                 return
 
             settings = self.Settings
-
             collapsed = _asBool(
                 settings.value(_C_SIDEBAR_COLLAPSED, False), default=False
             )
             dockRaw = settings.value(_C_SIDEBAR_DOCK, "left")
             dock = str(dockRaw).strip().lower() if dockRaw is not None else "left"
-
             if dock not in ("left", "right"):
                 dock = "left"
             self._sideBar.RestoreState(collapsed, dock)
@@ -330,6 +289,55 @@ class Shell(iShell):
 
     def _onSideBarCollapsedChanged(self, _collapsed: bool) -> None:
         self._saveSideBarState()
+
+    # ==================================================================================
+    # Non-UI — device registry, discovery, live stream bind.
+    # Safe to await after show(); must not create or reparent shell chrome.
+    # ==================================================================================
+    def _ensureDeviceState(self) -> None:
+        if not hasattr(self, "_devices"):
+            self._devices: Dict[str, iDevice] = {}
+        if not hasattr(self, "_selectedDeviceId"):
+            self._selectedDeviceId: Optional[str] = None
+
+    @property
+    def Devices(self) -> Dict[str, iDevice]:
+        self._ensureDeviceState()
+        return dict(self._devices)
+
+    def AddDevice(self, device: iDevice) -> None:
+        self._ensureDeviceState()
+        if device is None:
+            return
+        self._devices[str(device.id)] = device
+
+    def RemoveDevice(self, device: iDevice) -> None:
+        self._ensureDeviceState()
+        if device is None:
+            return
+        lId = str(device.id)
+        if self._selectedDeviceId == lId:
+            self._unbindLivePipeline()
+            self._selectedDeviceId = None
+        self._devices.pop(lId, None)
+
+    @property
+    def SelectedDevice(self) -> Optional[iDevice]:
+        self._ensureDeviceState()
+        if self._selectedDeviceId is None:
+            return None
+        return self._devices.get(self._selectedDeviceId)
+
+    def SelectDevice(self, deviceId: str | None) -> None:
+        self._ensureDeviceState()
+        if deviceId is None:
+            self._unbindLivePipeline()
+            self._selectedDeviceId = None
+            return
+        lId = str(deviceId)
+        if lId not in self._devices:
+            return
+        self._selectedDeviceId = lId
 
     async def _discoverDevices(self) -> List[str]:
         """Return adb serials available now. Empty list if none."""
@@ -374,12 +382,13 @@ class Shell(iShell):
                 pass
         self._streamPipeline.Unbind()
 
-    # ==================================================================================
     async def initializeInstance(self: iMainWindowBase) -> None:
-        try:
-            self._initializeSideBar()
-            sleep(0.1)
+        """Post-show non-UI bootstrap: discover -> session -> register -> bind.
 
+        Must not build or reparent shell chrome (SideBar, workspace, pages).
+        Those run in _wInitializeShell before show().
+        """
+        try:
             lSerials = await self._discoverDevices()
             if not lSerials:
                 warning(f"[{self.__class__.__name__}] no adb devices; live stream idle")
