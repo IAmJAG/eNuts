@@ -43,7 +43,7 @@ def loadRegistryFromJson(filePath: str | Path, dim: int) -> Registry:
     with open(lPath, "r", encoding="utf-8") as lFile:
         data = json.load(lFile)
 
-    registry = Registry(lEmbeddingDim=dim)
+    registry = Registry(dimension=dim)
 
     isParameterRegistry = data.get("isParameterRegistry", False)
     for entry in data.get("entries", []):

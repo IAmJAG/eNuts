@@ -32,6 +32,10 @@ class RegistryItem:
     def embedding(self) -> Tensor:
         return self._embedding
 
+    @embedding.setter
+    def embedding(self, value: Tensor):
+        self._embedding = value
+
     @property
     def metadata(self) -> Dict[str, Any]:
         return self._metadata
