@@ -2,19 +2,24 @@
 from __future__ import annotations
 
 # ==================================================================================
-from typing import Any
+from typing import Any, Dict, Protocol, runtime_checkable
 
 # ==================================================================================
 from torch import Tensor
 
 
 # ==================================================================================
-class RegistryItem:
+@runtime_checkable
+class iRegistryItem(Protocol):
     def __init__(
         self, key: str, index: int,
-        embedding: Tensor, metadata: dict[str, Any] | None = None,
-    ):
-        self._key = key
-        self._index = index
-        self._embedding = embedding  
-        self._metadata = metadata or {}
+        embedding: Tensor, metadata: Dict[str, Any] = {},
+    ): ...
+    @property
+    def key(self) -> str: ...
+    @property
+    def index(self) -> int: ...
+    @property
+    def embedding(self) -> Tensor: ...
+    @property
+    def metadata(self) -> dict[str, Any]: ...

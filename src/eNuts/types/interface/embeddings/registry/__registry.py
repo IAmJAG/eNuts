@@ -1,0 +1,23 @@
+# ==================================================================================
+from __future__ import annotations
+
+# ==================================================================================
+from typing import Any, Dict, Protocol, runtime_checkable
+
+# ==================================================================================
+from torch import Tensor
+
+# ==================================================================================
+from .__registryItem import iRegistryItem
+
+
+# ==================================================================================
+@runtime_checkable
+class iRegistry(Protocol):
+    def __init__(self, dimension: int) -> None: ...
+    def register(self, key: str, embedding: Tensor, metadata: Dict[str, Any] = {}) -> int: ...
+    def get(self, key: str) -> iRegistryItem: ...
+    def getByIndex(self, index: int) -> iRegistryItem: ...
+    def getIndex(self, key: str) -> int: ...
+    def getEmbeddings(self) -> Tensor: ...
+    def __len__(self) -> int: ...

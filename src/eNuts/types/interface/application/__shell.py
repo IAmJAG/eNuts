@@ -5,10 +5,10 @@ from __future__ import annotations
 from typing import Dict, List
 
 # ==================================================================================
-from jAGQt.types.interface.window import iMainWindowBase
+from fluxCore.types.interface.device import iDevice
 
 # ==================================================================================
-from fluxCore.types.interface.device import iDevice
+from jAGQt.types.interface.window import iMainWindowBase
 
 # ==================================================================================
 from .__eNutsService import iENUTSService
