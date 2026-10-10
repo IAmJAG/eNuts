@@ -117,7 +117,6 @@ class DragController(QObject):
             return False
 
         lPosInGrid = self._grid.mapFromGlobal(event.globalPosition().toPoint())
-        # Anchor to grab point relative to card top-left intent: use cursor cell
         lCell = self._grid.CellAt(lPosInGrid.x(), lPosInGrid.y())
         if lCell is None:
             return True
@@ -146,7 +145,7 @@ class DragController(QObject):
         if lCard is not None and isinstance(lCard, QWidget):
             lCard.SetDragging(False)
             lCard.setCursor(Qt.CursorShape.OpenHandCursor)
-            if lCard.mouseGrabber() is lCard:
+            if QWidget.mouseGrabber() is lCard:
                 lCard.releaseMouse()
         if self._grid is not None:
             self._grid.ApplyLayout()
@@ -154,18 +153,11 @@ class DragController(QObject):
     def _cardFromWidget(self, widget: QWidget) -> Optional[iCard]:
         lWalk: Optional[QWidget] = widget
         while lWalk is not None:
-            if isinstance(lWalk, iCard) or (
-                hasattr(lWalk, "Id")
-                and hasattr(lWalk, "MinColSpan")
-                and hasattr(lWalk, "SetDragging")
-            ):
-                # Prefer concrete Card instances parented to grid
-                if self._grid is not None:
-                    for lP in self._grid.Model.Placements:
-                        if lP.Card is lWalk or (
-                            isinstance(lP.Card, QWidget) and lP.Card is lWalk
-                        ):
-                            return lP.Card
-                return lWalk  # type: ignore[return-value]
+            if self._grid is not None:
+                for lP in self._grid.Model.Placements:
+                    if isinstance(lP.Card, QWidget) and (
+                        lP.Card is lWalk or lP.Card.isAncestorOf(lWalk)
+                    ):
+                        return lP.Card
             lWalk = lWalk.parentWidget()
         return None
