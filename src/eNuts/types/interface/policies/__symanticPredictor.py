@@ -20,7 +20,7 @@ class iSymanticPredictor(iPolicyNet, Protocol):
 
     def forwardSequence(
         self, frameSequence: Tensor, intentEmbedding: Tensor,
-        previousActionEmbedding: Tensor,
+        previousActionEmbedding: Tensor
     ) -> Tensor: ...
 
     def addFrame(self, frame: Tensor) -> None: ...

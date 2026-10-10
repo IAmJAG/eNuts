@@ -3,13 +3,8 @@
 # ==================================================================================
 from __future__ import annotations
 
-from enum import Enum
-from typing import Optional
-
 # ==================================================================================
 from PySide6.QtCore import QRect, QSettings, Qt
-from PySide6.QtGui import QGuiApplication
-from PySide6.QtWidgets import QWidget
 
 # ==================================================================================
 from jAGFx.workflow import workflow
@@ -21,17 +16,12 @@ from .windowBase import WindowBase
 # ==================================================================================
 @workflow("InitializeUI", "InitializeSettings", "RestoreWindowsState")
 class MainWindowBase(WindowBase):
-    """Richer foundation for application main-window and dashboard classes."""
-
-    def __init__(
-        self, name: str = None,*args, **kwargs,
-    ) -> None:
+    def __init__(self, name: str = None, *args, **kwargs) -> None:
         super().__init__(name, False, *args, **kwargs)
 
     def _wInitializeSettings(self) -> None:
         company = self.Company if hasattr(self, "Company") else "jAGQt"
         appId: str = self.ApplicationId if hasattr(self, "ApplicationId") else "ModernWindow"
-
         applicationId = f"{company}.{appId}"
         self._qsettings = QSettings(company, applicationId)
 
@@ -44,14 +34,15 @@ class MainWindowBase(WindowBase):
 
     def restoreWindowsState(self) -> None:
         if self.Settings.contains("geometry"):
-            lGeo = self.Settings.value("geometry")
-            if isinstance(lGeo, QRect) and lGeo.isValid():
-                self.setGeometry(lGeo)
+            geo = self.Settings.value("geometry")
+            if isinstance(geo, QRect) and geo.isValid():
+                self.setGeometry(geo)
 
         if self.Settings.contains("windowState"):
             try:
-                lState = int(self.Settings.value("windowState"))
-                self.setWindowState(Qt.WindowState(lState))
+                state = int(self.Settings.value("windowState"))
+                self.setWindowState(Qt.WindowState(state))
+
             except (TypeError, ValueError):
                 pass
 

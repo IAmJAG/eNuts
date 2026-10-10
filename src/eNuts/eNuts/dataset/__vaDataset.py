@@ -89,8 +89,7 @@ class VADataset(Dataset):
             lContainer.seek(targetPts, stream=lStream)
 
             for lPacket in lContainer:
-                if lPacket.stream != lStream:
-                    continue
+                if lPacket.stream != lStream: continue
                 
                 for lFrame in lPacket.decode():
                     # Convert decoded VideoFrame to RGB tensor and apply transform
@@ -101,8 +100,7 @@ class VADataset(Dataset):
                     lFramesList.append(lTransformed)
 
                     # Stop collecting once we reach our window length constraint
-                    if len(lFramesList) >= self._sequenceLength:
-                        break
+                    if len(lFramesList) >= self._sequenceLength: break
                 
                 if len(lFramesList) >= self._sequenceLength:
                     break
