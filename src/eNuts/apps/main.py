@@ -1,9 +1,10 @@
 # ==================================================================================================
 from asyncio import CancelledError, Event, set_event_loop
 from ctypes import windll
-from logging import CRITICAL, Filter, LogRecord, WARNING, getLogger, root
+from logging import CRITICAL, WARNING, Filter, LogRecord, getLogger, root
 from os import environ
 from sys import platform
+from time import sleep
 from typing import List
 
 # ==================================================================================================
@@ -79,7 +80,7 @@ async def main(app: QApplication, *args, **kwargs):
 
         lWin: MainWindow = MainWindow(*args, **kwargs)
         lWin.show()
-
+        sleep(0.1)
         await lWin.initializeInstance()
 
         app.setQuitOnLastWindowClosed(True)

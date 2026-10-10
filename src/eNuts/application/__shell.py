@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 
 # ==================================================================================
 from adbutils import adb
-from PySide6.QtWidgets import QBoxLayout, QLabel, QSizePolicy, QWidget
+from PySide6.QtWidgets import QBoxLayout, QFrame, QLabel, QSizePolicy, QWidget
 
 # ==================================================================================
 from fluxCore.emitters.scrcpy import SCRCPYEmitter
@@ -40,17 +40,13 @@ def _asBool(value: Any, default: bool = False) -> bool:
     QSettings often returns the strings "true"/"false". ``bool("false")`` is
     True in Python, which incorrectly forced the SideBar to start collapsed.
     """
-    if value is None:
-        return default
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, (int, float)):
-        return value != 0
+    if value is None: return default
+    if isinstance(value, bool): return value
+    if isinstance(value, (int, float)): return value != 0
     lText = str(value).strip().lower()
-    if lText in ("1", "true", "yes", "on"):
-        return True
-    if lText in ("0", "false", "no", "off", ""):
-        return False
+
+    if lText in ("1", "true", "yes", "on"): return True
+    if lText in ("0", "false", "no", "off", ""): return False
     return default
 
 
@@ -118,12 +114,10 @@ def _seedDashboard(grid: DashboardGrid) -> None:
 
 # ==================================================================================
 class Shell(iShell):
-    # ==================================================================================
-    # Global device registry (iShell) — state is lazy (Shell is mixed into MainWindow)
-    # ==================================================================================
     def _ensureDeviceState(self) -> None:
         if not hasattr(self, "_devices"):
             self._devices: Dict[str, iDevice] = {}
+
         if not hasattr(self, "_selectedDeviceId"):
             self._selectedDeviceId: Optional[str] = None
 
@@ -134,15 +128,13 @@ class Shell(iShell):
 
     def AddDevice(self, device: iDevice) -> None:
         self._ensureDeviceState()
-        if device is None:
-            return
+        if device is None: return
         lId = str(device.id)
         self._devices[lId] = device
 
     def RemoveDevice(self, device: iDevice) -> None:
         self._ensureDeviceState()
-        if device is None:
-            return
+        if device is None: return
         lId = str(device.id)
         if self._selectedDeviceId == lId:
             self._unbindLivePipeline()
@@ -193,28 +185,28 @@ class Shell(iShell):
             )
             lGrid: DashboardGrid = DashboardGrid(
                 config=dashboardConfig(
-                    columns=12,
-                    minColumns=1,
-                    gap=8,
-                    cellSize=64,
-                    margins=8,
+                    columns=12, minColumns=1,
+                    gap=8, cellSize=64, margins=8,
                 )
             )
-            _seedDashboard(lGrid)
+
+            _seedDashboard(lGrid)            
             lDashboard.addWidget(lGrid)
             self._dashboardGrid = lGrid
 
             lRecorder: Page = Page(
-                "Recorder",
-                "Key & Gesture Recorder",
-                commandBarOn=True,
-                id=_C_PAGE_RECORDER,
+                "Recorder", "Key & Gesture Recorder",
+                commandBarOn=True, id=_C_PAGE_RECORDER,
             )
-            lRecorder.addWidget(self._imageStreamer)
+
+            lbl: QLabel = QLabel("DASHBOARD")            
+            lRecorder.addWidget(lbl, 0)
+            lRecorder.addWidget(self._imageStreamer, 1)
             lRecorder.addCommand("Start")
             lRecorder.addCommandStretch()
             lScreenshot: Page = Page(
-                "Screenshot", "Capture device screen", id=_C_PAGE_SCREENSHOT
+                "Screenshot", "Capture device screen", 
+                commandBarOn=True, id=_C_PAGE_SCREENSHOT
             )
 
             self._workspace.AddPage(lDashboard)
@@ -339,14 +331,12 @@ class Shell(iShell):
     def _onSideBarCollapsedChanged(self, _collapsed: bool) -> None:
         self._saveSideBarState()
 
-    # ==================================================================================
-    # Discovery → register → select → bind
-    # ==================================================================================
     async def _discoverDevices(self) -> List[str]:
         """Return adb serials available now. Empty list if none."""
         try:
             lList = adb.device_list()
             return [str(d.serial) for d in lList if getattr(d, "serial", None)]
+        
         except Exception as ex:
             error(f"[{self.__class__.__name__}] device discovery FAIL", ex)
             return []
@@ -392,17 +382,14 @@ class Shell(iShell):
 
             lSerials = await self._discoverDevices()
             if not lSerials:
-                warning(
-                    f"[{self.__class__.__name__}] no adb devices; live stream idle"
-                )
+                warning(f"[{self.__class__.__name__}] no adb devices; live stream idle")
                 return
 
             lPreferred = "emulator-5560"
             lSerial = lPreferred if lPreferred in lSerials else lSerials[0]
 
             emitter = await self._startDeviceSession(lSerial)
-            if emitter is None:
-                return
+            if emitter is None: return
 
             self.AddDevice(emitter)
             self._emitter = emitter
