@@ -1,32 +1,28 @@
 # ==================================================================================
-from jAGFx.workflow import workflow
 from jAGQt.window import MainWindowBase
 
 # ==================================================================================
-from ...application.__shell import Shell
 from ...configuration import ApplicationInformation
 
 
 # ==================================================================================
-@workflow(
-    "InitializeSettings", "InitializeUI", "InitializeShell",
-    "RestoreWindowsState", "InitializeInfo",
-)
-class MainWindow(MainWindowBase, ApplicationInformation, Shell):
+class MainWindow(MainWindowBase, ApplicationInformation):
+    """Layer 0 — bare window. No workflow chain, no Shell chrome, no devices.
+
+    Build-up order (re-add only after the previous layer is flicker-free):
+      L0  this class + main show
+      L1  settings / geometry (sync, same thread)
+      L2  central layout + one placeholder widget
+      L3  SideBar
+      L4  Workspace / pages
+      L5  streamer view
+      L6  device discovery + StreamPipeline (post-show, non-UI)
+    """
+
     def __init__(self, *args, **kwargs) -> None:
         super().__init__("ENUTS_WINDOW", *args, **kwargs)
+        self.setWindowTitle("eNuts")
+        self.resize(1280, 720)
 
     def closeEvent(self, event) -> None:
-        if hasattr(self, "_saveSideBarState"):
-            try:
-                self._saveSideBarState()
-            except Exception:
-                pass
-        if hasattr(self, "_emitter") and self._emitter is not None:
-            try:
-                if getattr(self._emitter, "isRunning", False):
-                    self._emitter.stop()
-            except RuntimeError:
-                pass
-            
         super().closeEvent(event)

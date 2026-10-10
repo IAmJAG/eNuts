@@ -4,7 +4,6 @@ from ctypes import windll
 from logging import CRITICAL, WARNING, Filter, LogRecord, getLogger, root
 from os import environ
 from sys import platform
-from time import sleep
 from typing import List
 
 # ==================================================================================================
@@ -61,6 +60,7 @@ def _silenceAsyncioLogs() -> None:
 
 # ==================================================================================================
 async def main(app: QApplication, *args, **kwargs):
+    """Layer 0 bootstrap: app + style + one window + show. Nothing else."""
     cfg: iENUTSConfiguration | iApplicationConfiguration = eNutsConfiguration()
 
     lShutdownEvent: Event = Event()
@@ -80,11 +80,8 @@ async def main(app: QApplication, *args, **kwargs):
 
         lWin: MainWindow = MainWindow(*args, **kwargs)
         lWin.show()
-        sleep(0.1)
-        await lWin.initializeInstance()
 
         app.setQuitOnLastWindowClosed(True)
-
         await lShutdownEvent.wait()
 
     except CancelledError:
@@ -109,7 +106,7 @@ def program(*args):
     _silenceAsyncioLogs()
 
     set_event_loop(loop)
-    _silenceAsyncioLogs()  # again after loop is installed
+    _silenceAsyncioLogs()
 
     with loop:
         loop.run_until_complete(main(app))
