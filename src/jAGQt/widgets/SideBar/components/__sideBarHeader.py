@@ -2,9 +2,6 @@
 from __future__ import annotations
 
 # ==================================================================================
-from typing import Optional
-
-# ==================================================================================
 from PySide6.QtCore import QEvent, QObject, Qt, Signal
 from PySide6.QtGui import QIcon, QMouseEvent
 from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
@@ -34,12 +31,8 @@ class SideBarHeader(QWidget, ComponentBase):
     CollapseRequested = Signal()
 
     def __init__(
-        self,
-        title: str = "",
-        iconSize: int = 20,
-        spacing: int = 8,
-        *args,
-        **kwargs,
+        self, title: str = "", iconSize: int = 20,
+        spacing: int = 8, *args, **kwargs,
     ) -> None:
         OBJNAME: str = kwargs.pop("objectName", self.OBJECT_NAME)
         super().__init__(objectName=OBJNAME, *args, **kwargs)
@@ -75,15 +68,16 @@ class SideBarHeader(QWidget, ComponentBase):
         self._titleWidget: SideBarText = SideBarText(text=title, parent=self)
         self._titleWidget.setObjectName("SideBarHeaderTitle")
 
-        self._layout: QBoxLayout = newLayout(
+        mainLayout: QBoxLayout = newLayout(
             QBoxLayout,
             spacing=spacing,
             margins=(8, 8, 8, 8),
             direction=QBoxLayout.Direction.LeftToRight,
-        )
-        self.setLayout(self._layout)
-        self._layout.addWidget(self._toggleIcon)
-        self._layout.addWidget(self._titleWidget, 1)
+        )        
+        mainLayout.addWidget(self._toggleIcon)
+        mainLayout.addWidget(self._titleWidget, 1)
+
+        self.setLayout(mainLayout)
 
         self._morph: IconMorphAnimation = IconMorphAnimation(
             target=self._toggleIcon,
@@ -91,54 +85,46 @@ class SideBarHeader(QWidget, ComponentBase):
             durationMs=160,
             parent=self,
         )
-
         self._applyCollapsedVisual(animate=False)
 
     # ==================================================================================
-    def SetTitle(self, title: str) -> None:
-        self.Title = title
-
-    def SetCollapsed(self, collapsed: bool, animate: bool = True) -> None:
+    def _setCollapsed(self, collapsed: bool, animate: bool = True) -> None:
         lValue: bool = bool(collapsed)
-        if lValue is self._collapsed:
-            return
+        if lValue is self._collapsed: return
         self._collapsed = lValue
         self._applyCollapsedVisual(animate=animate)
 
-    def SetIconSize(self, iconSize: int) -> None:
-        self.IconSize = iconSize
-
     # ==================================================================================
     @property
-    def Title(self) -> str:
+    def title(self) -> str:
         return self._titleWidget.Text
 
-    @Title.setter
-    def Title(self, value: str) -> None:
+    @title.setter
+    def title(self, value: str) -> None:
         self._titleWidget.Text = value if value is not None else ""
 
     @property
-    def IconSize(self) -> int:
+    def iconSize(self) -> int:
         return self._toggleIcon.iconSize
 
-    @IconSize.setter
-    def IconSize(self, value: int) -> None:
+    @iconSize.setter
+    def iconSize(self, value: int) -> None:
         lSize: int = max(1, int(value))
         if lSize == self._toggleIcon.iconSize:
             return
         self._toggleIcon.iconSize = lSize
         self._burgerIcon = MakeBurgerIcon(lSize)
         self._closeIcon = MakeCloseIcon(lSize)
-        self._morph.SetIconSize(lSize)
+        self._morph.setIconSize(lSize)
         self._refreshToggleIcon(animate=False)
 
     @property
-    def Collapsed(self) -> bool:
+    def collapsed(self) -> bool:
         return self._collapsed
 
-    @Collapsed.setter
-    def Collapsed(self, value: bool) -> None:
-        self.SetCollapsed(value)
+    @collapsed.setter
+    def collapsed(self, value: bool) -> None:
+        self._setCollapsed(value)
 
     # ==================================================================================
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:

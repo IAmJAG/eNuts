@@ -30,33 +30,33 @@ class IconAnimationBase(QObject):
 
     # ==================================================================================
     @property
-    def Target(self) -> Optional[QWidget]:
+    def target(self) -> Optional[QWidget]:
         return self._target
 
-    @Target.setter
-    def Target(self, value: Optional[QWidget]) -> None:
+    @target.setter
+    def target(self, value: Optional[QWidget]) -> None:
         self._target = value
 
     @property
-    def DurationMs(self) -> int:
+    def durationMs(self) -> int:
         return self._durationMs
 
-    @DurationMs.setter
-    def DurationMs(self, value: int) -> None:
+    @durationMs.setter
+    def durationMs(self, value: int) -> None:
         self._durationMs = max(0, int(value))
 
     @property
-    def IsRunning(self) -> bool:
+    def isRunning(self) -> bool:
         return self._running
 
     # ==================================================================================
-    def Start(self) -> None:
+    def start(self) -> None:
         if self._running:
             self.Stop()
         self._running = True
         self._onStart()
 
-    def Stop(self) -> None:
+    def stop(self) -> None:
         if not self._running:
             return
         self._onStop()

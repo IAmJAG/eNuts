@@ -33,18 +33,18 @@ class IconMorphAnimation(IconAnimationBase):
         self._iconSize: int = max(1, int(iconSize))
         self._anim: Optional[QVariantAnimation] = None
 
-    def SetIcons(self, startIcon: QIcon, endIcon: QIcon) -> None:
+    def setIcons(self, startIcon: QIcon, endIcon: QIcon) -> None:
         self._startIcon = startIcon
         self._endIcon = endIcon
 
-    def SetIconSize(self, iconSize: int) -> None:
+    def setIconSize(self, iconSize: int) -> None:
         self._iconSize = max(1, int(iconSize))
 
     def _onStart(self) -> None:
         if self._target is None or self._startIcon is None or self._endIcon is None:
             self._emitFinished()
             return
-
+       
         self._anim = QVariantAnimation(self)
         self._anim.setDuration(self._durationMs)
         self._anim.setStartValue(0.0)
