@@ -1,0 +1,60 @@
+/* ==================================================================================
+   Settings page — Ironman
+   ================================================================================== */
+
+QWidget#SettingsPage {
+    background-color: #0e1014;
+    color: #f5f7fa;
+}
+
+QWidget#SettingsRoot {
+    background-color: #0e1014;
+    color: #f5f7fa;
+}
+
+QGroupBox#SettingsAppearancePanel {
+    background-color: #12161c;
+    color: #f5f7fa;
+    border: 1px solid #303740;
+}
+
+QGroupBox#SettingsAppearancePanel::title {
+    color: #e8edf5;
+    subcontrol-origin: margin;
+    left: 10px;
+    padding: 0 4px;
+}
+
+QComboBox#ThemeCombo {
+    background-color: #161b22;
+    color: #f5f7fa;
+    border: 1px solid #343b45;
+    min-height: 28px;
+    padding: 2px 8px;
+}
+
+QComboBox#ThemeCombo:hover {
+    border-color: #e53935;
+}
+
+QComboBox#ThemeCombo:focus {
+    border-color: #ffca28;
+}
+
+QPushButton#ApplyThemeBtn {
+    background-color: #161b22;
+    color: #f5f7fa;
+    border: 1px solid #343b45;
+    min-height: 30px;
+    padding: 0 16px;
+}
+
+QPushButton#ApplyThemeBtn:hover {
+    background-color: #20262e;
+    border-color: #e53935;
+}
+
+QPushButton#ApplyThemeBtn:pressed {
+    background-color: #2b1516;
+    border-color: #ffca28;
+}

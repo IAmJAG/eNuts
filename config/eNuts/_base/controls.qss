@@ -1,0 +1,63 @@
+/* ==================================================================================
+   Generic controls — structural
+   ================================================================================== */
+
+QPushButton {
+    border-radius: 0px;
+}
+
+QAbstractButton:focus,
+QLineEdit:focus,
+QComboBox:focus,
+QSpinBox:focus,
+QDoubleSpinBox:focus {
+    outline: none;
+}
+
+QToolTip,
+QMenu {
+    padding: 4px;
+    border-radius: 0px;
+}
+
+QMenu::item {
+    padding: 6px 20px 6px 8px;
+}
+
+QMenu::separator {
+    height: 1px;
+    margin: 4px 0px;
+}
+
+QScrollBar:vertical {
+    width: 8px;
+    margin: 0px;
+}
+
+QScrollBar:horizontal {
+    height: 8px;
+    margin: 0px;
+}
+
+QScrollBar::handle:vertical,
+QScrollBar::handle:horizontal {
+    min-height: 24px;
+    min-width: 24px;
+    border-radius: 0px;
+}
+
+QScrollBar::add-line:vertical,
+QScrollBar::sub-line:vertical,
+QScrollBar::add-line:horizontal,
+QScrollBar::sub-line:horizontal {
+    width: 0px;
+    height: 0px;
+    border: 0px;
+}
+
+QScrollBar::add-page:vertical,
+QScrollBar::sub-page:vertical,
+QScrollBar::add-page:horizontal,
+QScrollBar::sub-page:horizontal {
+    background: transparent;
+}

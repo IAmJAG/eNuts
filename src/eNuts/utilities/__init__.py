@@ -1,5 +1,10 @@
 # ==================================================================================================
-from .__style import applyStyleSheet, loadStyleSheet
+from .__style import ApplyStyleSheet, LoadStyleSheet, applyStyleSheet, loadStyleSheet
 
 # ==================================================================================================
-__all__ = ["applyStyleSheet", "loadStyleSheet"]
+__all__ = [
+    "ApplyStyleSheet",
+    "LoadStyleSheet",
+    "applyStyleSheet",
+    "loadStyleSheet",
+]
