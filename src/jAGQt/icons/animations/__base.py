@@ -52,7 +52,7 @@ class IconAnimationBase(QObject):
     # ==================================================================================
     def start(self) -> None:
         if self._running:
-            self.Stop()
+            self.stop()
         self._running = True
         self._onStart()
 
