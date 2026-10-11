@@ -27,7 +27,7 @@ class ComponentBase:
         self.setParent(value)
 
     @property
-    def Layout(self: QWidget | QMainWindow) -> QBoxLayout:
+    def Layout(self: QWidget | QMainWindow) -> QBoxLayout:        
         lLayout: QBoxLayout = getattr(self, "_layout", None)
         if lLayout is None: lLayout = self.layout()
         return lLayout

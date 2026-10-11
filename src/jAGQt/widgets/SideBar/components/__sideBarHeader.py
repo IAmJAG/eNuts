@@ -76,7 +76,6 @@ class SideBarHeader(QWidget, ComponentBase):
         )        
         mainLayout.addWidget(self._toggleIcon)
         mainLayout.addWidget(self._titleWidget, 1)
-
         self.setLayout(mainLayout)
 
         self._morph: IconMorphAnimation = IconMorphAnimation(
@@ -142,8 +141,8 @@ class SideBarHeader(QWidget, ComponentBase):
         lStart: QIcon = self._closeIcon if not self._collapsed else self._burgerIcon
         lEnd: QIcon = self._closeIcon if self._collapsed else self._burgerIcon
         if animate:
-            self._morph.SetIcons(lStart, lEnd)
-            self._morph.Start()
+            self._morph.setIcons(lStart, lEnd)
+            self._morph.start()
         else:
             self._toggleIcon.setIcon(lEnd)
 
