@@ -22,4 +22,7 @@ class Device(Serializable, iDevice):
     @property
     def name(self) -> str | None:
         return self._name
-    
+
+    @name.setter
+    def name(self, value: str) -> None:
+        self._name = value

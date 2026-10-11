@@ -1,8 +1,10 @@
 # ==================================================================================
 from __future__ import annotations
 
+from asyncio import Event
+
 # ==================================================================================
-from typing import Dict, List, Optional
+from typing import Dict
 
 # ==================================================================================
 from fluxCore.types.interface.device import iDevice
@@ -10,38 +12,11 @@ from jAGQt.types.interface.window import iMainWindowBase
 
 # ==================================================================================
 from ..types.interface.application import iENUTSService, iShell
+from .__deviceManager import deviceManager
 
 
 # ==================================================================================
 class Shell(iShell):
-    def _ensureDeviceState(self) -> None:
-        if not hasattr(self, "_devices"):
-            self._devices: Dict[str, iDevice] = {}
-        if not hasattr(self, "_selectedDeviceId"):
-            self._selectedDeviceId: Optional[str] = None
-
-    @property
-    def Devices(self) -> Dict[str, iDevice]:
-        self._ensureDeviceState()
-        return dict(self._devices)
-
-    def AddDevice(self, device: iDevice) -> None:
-        self._ensureDeviceState()
-        if device is None:
-            return
-        self._devices[str(device.id)] = device
-
-    def RemoveDevice(self, device: iDevice) -> None:
-        self._ensureDeviceState()
-        if device is None:
-            return
-        lId = str(device.id)
-        if self._selectedDeviceId == lId:
-            self._selectedDeviceId = None
-        self._devices.pop(lId, None)
-
-    async def initializeInstance(self: iMainWindowBase) -> None:
-        return
-
-    def bindServices(self, services: List[iENUTSService]) -> None:
-        pass
+    def _aInitialize(self):
+        shutdownEvent: Event = self._shutdownEvent
+        self._devices: Dict[str, iDevice] = deviceManager(shutdownEvent)

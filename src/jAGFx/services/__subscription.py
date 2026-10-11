@@ -49,12 +49,12 @@ class AsyncSubscription(Subscription):
             if iscoroutinefunction(callback):
                 # createTask is available globally via __monkeyPatch
                 createTask(callback, *args, **kwargs)
+
             else:
                 callback(*args, **kwargs)
 
     async def asyncRaiseEvent(self, event: str, *args, **kwargs) -> None:
-        if event not in self._callbacks:
-            return
+        if event not in self._callbacks: return
 
         for callback in self._callbacks[event]:
             if not callable(callback):
@@ -62,6 +62,7 @@ class AsyncSubscription(Subscription):
 
             if iscoroutinefunction(callback):
                 await callback(*args, **kwargs)
+
             else:
                 callback(*args, **kwargs)
 

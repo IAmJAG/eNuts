@@ -7,29 +7,26 @@ from ..types.interface.devices import iSCRCPY
 
 # ==================================================================================
 class SCRCPY(Device, iSCRCPY):
-    def __init__(self, serial: str, name: str | None = None) -> None:        
+    def __init__(self, serial: str, name: str | None = None, manufacturer: str | None = None) -> None:        
         super().__init__(ident=serial, name=name)
-        self._codecId: str = "h264"
-        self._width: int = 0
-        self._height: int = 0
+        self._manufacturer: str = manufacturer
 
     @property
-    def serial(self) -> str | None:
-        return self.id
+    def serial(self) -> str:
+        return super().id
 
     @property
-    def codecId(self) -> str:
-        return self._codecId
-    
-    @property
-    def width(self) -> int: 
-        return self._width
-    
-    @property
-    def height(self) -> int: 
-        return self._height
+    def model(self) -> str:
+        return super().name
 
-    def update(self, codecId: str, width: int, height: int) -> None:
-        self._codecId = codecId
-        self._width = width
-        self._height = height
+    @model.setter
+    def model(self, value: str):
+        super().name = value
+
+    @property
+    def manufacturer(self) -> str:
+        return self._manufacturer
+
+    @manufacturer.setter
+    def manufacturer(self, value: str):
+        self._manufacturer = value

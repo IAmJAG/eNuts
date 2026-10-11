@@ -1,6 +1,5 @@
 # ==================================================================================
 from logging import Formatter
-from typing import List
 
 # ==================================================================================
 import colorlog
@@ -11,7 +10,7 @@ from ..data import CallerInformation
 fmtList = [
     "%(light_black)s[%(asctime)s]%(reset)s",
     "%(log_color)s[%(levelname)-8s]%(reset)s ",
-    "%(log_color)s[%(caller)-8s]%(reset)s ",    
+    "%(log_color)s[%(name)-8s]%(reset)s ",
     "%(message_log_color)s%(message)s%(reset)s",
 ]
 # "%(log_color)s[%(caller)-8s]%(reset)s ",

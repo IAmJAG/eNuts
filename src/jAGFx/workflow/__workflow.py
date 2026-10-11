@@ -4,7 +4,7 @@ from __future__ import annotations
 # ==================================================================================
 from functools import wraps
 from traceback import format_exc
-from typing import Callable, TypeVar, overload
+from typing import Callable, List, TypeVar, overload
 
 # ==================================================================================
 from utilities import createTask, getRunningLoop
@@ -29,13 +29,11 @@ def _normalize_workflow_name(name: str) -> str:
 
     if name.startswith(_SYNC_WF_PREFIX) or name.startswith(_ASYNC_WF_PREFIX):
         if name in (_SYNC_WF_PREFIX, _ASYNC_WF_PREFIX):
-            raise ValueError(
-                f"Workflow name {name!r} must include a name after the prefix."
-            )
+            raise ValueError(f"Workflow name {name!r} must include a name after the prefix.")
+        
         return name
 
-    # Explicit bare names default to the synchronous ``_w`` prefix.
-    return f"{_SYNC_WF_PREFIX}{name}"
+    return name
 
 
 # ==================================================================================
@@ -60,6 +58,12 @@ def _run_workflow(instance: object) -> None:
     
     for name in names:
         method = getattr(instance, name, None)
+        
+        if method is None:
+            raise AttributeError(
+                f"Workflow method {name!r} was not found on {type(instance).__name__}."
+            )
+        
         if not callable(method):
             raise AttributeError(
                 f"Workflow method {name!r} was not found on {type(instance).__name__}."
@@ -226,12 +230,26 @@ def workflow(*args, async_: bool = True):
             raise TypeError("Workflow names must be strings.")
 
         names = tuple(_normalize_workflow_name(name) for name in args)
-        if len(names) != len(set(names)):
-            raise ValueError("Workflow names must be unique.")
+        if len(names) != len(set(names)): raise ValueError("Workflow names must be unique.")
         cls = None
 
     def decorate(target: _T) -> _T:
-        workflow_names = names if names is not None else _discover_workflows(target)
+        wfNames: List[str] = names if names is not None else _discover_workflows(target)
+
+        _wfNames: List[str] = []
+        for _name in wfNames:
+            if _name.startswith(_SYNC_WF_PREFIX) or _name.startswith(_ASYNC_WF_PREFIX):
+                _wfNames.append(_name)
+
+            else:
+                if hasattr(target, f"{_SYNC_WF_PREFIX}{_name}"):
+                    _wfNames.append(f"{_SYNC_WF_PREFIX}{_name}")
+
+                if hasattr(target, f"{_ASYNC_WF_PREFIX}{_name}"):
+                    _wfNames.append(f"{_ASYNC_WF_PREFIX}{_name}")        
+
+        workflow_names = tuple(name for name in _wfNames)
+
         setattr(target, _WORKFLOW_METADATA, workflow_names)
         setattr(target, _WORKFLOW_ASYNC, async_)
 

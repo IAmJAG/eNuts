@@ -56,8 +56,7 @@ def enableWinDarkTitleBar(hwnd: int) -> None:
 
 # ==================================================================================================
 def ApplyStyleSheet(wid: QApplication | QWidget, styleSheet: str | List[str]) -> None:
-    if isinstance(styleSheet, str):
-        styleSheet = [styleSheet]
+    if isinstance(styleSheet, str): styleSheet = [styleSheet]
     wid.setStyleSheet("\n\n".join(styleSheet))
 
 
