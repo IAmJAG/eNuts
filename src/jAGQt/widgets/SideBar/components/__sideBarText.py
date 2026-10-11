@@ -77,9 +77,9 @@ class SideBarText(QLabel, ComponentBase):
 
     # ==================================================================================
     def _applyElide(self) -> None:
-        text: Optional[str] = self.text()
+        text: Optional[str] = self._text
         if text == self.text(): return
-
+                
         if self._elideMode == Qt.TextElideMode.ElideNone:
             self.setText(text)
             return
