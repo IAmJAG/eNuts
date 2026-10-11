@@ -30,8 +30,8 @@ class SideBarText(QLabel, ComponentBase):
         super().__init__(objectName=OBJNAME, *args, **kwargs)
 
         self._alignment: Qt.AlignmentFlag = alignment
-        self._elideMode: Qt.TextElideMode = elideMode
-        self._text: str = text
+        self._elideMode: Qt.TextElideMode = elideMode        
+        self._text = text if text is not None else ""
 
     def _wInitializeUI(self):
         text: str = self._text
@@ -54,8 +54,8 @@ class SideBarText(QLabel, ComponentBase):
 
     @Text.setter
     def Text(self, value: str) -> None:        
-        self._text = value
-        self._applyElide()        
+        self._text = value if value is not None else ""
+        self._applyElide()
 
     @property
     def Alignment(self) -> Qt.AlignmentFlag:
@@ -79,7 +79,7 @@ class SideBarText(QLabel, ComponentBase):
     def _applyElide(self) -> None:
         text: Optional[str] = self._text
         if text == self.text(): return
-                
+
         if self._elideMode == Qt.TextElideMode.ElideNone:
             self.setText(text)
             return
