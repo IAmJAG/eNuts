@@ -2,9 +2,6 @@
 from __future__ import annotations
 
 # ==================================================================================
-from typing import Optional
-
-# ==================================================================================
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import (
     QKeyEvent,
@@ -20,17 +17,6 @@ from jAGQt.widgets.image import Image
 
 # ==================================================================================
 class imageStreamer(Image):
-    """Streaming image view: paints frames as a background and reports input.
-
-    Responsibilities:
-    - Paint a pixmap as a background (zoom/pan preserved across updates).
-    - Always fit the image on resize (feature, not an option).
-    - Observe keyboard and mouse; emit signals only — never process or inject.
-
-    Non-responsibilities:
-    - Decoding, control sockets, device geometry, frame events, key maps.
-    """
-
     TouchPressed = Signal(float, float)
     TouchMoved = Signal(float, float)
     TouchReleased = Signal(float, float)
@@ -59,7 +45,6 @@ class imageStreamer(Image):
 
     # ==================================================================================
     def SetStreamingImage(self, pixmap: QPixmap) -> None:
-        """Update pixels without resetView so zoom/pan survive across frames."""
         if pixmap is None or pixmap.isNull():
             return
 

@@ -14,12 +14,6 @@ from ..types.interface.application import iENUTSService, iShell
 
 # ==================================================================================
 class Shell(iShell):
-    """Device registry only. UI chrome is re-introduced layer by layer outside this file.
-
-    Layer 0: this stub is not mixed into MainWindow.
-    Later layers will call into UI builders and post-show device bind explicitly.
-    """
-
     def _ensureDeviceState(self) -> None:
         if not hasattr(self, "_devices"):
             self._devices: Dict[str, iDevice] = {}
@@ -47,7 +41,6 @@ class Shell(iShell):
         self._devices.pop(lId, None)
 
     async def initializeInstance(self: iMainWindowBase) -> None:
-        """Layer 0: no-op. Devices/bind return in a later layer."""
         return
 
     def bindServices(self, services: List[iENUTSService]) -> None:
