@@ -2,10 +2,8 @@
 # src/jAGQt/widgets/SideBar/components/__sideBarSeparator.py
 # ==================================================================================
 from enum import Enum, auto
-from typing import Optional
 
 # ==================================================================================
-from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QSizePolicy, QWidget
 
 # ==================================================================================
@@ -33,9 +31,7 @@ class SideBarSeparator(QFrame, ComponentBase):
     def __init__(
         self,
         separatorType: SeparatorType = SeparatorType.Line,
-        thickness: int = 1,
-        *args,
-        **kwargs,
+        thickness: int = 1, *args, **kwargs,
     ) -> None:
         OBJNAME: str = kwargs.pop("objectName", self.OBJECT_NAME)
         super().__init__(objectName=OBJNAME, *args, **kwargs)
