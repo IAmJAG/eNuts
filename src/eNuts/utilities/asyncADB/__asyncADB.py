@@ -17,7 +17,7 @@ async def ADBDevices() -> Dict[str, AdbDevice]:
     return {d.serial: d for d in (devices or [])}
 
 async def ADBShell(device: AdbDevice, cmd: str) -> str:
-    return to_thread(device.shell(cmd))
+    return await to_thread(device.shell, cmd)
 
 async def SCRCPYDevices() -> Dict[str, iSCRCPY]:
     adbDevices: Dict[str, AdbDevice] = await ADBDevices()
