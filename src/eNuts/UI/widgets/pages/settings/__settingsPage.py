@@ -25,6 +25,7 @@ from jAGQt.widgets import Page
 
 # ==================================================================================
 from .....configuration import eNutsConfiguration
+from .....utilities import ApplyStyleSheet, LoadStyleSheet
 
 # ==================================================================================
 C_THEME_NAMES: List[str] = ["dark", "light", "dracula", "ironman", "material"]
@@ -166,4 +167,5 @@ class SettingsPage(Page):
         lApp = QApplication.instance()
         if lApp is not None:
             _applyThemePalette(lApp, lTheme)
-            lApp.setStyleSheet(lCfg.styleSheet)
+            lSheets = LoadStyleSheet(lCfg.themePath, lTheme)
+            ApplyStyleSheet(lApp, lSheets)
