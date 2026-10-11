@@ -9,7 +9,6 @@ from fluxCore.types.interface.devices import iSCRCPY
 from fluxCore.types.interface.emitters import iSCRCPYEmitter
 from jAGFx.services import AsyncSubscription
 from jAGFx.workflow import workflow
-from utilities import createTask
 
 # ==================================================================================
 from ..utilities.asyncADB import ADBDevices, SCRCPYDevices
