@@ -34,31 +34,28 @@ class SideBarTitle(QLabel, ComponentBase):
         self._text: str = text
 
     def _wInitializeUI(self):
-        text: str = self._text        
+        text: str = self._text
         elideMode: Qt.TextElideMode = self._elideMode
         alignment: Qt.AlignmentFlag = self._alignment
 
-        del self._text
-        del self._elideMode
         del self._alignment
 
+        self._elideMode: Qt.TextElideMode = elideMode
         self.setSizePolicy(QPolicy.Expanding, QPolicy.Preferred)
         self.setWordWrap(False)
+        self.setAlignment(alignment)      
 
-        self._elideMode: Qt.TextElideMode = elideMode
-        self._alignment = alignment
-
-        self._text: str = text
+        self._applyElide()
     
     # ==================================================================================
     @property
     def Text(self) -> str:
-        return self.text()
+        return self._text
 
     @Text.setter
-    def Text(self, value: str) -> None:
-        self._rawText = value if value is not None else ""
-        self._applyElide()
+    def Text(self, value: str) -> None:        
+        self._text = value
+        self._applyElide()        
 
     @property
     def Alignment(self) -> Qt.AlignmentFlag:
@@ -80,18 +77,18 @@ class SideBarTitle(QLabel, ComponentBase):
 
     # ==================================================================================
     def _applyElide(self) -> None:
-
         text: Optional[str] = self.text()
         if text == self.text(): return
-        
+
         if self._elideMode == Qt.TextElideMode.ElideNone:
             self.setText(text)
             return
 
-        elideMode: Qt.TextElideMode = self._elideMode
-        width: int = self.width()
+        elideMode: Qt.TextElideMode = self._elideMode        
+        width: int = self.width()        
         metrics = self.fontMetrics()
         available = width if width > 0 else 200
+
         elided = metrics.elidedText(text, elideMode, available)
         self.setText(elided)
 
