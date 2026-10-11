@@ -5,7 +5,6 @@ import os
 from jAGFx.configuration import ApplicationConfiguration
 from jAGFx.singleton import SingletonC
 from jAGFx.types.interface.configuration import iConfiguration
-from utilities.io import getStyleSheet
 
 # ==================================================================================
 from ..types.interface.configuration import iENUTSConfiguration

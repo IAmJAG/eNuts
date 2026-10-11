@@ -3,7 +3,11 @@ import queue
 
 # ==================================================================================
 from logging import (
+    CRITICAL,
+    DEBUG,
+    ERROR,
     INFO,
+    WARNING,
     Filter,
     Formatter,
     getLogger,
@@ -47,6 +51,7 @@ DEF_FILE_FORMATTER: Dict[str, Any] = {
 fmtList = [
     "%(light_black)s[%(asctime)s]%(reset)s",
     "%(log_color)s[%(levelname)-8s]%(reset)s ",
+    "%(log_color)s[%(name)-8s]%(reset)s ",
     "%(message_log_color)s%(message)s%(reset)s",
 ]
 # "%(log_color)s[%(caller)-8s]%(reset)s ",
@@ -111,8 +116,7 @@ def _getConsoleLogger(name: str) -> colorlog.StreamHandler:
 def _refreshQueueListener() -> None:
     global G_LOG_LISTENER, G_LOG_QUEUE, G_ACTIVE_HANDLERS
 
-    if G_LOG_LISTENER is not None:
-        G_LOG_LISTENER.stop()
+    if G_LOG_LISTENER is not None: G_LOG_LISTENER.stop()
 
     if G_LOG_QUEUE is not None and G_ACTIVE_HANDLERS:
         G_LOG_LISTENER = QueueListener(G_LOG_QUEUE, *G_ACTIVE_HANDLERS, respect_handler_level=True)
@@ -141,8 +145,7 @@ def setupLogging(root: str, defaultLevel: int = G_DEFAULT_LEVEL) -> None:
 # ==================================================================================
 def addFileHandler(
     name: str, defaultLevel: int = G_DEFAULT_LEVEL, 
-    formatter: Formatter = DEF_FILE_FORMATTER,
-    filter: Filter = None
+    formatter: Formatter = DEF_FILE_FORMATTER, filter: Filter = None
 ) -> None:
     global G_ACTIVE_HANDLERS, G_DEFAULT_LEVEL
     G_DEFAULT_LEVEL = defaultLevel
@@ -179,6 +182,18 @@ def removeFileHandler(name: str) -> None:
 # ==================================================================================
 def setNamespaceLevel(namespace: str, level: int) -> None:
     NamespaceFilter.setNSLogLevel(namespace, level)
+
+def suppressedLogger(name: str | List[str], level: int = WARNING) -> None:
+    names: List[str] = name
+    if isinstance(names, str): names = [name]
+    for _name in names:
+        NamespaceFilter.addNameFilter(_name, level)
+
+def unsuppressedLogger(name: str | List[str]) -> None:
+    names: List[str] = name
+    if isinstance(names, str): names = [name]
+    for _name in names:        
+        NamespaceFilter.removeNameFilter(_name)
 
 # ==================================================================================
 def stopLogging():

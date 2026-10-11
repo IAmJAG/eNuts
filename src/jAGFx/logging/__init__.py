@@ -5,6 +5,8 @@ from .__utilities import (
     removeFileHandler,
     setNamespaceLevel,
     setupLogging,
+    suppressedLogger,
+    unsuppressedLogger,
 )
 
 # ==================================================================================
@@ -21,4 +23,6 @@ __all__ = [
     "error",
     "critical",
     "fatal",
+    "suppressedLogger",
+    "unsuppressedLogger",
 ]

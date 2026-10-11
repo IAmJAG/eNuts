@@ -21,16 +21,8 @@ from .__qtKeyMap import MapQtKeyToAndroid, MapQtModifiersToMeta
 
 # ==================================================================================
 class StreamPipeline:
-    """Bind a live device session to imageStreamer (frames + input).
-
-    Frame path: ON_FRAME → decode → SetStreamingImage.
-    Input path: streamer signals → image→device map + Qt→Android → adapter.
-    """
-
     def __init__(
-        self,
-        streamer: imageStreamer,
-        adapter: iDeviceInputAdapter | None = None,
+        self, streamer: imageStreamer, adapter: iDeviceInputAdapter | None = None,
     ) -> None:
         self._streamer: imageStreamer = streamer
         self._adapter: iDeviceInputAdapter = adapter or AndroidScrcpyInputAdapter()

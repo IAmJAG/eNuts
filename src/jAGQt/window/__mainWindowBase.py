@@ -14,7 +14,7 @@ from .windowBase import WindowBase
 
 
 # ==================================================================================
-@workflow("InitializeUI", "InitializeSettings", "RestoreWindowsState")
+@workflow("InitializeSettings", "RestoreWindowsState")
 class MainWindowBase(WindowBase):
     def __init__(self, name: str = None, *args, **kwargs) -> None:
         super().__init__(name, False, *args, **kwargs)
