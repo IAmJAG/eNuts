@@ -41,14 +41,7 @@ class ItemRole(Enum):
 
 # ==================================================================================
 class SideBarItem(QWidget, ComponentBase):
-    """Equal interactive unit for leaves and headers.
-
-    Code only sets depth / role / active / selected for QSS.
-    No font size or weight is applied in Python.
-    """
-
     Clicked = Signal(object)
-
     def __init__(
         self,
         text: str = "",

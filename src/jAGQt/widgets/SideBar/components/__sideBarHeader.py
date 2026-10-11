@@ -20,7 +20,7 @@ from ...components import ComponentBase
 
 # ==================================================================================
 from .__sideBarIcon import SideBarIcon
-from .__sideBarText import SideBarTitle
+from .__sideBarText import SideBarText
 
 
 # ==================================================================================

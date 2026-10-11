@@ -20,14 +20,11 @@ class SeparatorType(Enum):
 
 # ==================================================================================
 class SideBarSeparator(QFrame, ComponentBase):
-    """Independent separator or stretcher that can be inserted between SideBar items."""
-
     def __init__(
         self, separatorType: SeparatorType = SeparatorType.Line, thickness: int = 1,
         parent: Optional[QWidget] = None, *args, **kwargs,
     ) -> None:
         super().__init__(parent, *args, **kwargs)
-
         self.setObjectName("SideBarSeparator")
         self._separatorType: SeparatorType = separatorType
         self._thickness: int = max(0, thickness)
