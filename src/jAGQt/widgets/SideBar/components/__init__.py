@@ -7,7 +7,7 @@ from .__sideBarIcon import SideBarIcon
 from .__sideBarIcons import MakeBurgerIcon, MakeCloseIcon
 from .__sideBarItem import IconPosition, ItemDisplayMode, ItemRole, SideBarTitle
 from .__sideBarSeparator import SeparatorType, SideBarSeparator
-from .__sideBarTitle import SideBarTitle
+from .__sideBarText import SideBarTitle
 
 # ==================================================================================
 __all__ = [
