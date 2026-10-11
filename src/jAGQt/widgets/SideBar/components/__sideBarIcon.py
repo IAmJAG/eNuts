@@ -27,25 +27,21 @@ class SideBarIcon(QLabel, ComponentBase):
         OBJNAME: str = kwargs.pop("objectName", self.OBJECT_NAME)
         super().__init__(objectName=OBJNAME, *args, **kwargs)
         self._icon: Optional[Union[QIcon, QPixmap]] = icon
-        self._iconSize: int = iconSize
-
+        self._iconSize: int = max(1, iconSize)
 
     def _wInitializeUI(self):
-        iconSize: int = self._iconSize
+        icon: Optional[Union[QIcon, QPixmap]] = self._icon
+        iconSize: int = max(1, self._iconSize)
+
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.setSizePolicy(QPolicy.Fixed, QPolicy.Fixed)
         self.setScaledContents(False)
         self.setFixedSize(QSize(iconSize, iconSize))
 
+        self._normalizeIcon(icon)
         self._updatePixmap()
 
-    # ================================================================================== 
-    def setIcon(self, icon: Optional[Union[QIcon, QPixmap, str]]):
-        if icon is None:
-            self._icon = None
-            self.clear()
-            return
-
+    def _normalizeIcon(self, icon: Optional[Union[QIcon, QPixmap, str]]):
         self._icon = None
         if isinstance(icon, str):
             pixmap: QPixmap = QPixmap(icon)
@@ -59,6 +55,14 @@ class SideBarIcon(QLabel, ComponentBase):
         elif isinstance(icon, (QIcon, QPixmap)):
             self._icon = icon
 
+    # ================================================================================== 
+    def setIcon(self, icon: Optional[Union[QIcon, QPixmap, str]]):
+        if icon is None:
+            self._icon = None
+            self.clear()
+            return
+
+        self._normalizeIcon(icon)
         self._updatePixmap()
 
     # ==================================================================================
