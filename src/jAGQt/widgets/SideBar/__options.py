@@ -10,9 +10,11 @@ class sideBarConfig:
     def __init__(self, **kwargs) -> None:
         self._expandedWidth = 240
         self._collapsedWidth = 48
+
         self._iconSize = self._collapsedWidth - (4 * _ICON_PADDING)
-        self._dockPosition = DockPosition.Left
-        self._startCollapsed = False
+        self._dockPosition = DockPosition.Left        
+        self._isCollapsed: bool = False
+        
         self._autoCollapse = False
         self._animationDuration = 220
 
@@ -38,8 +40,8 @@ class sideBarConfig:
         return self._dockPosition
 
     @property
-    def startCollapsed(self) -> bool:
-        return self._startCollapsed
+    def isCollapsed(self) -> bool:
+        return self._isCollapsed
 
     @property
     def autoCollapse(self) -> bool:

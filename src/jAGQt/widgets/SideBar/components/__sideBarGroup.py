@@ -21,7 +21,7 @@ from .__sideBarItem import (
     IconPosition,
     ItemDisplayMode,
     ItemRole,
-    SideBarItem,
+    SideBarTitle,
 )
 from .__sideBarSeparator import SeparatorType, SideBarSeparator
 

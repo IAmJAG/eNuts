@@ -17,7 +17,7 @@ from ...components import ComponentBase
 
 # ==================================================================================
 from .__sideBarIcon import SideBarIcon
-from .__sideBarText import SideBarText
+from .__sideBarTitle import SideBarTitle
 
 
 # ==================================================================================
@@ -82,7 +82,7 @@ class SideBarItem(QWidget, ComponentBase):
         self._role: ItemRole = role
 
         self._iconWidget = SideBarIcon(icon=icon, iconSize=iconSize, parent=self)
-        self._textWidget = SideBarText(text=text, parent=self)
+        self._textWidget = SideBarTitle(text=text, parent=self)
 
         self._layout: QBoxLayout = newLayout(QBoxLayout, spacing=spacing, margins=(6, 4, 6, 4))
         self.setLayout(self._layout)
@@ -213,7 +213,7 @@ class SideBarItem(QWidget, ComponentBase):
         return self._iconWidget
 
     @property
-    def TextWidget(self) -> SideBarText:
+    def TextWidget(self) -> SideBarTitle:
         return self._textWidget
 
     # ==================================================================================

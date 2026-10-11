@@ -1,103 +1,97 @@
 # ==================================================================================
-# src/jAGQt/widgets/SideBar/components/__sideBarIcon.py
-# ==================================================================================
 from typing import Optional, Union
 
 # ==================================================================================
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QIcon, QPixmap
-from PySide6.QtWidgets import QLabel, QSizePolicy, QWidget
+from PySide6.QtWidgets import QLabel, QSizePolicy
+
+# ==================================================================================
+from jAGFx.workflow import workflow
 
 # ==================================================================================
 from ...components import ComponentBase
 
+# ==================================================================================
+QPolicy = QSizePolicy.Policy
+# ==================================================================================
 
 # ==================================================================================
+@workflow
 class SideBarIcon(QLabel, ComponentBase):
-    """Independent square icon widget for SideBar items.
-
-    Always maintains a 1:1 aspect ratio. Size is fully configurable.
-    """
-
+    OBJECT_NAME = "W_SIDEBAR_ICON"
     def __init__(
         self, icon: Optional[Union[QIcon, QPixmap, str]] = None,
-        iconSize: int = 24, parent: Optional[QWidget] = None, *args, **kwargs
-    ) -> None:
-        super().__init__(parent, *args, **kwargs)
+        iconSize: int = 24, *args, **kwargs
+    ) -> None:        
+        OBJNAME: str = kwargs.pop("objectName", self.OBJECT_NAME)
+        super().__init__(objectName=OBJNAME, *args, **kwargs)
+        self._icon: Optional[Union[QIcon, QPixmap]] = icon
+        self._iconSize: int = iconSize
 
-        self.setObjectName("SideBarIcon")
+
+    def _wInitializeUI(self):
+        iconSize: int = self._iconSize
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self.setSizePolicy(QPolicy.Fixed, QPolicy.Fixed)
         self.setScaledContents(False)
+        self.setFixedSize(QSize(iconSize, iconSize))
 
-        self._iconSize: int = max(1, iconSize)
-        self._icon: Optional[Union[QIcon, QPixmap]] = None
-
-        self.IconSize = self._iconSize
-        if icon is not None:
-            self.SetIcon(icon)
-
-    # ================================================================================== public API
-    def SetIcon(self, icon: Optional[Union[QIcon, QPixmap, str]]) -> None:
-        """Accepts QIcon, QPixmap, or a resource/file path string."""
+    # ================================================================================== 
+    def setIcon(self, icon: Optional[Union[QIcon, QPixmap, str]]):
         if icon is None:
             self._icon = None
             self.clear()
             return
 
+        self._icon = None
         if isinstance(icon, str):
-            lPixmap = QPixmap(icon)
-            if lPixmap.isNull():
-                lIcon = QIcon(icon)
-                self._icon = lIcon if not lIcon.isNull() else None
+            pixmap: QPixmap = QPixmap(icon)
+            if pixmap.isNull():
+                icon: QIcon = QIcon(icon)
+                self._icon = icon if not icon.isNull() else None
 
             else:
-                self._icon = lPixmap
+                self._icon = pixmap
 
         elif isinstance(icon, (QIcon, QPixmap)):
             self._icon = icon
 
-        else:
-            self._icon = None
-
         self._updatePixmap()
 
-    def ClearIcon(self) -> None:
-        self.SetIcon(None)
-
-    # ================================================================================== properties
+    # ==================================================================================
     @property
-    def IconSize(self) -> int:
+    def iconSize(self) -> int:
         return self._iconSize
 
-    @IconSize.setter
-    def IconSize(self, value: int) -> None:
-        lSize = max(1, int(value))
-        if lSize == self._iconSize: return
-        self._iconSize = lSize
-        self.setFixedSize(QSize(lSize, lSize))
+    @iconSize.setter
+    def iconSize(self, value: int) -> None:
+        size = max(1, int(value))
+        if size == self._iconSize: return
+        self._iconSize = size
+        self.setFixedSize(QSize(size, size))
         self._updatePixmap()
 
     @property
-    def Icon(self) -> Optional[Union[QIcon, QPixmap]]:
+    def icon(self) -> Optional[Union[QIcon, QPixmap]]:
         return self._icon
 
-    # ================================================================================== private
+    # ==================================================================================
     def _updatePixmap(self) -> None:
         if self._icon is None:
             self.clear()
             return
 
-        lTarget = QSize(self._iconSize, self._iconSize)
-
+        iconSize: int = self._iconSize
+        target = QSize(iconSize, iconSize)
         if isinstance(self._icon, QIcon):
-            lPixmap = self._icon.pixmap(lTarget)
+            pixmap = self._icon.pixmap(target)
 
         else:
-            lPixmap = self._icon.scaled(
-                lTarget,
+            pixmap = self._icon.scaled(
+                target,
                 Qt.AspectRatioMode.KeepAspectRatio,
                 Qt.TransformationMode.SmoothTransformation,
             )
 
-        self.setPixmap(lPixmap)
+        self.setPixmap(pixmap)

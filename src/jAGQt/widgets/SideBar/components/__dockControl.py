@@ -10,6 +10,7 @@ from PySide6.QtGui import QIcon, QMouseEvent
 from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 
 # ==================================================================================
+from jAGFx.workflow import workflow
 from jAGQt.icons import MakeArrowLeftIcon, MakeArrowRightIcon
 from jAGQt.icons.animations import IconTransposeAnimation
 from jAGQt.types import DockPosition
@@ -23,34 +24,33 @@ from .__sideBarIcon import SideBarIcon
 
 
 # ==================================================================================
-class SideBarDockControl(QWidget, ComponentBase):
-    """Bottom dock flip control with optional arrow transpose animation."""
-
+@workflow
+class DockControl(QWidget, ComponentBase):
+    OBJECT_NAME = "W_SIDEBAR_DOCK_CONTROL"
     DockFlipRequested = Signal()
-
     def __init__(
-        self,
-        dockPosition: DockPosition = DockPosition.Left,
-        iconSize: int = 16,
-        parent: Optional[QWidget] = None,
+        self, dockPosition: DockPosition = DockPosition.Left,
+        iconSize: int = 16, *args, **kwargs
     ) -> None:
-        super().__init__(parent)
-
-        self.setObjectName("SideBarDockControl")
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        OBJNAME: str = kwargs.pop("objectName", self.OBJECT_NAME)
+        super().__init__(objectName=OBJNAME, * args, **kwargs)
 
         self._dockPosition: DockPosition = dockPosition
         self._iconSize: int = max(1, int(iconSize))
 
-        self._arrow: SideBarIcon = SideBarIcon(
-            icon=None,
-            iconSize=self._iconSize,
-            parent=self,
-        )
-        self._arrow.setObjectName("SideBarDockArrow")
-        self._arrow.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._arrow.mousePressEvent = self._onArrowClicked  # type: ignore
+    def _wInitializeUI(self):
+        iconSize: int = self._iconSize
+
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+
+        OBJNAME: str = "W_SIDEBAR_ICON"
+        arrow: SideBarIcon = SideBarIcon(icon=None, iconSize=iconSize)        
+        arrow.setObjectName(OBJNAME)
+        arrow.setCursor(Qt.CursorShape.PointingHandCursor)
+        arrow.mousePressEvent = self._onArrowClicked
+
+        self._arrow: SideBarIcon = arrow
 
         self._layout: QBoxLayout = newLayout(
             QBoxLayout,
@@ -90,7 +90,7 @@ class SideBarDockControl(QWidget, ComponentBase):
             self._rebuild(animate=False)
 
     @property
-    def DockPosition(self) -> DockPosition:
+    def dockPosition(self) -> DockPosition:
         return self._dockPosition
 
     # ==================================================================================

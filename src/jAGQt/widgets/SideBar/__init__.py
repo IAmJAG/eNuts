@@ -14,7 +14,7 @@ from .components import (
     SideBarIcon,
     SideBarItem,
     SideBarSeparator,
-    SideBarText,
+    SideBarTitle,
 )
 
 # ==================================================================================

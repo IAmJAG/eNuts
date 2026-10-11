@@ -11,7 +11,13 @@ from ...configuration import ApplicationInformation
 
 
 # ==================================================================================
-@workflow("Initialize", "InitializeSettings", "InitializeInfo", "RestoreWindowsState")
+@workflow(
+    "Initialize",
+    "InitalizeShellUI",
+    "InitializeSettings",
+    "InitializeInfo",
+    "RestoreWindowsState",
+)
 class MainWindow(MainWindowBase, ApplicationInformation, Shell):
     def __init__(self, shutdownEvent: Event, *args, **kwargs) -> None:
         super().__init__("ENUTS_WINDOW", *args, **kwargs)

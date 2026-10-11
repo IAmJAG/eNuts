@@ -26,11 +26,15 @@ class Subscription(iSubscription):
             for callback in self._callbacks[event]:
                 callback(*args, **kwargs)
 
+    def setSuppressEvent(self, value: bool) -> None:
+        self._suppressEvent = value
+
 
 # ==================================================================================
 class AsyncSubscription(Subscription):
     def __init__(self) -> None:
         super().__init__()
+        self._suppressEvent = False
 
     def subscribe(self, event: str, callback: Callable[..., Awaitable]) -> None:
         super().subscribe(event, callback)
@@ -39,8 +43,8 @@ class AsyncSubscription(Subscription):
         super().unsubscribe(event, callback)
 
     def raiseEvent(self, event: str, *args, **kwargs) -> None:
-        if event not in self._callbacks:
-            return
+        if event not in self._callbacks: return
+        if self._suppressEvent: return
 
         for callback in self._callbacks[event]:
             if not callable(callback):
@@ -55,6 +59,7 @@ class AsyncSubscription(Subscription):
 
     async def asyncRaiseEvent(self, event: str, *args, **kwargs) -> None:
         if event not in self._callbacks: return
+        if self._suppressEvent: return
 
         for callback in self._callbacks[event]:
             if not callable(callback):
@@ -65,6 +70,8 @@ class AsyncSubscription(Subscription):
 
             else:
                 callback(*args, **kwargs)
+
+        
 
 
 # ==================================================================================

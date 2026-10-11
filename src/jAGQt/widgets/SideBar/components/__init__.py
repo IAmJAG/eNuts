@@ -5,14 +5,14 @@ from .__sideBarGroup import SideBarGroup
 from .__sideBarHeader import SideBarHeader
 from .__sideBarIcon import SideBarIcon
 from .__sideBarIcons import MakeBurgerIcon, MakeCloseIcon
-from .__sideBarItem import IconPosition, ItemDisplayMode, ItemRole, SideBarItem
+from .__sideBarItem import IconPosition, ItemDisplayMode, ItemRole, SideBarTitle
 from .__sideBarSeparator import SeparatorType, SideBarSeparator
-from .__sideBarText import SideBarText
+from .__sideBarTitle import SideBarTitle
 
 # ==================================================================================
 __all__ = [
     "SideBarIcon",
-    "SideBarText",
+    "SideBarTitle",
     "SideBarItem",
     "ItemDisplayMode",
     "ItemRole",

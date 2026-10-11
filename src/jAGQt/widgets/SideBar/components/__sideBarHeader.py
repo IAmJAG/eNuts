@@ -10,6 +10,7 @@ from PySide6.QtGui import QIcon, QMouseEvent
 from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 
 # ==================================================================================
+from jAGFx.workflow import workflow
 from jAGQt.icons import MakeBurgerIcon, MakeCloseIcon
 from jAGQt.icons.animations import IconMorphAnimation
 
@@ -19,44 +20,48 @@ from ...components import ComponentBase
 
 # ==================================================================================
 from .__sideBarIcon import SideBarIcon
-from .__sideBarText import SideBarText
+from .__sideBarTitle import SideBarTitle
 
 
 # ==================================================================================
+@workflow
 class SideBarHeader(QWidget, ComponentBase):
-    """Header strip: [burger|X icon] [title]. Morph animates icon swap."""
-
+    OBJECT_NAME = "W_SIDEBAR_HEADER"
     CollapseRequested = Signal()
-
     def __init__(
-        self,
-        title: str = "",
-        iconSize: int = 20,
-        spacing: int = 8,
-        parent: Optional[QWidget] = None,
-        *args,
-        **kwargs,
+        self, 
+        title: str = "", iconSize: int = 20, spacing: int = 8,
+        *args, **kwargs,
     ) -> None:
-        super().__init__(parent, *args, **kwargs)
+        OBJNAME: str = kwargs.pop("objectName", self.OBJECT_NAME)
+        super().__init__(objectName=OBJNAME, *args, **kwargs)
+        self._title: str = title
+        self._iconSize: int = iconSize
+        self._spacing: int = spacing
 
-        self.setObjectName("SideBarHeader")
+    def _wInitializeUI(self):
+        title: str = self._title
+        iconSize: int = max(1, int(self._iconSize))
+        spacing: int = self._spacing
+
+        del self._title
+        del self._iconSize
+        del self._spacing
+
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
-        self._collapsed: bool = False
-        self._iconSize: int = max(1, int(iconSize))
-        self._burgerIcon: QIcon = MakeBurgerIcon(self._iconSize)
-        self._closeIcon: QIcon = MakeCloseIcon(self._iconSize)
+        collapsed: bool = False
+        burgerIcon: QIcon = MakeBurgerIcon(iconSize)
+        closeIcon: QIcon = MakeCloseIcon(iconSize)
 
-        self._toggleIcon: SideBarIcon = SideBarIcon(
-            icon=self._burgerIcon,
-            iconSize=self._iconSize,
-            parent=self,
-        )
-        self._toggleIcon.setObjectName("SideBarHeaderToggle")
-        self._toggleIcon.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._toggleIcon.mousePressEvent = self._onToggleClicked  # type: ignore
+        toggleIcon: SideBarIcon = SideBarIcon(icon=burgerIcon, iconSize=iconSize)
+        toggleIcon.setCursor(Qt.CursorShape.PointingHandCursor)
+        toggleIcon.mousePressEvent = self._onToggleClicked
 
+        titleWidget: SideBarText = SideBarText(text=title)
+
+        self._toggleIcon: SideBarIcon = toggleIcon
         self._titleWidget: SideBarText = SideBarText(text=title, parent=self)
         self._titleWidget.setObjectName("SideBarHeaderTitle")
 

@@ -4,6 +4,7 @@ from typing import Dict, List
 
 # ==================================================================================================
 from adbutils import AdbDevice, adb
+from adbutils.errors import AdbError
 
 # ==================================================================================================
 from fluxCore.devices import SCRCPY
@@ -13,19 +14,33 @@ from fluxCore.types.interface.devices import iSCRCPY
 
 # ==================================================================================================
 async def ADBDevices() -> Dict[str, AdbDevice]:
-    devices: List[AdbDevice] = list(adb.device_list())
+    deviceList: List[AdbDevice] = await to_thread(adb.device_list)
+    devices: List[AdbDevice] = list(deviceList)
     return {d.serial: d for d in (devices or [])}
 
 async def ADBShell(device: AdbDevice, cmd: str) -> str:
-    return await to_thread(device.shell, cmd)
+    try:
+        return await to_thread(device.shell, cmd)
+
+    except RuntimeError as ex:
+        if ex.args[0] == "no running event loop":
+            warning(f"Device {device.serial} not found")
+            return None
+
+        raise ex
 
 async def SCRCPYDevices() -> Dict[str, iSCRCPY]:
     adbDevices: Dict[str, AdbDevice] = await ADBDevices()
     scrcpyDevices: Dict[str, iDevice] = {}
     for d in adbDevices.values():
         serial: str = d.serial
-        model: str = await ADBShell(d, "getprop ro.product.model")
-        manufacturer: str = await ADBShell(d, "getprop ro.product.manufacturer")
+        try:
+            model: str = await ADBShell(d, "getprop ro.product.model")
+            manufacturer: str = await ADBShell(d, "getprop ro.product.manufacturer")
+        
+        except AdbError:
+            continue
+
         scrcpy: iSCRCPY = SCRCPY(serial, model, manufacturer)
         scrcpyDevices[serial] = scrcpy
 

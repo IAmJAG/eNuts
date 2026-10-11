@@ -12,17 +12,17 @@ from jAGFx.services import AsyncSubscription
 from jAGFx.workflow import workflow
 
 # ==================================================================================
-from ..utilities.asyncADB import ADBDevices, SCRCPYDevices
+from ...utilities.asyncADB import ADBDevices, SCRCPYDevices
 
 # ==================================================================================
 DEVICE_ADDED_EVENT: str = "deviceManager.deviceAdded"
 DEVICE_REMOVED_EVENT: str = "deviceManager.deviceRemoved"
+DEVICE_INITIALIZED_EVENT: str = "deviceManager.deviceInitialized"
 POLL_INTERVAL: float = 2.0
 # ==================================================================================
 
 
 # ==================================================================================
-@workflow
 class deviceManager(AsyncSubscription, Dict[str, iDevice]):    
     def __init__(self, shutdownEvent: Event, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -40,9 +40,18 @@ class deviceManager(AsyncSubscription, Dict[str, iDevice]):
 
             return devices
         
-        while not isShutingdown():
+        devices: Dict[str, iDevice] = await _getDevices()
+        self.setSuppressEvent(True)
+        for deviceId in devices.keys(): 
+            if not isShutingdown():
+                device: iDevice = devices.get(deviceId, None)
+                if device is not None: self.addDevice(device)            
+        self.setSuppressEvent(False)
+        self.raiseEvent(DEVICE_INITIALIZED_EVENT, self)
+        
+        while not isShutingdown():            
             devices: Dict[str, iDevice] = await _getDevices()
-            
+
             curDeviceIds: List[str] = list(devices.keys())
             oldDeviceIds: List[str] = list(self.keys())
 
@@ -56,9 +65,10 @@ class deviceManager(AsyncSubscription, Dict[str, iDevice]):
             for deviceId in removedDeviceIds:
                 self.removeDevice(deviceId)
 
-            await asyncSleep(POLL_INTERVAL)
+            if not isShutingdown():
+                await asyncSleep(POLL_INTERVAL)
 
-    def _aRunDiscovery(self) -> None:
+    def runDiscovery(self) -> None:
         async def _discoveryRunner() -> None:
             await self._discovery()
 
