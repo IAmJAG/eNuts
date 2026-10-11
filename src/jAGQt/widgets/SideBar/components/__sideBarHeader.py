@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Optional
 
 # ==================================================================================
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QEvent, QObject, Qt, Signal
 from PySide6.QtGui import QIcon, QMouseEvent
 from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 
@@ -22,46 +22,56 @@ from ...components import ComponentBase
 from .__sideBarIcon import SideBarIcon
 from .__sideBarText import SideBarText
 
+# ==================================================================================
+QPolicy = QSizePolicy.Policy
+# ==================================================================================
+
 
 # ==================================================================================
 @workflow
 class SideBarHeader(QWidget, ComponentBase):
     OBJECT_NAME = "W_SIDEBAR_HEADER"
     CollapseRequested = Signal()
+
     def __init__(
-        self, 
-        title: str = "", iconSize: int = 20, spacing: int = 8,
-        *args, **kwargs,
+        self,
+        title: str = "",
+        iconSize: int = 20,
+        spacing: int = 8,
+        *args,
+        **kwargs,
     ) -> None:
         OBJNAME: str = kwargs.pop("objectName", self.OBJECT_NAME)
         super().__init__(objectName=OBJNAME, *args, **kwargs)
-        self._title: str = title
-        self._iconSize: int = iconSize
-        self._spacing: int = spacing
+        self._title: str = title if title is not None else ""
+        self._iconSize: int = max(1, int(iconSize))
+        self._spacing: int = int(spacing)
 
-    def _wInitializeUI(self):
-        title: str = self._title
+    def _wInitializeUI(self) -> None:
+        title: str = self._title if self._title is not None else ""
         iconSize: int = max(1, int(self._iconSize))
-        spacing: int = self._spacing
+        spacing: int = int(self._spacing)
 
         del self._title
         del self._iconSize
         del self._spacing
 
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self._collapsed: bool = False
+
+        self.setSizePolicy(QPolicy.Expanding, QPolicy.Fixed)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
-        collapsed: bool = False
-        burgerIcon: QIcon = MakeBurgerIcon(iconSize)
-        closeIcon: QIcon = MakeCloseIcon(iconSize)
+        self._burgerIcon: QIcon = MakeBurgerIcon(iconSize)
+        self._closeIcon: QIcon = MakeCloseIcon(iconSize)
 
-        toggleIcon: SideBarIcon = SideBarIcon(icon=burgerIcon, iconSize=iconSize)
-        toggleIcon.setCursor(Qt.CursorShape.PointingHandCursor)
-        toggleIcon.mousePressEvent = self._onToggleClicked
+        self._toggleIcon: SideBarIcon = SideBarIcon(
+            icon=self._burgerIcon,
+            iconSize=iconSize,
+            parent=self,
+        )
+        self._toggleIcon.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._toggleIcon.installEventFilter(self)
 
-        titleWidget: SideBarText = SideBarText(text=title)
-
-        self._toggleIcon: SideBarIcon = toggleIcon
         self._titleWidget: SideBarText = SideBarText(text=title, parent=self)
         self._titleWidget.setObjectName("SideBarHeaderTitle")
 
@@ -72,13 +82,12 @@ class SideBarHeader(QWidget, ComponentBase):
             direction=QBoxLayout.Direction.LeftToRight,
         )
         self.setLayout(self._layout)
-
         self._layout.addWidget(self._toggleIcon)
         self._layout.addWidget(self._titleWidget, 1)
 
         self._morph: IconMorphAnimation = IconMorphAnimation(
             target=self._toggleIcon,
-            iconSize=self._iconSize,
+            iconSize=iconSize,
             durationMs=160,
             parent=self,
         )
@@ -106,21 +115,20 @@ class SideBarHeader(QWidget, ComponentBase):
 
     @Title.setter
     def Title(self, value: str) -> None:
-        self._titleWidget.Text = value
+        self._titleWidget.Text = value if value is not None else ""
 
     @property
     def IconSize(self) -> int:
-        return self._iconSize
+        return self._toggleIcon.iconSize
 
     @IconSize.setter
     def IconSize(self, value: int) -> None:
         lSize: int = max(1, int(value))
-        if lSize == self._iconSize:
+        if lSize == self._toggleIcon.iconSize:
             return
-        self._iconSize = lSize
+        self._toggleIcon.iconSize = lSize
         self._burgerIcon = MakeBurgerIcon(lSize)
         self._closeIcon = MakeCloseIcon(lSize)
-        self._toggleIcon.IconSize = lSize
         self._morph.SetIconSize(lSize)
         self._refreshToggleIcon(animate=False)
 
@@ -133,6 +141,17 @@ class SideBarHeader(QWidget, ComponentBase):
         self.SetCollapsed(value)
 
     # ==================================================================================
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
+        if (
+            watched is self._toggleIcon
+            and event.type() == QEvent.Type.MouseButtonPress
+            and isinstance(event, QMouseEvent)
+            and event.button() == Qt.MouseButton.LeftButton
+        ):
+            self.CollapseRequested.emit()
+            return True
+        return super().eventFilter(watched, event)
+
     def _refreshToggleIcon(self, animate: bool = True) -> None:
         lStart: QIcon = self._closeIcon if not self._collapsed else self._burgerIcon
         lEnd: QIcon = self._closeIcon if self._collapsed else self._burgerIcon
@@ -140,7 +159,7 @@ class SideBarHeader(QWidget, ComponentBase):
             self._morph.SetIcons(lStart, lEnd)
             self._morph.Start()
         else:
-            self._toggleIcon.SetIcon(lEnd)
+            self._toggleIcon.setIcon(lEnd)
 
     def _applyCollapsedVisual(self, animate: bool = True) -> None:
         self._refreshToggleIcon(animate=animate)
@@ -148,7 +167,3 @@ class SideBarHeader(QWidget, ComponentBase):
         self.setProperty("collapsed", "true" if self._collapsed else "false")
         self.style().unpolish(self)
         self.style().polish(self)
-
-    def _onToggleClicked(self, event: QMouseEvent) -> None:
-        if event.button() == Qt.MouseButton.LeftButton:
-            self.CollapseRequested.emit()
