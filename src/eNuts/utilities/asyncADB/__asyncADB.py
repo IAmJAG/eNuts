@@ -1,4 +1,5 @@
 # ==================================================================================================
+from asyncio import to_thread
 from typing import Dict, List
 
 # ==================================================================================================
@@ -16,7 +17,7 @@ async def ADBDevices() -> Dict[str, AdbDevice]:
     return {d.serial: d for d in (devices or [])}
 
 async def ADBShell(device: AdbDevice, cmd: str) -> str:
-    return device.shell(cmd)
+    return to_thread(device.shell(cmd))
 
 async def SCRCPYDevices() -> Dict[str, iSCRCPY]:
     adbDevices: Dict[str, AdbDevice] = await ADBDevices()
