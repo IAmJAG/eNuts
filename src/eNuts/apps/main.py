@@ -25,6 +25,18 @@ from ..utilities import (
 
 
 # ==================================================================================================
+async def initializeWindow(shutdownEvent: Event, *args, **kwargs):
+    win: MainWindow = MainWindow(shutdownEvent, *args, **kwargs)
+    win.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+    win.setAutoFillBackground(True)
+
+    if platform == "win32":
+        win.winId()
+        enableWinDarkTitleBar(int(win.winId()))
+
+    return win
+
+# ==================================================================================================
 async def main(app: QApplication, *args, **kwargs):
     cfg: iENUTSConfiguration | iApplicationConfiguration = eNutsConfiguration()
     
@@ -38,15 +50,8 @@ async def main(app: QApplication, *args, **kwargs):
         styleSheets: List[str] = loadStyleSheet(cfg.themePath, cfg.style)
         applyStyleSheet(app, styleSheets)
 
-        lWin: MainWindow = MainWindow(shutdownEvent, *args, **kwargs)
-        lWin.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        lWin.setAutoFillBackground(True)
-
-        if platform == "win32":
-            lWin.winId()
-            enableWinDarkTitleBar(int(lWin.winId()))
-
-        lWin.show()
+        win: MainWindow = await initializeWindow(shutdownEvent, *args, **kwargs)
+        win.show()        
 
         app.setQuitOnLastWindowClosed(True)
         await shutdownEvent.wait()
@@ -58,8 +63,7 @@ async def main(app: QApplication, *args, **kwargs):
         error(f"[main] Error occur {str(ex)}", ex)
 
     finally:
-        if not shutdownEvent.is_set():
-            shutdownEvent.set()
+        if not shutdownEvent.is_set(): shutdownEvent.set()
 
     app.quit()
 
@@ -67,7 +71,6 @@ async def main(app: QApplication, *args, **kwargs):
 # ==================================================================================================
 def program(*args):
     QApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts, True)
-
     app: QApplication = QApplication()
     loop: QEventLoop = QEventLoop(app)
 
