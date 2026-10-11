@@ -9,7 +9,14 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QSizePolicy, QWidget
 
 # ==================================================================================
+from jAGFx.workflow import workflow
+
+# ==================================================================================
 from ...components import ComponentBase
+
+# ==================================================================================
+QPolicy = QSizePolicy.Policy
+# ==================================================================================
 
 
 # ==================================================================================
@@ -19,29 +26,38 @@ class SeparatorType(Enum):
 
 
 # ==================================================================================
+@workflow
 class SideBarSeparator(QFrame, ComponentBase):
+    OBJECT_NAME = "W_SIDEBAR_SEPARATOR"
+
     def __init__(
-        self, separatorType: SeparatorType = SeparatorType.Line, thickness: int = 1,
-        parent: Optional[QWidget] = None, *args, **kwargs,
+        self,
+        separatorType: SeparatorType = SeparatorType.Line,
+        thickness: int = 1,
+        *args,
+        **kwargs,
     ) -> None:
-        super().__init__(parent, *args, **kwargs)
-        self.setObjectName("SideBarSeparator")
+        OBJNAME: str = kwargs.pop("objectName", self.OBJECT_NAME)
+        super().__init__(objectName=OBJNAME, *args, **kwargs)
         self._separatorType: SeparatorType = separatorType
-        self._thickness: int = max(0, thickness)
+        self._thickness: int = max(0, int(thickness))
+
+    def _wInitializeUI(self) -> None:
         self._applyType()
 
-    # ================================================================================== public API
+    # ==================================================================================
     def SetType(self, separatorType: SeparatorType) -> None:
         self.Type = separatorType
 
-    # ================================================================================== properties
+    # ==================================================================================
     @property
     def Type(self) -> SeparatorType:
         return self._separatorType
 
     @Type.setter
     def Type(self, value: SeparatorType) -> None:
-        if value == self._separatorType: return
+        if value == self._separatorType:
+            return
         self._separatorType = value
         self._applyType()
 
@@ -51,22 +67,29 @@ class SideBarSeparator(QFrame, ComponentBase):
 
     @Thickness.setter
     def Thickness(self, value: int) -> None:
-        lValue = max(0, int(value))
-        if lValue == self._thickness: return
+        lValue: int = max(0, int(value))
+        if lValue == self._thickness:
+            return
         self._thickness = lValue
         self._applyType()
 
-    # ================================================================================== private
+    # ==================================================================================
     def _applyType(self) -> None:
-        if self._separatorType == SeparatorType.Stretcher:
+        if self._separatorType is SeparatorType.Stretcher:
             self.setFrameShape(QFrame.Shape.NoFrame)
-            self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-            self.setFixedHeight(0)
+            self.setSizePolicy(QPolicy.Expanding, QPolicy.Expanding)
             self.setMinimumHeight(0)
             self.setMaximumHeight(16777215)
-
         else:
+            thickness: int = max(1, self._thickness)
             self.setFrameShape(QFrame.Shape.HLine)
             self.setFrameShadow(QFrame.Shadow.Sunken)
-            self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-            self.setFixedHeight(self._thickness)
+            self.setSizePolicy(QPolicy.Expanding, QPolicy.Fixed)
+            self.setFixedHeight(thickness)
+
+        self.setProperty(
+            "separatorType",
+            "stretcher" if self._separatorType is SeparatorType.Stretcher else "line",
+        )
+        self.style().unpolish(self)
+        self.style().polish(self)
