@@ -46,27 +46,27 @@ class SideBarSeparator(QFrame, ComponentBase):
         self._applyType()
 
     # ==================================================================================
-    def SetType(self, separatorType: SeparatorType) -> None:
+    def setType(self, separatorType: SeparatorType) -> None:
         self.Type = separatorType
 
     # ==================================================================================
     @property
-    def Type(self) -> SeparatorType:
+    def type(self) -> SeparatorType:
         return self._separatorType
 
-    @Type.setter
-    def Type(self, value: SeparatorType) -> None:
+    @type.setter
+    def type(self, value: SeparatorType) -> None:
         if value == self._separatorType:
             return
         self._separatorType = value
         self._applyType()
 
     @property
-    def Thickness(self) -> int:
+    def thickness(self) -> int:
         return self._thickness
 
-    @Thickness.setter
-    def Thickness(self, value: int) -> None:
+    @thickness.setter
+    def thickness(self, value: int) -> None:
         lValue: int = max(0, int(value))
         if lValue == self._thickness:
             return
