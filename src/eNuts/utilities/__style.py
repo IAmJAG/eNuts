@@ -3,9 +3,16 @@ from __future__ import annotations
 
 # ==================================================================================================
 import os
+
+# ==================================================================================================
+from ctypes import byref, c_int, sizeof, windll
+from sys import platform
+
+# ==================================================================================================
 from typing import List
 
 # ==================================================================================================
+from PySide6.QtGui import QColor, QPalette
 from PySide6.QtWidgets import QApplication, QWidget
 
 # ==================================================================================================
@@ -13,6 +20,39 @@ C_BASE_DIR: str = "_base"
 C_QSS_EXTS: tuple[str, ...] = (".qss", ".css")
 # ==================================================================================================
 
+# ==================================================================================================
+def applyDarkBootstrapPalette(app: QApplication) -> None:
+    lBg = QColor("#1e1e1e")
+    lFg = QColor("#e0e0e0")
+    lPal = QPalette()
+    lPal.setColor(QPalette.ColorRole.Window, lBg)
+    lPal.setColor(QPalette.ColorRole.WindowText, lFg)
+    lPal.setColor(QPalette.ColorRole.Base, lBg)
+    lPal.setColor(QPalette.ColorRole.Text, lFg)
+    lPal.setColor(QPalette.ColorRole.Button, lBg)
+    lPal.setColor(QPalette.ColorRole.ButtonText, lFg)
+    app.setPalette(lPal)
+    app.setStyle("Fusion")
+
+
+# ==================================================================================================
+def enableWinDarkTitleBar(hwnd: int) -> None:
+    if platform != "win32" or not hwnd:
+        return
+
+    try:
+        lAttr = c_int(20)
+        lValue = c_int(1)
+        windll.dwmapi.DwmSetWindowAttribute(hwnd, lAttr, byref(lValue), sizeof(lValue))
+
+    except Exception:
+        try:
+            lAttr = c_int(19)
+            lValue = c_int(1)
+            windll.dwmapi.DwmSetWindowAttribute(hwnd, lAttr, byref(lValue), sizeof(lValue))
+
+        except Exception:
+            pass
 
 # ==================================================================================================
 def ApplyStyleSheet(wid: QApplication | QWidget, styleSheet: str | List[str]) -> None:
@@ -22,16 +62,6 @@ def ApplyStyleSheet(wid: QApplication | QWidget, styleSheet: str | List[str]) ->
 
 
 def LoadStyleSheet(themePath: str, styleName: str) -> List[str]:
-    """Load QSS fragments for a theme.
-
-    Order:
-      1. config/.../_base/*.qss   (structural, shared)
-      2. config/.../<styleName>/*.qss  (theme colors per component)
-
-    Fallback (legacy):
-      If the theme folder is missing, load <themePath>/<styleName>.css
-      and optional <themePath>/_style.css as before.
-    """
     lParts: List[str] = []
     lThemePath = os.path.normpath(themePath)
     lStyleName = (styleName or "").strip()
@@ -46,7 +76,6 @@ def LoadStyleSheet(themePath: str, styleName: str) -> List[str]:
         lParts.extend(_readQssDir(lThemeDir))
         return lParts
 
-    # Legacy flat-file path: _style.css + <style>.css
     lLegacyBase = os.path.join(lThemePath, f"_style{C_QSS_EXTS[1]}")
     lLegacyTheme = os.path.join(lThemePath, f"{lStyleName}{C_QSS_EXTS[1]}")
     for lPath in (lLegacyBase, lLegacyTheme):
@@ -71,11 +100,9 @@ def _readQssDir(dirPath: str) -> List[str]:
 
     for lName in lNames:
         lPath = os.path.join(dirPath, lName)
-        if not os.path.isfile(lPath):
-            continue
+        if not os.path.isfile(lPath): continue
         lText = _readFile(lPath)
-        if lText:
-            lOut.append(lText)
+        if lText: lOut.append(lText)
     return lOut
 
 
@@ -86,7 +113,5 @@ def _readFile(path: str) -> str:
     except OSError:
         return ""
 
-
-# Back-compat aliases (call sites may still use camelCase)
 applyStyleSheet = ApplyStyleSheet
 loadStyleSheet = LoadStyleSheet

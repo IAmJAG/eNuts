@@ -1,5 +1,12 @@
 # ==================================================================================================
-from .__style import ApplyStyleSheet, LoadStyleSheet, applyStyleSheet, loadStyleSheet
+from .__style import (
+    ApplyStyleSheet,
+    LoadStyleSheet,
+    applyDarkBootstrapPalette,
+    applyStyleSheet,
+    enableWinDarkTitleBar,
+    loadStyleSheet,
+)
 
 # ==================================================================================================
 __all__ = [
@@ -7,4 +14,6 @@ __all__ = [
     "LoadStyleSheet",
     "applyStyleSheet",
     "loadStyleSheet",
+    "applyDarkBootstrapPalette",
+    "enableWinDarkTitleBar",
 ]
