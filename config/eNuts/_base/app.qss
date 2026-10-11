@@ -1,0 +1,17 @@
+/* ==================================================================================
+   App — structural
+   ================================================================================== */
+
+QMainWindow,
+QWidget {
+    font-family: "Segoe UI", "Arial", sans-serif;
+    font-size: 12px;
+}
+
+QMainWindow {
+    border: 0px;
+}
+
+QMainWindow > QWidget {
+    border: 0px;
+}

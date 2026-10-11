@@ -1,0 +1,14 @@
+/* ==================================================================================
+   Page — structural
+   Page.OBJECT_NAME = W_PAGE
+   Page sets Header objectName to W_PAGE_HEADER
+   Header children keep W_HEADER_* from Header.OBJECT_NAME
+   ================================================================================== */
+
+QWidget#W_PAGE {
+    border: 0px;
+}
+
+QWidget#W_PAGE_CONTENT {
+    border: 0px;
+}

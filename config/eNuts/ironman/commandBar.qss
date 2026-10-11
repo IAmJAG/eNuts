@@ -1,0 +1,28 @@
+/* ==================================================================================
+   CommandBar — Ironman
+   ================================================================================== */
+
+QWidget#W_COMMANDBAR {
+    background-color: #12161c;
+    border-top: 1px solid #303740;
+}
+
+QPushButton#C_COMMANDBAR_BUTTON {
+    background-color: #161b22;
+    color: #f5f7fa;
+    border: 1px solid #343b45;
+}
+
+QPushButton#C_COMMANDBAR_BUTTON:hover {
+    background-color: #20262e;
+    border-color: #e53935;
+}
+
+QPushButton#C_COMMANDBAR_BUTTON:pressed {
+    background-color: #2b1516;
+    border-color: #ffca28;
+}
+
+QPushButton#C_COMMANDBAR_BUTTON:focus {
+    border-color: #ffca28;
+}

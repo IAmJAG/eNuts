@@ -1,0 +1,21 @@
+/* ==================================================================================
+   SideBar — structural (theme supplies colors)
+   ================================================================================== */
+
+QWidget#SideBar {
+    border: 0px;
+}
+
+QWidget#SideBarHeader {
+    min-height: 44px;
+}
+
+QWidget#SideBarItem,
+QWidget#SideBarGroupHeader {
+    border-radius: 0px;
+}
+
+QWidget#SideBarDockControl {
+    min-height: 28px;
+    max-height: 28px;
+}

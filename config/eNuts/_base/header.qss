@@ -1,0 +1,36 @@
+/* ==================================================================================
+   Header — structural
+   ================================================================================== */
+
+QWidget#W_PAGE_HEADER,
+QFrame#W_HEADER {
+    min-height: 48px;
+    padding: 10px 14px;
+    border: 0px;
+    border-bottom: 1px solid rgba(255, 255, 255, 18);
+}
+
+QLabel#W_HEADER_TITLE {
+    font-size: 15px;
+    font-weight: 600;
+    background: transparent;
+}
+
+QLabel#W_HEADER_DESCRIPTION {
+    font-size: 11px;
+    font-weight: 400;
+    background: transparent;
+    margin-top: 2px;
+}
+
+QWidget#W_HEADER_ICON {
+    background: transparent;
+}
+
+QWidget#W_HEADER_TEXT,
+QWidget#W_HEADER_TITLE_ROW,
+QWidget#W_HEADER_SPAN_ROW,
+QWidget#W_HEADER_DESC_HOST {
+    background: transparent;
+    border: 0px;
+}
