@@ -15,11 +15,9 @@ from ...components import ComponentBase
 
 # ==================================================================================
 class SideBarContent(QScrollArea, ComponentBase):
-    """Scrollable content area that holds SideBar items, groups and separators."""
-
     def __init__(
         self, spacing: int = 2, margins: tuple[int, int, int, int] = (0, 0, 0, 0),
-        parent: Optional[QWidget] = None, *args, **kwargs,
+        *args, **kwargs
     ) -> None:
         super().__init__(parent, *args, **kwargs)
 
