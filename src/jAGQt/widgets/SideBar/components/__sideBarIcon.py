@@ -37,6 +37,8 @@ class SideBarIcon(QLabel, ComponentBase):
         self.setScaledContents(False)
         self.setFixedSize(QSize(iconSize, iconSize))
 
+        self._updatePixmap()
+
     # ================================================================================== 
     def setIcon(self, icon: Optional[Union[QIcon, QPixmap, str]]):
         if icon is None:
