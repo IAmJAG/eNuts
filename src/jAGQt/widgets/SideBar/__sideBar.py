@@ -202,7 +202,7 @@ class SideBar(QWidget, ComponentBase):
         else:
             # Expand: restore full chrome immediately so text is present as width grows.
             self._collapseVisualPending = False
-            self._applyCollapsedChrome(collapsed=False, animateHeader=True)
+            self._xapplyCollapsedChrome(collapsed=False, animateHeader=True)
 
         self.setProperty("collapsed", "true" if lValue else "false")
         self.style().unpolish(self)
