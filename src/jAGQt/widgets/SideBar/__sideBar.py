@@ -299,7 +299,7 @@ class SideBar(QWidget, ComponentBase):
             collapsed, animate=animateHeader, deferTitleHide=False,
         )
         for lGroup in self._groups: lGroup.setSidebarCollapsed(collapsed)
-        
+
         lMode = (
             SideBarItemDisplayMode.IconOnly
             if collapsed else SideBarItemDisplayMode.IconAndText
