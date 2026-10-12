@@ -113,7 +113,7 @@ class SideBar(QWidget, ComponentBase):
     def config(self) -> sideBarConfig:
         return self._config
 
-    def _applyDockProperty(self) -> None:
+    def _xapplyDockProperty(self) -> None:
         strPosition: str = (
             "left" if self._dockPosition is SideBarDockPosition.Left else "right"
         )
@@ -222,7 +222,7 @@ class SideBar(QWidget, ComponentBase):
         if animate:
             self._startDockLightning(position)
         else:
-            self._applyDockSide(position, animateArrow=False)
+            self._xapplyDockSide(position, animateArrow=False)
 
     def toggleDockSide(self) -> None:
         lNext = (
@@ -233,7 +233,7 @@ class SideBar(QWidget, ComponentBase):
         self.setDockSide(lNext)
 
     def selectItem(self, item: SideBarItem) -> None:
-        self._applySelection(item)
+        self._xapplySelection(item)
 
     def restoreState(self, collapsed: bool, dockSide: str) -> None:
         lDock = (
@@ -304,7 +304,7 @@ class SideBar(QWidget, ComponentBase):
     def _startDockLightning(self, position: SideBarDockPosition) -> None:
         lHost = self.window()
         if lHost is None:
-            self._applyDockSide(position, animateArrow=True)
+            self._xapplyDockSide(position, animateArrow=True)
             return
 
         self._dockAnimating = True
@@ -343,10 +343,10 @@ class SideBar(QWidget, ComponentBase):
         # Finalize header title after collapse width has settled.
         self._header.finalizeTitleVisibility()
 
-    def _applyDockSide(self, position: SideBarDockPosition, animateArrow: bool = True) -> None:
+    def _xapplyDockSide(self, position: SideBarDockPosition, animateArrow: bool = True) -> None:
         self._dockPosition = position
         self._dockControl.setDockPosition(position, animate=animateArrow)
-        self._applyDockProperty()
+        self._xapplyDockProperty()
         self.DockSideChanged.emit(position)
 
     def _onHeaderCollapseRequested(self) -> None:
@@ -357,7 +357,7 @@ class SideBar(QWidget, ComponentBase):
         self.toggleDockSide()
 
     def _onItemClicked(self, item: SideBarItem) -> None:
-        self._applySelection(item)
+        self._xapplySelection(item)
         self.ItemClicked.emit(item)
 
     def _allItems(self) -> List[SideBarItem]:
@@ -366,7 +366,7 @@ class SideBar(QWidget, ComponentBase):
             lResult.extend(lGroup.CollectItems())
         return lResult
 
-    def _applySelection(self, item: SideBarItem) -> None:
+    def _xapplySelection(self, item: SideBarItem) -> None:
         for lItem in self._allItems():
             lItem.active = False
             lItem.selected = False
