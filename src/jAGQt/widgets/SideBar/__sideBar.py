@@ -104,7 +104,7 @@ class SideBar(QWidget, ComponentBase):
         dockControl.DockFlipRequested.connect(self._onDockFlipRequested)
         self._switchDockAnimation.Finished.connect(self._onLightningFinished)
 
-        self._applyDockProperty()
+        self._xapplyDockProperty()
         if self.config.isCollapsed:
             self._header._setCollapsed(True, animate=False)
 
@@ -328,7 +328,7 @@ class SideBar(QWidget, ComponentBase):
     def _onLightningMidpoint(self) -> None:
         if self._pendingDock is None:
             return
-        self._applyDockSide(self._pendingDock, animateArrow=True)
+        self._xapplyDockSide(self._pendingDock, animateArrow=True)
 
     def _onLightningFinished(self) -> None:
         self._dockAnimating = False
