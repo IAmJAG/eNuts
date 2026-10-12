@@ -23,6 +23,9 @@ class DashboardPage(Page):
         )
         self.setObjectName("DashboardPage")
 
+    def _wInitializeUI(self) -> None:
+        # Page workflow runs this after subclass __init__; layout is created here.
+        super()._wInitializeUI()
         self._grid: DashboardGrid = DashboardGrid(parent=self)
         self.addWidget(self._grid)
 
