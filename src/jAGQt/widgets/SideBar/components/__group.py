@@ -29,7 +29,7 @@ from .__separator import Separator as SideBarSeparator
 # ==================================================================================
 @workflow
 class Group(QWidget, ComponentBase):
-    OBJECT_NAME = "W_GROUP"    
+    OBJECT_NAME = "W_GROUP"
 
     Toggled = Signal(bool)
     ItemClicked = Signal(object)
@@ -87,7 +87,6 @@ class Group(QWidget, ComponentBase):
             QBoxLayout, spacing=spacing, margins=(4, 0, 4, 4),
             direction=QBoxLayout.Direction.TopToBottom,
         )
-
         body.setLayout(bodyLayout)
 
         mainLayout: QBoxLayout = newLayout(
@@ -95,13 +94,14 @@ class Group(QWidget, ComponentBase):
             spacing=0,
             margins=(0, 0, 0, 0),
             direction=QBoxLayout.Direction.TopToBottom,
-        )        
+        )
         mainLayout.addWidget(header)
         mainLayout.addWidget(body)
         self.setLayout(mainLayout)
 
         self._header: SideBarItem = header
-        self._body: QWidget = body        
+        self._body: QWidget = body
+        self._bodyLayout: QBoxLayout = bodyLayout
 
         self._animation: RollAnimation = RollAnimation(
             target=self._body,
@@ -138,7 +138,7 @@ class Group(QWidget, ComponentBase):
         self._bodyLayout.addWidget(lItem)
         self._items.append(lItem)
         if self._sidebarCollapsed:
-            lItem.DisplayMode = SideBarItemDisplayMode.IconOnly
+            lItem.displayMode = SideBarItemDisplayMode.IconOnly
         return lItem
 
     def AddGroup(
@@ -146,15 +146,15 @@ class Group(QWidget, ComponentBase):
         title: str = "",
         icon: Optional[Union[QIcon, QPixmap, str]] = None,
         iconSize: Optional[int] = None,
-        startCollapsed: bool = False,
-    ) -> SideBarGroup:
+        isCollapsed: bool = False,
+    ) -> Group:
         lSize: int = iconSize if iconSize is not None else self._childIconSize
-        lGroup: SideBarGroup = SideBarGroup(
+        lGroup: Group = Group(
             title=title,
             icon=icon,
             iconSize=lSize,
             depth=self._depth + 1,
-            startCollapsed=startCollapsed,
+            isCollapsed=isCollapsed,
             animationDurationMs=self._animationDurationMs,
             parent=self._body,
         )
@@ -162,14 +162,14 @@ class Group(QWidget, ComponentBase):
         self._bodyLayout.addWidget(lGroup)
         self._childGroups.append(lGroup)
         if self._sidebarCollapsed:
-            lGroup.SetSidebarCollapsed(True)
+            lGroup.setSidebarCollapsed(True)
         return lGroup
 
     def AddSeparator(
-        self, separatorType: SideBarItemSeparatorType = SideBarItemSeparatorType.Line
+        self, separatorType: SideBarItemSeparatorType = SideBarItemSeparatorType.Line,
     ) -> SideBarSeparator:
         lSep: SideBarSeparator = SideBarSeparator(
-            separatorType=separatorType, parent=self._body
+            separatorType=separatorType, parent=self._body,
         )
         self._bodyLayout.addWidget(lSep)
         return lSep
@@ -189,11 +189,10 @@ class Group(QWidget, ComponentBase):
     def Items(self) -> List[SideBarItem]:
         return list(self._items)
 
-    def ChildGroups(self) -> List["Group"]:
+    def ChildGroups(self) -> List[Group]:
         return list(self._childGroups)
 
     def CollectItems(self) -> List[SideBarItem]:
-        """Header + leaves + recursive nested group items."""
         lResult: List[SideBarItem] = [self._header]
         lResult.extend(self._items)
         for lGroup in self._childGroups:
@@ -201,7 +200,6 @@ class Group(QWidget, ComponentBase):
         return lResult
 
     def FindAncestorHeaders(self, item: SideBarItem) -> List[SideBarItem]:
-        """Return header chain from this group if *item* is under it."""
         if item is self._header:
             return [self._header]
         if item in self._items:
@@ -234,7 +232,7 @@ class Group(QWidget, ComponentBase):
         self._applyCollapsedState(animate=animate)
         self.Toggled.emit(True)
 
-    def Expand(self, animate: bool = True) -> None:
+    def expand(self, animate: bool = True) -> None:
         if self._sidebarCollapsed:
             return
         if not self._collapsed:
@@ -243,11 +241,11 @@ class Group(QWidget, ComponentBase):
         self._applyCollapsedState(animate=animate)
         self.Toggled.emit(False)
 
-    def Toggle(self, animate: bool = True) -> None:
+    def toggle(self, animate: bool = True) -> None:
         if self._collapsed:
-            self.Expand(animate=animate)
+            self.expand(animate=animate)
         else:
-            self.Collapse(animate=animate)
+            self.collapse(animate=animate)
 
     @property
     def Collapsed(self) -> bool:
@@ -256,9 +254,9 @@ class Group(QWidget, ComponentBase):
     @Collapsed.setter
     def Collapsed(self, value: bool) -> None:
         if bool(value):
-            self.Collapse()
+            self.collapse()
         else:
-            self.Expand()
+            self.expand()
 
     @property
     def HeaderWidget(self) -> SideBarItem:
@@ -276,7 +274,7 @@ class Group(QWidget, ComponentBase):
         if self._sidebarCollapsed:
             self.ItemClicked.emit(self._header)
             return
-        self.Toggle(animate=True)
+        self.toggle(animate=True)
         self.ItemClicked.emit(self._header)
 
     def _onChildItemClicked(self, item: SideBarItem) -> None:
@@ -289,8 +287,8 @@ class Group(QWidget, ComponentBase):
                 self._body.setMaximumHeight(0)
                 self._body.setVisible(False)
                 return
-            self._roll.SetRange(lStart, 0)
-            self._roll.Start()
+            self._animation.SetRange(lStart, 0)
+            self._animation.start()
         else:
             self._body.setVisible(True)
             self._body.setMaximumHeight(16777215)
@@ -299,13 +297,13 @@ class Group(QWidget, ComponentBase):
                 self._body.setMaximumHeight(16777215)
                 return
             self._body.setMaximumHeight(max(1, lTarget))
-            self._roll.SetRange(0, lTarget)
-            self._roll.Finished.connect(self._onRollExpandFinished)
-            self._roll.Start()
+            self._animation.SetRange(0, lTarget)
+            self._animation.Finished.connect(self._onRollExpandFinished)
+            self._animation.start()
 
     def _onRollExpandFinished(self) -> None:
         try:
-            self._roll.Finished.disconnect(self._onRollExpandFinished)
+            self._animation.Finished.disconnect(self._onRollExpandFinished)
         except (RuntimeError, TypeError):
             pass
         if not self._collapsed:

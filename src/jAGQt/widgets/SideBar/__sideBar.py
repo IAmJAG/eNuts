@@ -53,9 +53,12 @@ class SideBar(QWidget, ComponentBase):
 
         self._activeItem: Optional[SideBarItem] = None
         self._groups: List[SideBarGroup] = []
-        self._rootItems: List[SideBarItem] = []     
+        self._rootItems: List[SideBarItem] = []
 
-        self._dockPosition: SideBarDockPosition = self.config.dockPosition   
+        self._dockPosition: SideBarDockPosition = self._config.dockPosition
+        self._collapsed: bool = bool(self._config.isCollapsed)
+        self._dockAnimating: bool = False
+        self._pendingDock: Optional[SideBarDockPosition] = None
 
     def _wInitializeUI(self) -> None:
         title: str = self._title
@@ -67,20 +70,22 @@ class SideBar(QWidget, ComponentBase):
 
         expanded: int = self._config.expandedWidth
         collapsed: int = self._config.collapsedWidth
-        
+
         initial: int = collapsed if self._config.isCollapsed else expanded
         self.setFixedWidth(initial)
         self.setMinimumWidth(initial)
         self.setMaximumWidth(initial)
 
-        header: SideBarHeader = SideBarHeader(title=title, iconSize=self.config.iconSize,)
+        header: SideBarHeader = SideBarHeader(title=title, iconSize=self.config.iconSize)
         content: SideBarContent = SideBarContent()
-        dockControl: SideBarDockControl = SideBarDockControl()
+        dockControl: SideBarDockControl = SideBarDockControl(
+            dockPosition=self._dockPosition,
+        )
 
         mainLayout: QBoxLayout = newLayout(QBoxLayout, spacing=0, margins=0)
         mainLayout.setDirection(QBoxLayout.Direction.TopToBottom)
 
-        mainLayout.addWidget(header)        
+        mainLayout.addWidget(header)
         mainLayout.addWidget(content)
         mainLayout.addWidget(dockControl)
         self.setLayout(mainLayout)
@@ -95,9 +100,13 @@ class SideBar(QWidget, ComponentBase):
         )
         self._switchDockAnimation: iAnimation = LightningShootAnimation(durationMs=720)
 
-        self._xapplyDockProperty()
+        header.CollapseRequested.connect(self._onHeaderCollapseRequested)
+        dockControl.DockFlipRequested.connect(self._onDockFlipRequested)
+        self._switchDockAnimation.Finished.connect(self._onLightningFinished)
+
+        self._applyDockProperty()
         if self.config.isCollapsed:
-            self._header._setCollapsed(True, animate=False) # TODO: Fix. unintentionally used private method
+            self._header._setCollapsed(True, animate=False)
 
     @property
     def config(self) -> sideBarConfig:
@@ -127,7 +136,8 @@ class SideBar(QWidget, ComponentBase):
         lItem.Clicked.connect(self._onItemClicked)
         self._content.addWidget(lItem)
         self._rootItems.append(lItem)
-        if self.config.isCollapsed: lItem.displayMode = SideBarItemDisplayMode.IconOnly
+        if self.config.isCollapsed:
+            lItem.displayMode = SideBarItemDisplayMode.IconOnly
         return lItem
 
     def AddGroup(
@@ -137,16 +147,18 @@ class SideBar(QWidget, ComponentBase):
         lSize: int = iconSize if iconSize is not None else self._config.iconSize
         lGroup: SideBarGroup = SideBarGroup(
             title=title, icon=icon, iconSize=lSize, depth=0,
-            isCollapsed=isCollapsed, animationDurationMs=self._config.animationDuration
+            isCollapsed=isCollapsed, animationDurationMs=self._config.animationDuration,
         )
         lGroup.ItemClicked.connect(self._onItemClicked)
         self._content.addWidget(lGroup)
         self._groups.append(lGroup)
         if self.config.isCollapsed:
-            lGroup.SetSidebarCollapsed(True)
+            lGroup.setSidebarCollapsed(True)
         return lGroup
 
-    def AddSeparator(self, separatorType: SideBarItemSeparatorType = SideBarItemSeparatorType.Line) -> SideBarItemSeparator:
+    def AddSeparator(
+        self, separatorType: SideBarItemSeparatorType = SideBarItemSeparatorType.Line,
+    ) -> SideBarItemSeparator:
         lSep: SideBarItemSeparator = SideBarItemSeparator(separatorType=separatorType)
         self._content.addWidget(lSep)
         return lSep
@@ -158,17 +170,18 @@ class SideBar(QWidget, ComponentBase):
         self._activeItem = None
         self._groups.clear()
         self._rootItems.clear()
-        self._content.Clear()
+        self._content.clear()
 
     # ==================================================================================
     def setTitle(self, title: str) -> None:
-        self._header.SetTitle(title)
+        self._header.title = title
 
     def setCollapsed(self, collapsed: bool) -> None:
         lValue: bool = bool(collapsed)
         if lValue is self._collapsed:
             return
         self._collapsed = lValue
+        self.config.isCollapsed = lValue
 
         lStart: int = self.width()
         lEnd: int = self.config.collapsedWidth if lValue else self.config.expandedWidth
@@ -198,10 +211,14 @@ class SideBar(QWidget, ComponentBase):
         self.setCollapsed(not self._collapsed)
 
     def setDockSide(self, position: SideBarDockPosition, animate: bool = True) -> None:
-        if position is self._dockPosition: return
-        if self._dockAnimating: return
-        self._startDockLightning(position)        
-        self._xapplyDockSide(position, animateArrow=animate)
+        if position is self._dockPosition:
+            return
+        if self._dockAnimating:
+            return
+        if animate:
+            self._startDockLightning(position)
+        else:
+            self._applyDockSide(position, animateArrow=False)
 
     def toggleDockSide(self) -> None:
         lNext = (
@@ -225,6 +242,7 @@ class SideBar(QWidget, ComponentBase):
         self._xapplyDockProperty()
 
         lCollapsed = bool(collapsed)
+        self._collapsed = lCollapsed
         self.config.isCollapsed = lCollapsed
 
         lWidth = self.config.collapsedWidth if lCollapsed else self.config.expandedWidth
@@ -233,7 +251,8 @@ class SideBar(QWidget, ComponentBase):
         self.setMaximumWidth(lWidth)
 
         self._header._setCollapsed(lCollapsed, animate=False)
-        for lGroup in self._groups: lGroup.setSidebarCollapsed(lCollapsed)
+        for lGroup in self._groups:
+            lGroup.setSidebarCollapsed(lCollapsed)
         for lItem in self._rootItems:
             lItem.displayMode = (
                 SideBarItemDisplayMode.IconOnly if lCollapsed else SideBarItemDisplayMode.IconAndText
@@ -307,8 +326,9 @@ class SideBar(QWidget, ComponentBase):
         self._switchDockAnimation.start()
 
     def _onLightningMidpoint(self) -> None:
-        if self._pendingDock is None: return
-        self._xapplyDockSide(self._pendingDock, animateArrow=True)
+        if self._pendingDock is None:
+            return
+        self._applyDockSide(self._pendingDock, animateArrow=True)
 
     def _onLightningFinished(self) -> None:
         self._dockAnimating = False
@@ -320,14 +340,6 @@ class SideBar(QWidget, ComponentBase):
         self._dockControl.setDockPosition(position, animate=animateArrow)
         self._xapplyDockProperty()
         self.DockSideChanged.emit(position)
-
-    def _xapplyDockProperty(self) -> None:
-        self.setProperty(
-            "dockSide",
-            "left" if self._dockPosition is SideBarDockPosition.Left else "right",
-        )
-        self.style().unpolish(self)
-        self.style().polish(self)
 
     def _onHeaderCollapseRequested(self) -> None:
         self.toggleCollapse()
@@ -349,7 +361,7 @@ class SideBar(QWidget, ComponentBase):
     def _xapplySelection(self, item: SideBarItem) -> None:
         for lItem in self._xallItems():
             lItem.active = False
-            lItem.Selected = False
+            lItem.selected = False
 
         item.active = True
         self._activeItem = item
@@ -358,4 +370,4 @@ class SideBar(QWidget, ComponentBase):
             lChain = lGroup.FindAncestorHeaders(item)
             for lHeader in lChain:
                 if lHeader is not item:
-                    lHeader.Selected = True
+                    lHeader.selected = True
