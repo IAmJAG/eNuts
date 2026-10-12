@@ -11,6 +11,9 @@ from PySide6.QtGui import QIcon, QMouseEvent, QPixmap
 from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 
 # ==================================================================================
+from jAGFx.workflow import workflow
+
+# ==================================================================================
 from ....utilities import newLayout
 from ...components import ComponentBase
 from ..types import SideBarIconPosition, SideBarItemDisplayMode, SideBarItemRole
@@ -19,6 +22,7 @@ from .__text import Text as SideBarText
 
 
 # ==================================================================================
+@workflow
 class Item(QWidget, ComponentBase):
     OBJECT_NAME = "W_SIDEBAR_ITEM"
     Clicked = Signal(object)
@@ -133,6 +137,8 @@ class Item(QWidget, ComponentBase):
         if value == self._displayMode:
             return
         self._displayMode = value
+        if getattr(self, "_layout", None) is None:
+            return
         self._rebuildLayout()
 
     @property
@@ -144,6 +150,8 @@ class Item(QWidget, ComponentBase):
         if value == self._iconPosition:
             return
         self._iconPosition = value
+        if getattr(self, "_layout", None) is None:
+            return
         self._rebuildLayout()
 
     @property
@@ -216,6 +224,9 @@ class Item(QWidget, ComponentBase):
         self.update()
 
     def _rebuildLayout(self) -> None:
+        if getattr(self, "_layout", None) is None:
+            return
+
         while self._layout.count():
             self._layout.takeAt(0)
 
