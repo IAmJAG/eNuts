@@ -1,5 +1,5 @@
 # ==================================================================================
-from .types import SideBarDockPosition
+from . import SideBarDockPosition
 
 # ==================================================================================
 _ICON_PADDING: int = 2
@@ -42,6 +42,10 @@ class sideBarConfig:
     @property
     def isCollapsed(self) -> bool:
         return self._isCollapsed
+
+    @isCollapsed.setter
+    def isCollapsed(self, value: bool) -> None:
+        self._isCollapsed = value
 
     @property
     def autoCollapse(self) -> bool:

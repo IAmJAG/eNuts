@@ -38,11 +38,9 @@ class Workspace(QWidget, ComponentBase):
         title: str = self._title
         del self._title
 
-        sidebar: SideBar = SideBar(title)        
-
+        sidebar: SideBar = SideBar(title)
         pages: QStackedWidget = QStackedWidget(self)
-        pages.setSizePolicy(QPolicy.Expanding, QPolicy.Expanding)
-
+        pages.setSizePolicy(QPolicy.Expanding, QPolicy.Expanding)        
         mainLayout: QBoxLayout = newLayout(QBoxLayout, spacing=0, margins=0)
         mainLayout.setDirection(QBoxLayout.Direction.LeftToRight)        
         mainLayout.addWidget(sidebar)
@@ -50,7 +48,11 @@ class Workspace(QWidget, ComponentBase):
         self.setLayout(mainLayout)
 
         self._pages: QStackedWidget = pages
+        self._sideBar: SideBar = sidebar
         self._layout: QBoxLayout = newLayout(QBoxLayout, spacing=0, margins=0)
+
+    def addMenu(self, menu: QWidget):
+        self._sideBar
 
     def addPage(self, page: Page, name: Optional[str] = None):
         lPageId = str(page.Id)

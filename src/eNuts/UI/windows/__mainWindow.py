@@ -13,9 +13,9 @@ from ...configuration import ApplicationInformation
 # ==================================================================================
 @workflow(
     "Initialize",
-    "InitalizeShellUI",
-    "InitializeSettings",
     "InitializeInfo",
+    "InitializeSettings",
+    "InitalizeShellUI",
     "RestoreWindowsState",
 )
 class MainWindow(MainWindowBase, ApplicationInformation, Shell):

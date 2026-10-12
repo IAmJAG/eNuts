@@ -36,7 +36,7 @@ class Group(QWidget, ComponentBase):
 
     def __init__(
         self, title: str = "", icon: Optional[Union[QIcon, QPixmap, str]] = None,
-        iconSize: int = 20, depth: int = 0, collapsed: bool = False,
+        iconSize: int = 20, depth: int = 0, isCollapsed: bool = False,
         animationDurationMs: int = 180, spacing: int = 2,
         *args, **kwargs,
     ) -> None:
@@ -45,7 +45,7 @@ class Group(QWidget, ComponentBase):
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
-        self._collapsed: bool = bool(collapsed)
+        self._collapsed: bool = bool(isCollapsed)
         self._iconSize: int = max(1, int(iconSize))
         self._depth: int = max(0, int(depth))
         self._childIconSize: int = max(1, self._iconSize - 2)
@@ -212,22 +212,22 @@ class Group(QWidget, ComponentBase):
                 return [self._header] + lChain
         return []
 
-    def SetSidebarCollapsed(self, collapsed: bool) -> None:
+    def setSidebarCollapsed(self, collapsed: bool) -> None:
         self._sidebarCollapsed = bool(collapsed)
         lMode = (
-            ItemDisplayMode.IconOnly
+            SideBarItemDisplayMode.IconOnly
             if self._sidebarCollapsed
-            else ItemDisplayMode.IconAndText
+            else SideBarItemDisplayMode.IconAndText
         )
-        self._header.DisplayMode = lMode
+        self._header.displayMode = lMode
         for lItem in self._items:
-            lItem.DisplayMode = lMode
+            lItem.displayMode = lMode
         for lGroup in self._childGroups:
-            lGroup.SetSidebarCollapsed(collapsed)
+            lGroup.setSidebarCollapsed(collapsed)
         if self._sidebarCollapsed:
-            self.Collapse(animate=False)
+            self.collapse(animate=False)
 
-    def Collapse(self, animate: bool = True) -> None:
+    def collapse(self, animate: bool = True) -> None:
         if self._collapsed:
             return
         self._collapsed = True

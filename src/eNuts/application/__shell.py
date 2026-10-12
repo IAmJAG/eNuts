@@ -29,7 +29,9 @@ class Shell(iShell):
         return self._uiIntEvent
 
     def _wInitalizeShellUI(self: QMainWindow) -> None:        
+        warning(f"Initializing Shell UI {self.Title}")
         ws: Workspace = Workspace(self.Title)
+        ws.add
         self.setCentralWidget(ws)        
 
     def _aInitialize(self):

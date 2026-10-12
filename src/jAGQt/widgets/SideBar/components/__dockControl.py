@@ -13,6 +13,7 @@ from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 from jAGFx.workflow import workflow
 
 # ==================================================================================
+from ....icons import MakeArrowLeftIcon, MakeArrowRightIcon
 from ....icons.animations import IconTransposeAnimation
 from ....utilities import newLayout
 from ...components import ComponentBase
@@ -66,19 +67,19 @@ class DockControl(QWidget, ComponentBase):
             parent=self,
         )
         self._transpose.Finished.connect(self._onTransposeFinished)
-        self._pendingPosition: Optional[DockPosition] = None
+        self._pendingPosition: Optional[SideBarDockPosition] = None
 
         self._rebuild(animate=False)
 
     # ==================================================================================
-    def SetDockPosition(self, position: DockPosition, animate: bool = True) -> None:
+    def setDockPosition(self, position: SideBarDockPosition, animate: bool = True) -> None:
         if position is self._dockPosition:
             return
         if animate:
             self._pendingPosition = position
             lCurrent: QIcon = (
                 MakeArrowRightIcon(self._iconSize)
-                if self._dockPosition is DockPosition.Left
+                if self._dockPosition is SideBarDockPosition.Left
                 else MakeArrowLeftIcon(self._iconSize)
             )
             self._transpose.SetIcon(lCurrent)
@@ -103,8 +104,8 @@ class DockControl(QWidget, ComponentBase):
         while self._layout.count():
             self._layout.takeAt(0)
 
-        if self._dockPosition is DockPosition.Left:
-            self._arrow.SetIcon(MakeArrowRightIcon(self._iconSize))
+        if self._dockPosition is SideBarDockPosition.Left:
+            self._arrow.setIcon(MakeArrowRightIcon(self._iconSize))
             self._layout.addStretch(1)
             self._layout.addWidget(self._arrow)
         else:
@@ -114,7 +115,7 @@ class DockControl(QWidget, ComponentBase):
 
         self.setProperty(
             "dockSide",
-            "left" if self._dockPosition is DockPosition.Left else "right",
+            "left" if self._dockPosition is SideBarDockPosition.Left else "right",
         )
         self.style().unpolish(self)
         self.style().polish(self)

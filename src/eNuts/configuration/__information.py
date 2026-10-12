@@ -24,6 +24,7 @@ from ..types.interface.configuration import iENUTSConfiguration
 class ApplicationInformation:
     def _wInitializeInfo(self: iMainWindowBase):
         cfg: iConfiguration | iApplicationConfiguration | iENUTSConfiguration = eNutsConfiguration()
+        verbose(f"Application Information: {cfg}")
         
         self.Title = cfg.title
         self.Icon = QIcon(os.path.join(getICONPath(), f"{cfg.icon}.png"))

@@ -30,14 +30,9 @@ class RubberBandAnimation(Animation):
     """
 
     def __init__(
-        self,
-        target: Optional[QWidget] = None,
-        startWidth: int = 0,
-        endWidth: int = 240,
-        overshootPx: int = 28,
-        undershootPx: int = 10,
-        durationMs: int = 420,
-        easing: QEasingCurve.Type = QEasingCurve.Type.OutCubic,
+        self, target: Optional[QWidget] = None, startWidth: int = 0,
+        endWidth: int = 240, overshootPx: int = 28, undershootPx: int = 10,
+        durationMs: int = 420, easing: QEasingCurve.Type = QEasingCurve.Type.OutCubic,
         parent: Optional[QObject] = None,
     ) -> None:
         super().__init__(target=target, durationMs=durationMs, easing=easing, parent=parent)
@@ -47,7 +42,7 @@ class RubberBandAnimation(Animation):
         self._undershootPx: int = max(0, int(undershootPx))
         self._anim: Optional[QVariantAnimation] = None
 
-    def SetRange(
+    def setRange(
         self,
         startWidth: int,
         endWidth: int,
