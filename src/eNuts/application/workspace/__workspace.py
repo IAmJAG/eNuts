@@ -11,7 +11,7 @@ from jAGFx.workflow import workflow
 from jAGQt.utilities import newLayout
 from jAGQt.widgets.components import ComponentBase
 from jAGQt.widgets.page import Page
-from jAGQt.widgets.sideBar import SideBar
+from jAGQt.widgets.SideBar import SideBar
 from jAGQt.widgets.SideBar.components import SideBarItem
 
 # ==================================================================================
