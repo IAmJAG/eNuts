@@ -19,7 +19,7 @@ class SideBarContent(QScrollArea, ComponentBase):
         self, spacing: int = 2, margins: tuple[int, int, int, int] = (0, 0, 0, 0),
         *args, **kwargs
     ) -> None:
-        super().__init__(parent, *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.setObjectName("SideBarContent")
         self.setWidgetResizable(True)
