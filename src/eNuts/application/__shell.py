@@ -11,7 +11,7 @@ from PySide6.QtWidgets import QMainWindow
 
 # ==================================================================================
 from fluxCore.types.interface.device import iDevice
-from jAGQt.widgets.SideBar.components import SideBarGroup, SideBarItem
+from jAGQt.widgets.sideBar import SideBarGroup, SideBarItem
 
 # ==================================================================================
 from ..types.interface.application import iShell
