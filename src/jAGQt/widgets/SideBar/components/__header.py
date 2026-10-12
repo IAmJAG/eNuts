@@ -87,6 +87,17 @@ class Header(QWidget, ComponentBase):
         self._applyCollapsedVisual(animate=False, deferTitleHide=False)
 
     # ==================================================================================
+    def prepareCollapse(self, animateIcon: bool = True) -> None:
+        """Start icon morph only; keep title visible until width animation ends."""
+        # Morph toward the collapsed icon while title stays in layout.
+        lStart: QIcon = self._burgerIcon if not self._collapsed else self._closeIcon
+        lEnd: QIcon = self._closeIcon
+        if animateIcon:
+            self._morph.setIcons(lStart, lEnd)
+            self._morph.start()
+        else:
+            self._toggleIcon.setIcon(lEnd)
+
     def _setCollapsed(
         self,
         collapsed: bool,
@@ -96,7 +107,6 @@ class Header(QWidget, ComponentBase):
     ) -> None:
         lValue: bool = bool(collapsed)
         if lValue is self._collapsed:
-            # Still allow a deferred hide to complete if collapse was already set
             if lValue and not deferTitleHide and self._titleWidget.isVisible():
                 self._titleWidget.setVisible(False)
             return
@@ -104,7 +114,6 @@ class Header(QWidget, ComponentBase):
         self._applyCollapsedVisual(animate=animate, deferTitleHide=deferTitleHide)
 
     def finalizeTitleVisibility(self) -> None:
-        """Apply final title show/hide after width animation settles."""
         self._titleWidget.setVisible(not self._collapsed)
 
     # ==================================================================================
@@ -166,12 +175,9 @@ class Header(QWidget, ComponentBase):
         self._refreshToggleIcon(animate=animate)
 
         if self._collapsed:
-            # Keep title visible while the sidebar width is still animating closed.
-            # Caller finalizes hide after the width animation finishes.
             if not deferTitleHide:
                 self._titleWidget.setVisible(False)
         else:
-            # Expanding: show title immediately so it is present as width grows.
             self._titleWidget.setVisible(True)
 
         self.setProperty("collapsed", "true" if self._collapsed else "false")
