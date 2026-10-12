@@ -141,6 +141,25 @@ class Group(QWidget, ComponentBase):
             lItem.displayMode = SideBarItemDisplayMode.IconOnly
         return lItem
 
+    def RemoveItem(self, item: Union[SideBarItem, str]) -> bool:
+        lTarget: Optional[SideBarItem] = None
+        if isinstance(item, str):
+            for lItem in self._items:
+                if str(lItem.id) == item:
+                    lTarget = lItem
+                    break
+        else:
+            lTarget = item if item in self._items else None
+
+        if lTarget is None:
+            return False
+
+        self._items.remove(lTarget)
+        self._bodyLayout.removeWidget(lTarget)
+        lTarget.setParent(None)
+        lTarget.deleteLater()
+        return True
+
     def AddGroup(
         self,
         title: str = "",
