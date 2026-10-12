@@ -13,7 +13,6 @@ from ...components import ComponentBase
 QPolicy = QSizePolicy.Policy
 # ==================================================================================
 
-
 # ==================================================================================
 @workflow
 class SideBarContent(QScrollArea, ComponentBase):
