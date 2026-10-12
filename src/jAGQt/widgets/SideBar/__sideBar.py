@@ -194,13 +194,10 @@ class SideBar(QWidget, ComponentBase):
             self._widthAnimation.setRange(lStart, lEnd, overshootPx=36, undershootPx=14)
 
         if lValue:
-            # Collapse: only start width motion now. Keep all text/icons as-is until
-            # the width animation finishes — otherwise text vanishes and icons jump
-            # to center while the bar is still expanded.
             self._collapseVisualPending = True
             self._header.prepareCollapse(animateIcon=True)
+
         else:
-            # Expand: restore full chrome immediately so text is present as width grows.
             self._collapseVisualPending = False
             self._xapplyCollapsedChrome(collapsed=False, animateHeader=True)
 
