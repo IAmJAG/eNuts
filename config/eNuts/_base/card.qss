@@ -1,0 +1,21 @@
+/* ==================================================================================
+   Dashboard Card / Grid — structural
+   ================================================================================== */
+
+QWidget#DashboardGrid {
+    border: 0px;
+}
+
+QFrame#Card {
+    border-radius: 6px;
+}
+
+QLabel#Card_Title {
+    font-weight: 600;
+    font-size: 12px;
+    background: transparent;
+}
+
+QWidget#Card_Body {
+    background: transparent;
+}

@@ -1,21 +1,37 @@
 /* ==================================================================================
-   SideBar — structural (theme supplies colors)
+   SideBar — structural
+   W_SIDEBAR / W_HEADER (under SideBar) / W_CONTENT / W_CONTENT_BODY
+   W_SIDEBAR_ITEM / W_GROUP / W_SIDEBAR_GROUP_BODY / W_DOCK_CONTROL
    ================================================================================== */
 
-QWidget#SideBar {
+QWidget#W_SIDEBAR {
     border: 0px;
 }
 
-QWidget#SideBarHeader {
+QWidget#W_SIDEBAR QWidget#W_HEADER {
     min-height: 44px;
 }
 
-QWidget#SideBarItem,
-QWidget#SideBarGroupHeader {
+QWidget#W_SIDEBAR_ITEM {
     border-radius: 0px;
+    min-height: 28px;
 }
 
-QWidget#SideBarDockControl {
+QWidget#W_GROUP {
+    border: 0px;
+}
+
+QWidget#W_DOCK_CONTROL {
     min-height: 28px;
     max-height: 28px;
+}
+
+QScrollArea#W_CONTENT {
+    border: 0px;
+    background: transparent;
+}
+
+QWidget#W_CONTENT_BODY {
+    background: transparent;
+    border: 0px;
 }

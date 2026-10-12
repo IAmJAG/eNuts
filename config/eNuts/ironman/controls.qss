@@ -1,5 +1,5 @@
 /* ==================================================================================
-   Controls — Ironman
+   Controls — Ironman (scrollbars, menus, generic buttons if used)
    ================================================================================== */
 
 QPushButton {
@@ -18,84 +18,19 @@ QPushButton:pressed {
     border-color: #ffca28;
 }
 
-QLineEdit,
-QTextEdit,
-QPlainTextEdit,
-QSpinBox,
-QDoubleSpinBox,
-QComboBox {
-    background-color: #12161c;
-    color: #f5f7fa;
-    border: 1px solid #343b45;
-    selection-background-color: #8b1e1e;
-    selection-color: #ffffff;
-}
-
-QLineEdit:focus,
-QTextEdit:focus,
-QPlainTextEdit:focus,
-QSpinBox:focus,
-QDoubleSpinBox:focus,
-QComboBox:focus {
-    border-color: #ffca28;
-}
-
-QComboBox QAbstractItemView {
-    background-color: #12161c;
-    color: #f5f7fa;
-    border: 1px solid #343b45;
-    selection-background-color: #8b1e1e;
-}
-
-QTabWidget::pane {
+QScrollBar:vertical,
+QScrollBar:horizontal {
     background-color: #0e1014;
-    border: 1px solid #303740;
 }
 
-QTabBar::tab {
-    background-color: #12161c;
-    color: #aeb6c0;
-    border: 1px solid #303740;
-    padding: 7px 14px;
+QScrollBar::handle:vertical,
+QScrollBar::handle:horizontal {
+    background-color: #3a4250;
 }
 
-QTabBar::tab:hover {
-    background-color: #20262e;
-    color: #ffffff;
-}
-
-QTabBar::tab:selected {
-    background-color: #1b2027;
-    color: #ffffff;
-    border-bottom-color: #e53935;
-}
-
-QGroupBox {
-    background-color: #12161c;
-    color: #f5f7fa;
-    border: 1px solid #303740;
-    margin-top: 10px;
-    padding: 8px;
-}
-
-QListWidget,
-QTreeWidget,
-QTableWidget {
-    background-color: #12161c;
-    color: #f5f7fa;
-    alternate-background-color: #161b22;
-    border: 1px solid #303740;
-}
-
-QListWidget::item:hover,
-QTreeWidget::item:hover {
-    background-color: #20262e;
-}
-
-QListWidget::item:selected,
-QTreeWidget::item:selected {
-    background-color: #8b1e1e;
-    color: #ffffff;
+QScrollBar::handle:vertical:hover,
+QScrollBar::handle:horizontal:hover {
+    background-color: #e53935;
 }
 
 QMenu {

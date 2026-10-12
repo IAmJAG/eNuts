@@ -1,8 +1,6 @@
 /* ==================================================================================
    Page — structural
-   Page.OBJECT_NAME = W_PAGE
-   Page sets Header objectName to W_PAGE_HEADER
-   Header children keep W_HEADER_* from Header.OBJECT_NAME
+   W_PAGE / W_PAGE_HEADER / W_PAGE_CONTENT
    ================================================================================== */
 
 QWidget#W_PAGE {
@@ -10,5 +8,9 @@ QWidget#W_PAGE {
 }
 
 QWidget#W_PAGE_CONTENT {
+    border: 0px;
+}
+
+QWidget#DashboardPage {
     border: 0px;
 }

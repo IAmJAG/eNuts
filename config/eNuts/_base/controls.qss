@@ -1,5 +1,5 @@
 /* ==================================================================================
-   Generic controls — structural
+   Shared controls — structural (scrollbars, focus outline)
    ================================================================================== */
 
 QPushButton {
@@ -12,21 +12,6 @@ QComboBox:focus,
 QSpinBox:focus,
 QDoubleSpinBox:focus {
     outline: none;
-}
-
-QToolTip,
-QMenu {
-    padding: 4px;
-    border-radius: 0px;
-}
-
-QMenu::item {
-    padding: 6px 20px 6px 8px;
-}
-
-QMenu::separator {
-    height: 1px;
-    margin: 4px 0px;
 }
 
 QScrollBar:vertical {
@@ -60,4 +45,19 @@ QScrollBar::sub-page:vertical,
 QScrollBar::add-page:horizontal,
 QScrollBar::sub-page:horizontal {
     background: transparent;
+}
+
+QToolTip,
+QMenu {
+    padding: 4px;
+    border-radius: 0px;
+}
+
+QMenu::item {
+    padding: 6px 20px 6px 8px;
+}
+
+QMenu::separator {
+    height: 1px;
+    margin: 4px 0px;
 }

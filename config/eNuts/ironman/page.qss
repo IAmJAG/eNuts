@@ -1,8 +1,9 @@
 /* ==================================================================================
-   Page — Ironman
+   Page — Ironman (DashboardPage / W_PAGE)
    ================================================================================== */
 
-QWidget#W_PAGE {
+QWidget#W_PAGE,
+QWidget#DashboardPage {
     background-color: #0e1014;
     color: #f5f7fa;
 }

@@ -1,5 +1,5 @@
 /* ==================================================================================
-   CommandBar — structural
+   CommandBar — structural (optional; used when Page commandBarOn=True)
    ================================================================================== */
 
 QWidget#W_COMMANDBAR {
@@ -21,26 +21,6 @@ QPushButton#C_COMMANDBAR_BUTTON {
     min-width: 72px;
     padding: 0px 14px;
     margin: 6px 2px;
-    border: 1px solid rgba(255, 255, 255, 28);
     border-radius: 0px;
     outline: none;
-}
-
-QPushButton#C_COMMANDBAR_BUTTON:hover {
-    background: rgba(255, 255, 255, 14);
-    border-color: rgba(255, 255, 255, 48);
-}
-
-QPushButton#C_COMMANDBAR_BUTTON:pressed {
-    background: rgba(255, 255, 255, 24);
-    border-color: rgba(255, 255, 255, 64);
-}
-
-QPushButton#C_COMMANDBAR_BUTTON:focus {
-    border: 1px solid rgba(255, 193, 7, 150);
-}
-
-QPushButton#C_COMMANDBAR_BUTTON:disabled {
-    background: transparent;
-    border-color: rgba(255, 255, 255, 12);
 }

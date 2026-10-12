@@ -1,5 +1,6 @@
 /* ==================================================================================
-   Header — structural
+   Page Header — structural
+   Page sets objectName W_PAGE_HEADER; children keep W_HEADER_*
    ================================================================================== */
 
 QWidget#W_PAGE_HEADER,

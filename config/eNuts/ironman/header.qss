@@ -1,11 +1,8 @@
 /* ==================================================================================
-   Header — Ironman
-   Page sets Header objectName → W_PAGE_HEADER
-   Children retain W_HEADER_*
+   Page Header — Ironman
    ================================================================================== */
 
-QWidget#W_PAGE_HEADER,
-QFrame#W_HEADER {
+QWidget#W_PAGE_HEADER {
     background-color: #12161c;
     color: #f5f7fa;
     border-bottom: 1px solid #3a4250;
