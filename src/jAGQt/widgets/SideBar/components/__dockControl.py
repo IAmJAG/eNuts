@@ -28,12 +28,13 @@ from .__icon import Icon as SideBarIcon
 class DockControl(QWidget, ComponentBase):
     OBJECT_NAME = "W_DOCK_CONTROL"
     DockFlipRequested = Signal()
+
     def __init__(
         self, dockPosition: SideBarDockPosition = SideBarDockPosition.Left,
         iconSize: int = 16, *args, **kwargs,
     ) -> None:
         OBJNAME: str = kwargs.pop("objectName", self.OBJECT_NAME)
-        super().__init__(objectName=OBJNAME, * args, **kwargs)
+        super().__init__(objectName=OBJNAME, *args, **kwargs)
 
         self._dockPosition: SideBarDockPosition = dockPosition
         self._iconSize: int = max(1, int(iconSize))
@@ -45,7 +46,7 @@ class DockControl(QWidget, ComponentBase):
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
         OBJNAME: str = "W_SIDEBAR_ICON"
-        arrow: SideBarIcon = SideBarIcon(icon=None, iconSize=iconSize)        
+        arrow: SideBarIcon = SideBarIcon(icon=None, iconSize=iconSize)
         arrow.setObjectName(OBJNAME)
         arrow.setCursor(Qt.CursorShape.PointingHandCursor)
         arrow.mousePressEvent = self._onArrowClicked
@@ -84,13 +85,13 @@ class DockControl(QWidget, ComponentBase):
             )
             self._transpose.SetIcon(lCurrent)
             self._transpose.SetIconSize(self._iconSize)
-            self._transpose.Start()
+            self._transpose.start()
         else:
             self._dockPosition = position
             self._rebuild(animate=False)
 
     @property
-    def dockPosition(self) -> DockPosition:
+    def dockPosition(self) -> SideBarDockPosition:
         return self._dockPosition
 
     # ==================================================================================
@@ -109,7 +110,7 @@ class DockControl(QWidget, ComponentBase):
             self._layout.addStretch(1)
             self._layout.addWidget(self._arrow)
         else:
-            self._arrow.SetIcon(MakeArrowLeftIcon(self._iconSize))
+            self._arrow.setIcon(MakeArrowLeftIcon(self._iconSize))
             self._layout.addWidget(self._arrow)
             self._layout.addStretch(1)
 
