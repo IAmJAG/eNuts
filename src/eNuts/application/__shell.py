@@ -4,13 +4,14 @@ from __future__ import annotations
 # ==================================================================================
 from asyncio import Event
 
+# ==================================================================================
 from PySide6.QtWidgets import QMainWindow
 
 # ==================================================================================
 from fluxCore.types.interface.device import iDevice
 
 # ==================================================================================
-from ..types.interface.application import iENUTSService, iShell
+from ..types.interface.application import iShell
 from .device import (
     DEVICE_ADDED_EVENT,
     DEVICE_INITIALIZED_EVENT,
