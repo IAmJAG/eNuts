@@ -302,8 +302,7 @@ class SideBar(QWidget, ComponentBase):
             lGroup.setSidebarCollapsed(collapsed)
         lMode = (
             SideBarItemDisplayMode.IconOnly
-            if collapsed
-            else SideBarItemDisplayMode.IconAndText
+            if collapsed else SideBarItemDisplayMode.IconAndText
         )
         for lItem in self._rootItems:
             lItem.displayMode = lMode
@@ -339,7 +338,7 @@ class SideBar(QWidget, ComponentBase):
     def _onLightningMidpoint(self) -> None:
         if self._pendingDock is None:
             return
-        self._applyDockSide(self._pendingDock, animateArrow=True)
+        self._xapplyDockSide(self._pendingDock, animateArrow=True)
 
     def _onLightningFinished(self) -> None:
         self._dockAnimating = False
@@ -370,14 +369,14 @@ class SideBar(QWidget, ComponentBase):
         self._xapplySelection(item)
         self.ItemClicked.emit(item)
 
-    def _allItems(self) -> List[SideBarItem]:
+    def _xallItems(self) -> List[SideBarItem]:
         lResult: List[SideBarItem] = list(self._rootItems)
         for lGroup in self._groups:
             lResult.extend(lGroup.CollectItems())
         return lResult
 
     def _xapplySelection(self, item: SideBarItem) -> None:
-        for lItem in self._allItems():
+        for lItem in self._xallItems():
             lItem.active = False
             lItem.selected = False
 
