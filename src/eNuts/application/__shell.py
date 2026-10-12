@@ -28,14 +28,12 @@ class Shell(iShell):
             
         return self._uiIntEvent
 
-    def _wInitalizeShellUI(self: QMainWindow) -> None:        
-        warning(f"Initializing Shell UI {self.Title}")
+    def _wInitalizeShellUI(self: QMainWindow) -> None:
         ws: Workspace = Workspace(self.Title)
         self.setCentralWidget(ws)        
 
     def _aInitialize(self):
         shutdownEvent: Event = self._shutdownEvent
-
         self._devices = deviceManager(shutdownEvent)
 
         self.bindDevices()        
@@ -43,8 +41,6 @@ class Shell(iShell):
 
     def bindDevices(self):
         initEvent: Event = self._getInitEvent()
-
-        verbose("Binding devices")
         dm: deviceManager = self._devices
         
         dm.subscribe(DEVICE_ADDED_EVENT, self.onNewDevice)

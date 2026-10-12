@@ -181,8 +181,7 @@ class SideBar(QWidget, ComponentBase):
 
     def setCollapsed(self, collapsed: bool) -> None:
         lValue: bool = bool(collapsed)
-        if lValue is self._collapsed:
-            return
+        if lValue is self._collapsed: return
         self._collapsed = lValue
         self.config.isCollapsed = lValue
 
@@ -191,6 +190,7 @@ class SideBar(QWidget, ComponentBase):
 
         if lValue:
             self._widthAnimation.setRange(lStart, lEnd, overshootPx=14, undershootPx=6)
+
         else:
             self._widthAnimation.setRange(lStart, lEnd, overshootPx=36, undershootPx=14)
 
@@ -241,7 +241,7 @@ class SideBar(QWidget, ComponentBase):
         )
         self._dockPosition = lDock
         self._dockControl.setDockPosition(lDock, animate=False)
-        self._applyDockProperty()
+        self._xapplyDockProperty()
 
         lCollapsed = bool(collapsed)
         self._collapsed = lCollapsed
@@ -295,7 +295,6 @@ class SideBar(QWidget, ComponentBase):
 
     # ==================================================================================
     def _xapplyCollapsedChrome(self, collapsed: bool, animateHeader: bool = True) -> None:
-        """Header title, item display modes, group icon-only — final visual state."""
         self._header._setCollapsed(
             collapsed, animate=animateHeader, deferTitleHide=False,
         )
