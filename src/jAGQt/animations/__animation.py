@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 # ==================================================================================
-from PySide6.QtCore import QEasingCurve, Signal, SignalInstance
+from PySide6.QtCore import QEasingCurve, QObject, Signal, SignalInstance
 from PySide6.QtWidgets import QWidget
 
 # ==================================================================================
@@ -10,7 +10,7 @@ CurveType = QEasingCurve.Type
 # ==================================================================================
 
 # ==================================================================================
-class Animation:
+class Animation(QObject):
     OBJECT_NAME = "W_ANIMATED"
     Finished: SignalInstance = Signal()    
     def __init__(
