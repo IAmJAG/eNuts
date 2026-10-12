@@ -11,16 +11,15 @@ from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 
 # ==================================================================================
 from jAGFx.workflow import workflow
-from jAGQt.icons import MakeArrowLeftIcon, MakeArrowRightIcon
-from jAGQt.icons.animations import IconTransposeAnimation
-from jAGQt.types import DockPosition
 
 # ==================================================================================
+from ....icons.animations import IconTransposeAnimation
 from ....utilities import newLayout
 from ...components import ComponentBase
+from ..types import SideBarDockPosition
 
 # ==================================================================================
-from .__sideBarIcon import SideBarIcon
+from .__icon import Icon as SideBarIcon
 
 
 # ==================================================================================
@@ -29,13 +28,13 @@ class DockControl(QWidget, ComponentBase):
     OBJECT_NAME = "W_DOCK_CONTROL"
     DockFlipRequested = Signal()
     def __init__(
-        self, dockPosition: DockPosition = DockPosition.Left,
-        iconSize: int = 16, *args, **kwargs
+        self, dockPosition: SideBarDockPosition = SideBarDockPosition.Left,
+        iconSize: int = 16, *args, **kwargs,
     ) -> None:
         OBJNAME: str = kwargs.pop("objectName", self.OBJECT_NAME)
         super().__init__(objectName=OBJNAME, * args, **kwargs)
 
-        self._dockPosition: DockPosition = dockPosition
+        self._dockPosition: SideBarDockPosition = dockPosition
         self._iconSize: int = max(1, int(iconSize))
 
     def _wInitializeUI(self):

@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 # ==================================================================================
-from enum import Enum, auto
 from typing import Callable, Optional, Union
 from uuid import UUID, uuid4
 
@@ -14,41 +13,21 @@ from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 # ==================================================================================
 from ....utilities import newLayout
 from ...components import ComponentBase
-
-# ==================================================================================
-from .__sideBarIcon import SideBarIcon
-from .__sideBarText import SideBarText
-
-
-# ==================================================================================
-class ItemDisplayMode(Enum):
-    IconOnly = auto()
-    TextOnly = auto()
-    IconAndText = auto()
-
-
-class IconPosition(Enum):
-    Left = auto()
-    Right = auto()
-    Top = auto()
-    Bottom = auto()
-
-
-class ItemRole(Enum):
-    Leaf = auto()
-    Header = auto()
+from ..types import SideBarIconPosition, SideBarItemDisplayMode, SideBarItemRole
+from .__icon import Icon as SideBarIcon
+from .__text import Text as SideBarText
 
 
 # ==================================================================================
-class SideBarItem(QWidget, ComponentBase):
+class Item(QWidget, ComponentBase):
     OBJECT_NAME = "W_SIDEBAR_ITEM"
     Clicked = Signal(object)
     def __init__(
         self, text: str = "", icon: Optional[Union[QIcon, QPixmap, str]] = None,
-        displayMode: ItemDisplayMode = ItemDisplayMode.IconAndText,
-        iconPosition: IconPosition = IconPosition.Left, iconSize: int = 24,
-        depth: int = 0, role: ItemRole = ItemRole.Leaf, spacing: int = 8,
-        callback: Optional[Callable] = None, id: Optional[str] = None,
+        displayMode: SideBarItemDisplayMode = SideBarItemDisplayMode.IconAndText,
+        iconPosition: SideBarIconPosition = SideBarIconPosition.Left,
+        iconSize: int = 24, depth: int = 0, role: SideBarItemRole = SideBarItemRole.Leaf,
+        spacing: int = 8, callback: Optional[Callable] = None, id: Optional[str] = None,
         *args, **kwargs,
     ) -> None:
         OBJNAME: str = kwargs.pop("objectName", self.OBJECT_NAME)
@@ -58,19 +37,18 @@ class SideBarItem(QWidget, ComponentBase):
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
         self._id: str = uuid4() if id is None else id
-        self._displayMode: ItemDisplayMode = displayMode
-        self._iconPosition: IconPosition = iconPosition
+        self._displayMode: SideBarItemDisplayMode = displayMode
+        self._iconPosition: SideBarIconPosition = iconPosition
         self._callback: Optional[Callable] = callback
         self._selected: bool = False
         self._active: bool = False
         self._depth: int = max(0, int(depth))
-        self._role: ItemRole = role
+        self._role: SideBarItemRole = role
 
         self._text: str = text
         self._icon: Optional[Union[QIcon, QPixmap, str]] = icon
         self._iconSize: int = max(1, int(iconSize))
         self._spacing: int = max(0, int(spacing))
-
 
     def _wInitializeUI(self):
         text: str = self._text if self._text is not None else ""
@@ -83,14 +61,8 @@ class SideBarItem(QWidget, ComponentBase):
         del self._iconSize
         del self._spacing
 
-        iconWidget: SideBarIcon = SideBarIcon(icon=icon, iconSize=iconSize, parent=self)
-        iconWidget.setObjectName("W_SIDEBAR_ITEM_ICON")
-
-        textWidget: SideBarText = SideBarText(text=text, parent=self)
-        textWidget.setObjectName("W_SIDEBAR_ITEM_TEXT")
-
-        self._iconWidget: SideBarIcon = iconWidget
-        self._textWidget: SideBarText = textWidget
+        self._iconWidget: SideBarIcon = SideBarIcon(icon=icon, iconSize=iconSize, parent=self)
+        self._textWidget: SideBarText = SideBarText(text=text, parent=self)
 
         layout: QBoxLayout = newLayout(QBoxLayout, spacing=spacing, margins=(6, 4, 6, 4))
         self._layout = layout

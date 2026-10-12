@@ -1,5 +1,5 @@
 # ==================================================================================
-from ...types import DockPosition
+from .types import SideBarDockPosition
 
 # ==================================================================================
 _ICON_PADDING: int = 2
@@ -12,7 +12,7 @@ class sideBarConfig:
         self._collapsedWidth = 48
 
         self._iconSize = self._collapsedWidth - (4 * _ICON_PADDING)
-        self._dockPosition = DockPosition.Left        
+        self._dockPosition = SideBarDockPosition.Left        
         self._isCollapsed: bool = False
         
         self._autoCollapse = False
@@ -36,7 +36,7 @@ class sideBarConfig:
         return self._iconSize
 
     @property
-    def dockPosition(self) -> DockPosition:
+    def dockPosition(self) -> SideBarDockPosition:
         return self._dockPosition
 
     @property

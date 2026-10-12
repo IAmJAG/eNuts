@@ -22,7 +22,7 @@ class contentContainer(QWidget, ComponentBase):
         *args, **kwargs
     ) -> None:        
         self._spacing = int(spacing)
-        self._margins = int(margins)
+        self._margins = margins
         
         OBJNAME = kwargs.pop("objectName", self.OBJECT_NAME)
         super().__init__(objectName=OBJNAME, *args, **kwargs)

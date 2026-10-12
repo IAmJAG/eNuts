@@ -1,28 +1,21 @@
 # ==================================================================================
-from .__dockControl import DockControl
-from .__sideBarContent import SideBarContent
-from .__sideBarGroup import SideBarGroup
-from .__sideBarHeader import SideBarHeader
-from .__sideBarIcon import SideBarIcon
-from .__sideBarIcons import MakeBurgerIcon, MakeCloseIcon
-from .__sideBarItem import IconPosition, ItemDisplayMode, ItemRole, SideBarItem
-from .__sideBarSeparator import SeparatorType, SideBarSeparator
-from .__sideBarText import SideBarText
+from .__content import Content as SideBarContent
+from .__dockControl import DockControl as SideBarDockControl
+from .__group import Group as SideBarGroup
+from .__header import Header as SideBarHeader
+from .__icon import Icon as SideBarIcon
+from .__item import Item as SideBarItem
+from .__separator import Separator as SideBarItemSeparator
+from .__text import Text as SideBarText
 
 # ==================================================================================
 __all__ = [
-    "SideBarIcon",
-    "SideBarText",
-    "SideBarItem",
-    "ItemDisplayMode",
-    "ItemRole",
-    "IconPosition",
-    "SideBarSeparator",
-    "SeparatorType",
     "SideBarContent",
-    "SideBarHeader",
-    "SideBarGroup",
     "SideBarDockControl",
-    "MakeBurgerIcon",
-    "MakeCloseIcon",
+    "SideBarGroup",
+    "SideBarHeader",
+    "SideBarIcon",
+    "SideBarItem",
+    "SideBarItemSeparator",
+    "SideBarText",
 ]

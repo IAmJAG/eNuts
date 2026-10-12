@@ -11,6 +11,7 @@ from jAGFx.workflow import workflow
 
 # ==================================================================================
 from ...components import ComponentBase
+from ..types import SideBarItemSeparatorType
 
 # ==================================================================================
 QPolicy = QSizePolicy.Policy
@@ -18,40 +19,36 @@ QPolicy = QSizePolicy.Policy
 
 
 # ==================================================================================
-class SeparatorType(Enum):
-    Line = auto()
-    Stretcher = auto()
-
-
-# ==================================================================================
 @workflow
-class SideBarSeparator(QFrame, ComponentBase):
+class Separator(QFrame, ComponentBase):
     OBJECT_NAME = "W_SIDEBAR_SEPARATOR"
 
     def __init__(
         self,
-        separatorType: SeparatorType = SeparatorType.Line,
-        thickness: int = 1, *args, **kwargs,
+        separatorType: SideBarItemSeparatorType = SideBarItemSeparatorType.Line,
+        thickness: int = 1,
+        *args,
+        **kwargs,
     ) -> None:
         OBJNAME: str = kwargs.pop("objectName", self.OBJECT_NAME)
         super().__init__(objectName=OBJNAME, *args, **kwargs)
-        self._separatorType: SeparatorType = separatorType
+        self._separatorType: SideBarItemSeparatorType = separatorType
         self._thickness: int = max(0, int(thickness))
 
     def _wInitializeUI(self) -> None:
         self._applyType()
 
     # ==================================================================================
-    def setType(self, separatorType: SeparatorType) -> None:
+    def setType(self, separatorType: SideBarItemSeparatorType) -> None:
         self.Type = separatorType
 
     # ==================================================================================
     @property
-    def type(self) -> SeparatorType:
+    def type(self) -> SideBarItemSeparatorType:
         return self._separatorType
 
     @type.setter
-    def type(self, value: SeparatorType) -> None:
+    def type(self, value: SideBarItemSeparatorType) -> None:
         if value == self._separatorType:
             return
         self._separatorType = value
@@ -71,7 +68,7 @@ class SideBarSeparator(QFrame, ComponentBase):
 
     # ==================================================================================
     def _applyType(self) -> None:
-        if self._separatorType is SeparatorType.Stretcher:
+        if self._separatorType is SideBarItemSeparatorType.Stretcher:
             self.setFrameShape(QFrame.Shape.NoFrame)
             self.setSizePolicy(QPolicy.Expanding, QPolicy.Expanding)
             self.setMinimumHeight(0)
@@ -85,7 +82,7 @@ class SideBarSeparator(QFrame, ComponentBase):
 
         self.setProperty(
             "separatorType",
-            "stretcher" if self._separatorType is SeparatorType.Stretcher else "line",
+            "stretcher" if self._separatorType is SideBarItemSeparatorType.Stretcher else "line",
         )
         self.style().unpolish(self)
         self.style().polish(self)

@@ -16,8 +16,8 @@ from ....utilities import newLayout
 from ...components import ComponentBase
 
 # ==================================================================================
-from .__sideBarIcon import SideBarIcon
-from .__sideBarText import SideBarText
+from .__icon import Icon as SideBarIcon
+from .__text import Text as SideBarText
 
 # ==================================================================================
 QPolicy = QSizePolicy.Policy
@@ -26,8 +26,8 @@ QPolicy = QSizePolicy.Policy
 
 # ==================================================================================
 @workflow
-class SideBarHeader(QWidget, ComponentBase):
-    OBJECT_NAME = "W_SIDEBAR_HEADER"
+class Header(QWidget, ComponentBase):
+    OBJECT_NAME = "W_HEADER"
     CollapseRequested = Signal()
 
     def __init__(

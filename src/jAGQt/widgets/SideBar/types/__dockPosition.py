@@ -1,8 +1,16 @@
 # ==================================================================================
-"""Compatibility re-exports — prefer jAGQt.icons."""
+from enum import Enum, auto
+
 
 # ==================================================================================
-from jAGQt.icons import MakeBurgerIcon, MakeCloseIcon
+class ItemRole(Enum):
+    Leaf = auto()
+    Header = auto()
+
 
 # ==================================================================================
-__all__ = ["MakeBurgerIcon", "MakeCloseIcon"]
+class DockPosition(Enum):
+    Left = auto()
+    Right = auto()
+    Top = auto()
+    Bottom = auto()

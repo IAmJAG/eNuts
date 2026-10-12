@@ -16,21 +16,19 @@ from jAGQt.animations import RollAnimation
 # ==================================================================================
 from ....utilities import newLayout
 from ...components import ComponentBase
-
-# ==================================================================================
-from .__sideBarItem import (
-    IconPosition,
-    ItemDisplayMode,
-    ItemRole,
-    SideBarItem,
-    SideBarText,
+from ..types import (
+    SideBarIconPosition,
+    SideBarItemDisplayMode,
+    SideBarItemRole,
+    SideBarItemSeparatorType,
 )
-from .__sideBarSeparator import SeparatorType, SideBarSeparator
+from .__item import Item as SideBarItem
+from .__separator import Separator as SideBarSeparator
 
 
 # ==================================================================================
 @workflow
-class SideBarGroup(QWidget, ComponentBase):
+class Group(QWidget, ComponentBase):
     OBJECT_NAME = "W_GROUP"    
 
     Toggled = Signal(bool)
@@ -54,7 +52,7 @@ class SideBarGroup(QWidget, ComponentBase):
         self._animationDurationMs: int = max(0, int(animationDurationMs))
         self._sidebarCollapsed: bool = False
         self._items: List[SideBarItem] = []
-        self._childGroups: List[SideBarGroup] = []
+        self._childGroups: List[Group] = []
 
         self._title: str = title
         self._icon: Optional[Union[QIcon, QPixmap, str]] = icon
@@ -70,12 +68,14 @@ class SideBarGroup(QWidget, ComponentBase):
         del self._spacing
 
         header: SideBarItem = SideBarItem(
-            text=title, icon=icon,
-            displayMode=ItemDisplayMode.IconAndText,
-            iconPosition=IconPosition.Left,
+            text=title,
+            icon=icon,
+            displayMode=SideBarItemDisplayMode.IconAndText,
+            iconPosition=SideBarIconPosition.Left,
             iconSize=self._iconSize,
-            depth=self._depth, role=ItemRole.Header,
-            spacing=6
+            depth=self._depth,
+            role=SideBarItemRole.Header,
+            spacing=6,
         )
         header.Clicked.connect(self._onHeaderClicked)
 
@@ -115,8 +115,8 @@ class SideBarGroup(QWidget, ComponentBase):
         self,
         text: str = "",
         icon: Optional[Union[QIcon, QPixmap, str]] = None,
-        displayMode: ItemDisplayMode = ItemDisplayMode.IconAndText,
-        iconPosition: IconPosition = IconPosition.Left,
+        displayMode: SideBarItemDisplayMode = SideBarItemDisplayMode.IconAndText,
+        iconPosition: SideBarIconPosition = SideBarIconPosition.Left,
         iconSize: Optional[int] = None,
         callback: Optional[Callable] = None,
         id: Optional[str] = None,
@@ -129,7 +129,7 @@ class SideBarGroup(QWidget, ComponentBase):
             iconPosition=iconPosition,
             iconSize=lSize,
             depth=self._depth + 1,
-            role=ItemRole.Leaf,
+            role=SideBarItemRole.Leaf,
             callback=callback,
             id=id,
             parent=self._body,
@@ -138,7 +138,7 @@ class SideBarGroup(QWidget, ComponentBase):
         self._bodyLayout.addWidget(lItem)
         self._items.append(lItem)
         if self._sidebarCollapsed:
-            lItem.DisplayMode = ItemDisplayMode.IconOnly
+            lItem.DisplayMode = SideBarItemDisplayMode.IconOnly
         return lItem
 
     def AddGroup(
@@ -147,7 +147,7 @@ class SideBarGroup(QWidget, ComponentBase):
         icon: Optional[Union[QIcon, QPixmap, str]] = None,
         iconSize: Optional[int] = None,
         startCollapsed: bool = False,
-    ) -> "SideBarGroup":
+    ) -> SideBarGroup:
         lSize: int = iconSize if iconSize is not None else self._childIconSize
         lGroup: SideBarGroup = SideBarGroup(
             title=title,
@@ -166,7 +166,7 @@ class SideBarGroup(QWidget, ComponentBase):
         return lGroup
 
     def AddSeparator(
-        self, separatorType: SeparatorType = SeparatorType.Line
+        self, separatorType: SideBarItemSeparatorType = SideBarItemSeparatorType.Line
     ) -> SideBarSeparator:
         lSep: SideBarSeparator = SideBarSeparator(
             separatorType=separatorType, parent=self._body
@@ -189,7 +189,7 @@ class SideBarGroup(QWidget, ComponentBase):
     def Items(self) -> List[SideBarItem]:
         return list(self._items)
 
-    def ChildGroups(self) -> List["SideBarGroup"]:
+    def ChildGroups(self) -> List["Group"]:
         return list(self._childGroups)
 
     def CollectItems(self) -> List[SideBarItem]:

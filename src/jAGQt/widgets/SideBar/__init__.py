@@ -1,36 +1,33 @@
 # ==================================================================================
 from .__sideBar import SideBar
 from .components import (
-    DockControl,
-    IconPosition,
-    ItemDisplayMode,
-    ItemRole,
-    MakeBurgerIcon,
-    MakeCloseIcon,
-    SeparatorType,
     SideBarContent,
     SideBarGroup,
-    SideBarHeader,
     SideBarIcon,
     SideBarItem,
-    SideBarSeparator,
+    SideBarItemSeparator,
+    SideBarText,
+)
+from .types import (
+    SideBarDockPosition,
+    SideBarIconPosition,
+    SideBarItemDisplayMode,
+    SideBarItemRole,
+    SideBarItemSeparatorType,
 )
 
 # ==================================================================================
 __all__ = [
     "SideBar",
-    "SideBarIcon",
-    "SideBarText",
-    "SideBarItem",
-    "ItemDisplayMode",
-    "ItemRole",
-    "IconPosition",
-    "SideBarSeparator",
-    "SeparatorType",
     "SideBarContent",
-    "SideBarHeader",
     "SideBarGroup",
-    "SideBarDockControl",
-    "MakeBurgerIcon",
-    "MakeCloseIcon",
+    "SideBarIcon",
+    "SideBarItem",
+    "SideBarItemSeparator",
+    "SideBarText",
+    "SideBarDockPosition",
+    "SideBarIconPosition",
+    "SideBarItemDisplayMode",
+    "SideBarItemRole",
+    "SideBarItemSeparatorType",
 ]

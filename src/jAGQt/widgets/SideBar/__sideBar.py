@@ -12,26 +12,16 @@ from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 from jAGFx.workflow import workflow
 
 # ==================================================================================
-from jAGQt.animations import LightningShootAnimation, RubberBandAnimation
-from jAGQt.types import DockPosition
-
-# ==================================================================================
+from ...animations import LightningShootAnimation, RubberBandAnimation
 from ...utilities import newLayout
 from ..components import ComponentBase
-
-# ==================================================================================
 from .__options import sideBarConfig
 from .components import (
-    DockControl,
-    ItemDisplayMode,
-    ItemRole,
-    SeparatorType,
-    SideBarContent,
     SideBarGroup,
     SideBarHeader,
-    SideBarSeparator,
-    SideBarText,
+    SideBarItem,
 )
+from .types import SideBarDockPosition
 
 
 # ==================================================================================

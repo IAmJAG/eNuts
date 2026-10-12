@@ -3,8 +3,6 @@ from enum import Enum, auto
 
 
 # ==================================================================================
-class DockPosition(Enum):
-    Left = auto()
-    Right = auto()
-    Top = auto()
-    Bottom = auto()
+class SeparatorType(Enum):
+    Line = auto()
+    Stretcher = auto()

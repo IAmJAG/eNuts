@@ -1,5 +1,10 @@
 # ==================================================================================
-from .__dockPosition import DockPosition
+from enum import Enum, auto
+
 
 # ==================================================================================
-__all__ = ["DockPosition"]
+class IconPosition(Enum):
+    Left = auto()
+    Right = auto()
+    Top = auto()
+    Bottom = auto()

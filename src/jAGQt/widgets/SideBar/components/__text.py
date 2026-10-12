@@ -19,7 +19,7 @@ QPolicy = QSizePolicy.Policy
 
 # ==================================================================================
 @workflow
-class SideBarText(QLabel, ComponentBase):
+class Text(QLabel, ComponentBase):
     OBJECT_NAME = "W_SIDEBAR_TITLE"
     def __init__(
         self, text: str = "",

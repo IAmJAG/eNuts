@@ -18,7 +18,7 @@ QPolicy = QSizePolicy.Policy
 
 # ==================================================================================
 @workflow
-class SideBarIcon(QLabel, ComponentBase):
+class Icon(QLabel, ComponentBase):
     OBJECT_NAME = "W_SIDEBAR_ICON"
     def __init__(
         self, icon: Optional[Union[QIcon, QPixmap, str]] = None,
