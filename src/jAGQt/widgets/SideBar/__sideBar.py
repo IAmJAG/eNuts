@@ -354,7 +354,7 @@ class SideBar(QWidget, ComponentBase):
             return
         self._collapseVisualPending = False
         if self._collapsed:
-            self._applyCollapsedChrome(collapsed=True, animateHeader=False)
+            self._xapplyCollapsedChrome(collapsed=True, animateHeader=False)
 
     def _xapplyDockSide(self, position: SideBarDockPosition, animateArrow: bool = True) -> None:
         self._dockPosition = position
