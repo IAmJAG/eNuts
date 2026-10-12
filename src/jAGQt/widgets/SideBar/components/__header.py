@@ -73,7 +73,7 @@ class Header(QWidget, ComponentBase):
             spacing=spacing,
             margins=(8, 8, 8, 8),
             direction=QBoxLayout.Direction.LeftToRight,
-        )        
+        )
         mainLayout.addWidget(self._toggleIcon)
         mainLayout.addWidget(self._titleWidget, 1)
         self.setLayout(mainLayout)
@@ -84,14 +84,28 @@ class Header(QWidget, ComponentBase):
             durationMs=160,
             parent=self,
         )
-        self._applyCollapsedVisual(animate=False)
+        self._applyCollapsedVisual(animate=False, deferTitleHide=False)
 
     # ==================================================================================
-    def _setCollapsed(self, collapsed: bool, animate: bool = True) -> None:
+    def _setCollapsed(
+        self,
+        collapsed: bool,
+        animate: bool = True,
+        *,
+        deferTitleHide: bool = False,
+    ) -> None:
         lValue: bool = bool(collapsed)
-        if lValue is self._collapsed: return
+        if lValue is self._collapsed:
+            # Still allow a deferred hide to complete if collapse was already set
+            if lValue and not deferTitleHide and self._titleWidget.isVisible():
+                self._titleWidget.setVisible(False)
+            return
         self._collapsed = lValue
-        self._applyCollapsedVisual(animate=animate)
+        self._applyCollapsedVisual(animate=animate, deferTitleHide=deferTitleHide)
+
+    def finalizeTitleVisibility(self) -> None:
+        """Apply final title show/hide after width animation settles."""
+        self._titleWidget.setVisible(not self._collapsed)
 
     # ==================================================================================
     @property
@@ -146,9 +160,20 @@ class Header(QWidget, ComponentBase):
         else:
             self._toggleIcon.setIcon(lEnd)
 
-    def _applyCollapsedVisual(self, animate: bool = True) -> None:
+    def _applyCollapsedVisual(
+        self, animate: bool = True, deferTitleHide: bool = False,
+    ) -> None:
         self._refreshToggleIcon(animate=animate)
-        self._titleWidget.setVisible(not self._collapsed)
+
+        if self._collapsed:
+            # Keep title visible while the sidebar width is still animating closed.
+            # Caller finalizes hide after the width animation finishes.
+            if not deferTitleHide:
+                self._titleWidget.setVisible(False)
+        else:
+            # Expanding: show title immediately so it is present as width grows.
+            self._titleWidget.setVisible(True)
+
         self.setProperty("collapsed", "true" if self._collapsed else "false")
         self.style().unpolish(self)
         self.style().polish(self)

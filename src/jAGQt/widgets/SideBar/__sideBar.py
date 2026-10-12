@@ -103,16 +103,17 @@ class SideBar(QWidget, ComponentBase):
         header.CollapseRequested.connect(self._onHeaderCollapseRequested)
         dockControl.DockFlipRequested.connect(self._onDockFlipRequested)
         self._switchDockAnimation.Finished.connect(self._onLightningFinished)
+        self._widthAnimation.Finished.connect(self._onWidthAnimFinished)
 
         self._applyDockProperty()
         if self.config.isCollapsed:
-            self._header._setCollapsed(True, animate=False)
+            self._header._setCollapsed(True, animate=False, deferTitleHide=False)
 
     @property
     def config(self) -> sideBarConfig:
         return self._config
 
-    def _xapplyDockProperty(self) -> None:
+    def _applyDockProperty(self) -> None:
         strPosition: str = (
             "left" if self._dockPosition is SideBarDockPosition.Left else "right"
         )
@@ -191,9 +192,10 @@ class SideBar(QWidget, ComponentBase):
         else:
             self._widthAnimation.setRange(lStart, lEnd, overshootPx=36, undershootPx=14)
 
-        self._widthAnimation.start()
+        # Collapse: keep header title visible until width animation finishes.
+        # Expand: show title immediately so it is present as width grows.
+        self._header._setCollapsed(lValue, animate=True, deferTitleHide=lValue)
 
-        self._header._setCollapsed(lValue, animate=True)
         for lGroup in self._groups:
             lGroup.setSidebarCollapsed(lValue)
 
@@ -205,6 +207,8 @@ class SideBar(QWidget, ComponentBase):
         self.setProperty("collapsed", "true" if lValue else "false")
         self.style().unpolish(self)
         self.style().polish(self)
+
+        self._widthAnimation.start()
         self.CollapsedChanged.emit(lValue)
 
     def toggleCollapse(self) -> None:
@@ -229,7 +233,7 @@ class SideBar(QWidget, ComponentBase):
         self.setDockSide(lNext)
 
     def selectItem(self, item: SideBarItem) -> None:
-        self._xapplySelection(item)
+        self._applySelection(item)
 
     def restoreState(self, collapsed: bool, dockSide: str) -> None:
         lDock = (
@@ -239,7 +243,7 @@ class SideBar(QWidget, ComponentBase):
         )
         self._dockPosition = lDock
         self._dockControl.setDockPosition(lDock, animate=False)
-        self._xapplyDockProperty()
+        self._applyDockProperty()
 
         lCollapsed = bool(collapsed)
         self._collapsed = lCollapsed
@@ -250,7 +254,7 @@ class SideBar(QWidget, ComponentBase):
         self.setMinimumWidth(lWidth)
         self.setMaximumWidth(lWidth)
 
-        self._header._setCollapsed(lCollapsed, animate=False)
+        self._header._setCollapsed(lCollapsed, animate=False, deferTitleHide=False)
         for lGroup in self._groups:
             lGroup.setSidebarCollapsed(lCollapsed)
         for lItem in self._rootItems:
@@ -300,7 +304,7 @@ class SideBar(QWidget, ComponentBase):
     def _startDockLightning(self, position: SideBarDockPosition) -> None:
         lHost = self.window()
         if lHost is None:
-            self._xapplyDockSide(position, animateArrow=True)
+            self._applyDockSide(position, animateArrow=True)
             return
 
         self._dockAnimating = True
@@ -335,10 +339,14 @@ class SideBar(QWidget, ComponentBase):
         self._pendingDock = None
         self.setVisible(True)
 
-    def _xapplyDockSide(self, position: SideBarDockPosition, animateArrow: bool = True) -> None:
+    def _onWidthAnimFinished(self) -> None:
+        # Finalize header title after collapse width has settled.
+        self._header.finalizeTitleVisibility()
+
+    def _applyDockSide(self, position: SideBarDockPosition, animateArrow: bool = True) -> None:
         self._dockPosition = position
         self._dockControl.setDockPosition(position, animate=animateArrow)
-        self._xapplyDockProperty()
+        self._applyDockProperty()
         self.DockSideChanged.emit(position)
 
     def _onHeaderCollapseRequested(self) -> None:
@@ -349,17 +357,17 @@ class SideBar(QWidget, ComponentBase):
         self.toggleDockSide()
 
     def _onItemClicked(self, item: SideBarItem) -> None:
-        self._xapplySelection(item)
+        self._applySelection(item)
         self.ItemClicked.emit(item)
 
-    def _xallItems(self) -> List[SideBarItem]:
+    def _allItems(self) -> List[SideBarItem]:
         lResult: List[SideBarItem] = list(self._rootItems)
         for lGroup in self._groups:
             lResult.extend(lGroup.CollectItems())
         return lResult
 
-    def _xapplySelection(self, item: SideBarItem) -> None:
-        for lItem in self._xallItems():
+    def _applySelection(self, item: SideBarItem) -> None:
+        for lItem in self._allItems():
             lItem.active = False
             lItem.selected = False
 
