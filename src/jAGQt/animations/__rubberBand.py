@@ -32,10 +32,9 @@ class RubberBandAnimation(Animation):
     def __init__(
         self, target: Optional[QWidget] = None, startWidth: int = 0,
         endWidth: int = 240, overshootPx: int = 28, undershootPx: int = 10,
-        durationMs: int = 420, easing: QEasingCurve.Type = QEasingCurve.Type.OutCubic,
-        parent: Optional[QObject] = None,
+        durationMs: int = 420, easing: QEasingCurve.Type = QEasingCurve.Type.OutCubic
     ) -> None:
-        super().__init__(target=target, durationMs=durationMs, easing=easing, parent=parent)
+        super().__init__(target=target, durationMs=durationMs, easing=easing)
         self._startWidth: int = int(startWidth)
         self._endWidth: int = int(endWidth)
         self._overshootPx: int = max(0, int(overshootPx))
