@@ -106,9 +106,9 @@ class SideBar(QWidget, ComponentBase):
         self._switchDockAnimation.Finished.connect(self._onLightningFinished)
         self._widthAnimation.Finished.connect(self._onWidthAnimFinished)
 
-        self._applyDockProperty()
+        self._xapplyDockProperty()
         if self.config.isCollapsed:
-            self._applyCollapsedChrome(collapsed=True, animateHeader=False)
+            self._xapplyCollapsedChrome(collapsed=True, animateHeader=False)
 
     @property
     def config(self) -> sideBarConfig:
@@ -280,23 +280,23 @@ class SideBar(QWidget, ComponentBase):
         self._header.title = value
 
     @property
-    def Collapsed(self) -> bool:
+    def collapsed(self) -> bool:
         return self._collapsed
 
-    @Collapsed.setter
-    def Collapsed(self, value: bool) -> None:
+    @collapsed.setter
+    def collapsed(self, value: bool) -> None:
         self.setCollapsed(value)
 
     @property
-    def DockSide(self) -> SideBarDockPosition:
+    def dockSide(self) -> SideBarDockPosition:
         return self._dockPosition
 
-    @DockSide.setter
-    def DockSide(self, value: SideBarDockPosition) -> None:
+    @dockSide.setter
+    def dockSide(self, value: SideBarDockPosition) -> None:
         self.setDockSide(value)
 
     # ==================================================================================
-    def _applyCollapsedChrome(self, collapsed: bool, animateHeader: bool = True) -> None:
+    def _xapplyCollapsedChrome(self, collapsed: bool, animateHeader: bool = True) -> None:
         """Header title, item display modes, group icon-only — final visual state."""
         self._header._setCollapsed(
             collapsed, animate=animateHeader, deferTitleHide=False,
