@@ -34,7 +34,6 @@ class SideBarText(QLabel, ComponentBase):
         self._text = text if text is not None else ""
 
     def _wInitializeUI(self):
-        text: str = self._text
         elideMode: Qt.TextElideMode = self._elideMode
         alignment: Qt.AlignmentFlag = self._alignment
 

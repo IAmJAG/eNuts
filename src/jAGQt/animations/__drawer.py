@@ -9,7 +9,11 @@ from PySide6.QtCore import QEasingCurve, QObject, QVariantAnimation
 from PySide6.QtWidgets import QWidget
 
 # ==================================================================================
-from .__base import AnimationBase
+from .__animated import Animated
+
+# ==================================================================================
+CurveType = QEasingCurve.Type
+# ==================================================================================
 
 
 # ==================================================================================
@@ -21,24 +25,23 @@ def _applyWidth(target: QWidget, width: int) -> None:
 
 
 # ==================================================================================
-class DrawerAnimation(AnimationBase):
-    """Smooth width roll in/out via setFixedWidth (layout-visible)."""
-
+class DrawerAnimation(Animated):
+    OBJECT_NAME = "W_DRAWER_ANIM"
     def __init__(
-        self,
-        target: Optional[QWidget] = None,
-        startWidth: int = 0,
-        endWidth: int = 240,
-        durationMs: int = 280,
-        easing: QEasingCurve.Type = QEasingCurve.Type.InOutCubic,
-        parent: Optional[QObject] = None,
+        self, startWidth: int = 0, endWidth: int = 240,
+        durationMs: int = 280, easing: CurveType = CurveType.InOutCubic,
+        *args, **kwargs
     ) -> None:
-        super().__init__(target=target, durationMs=durationMs, easing=easing, parent=parent)
+        OBJNAME: str = kwargs.pop("objectName", self.OBJECT_NAME)
+        super().__init__(
+            objectName=OBJNAME, durationMs=durationMs,
+            easing=easing, *args, **kwargs
+        )
         self._startWidth: int = int(startWidth)
         self._endWidth: int = int(endWidth)
-        self._anim: Optional[QVariantAnimation] = None
+        self._animation: Optional[QVariantAnimation] = None
 
-    def SetRange(self, startWidth: int, endWidth: int) -> None:
+    def setRange(self, startWidth: int, endWidth: int) -> None:
         self._startWidth = int(startWidth)
         self._endWidth = int(endWidth)
 
@@ -76,3 +79,5 @@ class DrawerAnimation(AnimationBase):
         if self._target is not None:
             _applyWidth(self._target, self._endWidth)
         self._emitFinished()
+
+    

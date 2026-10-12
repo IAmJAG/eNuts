@@ -10,6 +10,7 @@ from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 
 # ==================================================================================
+from jAGFx.workflow import workflow
 from jAGQt.animations import RollAnimation
 
 # ==================================================================================
@@ -21,41 +22,31 @@ from .__sideBarItem import (
     IconPosition,
     ItemDisplayMode,
     ItemRole,
-    SideBarTitle,
+    SideBarItem,
+    SideBarText,
 )
 from .__sideBarSeparator import SeparatorType, SideBarSeparator
 
 
 # ==================================================================================
+@workflow
 class SideBarGroup(QWidget, ComponentBase):
-    """Nested section: header SideBarItem (no chevron) + rollable body.
-
-    Supports nested groups via AddGroup (depth + 1).
-    """
-
+    OBJECT_NAME = "W_SIDEBAR_GROUP"
     Toggled = Signal(bool)
     ItemClicked = Signal(object)
 
     def __init__(
-        self,
-        title: str = "",
-        icon: Optional[Union[QIcon, QPixmap, str]] = None,
-        iconSize: int = 20,
-        depth: int = 0,
-        startCollapsed: bool = False,
-        animationDurationMs: int = 180,
-        spacing: int = 2,
-        parent: Optional[QWidget] = None,
-        *args,
-        **kwargs,
+        self, title: str = "", icon: Optional[Union[QIcon, QPixmap, str]] = None,
+        iconSize: int = 20, depth: int = 0, collapsed: bool = False,
+        animationDurationMs: int = 180, spacing: int = 2,
+        *args, **kwargs,
     ) -> None:
-        super().__init__(parent, *args, **kwargs)
-
-        self.setObjectName("SideBarGroup")
+        OBJNAME: str = kwargs.pop("objectName", self.OBJECT_NAME)
+        super().__init__(objectName=OBJNAME, *args, **kwargs)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
-        self._collapsed: bool = bool(startCollapsed)
+        self._collapsed: bool = bool(collapsed)
         self._iconSize: int = max(1, int(iconSize))
         self._depth: int = max(0, int(depth))
         self._childIconSize: int = max(1, self._iconSize - 2)
@@ -64,49 +55,58 @@ class SideBarGroup(QWidget, ComponentBase):
         self._items: List[SideBarItem] = []
         self._childGroups: List[SideBarGroup] = []
 
-        self._header: SideBarItem = SideBarItem(
-            text=title,
-            icon=icon,
+        self._title: str = title
+        self._icon: Optional[Union[QIcon, QPixmap, str]] = icon
+        self._spacing: int = max(0, int(spacing))
+
+    def _wInitializeUI(self):
+        title: str = self._title if self._title is not None else ""
+        icon: Optional[Union[QIcon, QPixmap, str]] = self._icon
+        spacing: int = self._spacing
+
+        del self._title
+        del self._icon
+        del self._spacing
+
+        header: SideBarItem = SideBarItem(
+            text=title, icon=icon,
             displayMode=ItemDisplayMode.IconAndText,
             iconPosition=IconPosition.Left,
             iconSize=self._iconSize,
-            depth=self._depth,
-            role=ItemRole.Header,
-            spacing=6,
-            parent=self,
+            depth=self._depth, role=ItemRole.Header,
+            spacing=6
         )
-        self._header.setObjectName("SideBarGroupHeader")
-        self._header.TextWidget.setObjectName("SideBarGroupTitle")
-        self._header.Clicked.connect(self._onHeaderClicked)
+        header.Clicked.connect(self._onHeaderClicked)
 
-        self._body: QWidget = QWidget(self)
-        self._body.setObjectName("SideBarGroupBody")
-        self._body.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
+        body: QWidget = QWidget(self)
+        body.setObjectName("W_SIDEBAR_GROUP_BODY")
+        body.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
 
-        self._bodyLayout: QBoxLayout = newLayout(
-            QBoxLayout,
-            spacing=spacing,
-            margins=(4, 0, 4, 4),
+        bodyLayout: QBoxLayout = newLayout(
+            QBoxLayout, spacing=spacing, margins=(4, 0, 4, 4),
             direction=QBoxLayout.Direction.TopToBottom,
         )
-        self._body.setLayout(self._bodyLayout)
 
-        self._layout: QBoxLayout = newLayout(
+        body.setLayout(bodyLayout)
+
+        mainLayout: QBoxLayout = newLayout(
             QBoxLayout,
             spacing=0,
             margins=(0, 0, 0, 0),
             direction=QBoxLayout.Direction.TopToBottom,
-        )
-        self.setLayout(self._layout)
-        self._layout.addWidget(self._header)
-        self._layout.addWidget(self._body)
+        )        
+        mainLayout.addWidget(header)
+        mainLayout.addWidget(body)
+        self.setLayout(mainLayout)
 
-        self._roll: RollAnimation = RollAnimation(
+        self._header: SideBarItem = header
+        self._body: QWidget = body        
+
+        self._animation: RollAnimation = RollAnimation(
             target=self._body,
             durationMs=self._animationDurationMs,
             parent=self,
         )
-
         self._applyCollapsedState(animate=False)
 
     # ==================================================================================
