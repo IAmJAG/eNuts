@@ -15,10 +15,36 @@ QPolicy = QSizePolicy.Policy
 
 # ==================================================================================
 @workflow
-class SideBarContent(QScrollArea, ComponentBase):
-    OBJECT_NAME = "W_SIDEBAR_CONTENT"
-    CONTAINER_NAME = "W_SIDEBAR_CONTENT_CONTAINER"
+class contentContainer(QWidget, ComponentBase):
+    OBJECT_NAME = "W_CONTENT_BODY"
+    def __init__(
+        self, spacing: int = 2, margins: tuple[int, int, int, int] = (0, 0, 0, 0),
+        *args, **kwargs
+    ) -> None:        
+        self._spacing = int(spacing)
+        self._margins = int(margins)
+        
+        OBJNAME = kwargs.pop("objectName", self.OBJECT_NAME)
+        super().__init__(objectName=OBJNAME, *args, **kwargs)
 
+    def _wInitializeUI(self) -> None:
+        spacing = self._spacing
+        margins = self._margins
+
+        del self._spacing
+        del self._margins
+
+        layout: QBoxLayout = newLayout(
+            QBoxLayout, spacing=spacing, margins=margins,
+            direction=QBoxLayout.Direction.TopToBottom,
+        )
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.setLayout(layout)
+
+# ==================================================================================
+@workflow
+class Content(QScrollArea, ComponentBase):
+    OBJECT_NAME = "W_CONTENT"
     def __init__(
         self, spacing: int = 2, margins: tuple[int, int, int, int] = (0, 0, 0, 0),
         *args, **kwargs
@@ -40,21 +66,10 @@ class SideBarContent(QScrollArea, ComponentBase):
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.setFrameShape(QFrame.Shape.NoFrame)
         self.setSizePolicy(QPolicy.Expanding, QPolicy.Expanding)
-
-        self._container = QWidget()
-        self._container.setObjectName(self.CONTAINER_NAME)
-
-        layout: QBoxLayout = newLayout(
-            QBoxLayout,
-            spacing=spacing,
-            margins=margins,
-            direction=QBoxLayout.Direction.TopToBottom,
-        )
         
-        self._layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        self._container.setLayout(layout)
+        self._container = contentContainer(spacing=spacing, margins=margins)        
         self.setWidget(self._container)
-        self._layout = layout
+        self._layout = self._container.Layout
 
     def addWidget(self, widget: QWidget, stretch: int = 0) -> None:
         self._layout.addWidget(widget, stretch)

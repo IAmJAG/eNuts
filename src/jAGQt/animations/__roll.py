@@ -9,11 +9,11 @@ from PySide6.QtCore import QEasingCurve, QObject, QPropertyAnimation
 from PySide6.QtWidgets import QWidget
 
 # ==================================================================================
-from .__base import AnimationBase
+from .__animation import Animation
 
 
 # ==================================================================================
-class RollAnimation(AnimationBase):
+class RollAnimation(Animation):
     """Roll up / roll down via maximumHeight. Any QWidget."""
 
     def __init__(

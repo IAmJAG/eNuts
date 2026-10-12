@@ -13,7 +13,7 @@ CurveType = QEasingCurve.Type
 
 # ==================================================================================
 @runtime_checkable
-class iAnimated(Protocol):
+class iAnimation(Protocol):
     def __init__(
         self, durationMs: int = 220, easing: CurveType = CurveType.OutCubic,
         *args, **kwargs,

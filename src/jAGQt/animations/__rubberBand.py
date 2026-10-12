@@ -9,7 +9,7 @@ from PySide6.QtCore import QEasingCurve, QObject, QVariantAnimation
 from PySide6.QtWidgets import QWidget
 
 # ==================================================================================
-from .__base import AnimationBase
+from .__animation import Animation
 
 
 # ==================================================================================
@@ -22,7 +22,7 @@ def _applyWidth(target: QWidget, width: int) -> None:
 
 
 # ==================================================================================
-class RubberBandAnimation(AnimationBase):
+class RubberBandAnimation(Animation):
     """Width rubber-band: overshoot past the target, undershoot, then settle.
 
     Uses keyframed QVariantAnimation + setFixedWidth so the layout actually moves

@@ -6,12 +6,20 @@ from math import cos, pi, sin
 from typing import Callable, Optional
 
 # ==================================================================================
-from PySide6.QtCore import QEasingCurve, QObject, QPointF, QRectF, Qt, QVariantAnimation, Signal
+from PySide6.QtCore import (
+    QEasingCurve,
+    QObject,
+    QPointF,
+    QRectF,
+    Qt,
+    QVariantAnimation,
+    Signal,
+)
 from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen, QRadialGradient
 from PySide6.QtWidgets import QWidget
 
 # ==================================================================================
-from .__base import AnimationBase
+from .__animation import Animation
 
 
 # ==================================================================================
@@ -220,7 +228,7 @@ class _LightningOverlay(QWidget):
 
 
 # ==================================================================================
-class LightningShootAnimation(AnimationBase):
+class LightningShootAnimation(Animation):
     """Widget → lightning ball → tentacle to dest → rematerialize as widget.
 
     Signals:

@@ -9,7 +9,7 @@ from PySide6.QtCore import QEasingCurve, QObject, QVariantAnimation
 from PySide6.QtWidgets import QWidget
 
 # ==================================================================================
-from .__animated import Animated
+from .__animation import Animation
 
 # ==================================================================================
 CurveType = QEasingCurve.Type
@@ -25,7 +25,7 @@ def _applyWidth(target: QWidget, width: int) -> None:
 
 
 # ==================================================================================
-class DrawerAnimation(Animated):
+class DrawerAnimation(Animation):
     OBJECT_NAME = "W_DRAWER_ANIM"
     def __init__(
         self, startWidth: int = 0, endWidth: int = 240,

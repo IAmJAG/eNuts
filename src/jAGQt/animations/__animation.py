@@ -10,7 +10,7 @@ CurveType = QEasingCurve.Type
 # ==================================================================================
 
 # ==================================================================================
-class Animated:
+class Animation:
     OBJECT_NAME = "W_ANIMATED"
     Finished: SignalInstance = Signal()    
     def __init__(

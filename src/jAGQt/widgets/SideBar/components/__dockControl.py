@@ -26,7 +26,7 @@ from .__sideBarIcon import SideBarIcon
 # ==================================================================================
 @workflow
 class DockControl(QWidget, ComponentBase):
-    OBJECT_NAME = "W_SIDEBAR_DOCK_CONTROL"
+    OBJECT_NAME = "W_DOCK_CONTROL"
     DockFlipRequested = Signal()
     def __init__(
         self, dockPosition: DockPosition = DockPosition.Left,

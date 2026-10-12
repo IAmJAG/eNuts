@@ -1,6 +1,7 @@
 # ==================================================================================
 from .__sideBar import SideBar
 from .components import (
+    DockControl,
     IconPosition,
     ItemDisplayMode,
     ItemRole,
@@ -8,13 +9,11 @@ from .components import (
     MakeCloseIcon,
     SeparatorType,
     SideBarContent,
-    SideBarDockControl,
     SideBarGroup,
     SideBarHeader,
     SideBarIcon,
     SideBarItem,
     SideBarSeparator,
-    SideBarTitle,
 )
 
 # ==================================================================================

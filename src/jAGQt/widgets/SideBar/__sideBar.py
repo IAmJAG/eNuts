@@ -22,15 +22,15 @@ from ..components import ComponentBase
 # ==================================================================================
 from .__options import sideBarConfig
 from .components import (
+    DockControl,
     ItemDisplayMode,
     ItemRole,
     SeparatorType,
     SideBarContent,
-    SideBarDockControl,
     SideBarGroup,
     SideBarHeader,
     SideBarSeparator,
-    SideBarTitle,
+    SideBarText,
 )
 
 

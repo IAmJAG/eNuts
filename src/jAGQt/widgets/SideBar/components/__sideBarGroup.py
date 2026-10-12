@@ -31,7 +31,8 @@ from .__sideBarSeparator import SeparatorType, SideBarSeparator
 # ==================================================================================
 @workflow
 class SideBarGroup(QWidget, ComponentBase):
-    OBJECT_NAME = "W_SIDEBAR_GROUP"
+    OBJECT_NAME = "W_GROUP"    
+
     Toggled = Signal(bool)
     ItemClicked = Signal(object)
 
