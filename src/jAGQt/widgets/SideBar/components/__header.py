@@ -14,7 +14,7 @@ from jAGFx.workflow import workflow
 from jAGQt.icons import MakeBurgerIcon, MakeCloseIcon
 
 # ==================================================================================
-from ...header import Header
+from ...header import Header as _Header
 from ...icon import StatefullIcon
 from ..types import sideBarState
 
@@ -24,7 +24,7 @@ QPolicy = QSizePolicy.Policy
 
 
 # ==================================================================================
-class Header(Header):
+class Header(_Header):
     CollapseRequested: SignalInstance = Signal()
     def __init__(
         self, title: Optional[str] = None, iconSize: int = 24, *args, **kwargs,
@@ -32,9 +32,12 @@ class Header(Header):
         super().__init__(title=title, iconSize=iconSize, *args, **kwargs)
         self._title: str = title if title is not None else ""
         self._state: sideBarState = sideBarState.Expanded
+        self._iconSize: int = max(1, int(iconSize))
 
     def _wInitializeUI(self) -> None:        
-        iconSize: int = self.iconSize
+        iconSize: int = self._iconSize
+
+        del self._iconSize
 
         burgerIcon: QIcon = MakeBurgerIcon(iconSize)
         closeIcon: QIcon = MakeCloseIcon(iconSize)
