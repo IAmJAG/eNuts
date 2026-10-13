@@ -10,7 +10,7 @@ from PySide6.QtGui import QIcon, QPainter, QPixmap, QTransform
 from PySide6.QtWidgets import QLabel, QWidget
 
 # ==================================================================================
-from .__base import IconAnimationBase
+from .__iconAnimation import IconAnimationBase
 
 
 # ==================================================================================
