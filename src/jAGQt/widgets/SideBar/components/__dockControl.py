@@ -62,10 +62,10 @@ class DockControl(QWidget, ComponentBase):
         self.setLayout(self._layout)
 
         self._transpose: IconTransposeAnimation = IconTransposeAnimation(
-            target=self._arrow,
+            icon=arrow,
             iconSize=self._iconSize,
             durationMs=140,
-            parent=self,
+            target=self._arrow,
         )
         self._transpose.Finished.connect(self._onTransposeFinished)
         self._pendingPosition: Optional[SideBarDockPosition] = None

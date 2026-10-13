@@ -95,7 +95,7 @@ class Header(QWidget, ComponentBase):
         hasIcon: bool = icon is not None and isinstance(icon, Icon)                
         rowLayout: QBoxLayout = newLayout(QHBoxLayout, spacing=8, margins=0)
         mainLayout: QBoxLayout = self.layout()
-        self._clearLayout(mainLayout)
+        self._clearLayout()
 
         if iconPosition == IconPosition.TitleRow:                        
             iconSize: int = title.size().height()
