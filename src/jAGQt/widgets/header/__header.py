@@ -28,14 +28,9 @@ class Header(QFrame, ComponentBase):
     OBJECT_NAME = "W_HEADER"
 
     def __init__(
-        self,
-        title: str = "jAGQt Page",
-        description: str = "",
-        icon: IconType = None,
-        iconSize: int = 24,
-        iconFormat: IconPosition = IconPosition.TitleRow,
-        *args,
-        **kwargs,
+        self, title: str = "jAGQt Page", description: str = "", icon: IconType = None,
+        iconSize: int = 24, iconFormat: IconPosition = IconPosition.TitleRow,
+        *args, **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
         self._title = title

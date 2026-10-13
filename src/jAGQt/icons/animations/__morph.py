@@ -5,11 +5,11 @@ from __future__ import annotations
 from typing import Optional
 
 # ==================================================================================
-from PySide6.QtCore import QEasingCurve, QObject, Qt, QVariantAnimation
+from PySide6.QtCore import QEasingCurve, Qt, QVariantAnimation
 from PySide6.QtGui import QIcon, QPainter, QPixmap
-from PySide6.QtWidgets import QLabel, QWidget
 
 # ==================================================================================
+from ...types.interface.widgets.icons import iIcon
 from .__iconAnimation import IconAnimation
 
 # ==================================================================================
@@ -19,28 +19,22 @@ QECurveType = QEasingCurve.Type
 
 # ==================================================================================
 class IconMorphAnimation(IconAnimation):
-    """Cross-fade morph from one icon to another on a QLabel (or setPixmap target)."""
-
     def __init__(
-        self,
-        target: Optional[QWidget] = None,
-        startIcon: Optional[QIcon] = None,
-        endIcon: Optional[QIcon] = None,
-        iconSize: int = 20,
-        durationMs: int = 180,
+        self, startIcon: Optional[QIcon] = None, endIcon: Optional[QIcon] = None,
+        iconSize: int = 20, durationMs: int = 180,
         easing: QECurveType = QECurveType.InOutCubic,
-        parent: Optional[QObject] = None,
+        target: Optional[iIcon] = None,
+        *args, **kwargs
     ) -> None:
         super().__init__(
-            target=target,
             durationMs=durationMs,
             easing=easing,
-            parent=parent,
+            *args, **kwargs
         )
         self._startIcon: Optional[QIcon] = startIcon
         self._endIcon: Optional[QIcon] = endIcon
         self._iconSize: int = max(1, int(iconSize))
-        self._anim: Optional[QVariantAnimation] = None
+        self.target: Optional[iIcon] = target
 
     def setIcons(self, startIcon: QIcon, endIcon: QIcon) -> None:
         self._startIcon = startIcon
@@ -49,24 +43,36 @@ class IconMorphAnimation(IconAnimation):
     def setIconSize(self, iconSize: int) -> None:
         self._iconSize = max(1, int(iconSize))
 
-    def _onStart(self) -> None:
-        if self._target is None or self._startIcon is None or self._endIcon is None:
-            self._emitFinished()
-            return
+    def _validate(self) -> None:
+        if self._target is None or not isinstance(self._target, iIcon):
+            warning(f"[{self.__class__.__name__}] no valid target")
+            return False
 
-        self._anim = QVariantAnimation(self)
-        self._anim.setDuration(self._durationMs)
-        self._anim.setStartValue(0.0)
-        self._anim.setEndValue(1.0)
-        self._anim.setEasingCurve(self._easing)
-        self._anim.valueChanged.connect(self._onProgress)
-        self._anim.finished.connect(self._onAnimFinished)
-        self._anim.start()
+        if self._startIcon is None or self._endIcon is None:
+            warning(f"[{self.__class__.__name__}] no valid icons")
+            return False
 
-    def _onStop(self) -> None:
-        if self._anim is not None:
-            self._anim.stop()
-            self._anim = None
+        return True
+
+    def start(self) -> None:
+        super().start()
+        if not self._validate():
+            self._onFinished()
+            return 
+
+        duration: int = self._durationMs
+        ecurve: QECurveType = self._easing
+
+        animation: QVariantAnimation = QVariantAnimation(self)
+        animation.setDuration(duration)
+        animation.setStartValue(0.0)
+        animation.setEndValue(1.0)
+        animation.setEasingCurve(ecurve)
+        animation.valueChanged.connect(self._onProgress)
+        animation.finished.connect(self._onFinished)
+
+        self._animation: Optional[QVariantAnimation] = animation        
+        self._animation.start()        
 
     def _onProgress(self, value: object) -> None:
         lT: float = float(value)
@@ -81,18 +87,28 @@ class IconMorphAnimation(IconAnimation):
         lPainter.setOpacity(lT)
         lPainter.drawPixmap(0, 0, lEnd)
         lPainter.end()
-        self._applyPixmap(lFrame)
+        self._applyPixmap(lFrame)        
+        self.onProgress.emit(value)
 
-    def _applyPixmap(self, pixmap: QPixmap) -> None:
-        if self._target is None:
-            return
-        if isinstance(self._target, QLabel):
-            self._target.setPixmap(pixmap)
-        elif hasattr(self._target, "setPixmap"):
-            self._target.setPixmap(pixmap)
-
-    def _onAnimFinished(self) -> None:
-        self._anim = None
+    def _onFinished(self) -> None:
+        self._animation = None
         if self._endIcon is not None:
             self._applyPixmap(self._endIcon.pixmap(self._iconSize, self._iconSize))
-        self._emitFinished()
+
+        self.onFinished.emit(self)    
+
+    def stop(self) -> None:
+        if self._animation is not None:
+            self._animation.stop()
+            self._animation = None
+        super().stop()    
+
+    def _applyPixmap(self, pixmap: QIcon | QPixmap) -> None:
+        if self._target is None: return
+        if not isinstance(self._target, iIcon):
+            warning(f"[{self.__class__.__name__}] no valid target")
+            return
+        
+        self._target.setIcon(pixmap)
+
+    

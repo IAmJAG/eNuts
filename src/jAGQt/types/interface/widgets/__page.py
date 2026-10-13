@@ -9,7 +9,6 @@ from PySide6.QtWidgets import QAbstractButton, QSizePolicy, QSpacerItem, QWidget
 
 # ==================================================================================
 from ..components import iComponentBase
-from .__commandBar import iCommandBar
 
 Policy = QSizePolicy.Policy
 

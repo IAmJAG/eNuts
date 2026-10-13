@@ -6,10 +6,15 @@ from typing import Optional
 
 # ==================================================================================
 from PySide6.QtCore import QEasingCurve, QObject, Signal, SignalInstance
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget
 
 # ==================================================================================
 from jAGFx.logging import warning
+
+# ==================================================================================
+from ...types.interface.icons.animation import iIconAnimation
+from ...types.interface.widgets.icons import iIcon
 
 # ==================================================================================
 QECurveType = QEasingCurve.Type
@@ -18,32 +23,29 @@ QECurveType = QEasingCurve.Type
 
 # ==================================================================================
 class IconAnimation(QObject):
-    """Base for square-icon transitions (morph, transpose, etc.)."""
-
-    onStart: SignalInstance = Signal(object)
-    onStop: SignalInstance = Signal(object)
-    onFinished: SignalInstance = Signal(object)
+    onStart: SignalInstance = Signal(iIconAnimation)
+    onStop: SignalInstance = Signal(iIconAnimation)
+    onFinished: SignalInstance = Signal(iIconAnimation)
+    onProgress: SignalInstance = Signal(iIconAnimation)
 
     def __init__(
-        self,
-        target: Optional[QWidget] = None,
-        durationMs: int = 180,
-        easing: QECurveType = QECurveType.InOutCubic,
-        *args,
-        **kwargs,
+        self,  durationMs: int = 180, easing: QECurveType = QECurveType.InOutCubic,
+        *args, **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
-        self._target: Optional[QWidget] = target
+        self._target: iIcon = None
         self._durationMs: int = max(0, int(durationMs))
         self._easing: QEasingCurve.Type = easing
         self._running: bool = False
 
     @property
-    def target(self) -> Optional[QWidget]:
+    def target(self) -> Optional[iIcon]:
         return self._target
 
     @target.setter
-    def target(self, value: Optional[QWidget]) -> None:
+    def target(self, value: Optional[iIcon]) -> None:
+        if value is not None and not isinstance(value, iIcon):
+            raise TypeError(f"Invalid target: Expected iIcon, got {type(value).__name__}.")        
         self._target = value
 
     @property
@@ -63,26 +65,19 @@ class IconAnimation(QObject):
         if self._running:
             warning(f"[{self.__class__.__name__}] already running")
             return
+
+        if self._target is None or not isinstance(self._target, iIcon):
+            warning(f"[{self.__class__.__name__}] no valid target")
+            return
+        
         self._running = True
         self.onStart.emit(self)
-        self._onStart()
 
     def stop(self) -> None:
         if not self._running:
             warning(f"[{self.__class__.__name__}] not running")
             return
-        self._onStop()
+        
         self.onStop.emit(self)
-        self._running = False
-
-    def _onStart(self) -> None:
-        """Subclass hook — start the concrete transition."""
-        self._emitFinished()
-
-    def _onStop(self) -> None:
-        """Subclass hook — abort any in-flight transition."""
-        pass
-
-    def _emitFinished(self) -> None:
-        self._running = False
+        self._running = False  
         self.onFinished.emit(self)

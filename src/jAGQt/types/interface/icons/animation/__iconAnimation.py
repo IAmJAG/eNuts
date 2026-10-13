@@ -19,6 +19,7 @@ class iIconAnimation(Protocol):
     onStart: SignalInstance
     onStop: SignalInstance
     onFinished: SignalInstance
+    onProgress: SignalInstance
     def __init__(
         self, target: Optional[QWidget], durationMs: int = 180, 
         easing: QECurveType = QECurveType.InOutCubic,

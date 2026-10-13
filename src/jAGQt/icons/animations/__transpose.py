@@ -10,6 +10,7 @@ from PySide6.QtGui import QIcon, QPainter, QPixmap, QTransform
 from PySide6.QtWidgets import QLabel, QWidget
 
 # ==================================================================================
+from ...types.interface.widgets.icons import iIcon
 from .__iconAnimation import IconAnimation
 
 # ==================================================================================
@@ -22,23 +23,21 @@ class IconTransposeAnimation(IconAnimation):
     """Horizontal mirror (transpose) of an icon over time — useful for dock arrows."""
 
     def __init__(
-        self,
+        self, icon: QIcon,
+        iconSize: int = 20, durationMs: int = 160,
+        easing: QECurveType = QECurveType.InOutCubic,        
         target: Optional[QWidget] = None,
-        icon: Optional[QIcon] = None,
-        iconSize: int = 20,
-        durationMs: int = 160,
-        easing: QECurveType = QECurveType.InOutCubic,
-        parent: Optional[QObject] = None,
+        *args, **kwargs
     ) -> None:
         super().__init__(
-            target=target,
             durationMs=durationMs,
             easing=easing,
-            parent=parent,
+            *args, **kwargs
         )
         self._icon: Optional[QIcon] = icon
         self._iconSize: int = max(1, int(iconSize))
         self._anim: Optional[QVariantAnimation] = None
+        self.target = target
 
     def setIcon(self, icon: QIcon) -> None:
         self._icon = icon
@@ -46,30 +45,37 @@ class IconTransposeAnimation(IconAnimation):
     def setIconSize(self, iconSize: int) -> None:
         self._iconSize = max(1, int(iconSize))
 
+    def _validate(self) -> None:
+        if self._target is None or not isinstance(self._target, iIcon):
+            warning(f"[{self.__class__.__name__}] no valid target")
+            return False
+
+        if self._startIcon is None or self._endIcon is None:
+            warning(f"[{self.__class__.__name__}] no valid icons")
+            return False
+
+        return True
+
     def _onStart(self) -> None:
         if self._target is None or self._icon is None:
-            self._emitFinished()
+            self._onFinished()
             return
 
-        self._anim = QVariantAnimation(self)
-        self._anim.setDuration(self._durationMs)
-        self._anim.setStartValue(0.0)
-        self._anim.setEndValue(1.0)
-        self._anim.setEasingCurve(self._easing)
-        self._anim.valueChanged.connect(self._onProgress)
-        self._anim.finished.connect(self._onAnimFinished)
-        self._anim.start()
+        animation: QVariantAnimation = QVariantAnimation(self)
+        animation.setDuration(self._durationMs)
+        animation.setStartValue(0.0)
+        animation.setEndValue(1.0)
+        animation.setEasingCurve(self._easing)
+        animation.valueChanged.connect(self._onProgress)
+        animation.finished.connect(self._onAnimFinished)
 
-    def _onStop(self) -> None:
-        if self._anim is not None:
-            self._anim.stop()
-            self._anim = None
+        self._animation: Optional[QVariantAnimation] = animation        
+        self._animation.start()    
 
     def _onProgress(self, value: object) -> None:
         lT: float = float(value)
         lSize: int = self._iconSize
         lSrc: QPixmap = self._icon.pixmap(lSize, lSize)
-        # Scale X from 1 → 0 → -1 (flip)
         lScaleX: float = 1.0 - 2.0 * lT
         lTransform: QTransform = QTransform()
         lTransform.translate(lSize * 0.5, lSize * 0.5)
@@ -85,6 +91,7 @@ class IconTransposeAnimation(IconAnimation):
         lPainter.end()
 
         self._applyPixmap(lFrame)
+        self.onProgress.emit(value)
 
     def _applyPixmap(self, pixmap: QPixmap) -> None:
         if self._target is None:
@@ -94,11 +101,11 @@ class IconTransposeAnimation(IconAnimation):
         elif hasattr(self._target, "setPixmap"):
             self._target.setPixmap(pixmap)
 
+    
     def _onAnimFinished(self) -> None:
-        self._anim = None
+        self._animation = None
         if self._icon is not None and self._target is not None:
             lMirrored: QPixmap = self._icon.pixmap(self._iconSize, self._iconSize).transformed(
                 QTransform().scale(-1, 1)
             )
             self._applyPixmap(lMirrored)
-        self._emitFinished()
