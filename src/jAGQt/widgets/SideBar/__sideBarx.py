@@ -64,11 +64,10 @@ class SideBar(QWidget, ComponentBase):
 
     def _wInitializeUI(self) -> None:
         title: str = self._title
-
         del self._title
 
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
         expanded: int = self._config.expandedWidth
         collapsed: int = self._config.collapsedWidth

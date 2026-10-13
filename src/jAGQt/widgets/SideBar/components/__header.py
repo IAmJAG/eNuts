@@ -25,34 +25,24 @@ QPolicy = QSizePolicy.Policy
 
 # ==================================================================================
 class Header(_Header):
+    OBJECT_NAME = "W_SIDEBAR_HEADER"
     CollapseRequested: SignalInstance = Signal()
     def __init__(
         self, title: Optional[str] = None, iconSize: int = 24, *args, **kwargs,
-    ) -> None:        
-        super().__init__(title=title, iconSize=iconSize, *args, **kwargs)
+    ) -> None: 
+        OBJNAME: str = kwargs.pop("objectName", self.OBJECT_NAME)               
+        super().__init__(title=title, iconSize=iconSize, objectName=OBJNAME, *args, **kwargs)
         self._title: str = title if title is not None else ""
         self._state: sideBarState = sideBarState.Expanded
         self._iconSize: int = max(1, int(iconSize))
 
     def _wInitializeUI(self) -> None:        
-        iconSize: int = self._iconSize
-
-        del self._iconSize
-
-        burgerIcon: QIcon = MakeBurgerIcon(iconSize)
-        closeIcon: QIcon = MakeCloseIcon(iconSize)
-
-        icons: Dict[sideBarState, Optional[Union[QIcon, QPixmap, str]]] = {
-            sideBarState.Collapsed: closeIcon,
-            sideBarState.Expanded: burgerIcon,
-        }
-        toggleIcon: StatefullIcon[sideBarState] = StatefullIcon[sideBarState](icons)
-        toggleIcon.setCursor(Qt.CursorShape.PointingHandCursor)
-        toggleIcon.installEventFilter(self)
-
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.setSizePolicy(QPolicy.Expanding, QPolicy.Preferred)
+        self.setFixedHeight(44)
+        # self.setStyleSheet("background-color: white; color: black;")
+        
         super()._wInitializeUI(False)
-        self._icon: StatefullIcon[sideBarState] = toggleIcon
-        self._rebuildLayout()
 
     @property
     def state(self) -> sideBarState:

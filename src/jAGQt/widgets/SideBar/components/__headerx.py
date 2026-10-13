@@ -2,25 +2,21 @@
 from __future__ import annotations
 
 # ==================================================================================
-from typing import Optional
+from typing import Dict, Optional, Union
 
 # ==================================================================================
-from PySide6.QtCore import QEvent, QObject, Qt, Signal
-from PySide6.QtGui import QIcon, QMouseEvent
-from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
+from PySide6.QtCore import QEvent, QObject, Qt, Signal, SignalInstance
+from PySide6.QtGui import QIcon, QMouseEvent, QPixmap
+from PySide6.QtWidgets import QSizePolicy
 
 # ==================================================================================
 from jAGFx.workflow import workflow
 from jAGQt.icons import MakeBurgerIcon, MakeCloseIcon
-from jAGQt.icons.animations import IconMorphAnimation
 
 # ==================================================================================
-from ....utilities import newLayout
-from ...components import ComponentBase
-
-# ==================================================================================
-from .__icon import Icon as SideBarIcon
-from .__text import Text as SideBarText
+from ...header import Header as _Header
+from ...icon import StatefullIcon
+from ..types import sideBarState
 
 # ==================================================================================
 QPolicy = QSizePolicy.Policy
@@ -28,188 +24,78 @@ QPolicy = QSizePolicy.Policy
 
 
 # ==================================================================================
-@workflow
-class Header(QWidget, ComponentBase):
-    OBJECT_NAME = "W_HEADER"
-    CollapseRequested = Signal()
-
+class Header(_Header):
+    CollapseRequested: SignalInstance = Signal()
     def __init__(
-        self, title: Optional[str] = None, iconSize: int = 20,
-        spacing: int = 8, *args, **kwargs,
-    ) -> None:
-        OBJNAME: str = kwargs.pop("objectName", self.OBJECT_NAME)
-        super().__init__(objectName=OBJNAME, *args, **kwargs)
+        self, title: Optional[str] = None, iconSize: int = 24, *args, **kwargs,
+    ) -> None:        
+        super().__init__(title=title, iconSize=iconSize, *args, **kwargs)
         self._title: str = title if title is not None else ""
+        self._state: sideBarState = sideBarState.Expanded
         self._iconSize: int = max(1, int(iconSize))
-        self._spacing: int = int(spacing)
 
-    def _wInitializeUI(self) -> None:
-        title: str = self._title if self._title is not None else ""
-        iconSize: int = max(1, int(self._iconSize))
-        spacing: int = int(self._spacing)
+    def _wInitializeUI(self) -> None:        
+        iconSize: int = self._iconSize
 
-        del self._title
         del self._iconSize
-        del self._spacing
 
-        self._collapsed: bool = False
+        burgerIcon: QIcon = MakeBurgerIcon(iconSize)
+        closeIcon: QIcon = MakeCloseIcon(iconSize)
 
-        self.setSizePolicy(QPolicy.Expanding, QPolicy.Fixed)
-        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        icons: Dict[sideBarState, Optional[Union[QIcon, QPixmap, str]]] = {
+            sideBarState.Collapsed: closeIcon,
+            sideBarState.Expanded: burgerIcon,
+        }
+        toggleIcon: StatefullIcon[sideBarState] = StatefullIcon[sideBarState](icons)
+        toggleIcon.setCursor(Qt.CursorShape.PointingHandCursor)
+        toggleIcon.installEventFilter(self)
 
-        self._burgerIcon: QIcon = MakeBurgerIcon(iconSize)
-        self._closeIcon: QIcon = MakeCloseIcon(iconSize)
+        super()._wInitializeUI(False)
+        self._icon: StatefullIcon[sideBarState] = toggleIcon
+        self._rebuildLayout()
 
-        self._toggleIcon: SideBarIcon = SideBarIcon(
-            icon=self._burgerIcon,
-            iconSize=iconSize,
-            parent=self,
-        )
-        self._toggleIcon.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._toggleIcon.installEventFilter(self)
+    @property
+    def state(self) -> sideBarState:
+        return self._state
 
-        self._titleWidget: SideBarText = SideBarText(text=title, parent=self)
-        self._titleWidget.setObjectName("SideBarHeaderTitle")
-
-        mainLayout: QBoxLayout = newLayout(
-            QBoxLayout,
-            spacing=spacing,
-            margins=(8, 8, 8, 8),
-            direction=QBoxLayout.Direction.LeftToRight,
-        )
-        mainLayout.addWidget(self._toggleIcon)
-        mainLayout.addWidget(self._titleWidget, 1)
-        self.setLayout(mainLayout)
-        self._layout = mainLayout
-
-        # startIcon: Optional[QIcon] = None, endIcon: Optional[QIcon] = None,
-        #         iconSize: int = 20, durationMs: int = 180,
-        #         easing: QECurveType = QECurveType.InOutCubic,
-        #         target: Optional[iIcon] = None,
-
-        self._morph: IconMorphAnimation = IconMorphAnimation(
-            target=self._toggleIcon,
-            iconSize=iconSize,
-            durationMs=160,
-            parent=self,
-        )
-        self._applyCollapsedVisual(animate=False, deferTitleHide=False)
-
-    # ==================================================================================
-    def prepareCollapse(self, animateIcon: bool = True) -> None:
-        """Start icon morph only; keep title visible until width animation ends."""
-        # Morph toward the collapsed icon while title stays in layout.
-        lStart: QIcon = self._burgerIcon if not self._collapsed else self._closeIcon
-        lEnd: QIcon = self._closeIcon
-        if animateIcon:
-            self._morph.setIcons(lStart, lEnd)
-            self._morph.start()
-        else:
-            self._toggleIcon.setIcon(lEnd)
-
-    def _setCollapsed(
-        self,
-        collapsed: bool,
-        animate: bool = True,
-        *,
-        deferTitleHide: bool = False,
-    ) -> None:
-        lValue: bool = bool(collapsed)
-        if lValue is self._collapsed:
-            if lValue and not deferTitleHide and self._titleWidget.isVisible():
-                self._titleWidget.setVisible(False)
-                self._xrebuildHeaderLayout()
-            return
-        self._collapsed = lValue
-        self._applyCollapsedVisual(animate=animate, deferTitleHide=deferTitleHide)
-
-    def finalizeTitleVisibility(self) -> None:
-        self._titleWidget.setVisible(not self._collapsed)
-        self._xrebuildHeaderLayout()
+    @state.setter
+    def state(self, value: sideBarState) -> None:
+        self._state = value
+        self._icon.state = value        
+        self._rebuildLayout()
 
     # ==================================================================================
     @property
     def title(self) -> str:
-        return self._titleWidget.Text
+        return super().title
 
     @title.setter
     def title(self, value: str) -> None:
-        self._titleWidget.Text = value if value is not None else ""
+        super().title = value if value is not None else ""
 
     @property
     def iconSize(self) -> int:
-        return self._toggleIcon.iconSize
-
+        return self._icon.iconSize
+    
     @iconSize.setter
     def iconSize(self, value: int) -> None:
-        lSize: int = max(1, int(value))
-        if lSize == self._toggleIcon.iconSize:
-            return
-        self._toggleIcon.iconSize = lSize
-        self._burgerIcon = MakeBurgerIcon(lSize)
-        self._closeIcon = MakeCloseIcon(lSize)
-        self._morph.setIconSize(lSize)
-        self._refreshToggleIcon(animate=False)
-
-    @property
-    def collapsed(self) -> bool:
-        return self._collapsed
-
-    @collapsed.setter
-    def collapsed(self, value: bool) -> None:
-        self._setCollapsed(value)
+        size = max(1, int(value))
+        if size == self._icon.iconSize: return
+        self._icon.iconSize = size
 
     # ==================================================================================
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:
         if (
-            watched is self._toggleIcon
+            watched is self._icon
             and event.type() == QEvent.Type.MouseButtonPress
             and isinstance(event, QMouseEvent)
             and event.button() == Qt.MouseButton.LeftButton
         ):
             self.CollapseRequested.emit()
             return True
+        
         return super().eventFilter(watched, event)
 
-    def _refreshToggleIcon(self, animate: bool = True) -> None:
-        lStart: QIcon = self._closeIcon if not self._collapsed else self._burgerIcon
-        lEnd: QIcon = self._closeIcon if self._collapsed else self._burgerIcon
-        if animate:
-            self._morph.setIcons(lStart, lEnd)
-            self._morph.start()
-        else:
-            self._toggleIcon.setIcon(lEnd)
-
-    def _xrebuildHeaderLayout(self) -> None:
-        """Expanded: icon + title. Collapsed: icon centered horizontally."""
-        lLayout = getattr(self, "_layout", None)
-        if lLayout is None:
-            return
-
-        while lLayout.count():
-            lLayout.takeAt(0)
-
-        if self._collapsed and not self._titleWidget.isVisible():
-            lLayout.addStretch(1)
-            lLayout.addWidget(self._toggleIcon)
-            lLayout.addStretch(1)
-        else:
-            lLayout.addWidget(self._toggleIcon)
-            lLayout.addWidget(self._titleWidget, 1)
-
-    def _applyCollapsedVisual(
-        self, animate: bool = True, deferTitleHide: bool = False,
-    ) -> None:
-        self._refreshToggleIcon(animate=animate)
-
-        if self._collapsed:
-            if not deferTitleHide:
-                self._titleWidget.setVisible(False)
-        else:
-            self._titleWidget.setVisible(True)
-
-        self._xrebuildHeaderLayout()
-
-        self.setProperty("collapsed", "true" if self._collapsed else "false")
-        self.style().unpolish(self)
-        self.style().polish(self)
+    def _rebuildLayout(self) -> None:
+        super()._rebuildLayout()
+    

@@ -15,6 +15,7 @@ from jAGFx.workflow import workflow
 from ...utilities import newLayout
 from ..components import ComponentBase
 from ..text import Title
+from .components import SideBarHeader
 from .types import sideBarConfig
 
 
@@ -27,15 +28,27 @@ class SideBar(QWidget, ComponentBase):
     ) -> None:
         OBJNAME: str = kwargs.pop("objectName", self.OBJECT_NAME)
         super().__init__(objectName=OBJNAME, *args, **kwargs)
+        self._title: str = title
+        self._config: sideBarConfig = config if config is not None else sideBarConfig()
 
     def _wInitializeUI(self) -> None:
-        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
+        title: str = self._title
 
-        text: Title = Title("jAG QT")
+        del self._title
+
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+        header: SideBarHeader = SideBarHeader(title)
+        # header.setStyleSheet("background-color: white; color: black;")
+        content: QWidget = QWidget()
 
         layout: QBoxLayout = newLayout(QBoxLayout, spacing=0, margins=0, direction=QBoxLayout.Direction.TopToBottom)
-        layout.addWidget(text)
+        layout.addWidget(header)
+        layout.addWidget(content, 1)
 
         self.setLayout(layout)
-        
+
+    @property
+    def config(self) -> sideBarConfig:
+        return self._config

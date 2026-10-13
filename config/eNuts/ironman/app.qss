@@ -12,3 +12,6 @@ QMainWindow {
     background-color: #0e1014;
 }
 
+QLabel#W_TITLE{
+    background-color: red;
+}

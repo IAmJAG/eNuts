@@ -10,6 +10,7 @@ from jAGQt.widgets.sideBar import SideBar
 
 # ==================================================================================
 QPolicy = QSizePolicy.Policy
+QDirection = QBoxLayout.Direction
 # ==================================================================================
 
 
@@ -26,12 +27,11 @@ class Workspace(QWidget, ComponentBase):
     def _wInitializeUI(self) -> None:        
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setSizePolicy(QPolicy.Expanding, QPolicy.Expanding)
-
+        
         sideBar: SideBar = SideBar("jAG Workspace")
-        sideBar.setStyleSheet("background-color: red;")
-        print("SideBar:", sideBar)
-        layout: QBoxLayout = newLayout(QBoxLayout, spacing=0, margins=0, direction=QBoxLayout.Direction.TopToBottom)
+        layout: QBoxLayout = newLayout(
+            QBoxLayout, spacing=0, margins=0, direction=QDirection.TopToBottom
+        )
         layout.addWidget(sideBar)
-        print("SideBar x:", sideBar)
 
         self.setLayout(layout)
