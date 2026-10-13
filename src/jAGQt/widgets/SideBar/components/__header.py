@@ -5,25 +5,18 @@ from __future__ import annotations
 from typing import Dict, Optional, Union
 
 # ==================================================================================
-from PySide6.QtCore import QEvent, QObject, Qt, Signal
+from PySide6.QtCore import QEvent, QObject, Qt, Signal, SignalInstance
 from PySide6.QtGui import QIcon, QMouseEvent, QPixmap
-from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
+from PySide6.QtWidgets import QSizePolicy
 
 # ==================================================================================
 from jAGFx.workflow import workflow
 from jAGQt.icons import MakeBurgerIcon, MakeCloseIcon
-from jAGQt.icons.animations import IconMorphAnimation
 
 # ==================================================================================
-from ....utilities import newLayout
-from ...components import ComponentBase
 from ...header import Header
 from ...icon import StatefullIcon
 from ..types import sideBarState
-
-# ==================================================================================
-from .__icon import Icon as SideBarIcon
-from .__text import Text as SideBarText
 
 # ==================================================================================
 QPolicy = QSizePolicy.Policy
@@ -31,7 +24,8 @@ QPolicy = QSizePolicy.Policy
 
 
 # ==================================================================================
-class SideBarHeader(Header):    
+class SideBarHeader(Header):
+    CollapseRequested: SignalInstance = Signal()
     def __init__(
         self, title: Optional[str] = None, iconSize: int = 24, *args, **kwargs,
     ) -> None:        
@@ -46,8 +40,8 @@ class SideBarHeader(Header):
         closeIcon: QIcon = MakeCloseIcon(iconSize)
 
         icons: Dict[sideBarState, Optional[Union[QIcon, QPixmap, str]]] = {
-            sideBarState.Collapsed: burgerIcon,
-            sideBarState.Expanded: closeIcon,
+            sideBarState.Collapsed: closeIcon,
+            sideBarState.Expanded: burgerIcon,
         }
         toggleIcon: StatefullIcon[sideBarState] = StatefullIcon[sideBarState](icons)
         toggleIcon.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -78,10 +72,6 @@ class SideBarHeader(Header):
     @property
     def iconSize(self) -> int:
         return self._icon.iconSize
-
-    @iconSize.setter
-    def iconSize(self, value: int) -> None:
-        self._icon.iconSize = max(1, int(value))
     
     @iconSize.setter
     def iconSize(self, value: int) -> None:
@@ -97,6 +87,7 @@ class SideBarHeader(Header):
             and isinstance(event, QMouseEvent)
             and event.button() == Qt.MouseButton.LeftButton
         ):
+            self.CollapseRequested.emit()
             return True
         
         return super().eventFilter(watched, event)

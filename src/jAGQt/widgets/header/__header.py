@@ -72,8 +72,9 @@ class Header(QWidget, ComponentBase):
         self._description = description
         self._icon: icon = icon
         self.setLayout(newLayout(QVBoxLayout, spacing=0, margins=0))
-        
-        self._rebuildLayout()
+
+        if rebuild:
+            self._rebuildLayout()
 
     # ==================================================================================
     def _clearLayout(self) -> None:

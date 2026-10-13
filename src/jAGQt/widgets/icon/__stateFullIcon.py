@@ -38,17 +38,22 @@ class StatefullIcon[T: Enum](Icon):
         return self._state
 
     @state.setter
-    def state(self, state: T):
-        self._state = state
-        self.setIcon(self._icons[state])
+    def state(self, state: T):        
+        if state == self._state: return
+        newIcon: Optional[Union[QIcon, QPixmap, str]] = self._icons[state]
+        self.setIcon(newIcon)
+        self._state = state        
 
     def setIcon(self, icon: Optional[Union[QIcon, QPixmap, str]]):        
         # TODO: validate animation with start and end icon
-        switchAnimation: IconMorphAnimation = self._switchAnimation   
-        icons: Dict[Enum, Optional[Union[QIcon, QPixmap, str]]] = self._icons
+        switchAnimation: IconMorphAnimation = self._switchAnimation
+        if switchAnimation is None:
+            super().setIcon(icon)
+            return
 
-        endIcon: Optional[QIcon] = self._icons[self._state]
-        switchAnimation.setIcons(icon, endIcon)
+        icons: Dict[Enum, Optional[Union[QIcon, QPixmap, str]]] = self._icons
+        currentIcon: Optional[QIcon] = icons[self._state]
+        switchAnimation.setIcons(currentIcon, icon)
         switchAnimation.start()        
 
     def addIcon(self, state: T, icon: Optional[Union[QIcon, QPixmap, str]] = None):
