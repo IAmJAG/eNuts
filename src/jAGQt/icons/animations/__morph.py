@@ -27,14 +27,14 @@ class IconMorphAnimation(IconAnimation):
         *args, **kwargs
     ) -> None:
         super().__init__(
-            durationMs=durationMs,
-            easing=easing,
+            durationMs=durationMs, easing=easing,
             *args, **kwargs
         )
         self._startIcon: Optional[QIcon] = startIcon
         self._endIcon: Optional[QIcon] = endIcon
         self._iconSize: int = max(1, int(iconSize))
-        self.target: Optional[iIcon] = target
+        self._animation: Optional[QVariantAnimation] = None
+        self.target: Optional[iIcon] = target        
 
     def setIcons(self, startIcon: QIcon, endIcon: QIcon) -> None:
         self._startIcon = startIcon
@@ -54,7 +54,7 @@ class IconMorphAnimation(IconAnimation):
 
         return True
 
-    def start(self) -> None:
+    def start(self) -> None:        
         super().start()
         if not self._validate():
             self._onFinished()
@@ -87,7 +87,7 @@ class IconMorphAnimation(IconAnimation):
         lPainter.setOpacity(lT)
         lPainter.drawPixmap(0, 0, lEnd)
         lPainter.end()
-        self._applyPixmap(lFrame)        
+        self._xapplyPixmap(lFrame)        
         self.onProgress.emit(value)
 
     def _onFinished(self) -> None:
@@ -103,7 +103,7 @@ class IconMorphAnimation(IconAnimation):
             self._animation = None
         super().stop()    
 
-    def _applyPixmap(self, pixmap: QIcon | QPixmap) -> None:
+    def _xapplyPixmap(self, pixmap: QIcon | QPixmap) -> None:
         if self._target is None: return
         if not isinstance(self._target, iIcon):
             warning(f"[{self.__class__.__name__}] no valid target")

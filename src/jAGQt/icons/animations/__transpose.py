@@ -56,16 +56,20 @@ class IconTransposeAnimation(IconAnimation):
 
         return True
 
-    def _onStart(self) -> None:
-        if self._target is None or self._icon is None:
+    def start(self) -> None:        
+        super().start()
+        if not self._validate():
             self._onFinished()
             return
 
+        duration: int = self._durationMs
+        ecurve: QECurveType = self._easing        
+
         animation: QVariantAnimation = QVariantAnimation(self)
-        animation.setDuration(self._durationMs)
+        animation.setDuration(duration)
         animation.setStartValue(0.0)
         animation.setEndValue(1.0)
-        animation.setEasingCurve(self._easing)
+        animation.setEasingCurve(ecurve)
         animation.valueChanged.connect(self._onProgress)
         animation.finished.connect(self._onFinished)
 
@@ -90,10 +94,10 @@ class IconTransposeAnimation(IconAnimation):
         lPainter.drawPixmap(0, 0, lSrc)
         lPainter.end()
 
-        self._applyPixmap(lFrame)
+        self._xapplyPixmap(lFrame)
         self.onProgress.emit(value)
 
-    def _applyPixmap(self, pixmap: QPixmap) -> None:
+    def _xapplyPixmap(self, pixmap: QPixmap) -> None:
         if self._target is None: return
         if not isinstance(self._target, iIcon):
             warning(f"[{self.__class__.__name__}] no valid target")
@@ -106,4 +110,12 @@ class IconTransposeAnimation(IconAnimation):
             lMirrored: QPixmap = self._icon.pixmap(self._iconSize, self._iconSize).transformed(
                 QTransform().scale(-1, 1)
             )
-            self._applyPixmap(lMirrored)
+            self._xapplyPixmap(lMirrored)
+
+    def stop(self) -> None:
+        if self._animation is not None:
+            self._animation.stop()
+            self._animation = None
+        super().stop()
+
+
