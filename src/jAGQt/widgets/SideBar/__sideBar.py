@@ -79,6 +79,8 @@ class SideBar(QWidget, ComponentBase):
         self.setMaximumWidth(initial)
 
         header: SideBarHeader = SideBarHeader(title=title, iconSize=self.config.iconSize)
+        header.CollapseRequested.connect(self._onHeaderCollapseRequested)
+
         content: SideBarContent = SideBarContent()
         dockControl: SideBarDockControl = SideBarDockControl(
             dockPosition=self._dockPosition,
@@ -92,6 +94,8 @@ class SideBar(QWidget, ComponentBase):
         mainLayout.addWidget(dockControl)
         self.setLayout(mainLayout)
 
+        
+
         self._header: SideBarHeader = header
         self._content: SideBarContent = content
         self._dockControl: SideBarDockControl = dockControl
@@ -102,7 +106,7 @@ class SideBar(QWidget, ComponentBase):
         )
         self._switchDockAnimation: iAnimation = LightningShootAnimation(durationMs=720)
 
-        header.CollapseRequested.connect(self._onHeaderCollapseRequested)
+        
         dockControl.DockFlipRequested.connect(self._onDockFlipRequested)
         self._switchDockAnimation.Finished.connect(self._onLightningFinished)
 
