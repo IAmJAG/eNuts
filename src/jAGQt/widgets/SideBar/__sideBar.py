@@ -31,6 +31,7 @@ from .types import (
     SideBarItemRole,
     SideBarItemSeparatorType,
     sideBarConfig,
+    sideBarState,
 )
 
 
@@ -60,7 +61,6 @@ class SideBar(QWidget, ComponentBase):
         self._collapsed: bool = bool(self._config.isCollapsed)
         self._dockAnimating: bool = False
         self._pendingDock: Optional[SideBarDockPosition] = None
-        self._collapseVisualPending: bool = False
 
     def _wInitializeUI(self) -> None:
         title: str = self._title
@@ -105,11 +105,10 @@ class SideBar(QWidget, ComponentBase):
         header.CollapseRequested.connect(self._onHeaderCollapseRequested)
         dockControl.DockFlipRequested.connect(self._onDockFlipRequested)
         self._switchDockAnimation.Finished.connect(self._onLightningFinished)
-        self._widthAnimation.Finished.connect(self._onWidthAnimFinished)
 
         self._xapplyDockProperty()
         if self.config.isCollapsed:
-            self._xapplyCollapsedChrome(collapsed=True, animateHeader=False)
+            self._xapplyCollapsedChrome(collapsed=True)
 
     @property
     def config(self) -> sideBarConfig:
@@ -181,7 +180,8 @@ class SideBar(QWidget, ComponentBase):
 
     def setCollapsed(self, collapsed: bool) -> None:
         lValue: bool = bool(collapsed)
-        if lValue is self._collapsed: return
+        if lValue is self._collapsed:
+            return
         self._collapsed = lValue
         self.config.isCollapsed = lValue
 
@@ -190,17 +190,10 @@ class SideBar(QWidget, ComponentBase):
 
         if lValue:
             self._widthAnimation.setRange(lStart, lEnd, overshootPx=14, undershootPx=6)
-
         else:
             self._widthAnimation.setRange(lStart, lEnd, overshootPx=36, undershootPx=14)
 
-        if lValue:
-            self._collapseVisualPending = True
-            self._header.prepareCollapse(animateIcon=True)
-
-        else:
-            self._collapseVisualPending = False
-            self._xapplyCollapsedChrome(collapsed=False, animateHeader=True)
+        self._xapplyCollapsedChrome(collapsed=lValue)
 
         self.setProperty("collapsed", "true" if lValue else "false")
         self.style().unpolish(self)
@@ -246,14 +239,13 @@ class SideBar(QWidget, ComponentBase):
         lCollapsed = bool(collapsed)
         self._collapsed = lCollapsed
         self.config.isCollapsed = lCollapsed
-        self._collapseVisualPending = False
 
         lWidth = self.config.collapsedWidth if lCollapsed else self.config.expandedWidth
         self.setFixedWidth(lWidth)
         self.setMinimumWidth(lWidth)
         self.setMaximumWidth(lWidth)
 
-        self._applyCollapsedChrome(collapsed=lCollapsed, animateHeader=False)
+        self._xapplyCollapsedChrome(collapsed=lCollapsed)
         self.setProperty("collapsed", "true" if lCollapsed else "false")
         self.style().unpolish(self)
         self.style().polish(self)
@@ -261,7 +253,9 @@ class SideBar(QWidget, ComponentBase):
     def ExportState(self) -> dict:
         return {
             "collapsed": self._collapsed,
-            "dockSide": "right" if self._dockPosition is SideBarDockPosition.Right else "left",
+            "dockSide": (
+                "right" if self._dockPosition is SideBarDockPosition.Right else "left"
+            ),
         }
 
     # ==================================================================================
@@ -294,15 +288,19 @@ class SideBar(QWidget, ComponentBase):
         self.setDockSide(value)
 
     # ==================================================================================
-    def _xapplyCollapsedChrome(self, collapsed: bool, animateHeader: bool = True) -> None:
-        self._header._setCollapsed(
-            collapsed, animate=animateHeader, deferTitleHide=False,
+    def _xapplyCollapsedChrome(self, collapsed: bool) -> None:
+        """Map bool collapse → header.state + item/group display modes."""
+        self._header.state = (
+            sideBarState.Collapsed if collapsed else sideBarState.Expanded
         )
-        for lGroup in self._groups: lGroup.setSidebarCollapsed(collapsed)
+
+        for lGroup in self._groups:
+            lGroup.setSidebarCollapsed(collapsed)
 
         lMode = (
             SideBarItemDisplayMode.IconOnly
-            if collapsed else SideBarItemDisplayMode.IconAndText
+            if collapsed
+            else SideBarItemDisplayMode.IconAndText
         )
         for lItem in self._rootItems:
             lItem.displayMode = lMode
@@ -344,13 +342,6 @@ class SideBar(QWidget, ComponentBase):
         self._dockAnimating = False
         self._pendingDock = None
         self.setVisible(True)
-
-    def _onWidthAnimFinished(self) -> None:
-        if not self._collapseVisualPending:
-            return
-        self._collapseVisualPending = False
-        if self._collapsed:
-            self._xapplyCollapsedChrome(collapsed=True, animateHeader=False)
 
     def _xapplyDockSide(self, position: SideBarDockPosition, animateArrow: bool = True) -> None:
         self._dockPosition = position
