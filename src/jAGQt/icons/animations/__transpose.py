@@ -5,9 +5,8 @@ from __future__ import annotations
 from typing import Optional
 
 # ==================================================================================
-from PySide6.QtCore import QEasingCurve, QObject, Qt, QVariantAnimation
+from PySide6.QtCore import QEasingCurve, Qt, QVariantAnimation
 from PySide6.QtGui import QIcon, QPainter, QPixmap, QTransform
-from PySide6.QtWidgets import QLabel, QWidget
 
 # ==================================================================================
 from ...types.interface.widgets.icons import iIcon
@@ -26,7 +25,7 @@ class IconTransposeAnimation(IconAnimation):
         self, icon: QIcon,
         iconSize: int = 20, durationMs: int = 160,
         easing: QECurveType = QECurveType.InOutCubic,        
-        target: Optional[QWidget] = None,
+        target: Optional[iIcon] = None,
         *args, **kwargs
     ) -> None:
         super().__init__(
@@ -36,7 +35,7 @@ class IconTransposeAnimation(IconAnimation):
         )
         self._icon: Optional[QIcon] = icon
         self._iconSize: int = max(1, int(iconSize))
-        self._anim: Optional[QVariantAnimation] = None
+        self._animation: Optional[QVariantAnimation] = None
         self.target = target
 
     def setIcon(self, icon: QIcon) -> None:
@@ -46,15 +45,12 @@ class IconTransposeAnimation(IconAnimation):
         self._iconSize = max(1, int(iconSize))
 
     def _validate(self) -> bool:
-        if self._target is None or not isinstance(self._target, iIcon):
-            warning(f"[{self.__class__.__name__}] no valid target")
-            return False
-
+        ret = super()._validate()        
         if self._icon is None:
             warning(f"[{self.__class__.__name__}] no valid icons")
             return False
 
-        return True
+        return True and ret
 
     def start(self) -> None:        
         super().start()
@@ -111,7 +107,7 @@ class IconTransposeAnimation(IconAnimation):
                 QTransform().scale(-1, 1)
             )
             self._xapplyPixmap(lMirrored)
-            
+
         super()._onFinished()
 
     def stop(self) -> None:

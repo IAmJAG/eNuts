@@ -5,8 +5,11 @@ from __future__ import annotations
 from typing import Optional, Protocol, runtime_checkable
 
 # ==================================================================================
-from PySide6.QtCore import QEasingCurve, QObject, Signal, SignalInstance
+from PySide6.QtCore import QEasingCurve, SignalInstance
 from PySide6.QtWidgets import QWidget
+
+# ==================================================================================
+from ...widgets.icons import iIcon
 
 # ==================================================================================
 QECurveType = QEasingCurve.Type
@@ -27,7 +30,7 @@ class iIconAnimation(Protocol):
     ) -> None: ...
 
     @property
-    def target(self) -> Optional[QWidget]: ...
+    def target(self) -> Optional[iIcon]: ...
     @property
     def durationMs(self) -> int: ...
     @property

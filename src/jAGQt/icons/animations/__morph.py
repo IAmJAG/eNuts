@@ -44,20 +44,17 @@ class IconMorphAnimation(IconAnimation):
         self._iconSize = max(1, int(iconSize))
 
     def _validate(self) -> bool:
-        if self._target is None or not isinstance(self._target, iIcon):
-            warning(f"[{self.__class__.__name__}] no valid target")
-            return False
-
+        ret: bool = super()._validate()
         if self._startIcon is None or self._endIcon is None:
             warning(f"[{self.__class__.__name__}] no valid icons")
             return False
 
-        return True
+        return True and ret
 
     def start(self) -> None:        
         super().start()
-        if not self._validate():
-            self._onFinished()
+        if not self._validate():            
+            self._onFinished()            
             return 
 
         duration: int = self._durationMs

@@ -64,16 +64,24 @@ class IconAnimation(QObject):
         self.onProgress.emit(self, value)
 
     def _onFinished(self) -> None:
+        self._running = False
         self.onFinished.emit(self)
 
-    # ==================================================================================
-    def start(self) -> None:
+    def _validate(self) -> bool:
         if self._running:
             warning(f"[{self.__class__.__name__}] already running")
-            return
+            return False
 
         if self._target is None or not isinstance(self._target, iIcon):
             warning(f"[{self.__class__.__name__}] no valid target")
+            return False
+
+        return True
+
+    # ==================================================================================
+    def start(self) -> None:
+        if not self._validate():
+            self._onFinished()
             return
         
         self._running = True
@@ -85,5 +93,4 @@ class IconAnimation(QObject):
             return
         
         self.onStop.emit(self)
-        self._running = False  
-        self.onFinished.emit(self)
+        self._onFinished()
