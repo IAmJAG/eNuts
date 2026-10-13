@@ -18,8 +18,7 @@ from ..components import ComponentBase
 class Icon(QLabel, ComponentBase):
     OBJECT_NAME = "W_ICON"
     def __init__(
-        self,
-        icon: Optional[Union[QIcon, QPixmap, str]] = None,
+        self, icon: Optional[Union[QIcon, QPixmap, str]] = None,
         background: Optional[Union[str, QColor]] = None,
         foreground: Optional[Union[str, QColor]] = None,
         *args, **kwargs,
@@ -27,8 +26,8 @@ class Icon(QLabel, ComponentBase):
         OBJNAME: str = kwargs.pop("objectName", self.OBJECT_NAME)
         super().__init__(objectName=OBJNAME, *args, **kwargs)
         self._icon: Optional[QIcon] = icon
-        self._background: QColor = QColor(Qt.GlobalColor.transparent)
-        self._foreground: QColor = QColor()
+        self._background: QColor = background or  QColor(Qt.GlobalColor.transparent)
+        self._foreground: QColor = foreground or Qt.GlobalColor.darkGray
 
     def _wInitializeUI(self):
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -95,6 +94,14 @@ class Icon(QLabel, ComponentBase):
         if self._icon is not None:
             self._updatePixmap()
 
+    @property
+    def iconSize(self) -> int: 
+        return self.size().height()
+
+    @property
+    def icon(self) -> Optional[Union[QIcon, QPixmap]]: 
+        return self._icon
+    
     def setIcon(self, icon: Optional[Union[QIcon, QPixmap, str]]):
         if icon is None:
             self.clear()

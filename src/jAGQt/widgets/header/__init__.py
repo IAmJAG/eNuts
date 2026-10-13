@@ -1,8 +1,6 @@
 # ==================================================================================
-# src/jAGQt/widgets/header/__init__.py
-# ==================================================================================
 from .__header import Header
-from .__iconPosition import IconPosition
+from .__iconPosition import IconPosition as HeaderIconPosition
 
 # ==================================================================================
-__all__ = ["Header", "IconPosition"]
+__all__ = ["Header", "HeaderIconPosition"]

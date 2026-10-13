@@ -1,231 +1,179 @@
 # ==================================================================================
-# src/jAGQt/widgets/header/__header.py
+from __future__ import annotations
+
 # ==================================================================================
 from typing import Optional, Union
 
 # ==================================================================================
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QIcon, QPixmap
-from PySide6.QtWidgets import (
-    QBoxLayout,
-    QFrame,
-    QLabel,
-    QWidget,
-)
+from PySide6.QtGui import QColor, QIcon, QPixmap, QResizeEvent
+from PySide6.QtWidgets import QBoxLayout, QHBoxLayout, QSizePolicy, QVBoxLayout, QWidget
 
 from jAGFx.workflow import workflow
 
 # ==================================================================================
 from ...utilities import newLayout
 from ..components import ComponentBase
-from .__headerIcon import IconType, _headerIcon
+from ..icon import Icon
+from ..text import Description, Title
 from .__iconPosition import IconPosition
+
+# ==================================================================================
+QBoxDirection = QBoxLayout.Direction
+QPolicy = QSizePolicy.Policy
+# ==================================================================================
 
 
 # ==================================================================================
 @workflow("InitializeUI")
-class Header(QFrame, ComponentBase):
+class Header(QWidget, ComponentBase):
     OBJECT_NAME = "W_HEADER"
 
     def __init__(
-        self, title: str = "jAGQt Page", description: str = "", icon: IconType = None,
-        iconSize: int = 24, iconFormat: IconPosition = IconPosition.TitleRow,
+        self,
+        title: str = "", description: Optional[str] = "",
+        icon: Optional[Union[QIcon, QPixmap, str]] = None,
+        iconPosition: IconPosition = IconPosition.TitleRow,
+        iconSize: int = 24,
+        iconBG: Optional[Union[str, QColor]] = None,
+        iconFG: Optional[Union[str, QColor]] = None,        
         *args, **kwargs,
     ) -> None:
-        super().__init__(*args, **kwargs)
+        lObjName: str = kwargs.pop("objectName", self.OBJECT_NAME)
+        super().__init__(objectName=lObjName, *args, **kwargs)
+
+        self._titleText: str = title
+        self._descriptionText: str = description or ""
+        self._iconData: Optional[Union[QIcon, QPixmap, str]] = icon
+        self._iconPosition: IconPosition = iconPosition
+        self._iconBG: Optional[Union[str, QColor]] = iconBG or QColor(Qt.GlobalColor.transparent)
+        self._iconFG: Optional[Union[str, QColor]] = iconFG or Qt.GlobalColor.darkGray
+        self._iconSize: int = iconSize
+        
+    def _wInitializeUI(self, rebuild: bool = True) -> None:
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)        
+        
+        # Instantiate widgets using the attached component classes
+        title: Title = Title(self._titleText)
+        description: Description = Description(self._descriptionText)
+
+        iconBG: QColor = QColor(self._iconBG)
+        iconFG: QColor = QColor(self._iconFG)
+        icon: Icon = Icon(self._iconData, background=iconBG, foreground=iconFG)
+        icon.setSizePolicy(QPolicy.Fixed, QPolicy.Fixed)
+
+        del self._titleText
+        del self._descriptionText
+        del self._iconData
+        del self._iconBG
+        del self._iconFG
+
         self._title = title
         self._description = description
-        self._icon: IconType = icon
-        self._iconSize = max(1, int(iconSize))
-        self._iconFormat = iconFormat
-
-    def _wInitializeUI(self) -> None:
-        lObjName: str = self.OBJECT_NAME
-        self.setObjectName(lObjName)
-        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-
-        lTitleText: str = self._title
-        lDescriptionText: str = self._description
-        lIcon: IconType = self._icon
-        lIconSize: int = self._iconSize
-        lIconFormat: IconPosition = self._iconFormat
-
-        del self._title
-        del self._description
-        del self._icon
-        del self._iconSize
-        del self._iconFormat
-
-        lIconWidget: _headerIcon = _headerIcon(icon=lIcon, iconSize=lIconSize)
-        lIconWidget.setObjectName(f"{lObjName}_ICON")
-
-        lTitle: QLabel = QLabel(lTitleText)
-        lTitle.setObjectName(f"{lObjName}_TITLE")
-
-        lDescription: QLabel = QLabel(lDescriptionText)
-        lDescription.setObjectName(f"{lObjName}_DESCRIPTION")
-
-        # Text column (title over description) — shared by both formats
-        lTextLayout: QBoxLayout = newLayout(
-            QBoxLayout,
-            spacing=0,
-            margins=(0, 0, 0, 0),
-            direction=QBoxLayout.Direction.TopToBottom,
-        )
-        lTextLayout.addWidget(lTitle)
-        lTextLayout.addWidget(lDescription)
-        lTextColumn: QWidget = QWidget()
-        lTextColumn.setLayout(lTextLayout)
-        lTextColumn.setObjectName(f"{lObjName}_TEXT")
-
-        # Format 1 host: title-row only (icon + title), description full-width below
-        lTitleRow: QBoxLayout = newLayout(
-            QBoxLayout,
-            spacing=8,
-            margins=(0, 0, 0, 0),
-            direction=QBoxLayout.Direction.LeftToRight,
-        )
-        lTitleRowWidget: QWidget = QWidget()
-        lTitleRowWidget.setLayout(lTitleRow)
-        lTitleRowWidget.setObjectName(f"{lObjName}_TITLE_ROW")
-
-        # Format 2 host: icon | text-column
-        lSpanRow: QBoxLayout = newLayout(
-            QBoxLayout,
-            spacing=8,
-            margins=(0, 0, 0, 0),
-            direction=QBoxLayout.Direction.LeftToRight,
-        )
-        lSpanRowWidget: QWidget = QWidget()
-        lSpanRowWidget.setLayout(lSpanRow)
-        lSpanRowWidget.setObjectName(f"{lObjName}_SPAN_ROW")
-
-        lOuterLayout: QBoxLayout = newLayout(
-            QBoxLayout,
-            spacing=0,
-            margins=(0, 0, 0, 0),
-            direction=QBoxLayout.Direction.TopToBottom,
-        )
-        lOuterLayout.addWidget(lTitleRowWidget)
-        lOuterLayout.addWidget(lSpanRowWidget)
-        # description is reparented between formats; placeholder slot for format 1
-        lDescHost: QWidget = QWidget()
-        lDescHost.setObjectName(f"{lObjName}_DESC_HOST")
-        lDescHostLayout: QBoxLayout = newLayout(
-            QBoxLayout, spacing=0, margins=(0, 0, 0, 0)
-        )
-        lDescHost.setLayout(lDescHostLayout)
-        lOuterLayout.addWidget(lDescHost)
-
-        self.setLayout(lOuterLayout)
-        self._layout: QBoxLayout = lOuterLayout
-
-        self._title: QLabel = lTitle
-        self._description: QLabel = lDescription
-        self._iconWidget: _headerIcon = lIconWidget
-        self._textColumn: QWidget = lTextColumn
-        self._titleRow: QBoxLayout = lTitleRow
-        self._titleRowWidget: QWidget = lTitleRowWidget
-        self._spanRow: QBoxLayout = lSpanRow
-        self._spanRowWidget: QWidget = lSpanRowWidget
-        self._descHost: QWidget = lDescHost
-        self._descHostLayout: QBoxLayout = lDescHostLayout
-        self._iconSize: int = lIconSize
-        self._iconFormat: IconPosition = lIconFormat
-
-        if not lDescriptionText:
-            lDescription.hide()
-
-        self._applyFormat()
+        self._icon: icon = icon
+        self.setLayout(newLayout(QVBoxLayout, spacing=0, margins=0))
+        
+        self._rebuildLayout()
 
     # ==================================================================================
-    def _clearLayout(self, layout: QBoxLayout) -> None:
+    def _clearLayout(self) -> None:
+        layout: QBoxLayout = self.layout()
         while layout.count():
-            lItem = layout.takeAt(0)
-            if lItem is None:
-                continue
-            lWidget = lItem.widget()
-            if lWidget is not None:
-                lWidget.setParent(None)
+            item = layout.takeAt(0)
+            if item is None: continue
+            widget = item.widget()
+            if widget is not None:
+                widget.setParent(None)
 
-    def _applyFormat(self) -> None:
-        """Rebuild child parenting for the active icon format."""
-        self._clearLayout(self._titleRow)
-        self._clearLayout(self._spanRow)
-        self._clearLayout(self._descHostLayout)
+    def _rebuildLayout(self) -> None:
+        icon: Icon = self._icon
+        title: Title = self._title
+        description: Description = self._description
+        iconPosition: IconPosition = self._iconPosition
 
-        lHasIcon: bool = self._iconWidget.HasIcon
+        hasIcon: bool = icon is not None and isinstance(icon, Icon)                
+        rowLayout: QBoxLayout = newLayout(QHBoxLayout, spacing=8, margins=0)
+        mainLayout: QBoxLayout = self.layout()
+        self._clearLayout(mainLayout)
 
-        if self._iconFormat is IconPosition.SpanRows and lHasIcon:
-            # Format 2: [icon | title/description stack]
-            self._titleRowWidget.hide()
-            self._descHost.hide()
-            self._spanRowWidget.show()
-            self._spanRow.addWidget(self._iconWidget, 0, Qt.AlignmentFlag.AlignTop)
-            self._spanRow.addWidget(self._textColumn, 1)
-            self._title.setParent(self._textColumn)
-            self._description.setParent(self._textColumn)
-            self._textColumn.layout().addWidget(self._title)
-            self._textColumn.layout().addWidget(self._description)
+        if iconPosition == IconPosition.TitleRow:                        
+            iconSize: int = title.size().height()
+            icon.setFixedSize(iconSize, iconSize)           
+
+            rowLayout.setDirection(QBoxDirection.LeftToRight)
+            if hasIcon: rowLayout.addWidget(icon)
+            rowLayout.addWidget(title, 1)
+
+            mainLayout.addLayout(rowLayout)
+            mainLayout.addWidget(description)
+
+        elif iconPosition in [IconPosition.Left, IconPosition.Right]:            
+            iconSize: int = title.size().height() + description.size().height()
+            icon.setFixedSize(iconSize, iconSize)
+            
+            titleColLayout: QBoxLayout = newLayout(QVBoxLayout, spacing=0, margins=0, direction=QBoxDirection.TopToBottom)
+            titleColLayout.addWidget(title)
+            titleColLayout.addWidget(description)
+
+            rowLayout.setDirection(QBoxDirection.LeftToRight)
+            if hasIcon: rowLayout.addWidget(icon)
+            rowLayout.addLayout(titleColLayout, 1)            
+            mainLayout.addLayout(rowLayout)
         else:
-            # Format 1 (or no icon): [icon?] Title  /  Description full width
-            self._spanRowWidget.hide()
-            self._titleRowWidget.show()
-            self._descHost.show()
-            if lHasIcon:
-                self._titleRow.addWidget(
-                    self._iconWidget, 0, Qt.AlignmentFlag.AlignVCenter
-                )
-            self._titleRow.addWidget(self._title, 1)
-            self._descHostLayout.addWidget(self._description)
+            iconSize: int = self._iconSize
+            icon.setFixedSize(iconSize, iconSize)
+            if iconPosition == IconPosition.Top:
+                if hasIcon: mainLayout.addWidget(icon)
+                mainLayout.addWidget(title)
+                mainLayout.addWidget(description)
 
-    # ==================================================================================
-    @property
-    def Title(self) -> str:
-        return self._title.text()
-
-    @Title.setter
-    def Title(self, value: str) -> None:
-        self._title.setText(value)
-        self._title.setVisible(bool(value))
+            elif iconPosition == IconPosition.Bottom:
+                mainLayout.addWidget(title)
+                mainLayout.addWidget(description)
+                if hasIcon: mainLayout.addWidget(icon)        
+    
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        super().resizeEvent(event)
 
     @property
-    def Description(self) -> str:
-        return self._description.text()
+    def title(self) -> str:
+        return self._title.Text if self._title and isinstance(self._title, Title) else ""
 
-    @Description.setter
-    def Description(self, value: str) -> None:
-        self._description.setText(value)
-        self._description.setVisible(bool(value))
-
-    @property
-    def Icon(self) -> Optional[Union[QIcon, QPixmap]]:
-        return self._iconWidget._icon
-
-    @Icon.setter
-    def Icon(self, value: IconType) -> None:
-        self._iconWidget.SetIcon(value)
-        self._applyFormat()
+    @title.setter
+    def title(self, value: str) -> None:
+        if self._title:
+            self._title.setText(value)
+            self._title.setVisible(bool(value))            
+            self._rebuildLayout()
 
     @property
-    def IconFormat(self) -> IconPosition:
-        return self._iconFormat
+    def description(self) -> str:
+        description: Description = self._description
+        return description.Text if description and isinstance(description, Description) else ""
 
-    @IconFormat.setter
-    def IconFormat(self, value: IconPosition) -> None:
-        if value is self._iconFormat:
-            return
-        self._iconFormat = value
-        self._applyFormat()
+    @description.setter
+    def description(self, value: str) -> None:
+        if self._description:
+            self._description.setText(value)
+            self._description.setVisible(bool(value))
+            self._rebuildLayout()
 
     @property
-    def IconSize(self) -> int:
-        return self._iconSize
+    def icon(self) -> Optional[Union[QIcon, QPixmap]]:
+        return self._icon.icon if self._icon and isinstance(self._icon, Icon) else None
 
-    @IconSize.setter
-    def IconSize(self, value: int) -> None:
-        lSize: int = max(1, int(value))
-        if lSize == self._iconSize:
-            return
-        self._iconSize = lSize
-        self._iconWidget.SetIconSize(lSize)
+    @icon.setter
+    def icon(self, value: Optional[Union[QIcon, QPixmap, str]]) -> None:
+        if self._icon:
+            self._icon.setIcon(value)
+            self._rebuildLayout()
+
+    @property
+    def iconPosition(self) -> IconPosition:
+        return self._iconPosition
+
+    @iconPosition.setter
+    def iconPosition(self, value: IconPosition) -> None:
+        if value is self._iconPosition: return
+        self._iconPosition = value
+        self._rebuildLayout()
