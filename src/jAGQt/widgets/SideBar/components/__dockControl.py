@@ -2,11 +2,8 @@
 from __future__ import annotations
 
 # ==================================================================================
-from typing import Optional
-
-# ==================================================================================
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QIcon, QMouseEvent
+from PySide6.QtGui import QMouseEvent
 from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 
 # ==================================================================================
@@ -14,7 +11,6 @@ from jAGFx.workflow import workflow
 
 # ==================================================================================
 from ....icons import MakeArrowLeftIcon, MakeArrowRightIcon
-from ....icons.animations import IconTransposeAnimation
 from ....utilities import newLayout
 from ...components import ComponentBase
 from ..types import SideBarDockPosition
@@ -39,15 +35,14 @@ class DockControl(QWidget, ComponentBase):
         self._dockPosition: SideBarDockPosition = dockPosition
         self._iconSize: int = max(1, int(iconSize))
 
-    def _wInitializeUI(self):
+    def _wInitializeUI(self) -> None:
         iconSize: int = self._iconSize
 
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
-        OBJNAME: str = "W_SIDEBAR_ICON"
         arrow: SideBarIcon = SideBarIcon(icon=None, iconSize=iconSize)
-        arrow.setObjectName(OBJNAME)
+        arrow.setObjectName("W_SIDEBAR_ICON")
         arrow.setCursor(Qt.CursorShape.PointingHandCursor)
         arrow.mousePressEvent = self._onArrowClicked
 
@@ -61,47 +56,22 @@ class DockControl(QWidget, ComponentBase):
         )
         self.setLayout(self._layout)
 
-        self._transpose: IconTransposeAnimation = IconTransposeAnimation(
-            icon=arrow,
-            iconSize=self._iconSize,
-            durationMs=140,
-            target=self._arrow,
-        )
-        self._transpose.Finished.connect(self._onTransposeFinished)
-        self._pendingPosition: Optional[SideBarDockPosition] = None
-
-        self._rebuild(animate=False)
+        self._rebuild()
 
     # ==================================================================================
-    def setDockPosition(self, position: SideBarDockPosition, animate: bool = True) -> None:
+    def setDockPosition(self, position: SideBarDockPosition, animate: bool = False) -> None:
+        # animate kept for call-site compatibility; arrow swap is instant.
         if position is self._dockPosition:
             return
-        if animate:
-            self._pendingPosition = position
-            lCurrent: QIcon = (
-                MakeArrowRightIcon(self._iconSize)
-                if self._dockPosition is SideBarDockPosition.Left
-                else MakeArrowLeftIcon(self._iconSize)
-            )
-            self._transpose.SetIcon(lCurrent)
-            self._transpose.SetIconSize(self._iconSize)
-            self._transpose.start()
-        else:
-            self._dockPosition = position
-            self._rebuild(animate=False)
+        self._dockPosition = position
+        self._rebuild()
 
     @property
     def dockPosition(self) -> SideBarDockPosition:
         return self._dockPosition
 
     # ==================================================================================
-    def _onTransposeFinished(self) -> None:
-        if self._pendingPosition is not None:
-            self._dockPosition = self._pendingPosition
-            self._pendingPosition = None
-            self._rebuild(animate=False)
-
-    def _rebuild(self, animate: bool = False) -> None:
+    def _rebuild(self) -> None:
         while self._layout.count():
             self._layout.takeAt(0)
 
