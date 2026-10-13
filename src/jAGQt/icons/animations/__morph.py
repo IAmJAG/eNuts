@@ -10,11 +10,15 @@ from PySide6.QtGui import QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QLabel, QWidget
 
 # ==================================================================================
-from .__iconAnimation import IconAnimationBase
+from .__iconAnimation import IconAnimation
+
+# ==================================================================================
+QECurveType = QEasingCurve.Type
+# ==================================================================================
 
 
 # ==================================================================================
-class IconMorphAnimation(IconAnimationBase):
+class IconMorphAnimation(IconAnimation):
     """Cross-fade morph from one icon to another on a QLabel (or setPixmap target)."""
 
     def __init__(
@@ -24,10 +28,15 @@ class IconMorphAnimation(IconAnimationBase):
         endIcon: Optional[QIcon] = None,
         iconSize: int = 20,
         durationMs: int = 180,
-        easing: QEasingCurve.Type = QEasingCurve.Type.InOutCubic,
+        easing: QECurveType = QECurveType.InOutCubic,
         parent: Optional[QObject] = None,
     ) -> None:
-        super().__init__(target=target, durationMs=durationMs, easing=easing, parent=parent)
+        super().__init__(
+            target=target,
+            durationMs=durationMs,
+            easing=easing,
+            parent=parent,
+        )
         self._startIcon: Optional[QIcon] = startIcon
         self._endIcon: Optional[QIcon] = endIcon
         self._iconSize: int = max(1, int(iconSize))
@@ -44,7 +53,7 @@ class IconMorphAnimation(IconAnimationBase):
         if self._target is None or self._startIcon is None or self._endIcon is None:
             self._emitFinished()
             return
-       
+
         self._anim = QVariantAnimation(self)
         self._anim.setDuration(self._durationMs)
         self._anim.setStartValue(0.0)

@@ -10,11 +10,15 @@ from PySide6.QtGui import QIcon, QPainter, QPixmap, QTransform
 from PySide6.QtWidgets import QLabel, QWidget
 
 # ==================================================================================
-from .__iconAnimation import IconAnimationBase
+from .__iconAnimation import IconAnimation
+
+# ==================================================================================
+QECurveType = QEasingCurve.Type
+# ==================================================================================
 
 
 # ==================================================================================
-class IconTransposeAnimation(IconAnimationBase):
+class IconTransposeAnimation(IconAnimation):
     """Horizontal mirror (transpose) of an icon over time — useful for dock arrows."""
 
     def __init__(
@@ -23,18 +27,23 @@ class IconTransposeAnimation(IconAnimationBase):
         icon: Optional[QIcon] = None,
         iconSize: int = 20,
         durationMs: int = 160,
-        easing: QEasingCurve.Type = QEasingCurve.Type.InOutCubic,
+        easing: QECurveType = QECurveType.InOutCubic,
         parent: Optional[QObject] = None,
     ) -> None:
-        super().__init__(target=target, durationMs=durationMs, easing=easing, parent=parent)
+        super().__init__(
+            target=target,
+            durationMs=durationMs,
+            easing=easing,
+            parent=parent,
+        )
         self._icon: Optional[QIcon] = icon
         self._iconSize: int = max(1, int(iconSize))
         self._anim: Optional[QVariantAnimation] = None
 
-    def SetIcon(self, icon: QIcon) -> None:
+    def setIcon(self, icon: QIcon) -> None:
         self._icon = icon
 
-    def SetIconSize(self, iconSize: int) -> None:
+    def setIconSize(self, iconSize: int) -> None:
         self._iconSize = max(1, int(iconSize))
 
     def _onStart(self) -> None:
@@ -75,10 +84,15 @@ class IconTransposeAnimation(IconAnimationBase):
         lPainter.drawPixmap(0, 0, lSrc)
         lPainter.end()
 
+        self._applyPixmap(lFrame)
+
+    def _applyPixmap(self, pixmap: QPixmap) -> None:
+        if self._target is None:
+            return
         if isinstance(self._target, QLabel):
-            self._target.setPixmap(lFrame)
+            self._target.setPixmap(pixmap)
         elif hasattr(self._target, "setPixmap"):
-            self._target.setPixmap(lFrame)
+            self._target.setPixmap(pixmap)
 
     def _onAnimFinished(self) -> None:
         self._anim = None
@@ -86,8 +100,5 @@ class IconTransposeAnimation(IconAnimationBase):
             lMirrored: QPixmap = self._icon.pixmap(self._iconSize, self._iconSize).transformed(
                 QTransform().scale(-1, 1)
             )
-            if isinstance(self._target, QLabel):
-                self._target.setPixmap(lMirrored)
-            elif hasattr(self._target, "setPixmap"):
-                self._target.setPixmap(lMirrored)
+            self._applyPixmap(lMirrored)
         self._emitFinished()
