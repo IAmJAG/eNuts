@@ -67,7 +67,7 @@ class IconTransposeAnimation(IconAnimation):
         animation.setEndValue(1.0)
         animation.setEasingCurve(self._easing)
         animation.valueChanged.connect(self._onProgress)
-        animation.finished.connect(self._onAnimFinished)
+        animation.finished.connect(self._onFinished)
 
         self._animation: Optional[QVariantAnimation] = animation        
         self._animation.start()    
@@ -102,7 +102,7 @@ class IconTransposeAnimation(IconAnimation):
             self._target.setPixmap(pixmap)
 
     
-    def _onAnimFinished(self) -> None:
+    def _onFinished(self) -> None:
         self._animation = None
         if self._icon is not None and self._target is not None:
             lMirrored: QPixmap = self._icon.pixmap(self._iconSize, self._iconSize).transformed(
