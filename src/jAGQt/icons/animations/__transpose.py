@@ -45,12 +45,12 @@ class IconTransposeAnimation(IconAnimation):
     def setIconSize(self, iconSize: int) -> None:
         self._iconSize = max(1, int(iconSize))
 
-    def _validate(self) -> None:
+    def _validate(self) -> bool:
         if self._target is None or not isinstance(self._target, iIcon):
             warning(f"[{self.__class__.__name__}] no valid target")
             return False
 
-        if self._startIcon is None or self._endIcon is None:
+        if self._icon is None:
             warning(f"[{self.__class__.__name__}] no valid icons")
             return False
 
@@ -74,7 +74,7 @@ class IconTransposeAnimation(IconAnimation):
         animation.finished.connect(self._onFinished)
 
         self._animation: Optional[QVariantAnimation] = animation        
-        self._animation.start()    
+        self._animation.start()
 
     def _onProgress(self, value: object) -> None:
         lT: float = float(value)
@@ -95,7 +95,7 @@ class IconTransposeAnimation(IconAnimation):
         lPainter.end()
 
         self._xapplyPixmap(lFrame)
-        self.onProgress.emit(value)
+        super()._onProgress(value)
 
     def _xapplyPixmap(self, pixmap: QPixmap) -> None:
         if self._target is None: return
@@ -111,6 +111,8 @@ class IconTransposeAnimation(IconAnimation):
                 QTransform().scale(-1, 1)
             )
             self._xapplyPixmap(lMirrored)
+            
+        super()._onFinished()
 
     def stop(self) -> None:
         if self._animation is not None:

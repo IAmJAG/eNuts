@@ -43,7 +43,7 @@ class IconMorphAnimation(IconAnimation):
     def setIconSize(self, iconSize: int) -> None:
         self._iconSize = max(1, int(iconSize))
 
-    def _validate(self) -> None:
+    def _validate(self) -> bool:
         if self._target is None or not isinstance(self._target, iIcon):
             warning(f"[{self.__class__.__name__}] no valid target")
             return False
@@ -74,7 +74,7 @@ class IconMorphAnimation(IconAnimation):
         self._animation: Optional[QVariantAnimation] = animation        
         self._animation.start()        
 
-    def _onProgress(self, value: object) -> None:
+    def _onProgress(self, value: float) -> None:
         lT: float = float(value)
         lSize: int = self._iconSize
         lStart: QPixmap = self._startIcon.pixmap(lSize, lSize)
@@ -87,15 +87,15 @@ class IconMorphAnimation(IconAnimation):
         lPainter.setOpacity(lT)
         lPainter.drawPixmap(0, 0, lEnd)
         lPainter.end()
-        self._xapplyPixmap(lFrame)        
-        self.onProgress.emit(value)
+        self._xapplyPixmap(lFrame)
+        super()._onProgress(value)
 
     def _onFinished(self) -> None:
         self._animation = None
         if self._endIcon is not None:
-            self._applyPixmap(self._endIcon.pixmap(self._iconSize, self._iconSize))
+            self._xapplyPixmap(self._endIcon.pixmap(self._iconSize, self._iconSize))
 
-        self.onFinished.emit(self)    
+        super()._onFinished()
 
     def stop(self) -> None:
         if self._animation is not None:

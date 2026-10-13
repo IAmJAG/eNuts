@@ -26,14 +26,14 @@ class IconAnimation(QObject):
     onStart: SignalInstance = Signal(iIconAnimation)
     onStop: SignalInstance = Signal(iIconAnimation)
     onFinished: SignalInstance = Signal(iIconAnimation)
-    onProgress: SignalInstance = Signal(iIconAnimation)
+    onProgress: SignalInstance = Signal(iIconAnimation, float)
 
     def __init__(
         self,  durationMs: int = 180, easing: QECurveType = QECurveType.InOutCubic,
         *args, **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
-        self._target: iIcon = None
+        self._target: Optional[iIcon] = None
         self._durationMs: int = max(0, int(durationMs))
         self._easing: QEasingCurve.Type = easing
         self._running: bool = False
@@ -59,6 +59,12 @@ class IconAnimation(QObject):
     @property
     def isRunning(self) -> bool:
         return self._running
+
+    def _onProgress(self, value: float) -> None:
+        self.onProgress.emit(self, value)
+
+    def _onFinished(self) -> None:
+        self.onFinished.emit(self)
 
     # ==================================================================================
     def start(self) -> None:
