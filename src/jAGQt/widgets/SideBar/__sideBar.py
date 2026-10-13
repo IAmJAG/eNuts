@@ -88,7 +88,7 @@ class SideBar(QWidget, ComponentBase):
         mainLayout.setDirection(QBoxLayout.Direction.TopToBottom)
 
         mainLayout.addWidget(header)
-        mainLayout.addWidget(content)
+        mainLayout.addWidget(content, 1)
         mainLayout.addWidget(dockControl)
         self.setLayout(mainLayout)
 
