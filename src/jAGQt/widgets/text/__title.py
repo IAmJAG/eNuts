@@ -22,5 +22,5 @@ class Title(Text):
     def __init__(self, title: str, *args, **kwargs) -> None:
         lObjName: str = kwargs.pop("objectName", self.OBJECT_NAME)
         super().__init__(text=title, objectName=lObjName, *args, **kwargs)
-        self.setSizePolicy(QPolicy.Expanding, QPolicy.Minimum)
+        self.setSizePolicy(QPolicy.Expanding, QPolicy.Fixed)
 

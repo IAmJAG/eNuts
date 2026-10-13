@@ -4,7 +4,7 @@ from __future__ import annotations
 # ==================================================================================
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFontMetrics, QResizeEvent
-from PySide6.QtWidgets import QLabel
+from PySide6.QtWidgets import QLabel, QSizePolicy
 
 # ==================================================================================
 from jAGFx.workflow import workflow
@@ -14,6 +14,7 @@ from ..components import ComponentBase
 
 # ==================================================================================
 EMode = Qt.TextElideMode
+QPolicy = QSizePolicy.Policy
 # ==================================================================================
 
 
@@ -33,20 +34,17 @@ class Text(QLabel, ComponentBase):
         self._wordWrap: bool = wordWrap
 
     def _wInitializeUI(self) -> None:
-        text: str = self._fullText
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setWordWrap(self._wordWrap)
-        self.setText(text)
+        self._applySizePolicy()
+        self.setText(self._fullText)
 
-    # ==================================================================================
-    @property
-    def ElidedMode(self) -> EMode:
-        return self._elidedMode
-
-    @ElidedMode.setter
-    def ElidedMode(self, value: EMode) -> None:
-        self._elidedMode = value
-        self._updateTextDisplay()
+    def _applySizePolicy(self) -> None:
+        # Expand horizontally; never grow vertically unless word-wrap is on
+        if self._wordWrap:
+            self.setSizePolicy(QPolicy.Expanding, QPolicy.Preferred)
+        else:
+            self.setSizePolicy(QPolicy.Expanding, QPolicy.Fixed)
 
     @property
     def WordWrap(self) -> bool:
@@ -56,6 +54,17 @@ class Text(QLabel, ComponentBase):
     def WordWrap(self, value: bool) -> None:
         self._wordWrap = value
         self.setWordWrap(value)
+        self._applySizePolicy()
+        self._updateTextDisplay()
+
+    # ==================================================================================
+    @property
+    def ElidedMode(self) -> EMode:
+        return self._elidedMode
+
+    @ElidedMode.setter
+    def ElidedMode(self, value: EMode) -> None:
+        self._elidedMode = value
         self._updateTextDisplay()
 
     @property
@@ -71,7 +80,7 @@ class Text(QLabel, ComponentBase):
         # If word wrap is enabled, let QLabel handle native multi-line wrapping automatically
         if self._wordWrap:
             super().setText(self._fullText)
-            self.setVisible(bool(self._fullText))
+            self.setVisible(bool(self._fullText.strip()))
             return
 
         lMetrics: QFontMetrics = QFontMetrics(self.font())
@@ -83,15 +92,10 @@ class Text(QLabel, ComponentBase):
 
         text: str = self._fullText
         if lAvailableWidth > 0:
-            elidedText: str = lMetrics.elidedText(
-                text, self._elidedMode, lAvailableWidth
-            )
-            text: str = elidedText
+            text = lMetrics.elidedText(text, self._elidedMode, lAvailableWidth)
 
         super().setText(text)
-        isEmty: bool = bool(elidedText.strip()=="")
-        print("isEmty", isEmty, text)
-        self.setVisible(isEmty)
+        self.setVisible(bool(text.strip()))
 
     def resizeEvent(self, event: QResizeEvent) -> None:
         super().resizeEvent(event)

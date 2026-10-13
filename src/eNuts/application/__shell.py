@@ -13,7 +13,7 @@ from PySide6.QtWidgets import QBoxLayout, QMainWindow, QWidget
 from fluxCore.types.interface.device import iDevice
 from jAGQt.utilities import newLayout
 from jAGQt.widgets.sideBar import SideBarGroup, SideBarItem
-from jAGQt.widgets.text import Text
+from jAGQt.widgets.text import Description, Text, Title
 
 # ==================================================================================
 from ..types.interface.application import iShell
@@ -38,22 +38,8 @@ class Shell(iShell):
     def _wInitalizeShellUI(self: QMainWindow) -> None:
         self._devicesGroup: Optional[SideBarGroup] = None
         self._deviceMenuItems: Dict[str, SideBarItem] = {}
-
-        # ws: Workspace = Workspace()        
-        # QWidget.setStyleSheet(ws, "background-color: red; color: #f5f7fa;")        
-        # self.setCentralWidget(ws)        
-        # self._workspace: Workspace = ws
-        # self._seedSideBar()
-
-        testText: Text = Text("Hello World")
-
-        layout: QBoxLayout = newLayout(QBoxLayout, spacing=0, margins=0, direction=QBoxLayout.Direction.TopToBottom)
-        layout.addWidget(testText)
-
-        ws: QWidget = QWidget()
-        ws.setLayout(layout)
-
-        self.setCentralWidget(ws)        
+        ws: Workspace = Workspace() 
+        self.setCentralWidget(ws)
 
     def _seedSideBar(self) -> None:
         ws: Workspace = self._workspace

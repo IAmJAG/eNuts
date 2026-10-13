@@ -11,3 +11,4 @@ QWidget {
 QMainWindow {
     background-color: #0e1014;
 }
+
