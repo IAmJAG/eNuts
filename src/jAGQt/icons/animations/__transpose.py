@@ -36,7 +36,7 @@ class IconTransposeAnimation(IconAnimation):
         self._icon: Optional[QIcon] = icon
         self._iconSize: int = max(1, int(iconSize))
         self._animation: Optional[QVariantAnimation] = None
-        self.target = target
+        self.target: Optional[iIcon] = target
 
     def setIcon(self, icon: QIcon) -> None:
         self._icon = icon
@@ -53,7 +53,6 @@ class IconTransposeAnimation(IconAnimation):
         return True and ret
 
     def start(self) -> None:        
-        super().start()
         if not self._validate():
             self._onFinished()
             return
@@ -70,6 +69,8 @@ class IconTransposeAnimation(IconAnimation):
         animation.finished.connect(self._onFinished)
 
         self._animation: Optional[QVariantAnimation] = animation        
+
+        super().start()
         self._animation.start()
 
     def _onProgress(self, value: object) -> None:

@@ -79,11 +79,7 @@ class IconAnimation(QObject):
         return True
 
     # ==================================================================================
-    def start(self) -> None:
-        if not self._validate():
-            self._onFinished()
-            return
-        
+    def start(self) -> None:        
         self._running = True
         self.onStart.emit(self)
 

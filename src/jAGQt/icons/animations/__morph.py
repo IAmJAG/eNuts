@@ -51,8 +51,7 @@ class IconMorphAnimation(IconAnimation):
 
         return True and ret
 
-    def start(self) -> None:        
-        super().start()
+    def start(self) -> None:                
         if not self._validate():            
             self._onFinished()            
             return 
@@ -69,6 +68,8 @@ class IconMorphAnimation(IconAnimation):
         animation.finished.connect(self._onFinished)
 
         self._animation: Optional[QVariantAnimation] = animation        
+        
+        super().start()
         self._animation.start()        
 
     def _onProgress(self, value: float) -> None:
