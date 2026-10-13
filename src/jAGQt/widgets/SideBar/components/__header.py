@@ -64,6 +64,7 @@ class SideBarHeader(Header):
     def state(self, value: sideBarState) -> None:
         self._state = value
         self._icon.state = value        
+        self._rebuildLayout()
 
     # ==================================================================================
     @property
