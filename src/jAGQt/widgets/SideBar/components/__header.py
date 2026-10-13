@@ -24,7 +24,7 @@ QPolicy = QSizePolicy.Policy
 
 
 # ==================================================================================
-class SideBarHeader(Header):
+class Header(Header):
     CollapseRequested: SignalInstance = Signal()
     def __init__(
         self, title: Optional[str] = None, iconSize: int = 24, *args, **kwargs,
