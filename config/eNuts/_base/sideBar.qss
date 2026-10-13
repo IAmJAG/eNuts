@@ -6,6 +6,7 @@
 
 QWidget#W_SIDEBAR {
     border: 0px;
+    padding-right: 6px;
 }
 
 QWidget#W_SIDEBAR QWidget#W_HEADER {

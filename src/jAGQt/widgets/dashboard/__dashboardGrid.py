@@ -29,9 +29,6 @@ class DashboardGrid(QWidget, ComponentBase):
 
     OBJECT_NAME = "DashboardGrid"
 
-    # TEMP: visible host bounds — remove once layout verified
-    _C_DEBUG_EDGE = True
-
     def __init__(
         self,
         config: Optional[dashboardConfig] = None,
@@ -57,14 +54,6 @@ class DashboardGrid(QWidget, ComponentBase):
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
         self.setMinimumSize(0, 0)
-
-        if self._C_DEBUG_EDGE:
-            self.setStyleSheet(
-                "#DashboardGrid {"
-                "  background-color: rgba(0, 180, 255, 35);"
-                "  border: 2px solid #00b4ff;"
-                "}"
-            )
 
         self._drag.Attach(self)
         self._resize.Attach(self)

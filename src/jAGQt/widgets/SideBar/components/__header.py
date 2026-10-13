@@ -77,6 +77,7 @@ class Header(QWidget, ComponentBase):
         mainLayout.addWidget(self._toggleIcon)
         mainLayout.addWidget(self._titleWidget, 1)
         self.setLayout(mainLayout)
+        self._layout = mainLayout
 
         self._morph: IconMorphAnimation = IconMorphAnimation(
             target=self._toggleIcon,
@@ -109,12 +110,14 @@ class Header(QWidget, ComponentBase):
         if lValue is self._collapsed:
             if lValue and not deferTitleHide and self._titleWidget.isVisible():
                 self._titleWidget.setVisible(False)
+                self._xrebuildHeaderLayout()
             return
         self._collapsed = lValue
         self._applyCollapsedVisual(animate=animate, deferTitleHide=deferTitleHide)
 
     def finalizeTitleVisibility(self) -> None:
         self._titleWidget.setVisible(not self._collapsed)
+        self._xrebuildHeaderLayout()
 
     # ==================================================================================
     @property
@@ -169,6 +172,23 @@ class Header(QWidget, ComponentBase):
         else:
             self._toggleIcon.setIcon(lEnd)
 
+    def _xrebuildHeaderLayout(self) -> None:
+        """Expanded: icon + title. Collapsed: icon centered horizontally."""
+        lLayout = getattr(self, "_layout", None)
+        if lLayout is None:
+            return
+
+        while lLayout.count():
+            lLayout.takeAt(0)
+
+        if self._collapsed and not self._titleWidget.isVisible():
+            lLayout.addStretch(1)
+            lLayout.addWidget(self._toggleIcon)
+            lLayout.addStretch(1)
+        else:
+            lLayout.addWidget(self._toggleIcon)
+            lLayout.addWidget(self._titleWidget, 1)
+
     def _applyCollapsedVisual(
         self, animate: bool = True, deferTitleHide: bool = False,
     ) -> None:
@@ -179,6 +199,8 @@ class Header(QWidget, ComponentBase):
                 self._titleWidget.setVisible(False)
         else:
             self._titleWidget.setVisible(True)
+
+        self._xrebuildHeaderLayout()
 
         self.setProperty("collapsed", "true" if self._collapsed else "false")
         self.style().unpolish(self)
