@@ -94,13 +94,11 @@ class IconTransposeAnimation(IconAnimation):
         self.onProgress.emit(value)
 
     def _applyPixmap(self, pixmap: QPixmap) -> None:
-        if self._target is None:
-            return
-        if isinstance(self._target, QLabel):
-            self._target.setPixmap(pixmap)
-        elif hasattr(self._target, "setPixmap"):
-            self._target.setPixmap(pixmap)
-
+        if self._target is None: return
+        if not isinstance(self._target, iIcon):
+            warning(f"[{self.__class__.__name__}] no valid target")
+            return        
+        self._target.setIcon(pixmap)
     
     def _onFinished(self) -> None:
         self._animation = None
