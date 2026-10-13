@@ -92,7 +92,7 @@ class Text(QLabel, ComponentBase):
             text: str = elidedText
 
         super().setText(text)
-        isEmty: bool = bool(elidedText.strip())
+        isEmty: bool = bool(elidedText.strip()=="")
         self.setVisible(isEmty)
 
     def resizeEvent(self, event: QResizeEvent) -> None:

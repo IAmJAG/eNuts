@@ -23,7 +23,7 @@ class StatefullIcon[T: Enum](Icon):
         if icons is None or len(icons) == 0:
             raise ValueError("icons must not be None or empty")
         icon = icons[list(icons.values())[0]]
-        super().__init__(icons[icon], background, foreground, *args, **kwargs)                
+        super().__init__(icon, background, foreground, *args, **kwargs)                
         self._icons: Dict[Enum, Optional[Union[QIcon, QPixmap, str]]] = icons
         self._state: T = list(icons.keys())[0]                
 
