@@ -23,11 +23,8 @@ class Text(QLabel, ComponentBase):
     OBJECT_NAME = "W_TEXT"
 
     def __init__(
-        self,
-        text: str,
-        elidedMode: EMode = EMode.ElideRight,
-        wordWrap: bool = False,
-        *args, **kwargs,
+        self, text: str, elidedMode: EMode = EMode.ElideRight,
+        wordWrap: bool = False, *args, **kwargs,
     ) -> None:
         lObjName: str = kwargs.pop("objectName", self.OBJECT_NAME)
         super().__init__(objectName=lObjName, *args, **kwargs)
@@ -36,10 +33,10 @@ class Text(QLabel, ComponentBase):
         self._wordWrap: bool = wordWrap
 
     def _wInitializeUI(self) -> None:
-        lText: str = self._fullText
+        text: str = self._fullText
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setWordWrap(self._wordWrap)
-        self.setText(lText)
+        self.setText(text)
 
     # ==================================================================================
     @property
@@ -93,6 +90,7 @@ class Text(QLabel, ComponentBase):
 
         super().setText(text)
         isEmty: bool = bool(elidedText.strip()=="")
+        print("isEmty", isEmty, text)
         self.setVisible(isEmty)
 
     def resizeEvent(self, event: QResizeEvent) -> None:

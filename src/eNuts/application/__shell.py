@@ -7,11 +7,13 @@ from typing import Dict, Optional
 
 # ==================================================================================
 from PySide6.QtCore import QTimer
-from PySide6.QtWidgets import QMainWindow
+from PySide6.QtWidgets import QBoxLayout, QMainWindow, QWidget
 
 # ==================================================================================
 from fluxCore.types.interface.device import iDevice
+from jAGQt.utilities import newLayout
 from jAGQt.widgets.sideBar import SideBarGroup, SideBarItem
+from jAGQt.widgets.text import Text
 
 # ==================================================================================
 from ..types.interface.application import iShell
@@ -34,13 +36,24 @@ class Shell(iShell):
         return self._uiIntEvent
 
     def _wInitalizeShellUI(self: QMainWindow) -> None:
-        ws: Workspace = Workspace(self.Title)
-        self._workspace: Workspace = ws
         self._devicesGroup: Optional[SideBarGroup] = None
         self._deviceMenuItems: Dict[str, SideBarItem] = {}
 
-        self.setCentralWidget(ws)
-        self._seedSideBar()
+        # ws: Workspace = Workspace()        
+        # QWidget.setStyleSheet(ws, "background-color: red; color: #f5f7fa;")        
+        # self.setCentralWidget(ws)        
+        # self._workspace: Workspace = ws
+        # self._seedSideBar()
+
+        testText: Text = Text("Hello World")
+
+        layout: QBoxLayout = newLayout(QBoxLayout, spacing=0, margins=0, direction=QBoxLayout.Direction.TopToBottom)
+        layout.addWidget(testText)
+
+        ws: QWidget = QWidget()
+        ws.setLayout(layout)
+
+        self.setCentralWidget(ws)        
 
     def _seedSideBar(self) -> None:
         ws: Workspace = self._workspace
@@ -64,7 +77,6 @@ class Shell(iShell):
 
     def bindDevices(self):
         dm: deviceManager = self._devices
-
         dm.subscribe(DEVICE_ADDED_EVENT, self.onNewDevice)
         dm.subscribe(DEVICE_REMOVED_EVENT, self.onDeviceRemoved)
         dm.subscribe(DEVICE_INITIALIZED_EVENT, self.onDeviceInitialized)

@@ -51,12 +51,11 @@ class Header(QWidget, ComponentBase):
         self._iconSize: int = iconSize
         
     def _wInitializeUI(self, rebuild: bool = True) -> None:
-        self.setSizePolicy(QPolicy.Expanding, QPolicy.Preferred)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)        
         
         # Instantiate widgets using the attached component classes
         title: Title = Title(self._titleText)
-        title.setFixedHeight(self.iconSize)
+        self.setFixedHeight(50)
         description: Description = Description(self._descriptionText)
 
         iconBG: QColor = QColor(self._iconBG)
