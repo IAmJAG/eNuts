@@ -34,6 +34,7 @@ class StatefullIcon[T: Enum](Icon):
         super().__init__(lInitialIcon, background, foreground, *args, **kwargs)
         self._icons: Dict[T, Optional[Union[QIcon, QPixmap, str]]] = dict(icons)
         self._state: T = lInitialState
+        self._applyingFrame: bool = False
 
         self._switchAnimation: Optional[iIconAnimation] = None
         if len(lKeys) > 1:
@@ -60,14 +61,30 @@ class StatefullIcon[T: Enum](Icon):
         self._state = state
 
     def setIcon(self, icon: Optional[Union[QIcon, QPixmap, str]]) -> None:
+        # Animation frames must paint without starting another morph.
+        if self._applyingFrame:
+            super().setIcon(icon)
+            return
+
         switchAnimation = self._switchAnimation
         if switchAnimation is None:
             super().setIcon(icon)
             return
 
+        if switchAnimation.isRunning:
+            switchAnimation.stop()
+
         lCurrent: Optional[Union[QIcon, QPixmap, str]] = self._icons.get(self._state)
         switchAnimation.setIcons(lCurrent, icon)
         switchAnimation.start()
+
+    def applyFrame(self, icon: Optional[Union[QIcon, QPixmap, str]]) -> None:
+        """Apply a morph frame without re-entering the switch animation."""
+        self._applyingFrame = True
+        try:
+            super().setIcon(icon)
+        finally:
+            self._applyingFrame = False
 
     def addIcon(self, state: T, icon: Optional[Union[QIcon, QPixmap, str]] = None) -> None:
         self._icons[state] = icon
