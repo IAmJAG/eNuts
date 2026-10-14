@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-14 09:14:00 UTC*
+*Auto-generated on: 2026-10-14 09:23:20 UTC*
 
 ## Current Directory Structure
 
@@ -36,9 +36,20 @@ eNuts/
 │   │   └── appconfig.json
 │   └── themes/
 │       ├── dark/
+│       │   ├── main.css
+│       │   └── palette
 │       ├── dracula/
+│       │   ├── main.css
+│       │   └── palette
 │       ├── ironman/
+│       │   ├── main.css
+│       │   └── palette
+│       ├── light/
+│       │   ├── main.css
+│       │   └── palette
 │       ├── material/
+│       │   ├── main.css
+│       │   └── palette
 │       └── superman/
 ├── src/
 │   ├── __monkeyPatch.py
@@ -1058,6 +1069,15 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+9aaa827:
+	fix: update settings.json to include important files and adjust visibility; refactor color parsing in _loadPalette function
+		.vscode/settings.json
+		src/eNuts/application/theme/__theme.py
+
+3b17b4e:
+	docs: update inventory.md to reflect recent directory structure changes and timestamps
+		.docs/inventory.md
+
 2a81863:
 	feat: add GitHub Actions workflow to automate inventory updates
 		.github/workflows/update_inventory.yml -> update_inventory.yml
@@ -1093,23 +1113,6 @@ e57fb4d:
 		typings/__builtins__.pyi
 
 86d6c66:
-	docs: update inventory.md using utility script
-		.docs/inventory.md
-
-266012a:
-	Remove legacy theme files and implement new theme system architecture
-		.docs/themeSpecification.md
-		config/eNuts/dark.qss
-		config/eNuts/dracula.qss
-		config/eNuts/ironman.qss
-		config/eNuts/light.qss
-		config/eNuts/material.qss
-		src/eNuts/application/theme/__theme.py
-		src/eNuts/apps/main.py
-		src/eNuts/configuration/__eNutsConfiguration.py
-		src/eNuts/types/interface/configuration/__eNutsConfiguration.py
-
-cff5658:
 	docs: update inventory.md using utility script
 		.docs/inventory.md
 
