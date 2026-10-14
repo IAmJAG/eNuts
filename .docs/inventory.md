@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-14 07:54:16 UTC*
+*Auto-generated on: 2026-10-14 08:09:57 UTC*
 
 ## Current Directory Structure
 
@@ -52,6 +52,7 @@ eNuts/
 │   │   │   └── windows/
 │   │   │       └── __mainWindow.py
 │   │   ├── application/
+│   │   │   ├── __eNutsApplication.py
 │   │   │   ├── __eNutsService.py
 │   │   │   ├── __shell.py
 │   │   │   └── theme/
@@ -179,6 +180,7 @@ eNuts/
 │   │   │   └── __singleton.py
 │   │   ├── types/
 │   │   │   ├── __ANSIColors.py
+│   │   │   ├── __color.py
 │   │   │   ├── __typeChecks.py
 │   │   │   └── interface/
 │   │   │       ├── .fff
@@ -593,6 +595,11 @@ src/eNuts/UI/widgets/spinners:
 			RevolvingNeuralOrb -> : revolvingneuralorb
 
 src/eNuts/application:
+	__eNutsApplication.py - 
+		CLASSE(S):
+			eNutsApplication -> : enutsapplication
+		CONSTANTS(S)/GLOBAL(S)
+			CONFIG_DIR -> : config_dir
 	__eNutsService.py - 
 		CLASSE(S):
 			Service -> : service
@@ -798,6 +805,9 @@ src/jAGFx/types:
 	__ANSIColors.py - 
 		CLASSE(S):
 			eAnsiColors -> : eansicolors
+	__color.py - 
+		CLASSE(S):
+			Color -> : color
 	__typeChecks.py - 
 		FUNCTION(S):
 			isNoOpMethod -> : isnoopmethod
@@ -1020,6 +1030,20 @@ src/jAGQt/widgets/commandBar/commandBarButton:
 ## Change Summary
 
 ```text
+9025411:
+	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
+
+e57fb4d:
+	feat: Implement Color class and integrate into application structure
+		src/__monkeyPatch.py
+		src/eNuts/application/__eNutsApplication.py
+		src/jAGFx/types/__color.py
+		typings/__builtins__.pyi
+
+86d6c66:
+	docs: update inventory.md using utility script
+		.docs/inventory.md
+
 266012a:
 	Remove legacy theme files and implement new theme system architecture
 		.docs/themeSpecification.md
@@ -1060,19 +1084,5 @@ e4ca3c4:
 9f319a8:
 	docs: update inventory.md using utility script
 		.docs/inventory.md
-
-ef3ae08:
-	Refactor code structure for improved readability and maintainability
-		.docs/inventory.md
-		.scripts/updateInventory.py
-
-c6defaa:
-	fix: ensure .docs directory exists before tracking inventory.md
-		.github/workflows/update_inventory.yml
-
-fe09968:
-	fix: replace obsolete inventory generation script with updated version
-		.github/workflows/update_inventory.yml
-		.scripts/__updateInventory.py -> .scripts/updateInventory.py
 
 ```
