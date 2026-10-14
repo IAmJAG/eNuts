@@ -1,0 +1,14 @@
+# eNuts — dracula palette
+bg: #282a36
+surface: #21222c
+control: #44475a
+border: #44475a
+text: #f8f8f2
+textMuted: #6272a4
+accent: #bd93f9
+accentAlt: #8be9fd
+hover: #44475a
+selected: #44475a
+selectedHover: #6272a4
+disabled: #6272a4
+onAccent: #282a36

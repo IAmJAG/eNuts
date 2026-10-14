@@ -1,0 +1,14 @@
+# eNuts — dark palette
+bg: #181818
+surface: #202020
+control: #292929
+border: #303030
+text: #d4d4d4
+textMuted: #888888
+accent: #75bdf5
+accentAlt: #5ce1ff
+hover: #333333
+selected: #2d3945
+selectedHover: #3a4a5a
+disabled: #555555
+onAccent: #0a0a0a

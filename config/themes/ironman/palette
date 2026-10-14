@@ -1,0 +1,14 @@
+# eNuts — ironman palette (high contrast)
+bg: #0e1014
+surface: #161a20
+control: #1e242c
+border: #3d4652
+text: #f5f7fa
+textMuted: #9aa3ad
+accent: #e31b23
+accentAlt: #f0c14b
+hover: #2a323c
+selected: #4a1518
+selectedHover: #5c181c
+disabled: #6b7280
+onAccent: #ffffff
