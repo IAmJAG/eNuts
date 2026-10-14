@@ -25,7 +25,8 @@ jobs:
           python-version: '3.x'
 
       - name: Generate Inventory File
-        run: python ../src/jAGFx/utilities/__generateInventory.py
+        working-directory: eNuts
+        run: python src/jAGFx/utilities/__generateInventory.py
 
       - name: Commit and Push Changes
         run: |
