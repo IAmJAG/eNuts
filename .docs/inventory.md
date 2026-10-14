@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-14 09:23:20 UTC*
+*Auto-generated on: 2026-10-14 10:41:44 UTC*
 
 ## Current Directory Structure
 
@@ -79,6 +79,7 @@ eNuts/
 │   │   │   ├── theme/
 │   │   │   │   └── __theme.py
 │   │   │   └── workspace/
+│   │   │       └── __workSpace.py
 │   │   ├── apps/
 │   │   │   └── main.py
 │   │   ├── configuration/
@@ -266,7 +267,8 @@ eNuts/
 │   │   │   │       ├── __base.py
 │   │   │   │       └── __commandBarButton.py
 │   │   │   ├── components/
-│   │   │   │   └── __componentBase.py
+│   │   │   │   ├── __componentBase.py
+│   │   │   │   └── __objectName.py
 │   │   │   ├── dashboard/
 │   │   │   ├── header/
 │   │   │   ├── icon/
@@ -275,16 +277,7 @@ eNuts/
 │   │   │   ├── page/
 │   │   │   │   └── __page.py
 │   │   │   ├── sideBar/
-│   │   │   │   ├── __sideBar.py
-│   │   │   │   ├── components/
-│   │   │   │   │   ├── __sideBarContent.py
-│   │   │   │   │   ├── __sideBarGroup.py
-│   │   │   │   │   ├── __sideBarHeader.py
-│   │   │   │   │   ├── __sideBarIcon.py
-│   │   │   │   │   ├── __sideBarItem.py
-│   │   │   │   │   ├── __sideBarSeparator.py
-│   │   │   │   │   └── __sideBarText.py
-│   │   │   │   └── types/
+│   │   │   │   └── __sideBar.py
 │   │   │   ├── text/
 │   │   │   └── workspace/
 │   │   │       └── __workspace.py
@@ -359,8 +352,13 @@ src/eNuts/application/theme:
 	__theme.py - 
 		FUNCTION(S):
 			loadStyles -> : loadstyles
-			loadStyle -> : loadstyle
 			_loadPalette -> : _loadpalette
+			loadStyle -> : loadstyle
+
+src/eNuts/application/workspace:
+	__workSpace.py - 
+		CLASSE(S):
+			WorkSpace -> : workspace
 
 src/eNuts/apps:
 	main.py - 
@@ -949,6 +947,12 @@ src/jAGQt/widgets/components:
 	__componentBase.py - 
 		CLASSE(S):
 			ComponentBase -> : componentbase
+	__objectName.py - 
+		CLASSE(S):
+			ObjectName -> : objectname
+		CONSTANTS(S)/GLOBAL(S)
+			QSPolicy -> : qspolicy
+			StyleBackground -> : stylebackground
 
 src/jAGQt/widgets/image:
 	__image.py - 
@@ -966,35 +970,7 @@ src/jAGQt/widgets/page:
 src/jAGQt/widgets/sideBar:
 	__sideBar.py - 
 		CLASSE(S):
-			DockPosition -> : dockposition
 			SideBar -> : sidebar
-
-src/jAGQt/widgets/sideBar/components:
-	__sideBarContent.py - 
-		CLASSE(S):
-			SideBarContent -> : sidebarcontent
-	__sideBarGroup.py - 
-		CLASSE(S):
-			SideBarGroupHeader -> : sidebargroupheader
-			SideBarGroup -> : sidebargroup
-	__sideBarHeader.py - 
-		CLASSE(S):
-			SideBarHeader -> : sidebarheader
-	__sideBarIcon.py - 
-		CLASSE(S):
-			SideBarIcon -> : sidebaricon
-	__sideBarItem.py - 
-		CLASSE(S):
-			ItemDisplayMode -> : itemdisplaymode
-			IconPosition -> : iconposition
-			SideBarItem -> : sidebaritem
-	__sideBarSeparator.py - 
-		CLASSE(S):
-			SeparatorType -> : separatortype
-			SideBarSeparator -> : sidebarseparator
-	__sideBarText.py - 
-		CLASSE(S):
-			SideBarText -> : sidebartext
 
 src/jAGQt/widgets/workspace:
 	__workspace.py - 
@@ -1069,9 +1045,55 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+f677597:
+	feat: enhance UI initialization and add WorkSpace component with object name logging
+		src/eNuts/application/__shell.py
+		src/eNuts/application/theme/__theme.py
+		src/eNuts/application/workspace/__workSpace.py
+		src/jAGQt/widgets/SideBar/__sideBar.py
+		src/jAGQt/widgets/components/__objectName.py
+
+210d377:
+	Refactor SideBar components and introduce ObjectName class
+		src/jAGQt/widgets/SideBar/__sideBar.py
+		src/jAGQt/widgets/SideBar/components/__sideBarContent.py
+		src/jAGQt/widgets/SideBar/components/__sideBarGroup.py
+		src/jAGQt/widgets/SideBar/components/__sideBarHeader.py
+		src/jAGQt/widgets/SideBar/components/__sideBarIcon.py
+		src/jAGQt/widgets/SideBar/components/__sideBarItem.py
+		src/jAGQt/widgets/SideBar/components/__sideBarSeparator.py
+		src/jAGQt/widgets/SideBar/components/__sideBarText.py
+		src/jAGQt/widgets/components/__objectName.py
+		src/jAGQt/window/__mainWindowBase.py
+		src/jAGQt/window/windowBase/__windowBase.py
+
+2e0ad72:
+	docs: update inventory.md with latest timestamp and directory structure for theme files
+		.docs/inventory.md
+
+1d854e1:
+	Add new themes and palettes for eNuts application
+
 9aaa827:
 	fix: update settings.json to include important files and adjust visibility; refactor color parsing in _loadPalette function
 		.vscode/settings.json
+		src/eNuts/application/theme/__theme.py
+
+a26ec65:
+	feat(theme): add main.css stylesheets for all five theme packs
+		config/themes/dark/main.css
+		config/themes/dracula/main.css
+		config/themes/ironman/main.css
+		config/themes/light/main.css
+		config/themes/material/main.css
+
+54f674d:
+	feat(theme): add config/themes packs and fix palette substitution loader
+		config/themes/dark/palette
+		config/themes/dracula/palette
+		config/themes/ironman/palette
+		config/themes/light/palette
+		config/themes/material/palette
 		src/eNuts/application/theme/__theme.py
 
 3b17b4e:
@@ -1083,36 +1105,6 @@ src/utilities/io:
 		.github/workflows/update_inventory.yml -> update_inventory.yml
 
 9ea79bd:
-	docs: update inventory.md using utility script
-		.docs/inventory.md
-
-a0546cf:
-	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
-
-56e657d:
-	feat: Refactor theme handling and improve application shutdown process
-		config/eNuts/appconfig.json
-		src/eNuts/UI/windows/__mainWindow.py
-		src/eNuts/application/__eNutsApplication.py
-		src/eNuts/apps/main.py
-		src/eNuts/apps/training.py
-		src/eNuts/configuration/__eNutsConfiguration.py
-
-ba9299e:
-	docs: update inventory.md using utility script
-		.docs/inventory.md
-
-9025411:
-	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
-
-e57fb4d:
-	feat: Implement Color class and integrate into application structure
-		src/__monkeyPatch.py
-		src/eNuts/application/__eNutsApplication.py
-		src/jAGFx/types/__color.py
-		typings/__builtins__.pyi
-
-86d6c66:
 	docs: update inventory.md using utility script
 		.docs/inventory.md
 
