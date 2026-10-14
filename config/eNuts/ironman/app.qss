@@ -6,12 +6,10 @@ QMainWindow,
 QWidget {
     background-color: #0e1014;
     color: #f5f7fa;
+    border-radius: 0px;
 }
 
 QMainWindow {
     background-color: #0e1014;
-}
-
-QLabel#W_TITLE{
-    background-color: red;
+    border-radius: 0px;
 }

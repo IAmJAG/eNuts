@@ -28,21 +28,22 @@ class Header(_Header):
     OBJECT_NAME = "W_SIDEBAR_HEADER"
     CollapseRequested: SignalInstance = Signal()
     def __init__(
-        self, title: Optional[str] = None, iconSize: int = 24, *args, **kwargs,
+        self, title: Optional[str] = None, 
+        description: Optional[str] = None,
+        iconSize: int = 24, *args, **kwargs,
     ) -> None: 
         OBJNAME: str = kwargs.pop("objectName", self.OBJECT_NAME)               
-        super().__init__(title=title, iconSize=iconSize, objectName=OBJNAME, *args, **kwargs)
-        self._title: str = title if title is not None else ""
+        super().__init__(
+            title=title, iconSize=iconSize, description=description,
+            objectName=OBJNAME, *args, **kwargs
+        )
         self._state: sideBarState = sideBarState.Expanded
         self._iconSize: int = max(1, int(iconSize))
 
     def _wInitializeUI(self) -> None:        
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        self.setSizePolicy(QPolicy.Expanding, QPolicy.Preferred)
-        self.setFixedHeight(44)
-        # self.setStyleSheet("background-color: white; color: black;")
-        
-        super()._wInitializeUI(False)
+        self.setSizePolicy(QPolicy.Expanding, QPolicy.Preferred)        
+        super()._wInitializeUI()
 
     @property
     def state(self) -> sideBarState:

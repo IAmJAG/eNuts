@@ -1,0 +1,19 @@
+/* ==================================================================================
+   SideBar — Ironman
+   Live names: W_SIDEBAR, W_HEADER (scoped), W_CONTENT, W_SIDEBAR_ITEM,
+   W_GROUP, W_SIDEBAR_GROUP_BODY, W_DOCK_CONTROL, W_SIDEBAR_TITLE
+   ================================================================================== */
+
+QWidget#W_SIDEBAR {
+    background-color: #141820;
+    border-right: 1px solid #3a4250;
+    color: #f5f7fa;
+    padding-right: 6px;
+}
+
+QWidget#W_SIDEBAR QWidget#W_SIDEBAR_HEADER {
+    background-color: #141820;
+    border-bottom: 1px solid #3a4250;
+    min-height: 44px;
+    color: #ffffff;
+}

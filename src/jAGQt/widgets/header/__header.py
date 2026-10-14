@@ -9,6 +9,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QIcon, QPixmap, QResizeEvent
 from PySide6.QtWidgets import QBoxLayout, QHBoxLayout, QSizePolicy, QVBoxLayout, QWidget
 
+# ==================================================================================
 from jAGFx.workflow import workflow
 
 # ==================================================================================
@@ -23,15 +24,12 @@ QBoxDirection = QBoxLayout.Direction
 QPolicy = QSizePolicy.Policy
 # ==================================================================================
 
-
 # ==================================================================================
 @workflow("InitializeUI")
 class Header(QWidget, ComponentBase):
     OBJECT_NAME = "W_HEADER"
-
     def __init__(
-        self,
-        title: str = "", description: Optional[str] = "",
+        self, title: str = "", description: Optional[str] = "",
         icon: Optional[Union[QIcon, QPixmap, str]] = None,
         iconPosition: IconPosition = IconPosition.TitleRow,
         iconSize: int = 24,
@@ -51,11 +49,8 @@ class Header(QWidget, ComponentBase):
         self._iconSize: int = iconSize
         
     def _wInitializeUI(self, rebuild: bool = True) -> None:
-        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)        
-        
-        # Instantiate widgets using the attached component classes
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         title: Title = Title(self._titleText)
-        self.setFixedHeight(50)
         description: Description = Description(self._descriptionText)
 
         iconBG: QColor = QColor(self._iconBG)
