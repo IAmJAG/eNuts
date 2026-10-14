@@ -2,20 +2,23 @@ import datetime
 import os
 import subprocess
 
-# Automatically resolve paths relative to this script's location
-# Script is at: eNuts/src/jAGFx/utilities/__generateInventory.py
-# Root 'eNuts' directory is 4 levels up
-C_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-C_TARGET_DIR = os.path.normpath(os.path.join(C_SCRIPT_DIR, "../../../../"))
-
+C_TARGET_DIR = "."
 C_DOCS_DIR = os.path.join(C_TARGET_DIR, ".docs")
 C_OUTPUT_FILE = os.path.join(C_DOCS_DIR, "inventory.md")
 
-C_MAX_COMMITS = 5
-C_EXCLUDED_EXTENSIONS = {".log", ".tmp", ".cache", ".DS_Store"}
+# --- Customization Controls ---
+C_MAX_COMMITS = 5  # Limits how many recent commits are included in the history section
+C_EXCLUDED_EXTENSIONS = {
+    ".log",
+    ".tmp",
+    ".cache",
+    ".DS_Store",
+}  # File extensions to filter out
+# ------------------------------
 
 
 def _runGitCommand(commandList):
+    """Executes a git command and returns standard output lines."""
     try:
         lResult = subprocess.run(
             commandList,
@@ -23,7 +26,6 @@ def _runGitCommand(commandList):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            cwd=C_TARGET_DIR,
         )
         return lResult.stdout.strip().split("\n")
     except Exception as lErr:
@@ -32,11 +34,13 @@ def _runGitCommand(commandList):
 
 
 def _shouldIncludeFile(filePath):
+    """Checks if a file path has an excluded extension."""
     _, lExt = os.path.splitext(filePath)
     return lExt.lower() not in C_EXCLUDED_EXTENSIONS
 
 
 def _parseChangeHistory(commitLimit):
+    """Retrieves recent push/commit history up to commitLimit and formats detailed change logs."""
     lGitLogRaw = _runGitCommand(
         [
             "git",
@@ -70,8 +74,10 @@ def _parseChangeHistory(commitLimit):
             if len(lParts) >= 2:
                 lStatus = lParts[0][0]
                 lFilePath = lParts[1]
+
                 if not _shouldIncludeFile(lFilePath):
                     continue
+
                 if lStatus == "A":
                     lChangesText = f"New file: `{lFilePath}`"
                 elif lStatus == "M":
@@ -86,6 +92,7 @@ def _parseChangeHistory(commitLimit):
                         continue
                 else:
                     lChangesText = f"Updated: `{lFilePath}`"
+
                 lCurrentCommit["changes"].append(lChangesText)
 
     return lHistoryEntries
@@ -104,15 +111,10 @@ def generateInventory():
     ]
 
     for lRoot, lDirs, lFiles in os.walk(C_TARGET_DIR):
-        # Skip scanning .git or .docs folders
-        if ".git" in lRoot or ".docs" in lRoot:
-            continue
         lFilteredFiles = [lF for lF in lFiles if _shouldIncludeFile(lF)]
-        lRelRoot = os.path.relpath(lRoot, C_TARGET_DIR)
-        lLevel = 0 if lRelRoot == "." else lRelRoot.count(os.sep) + 1
+        lLevel = lRoot.replace(C_TARGET_DIR, "").count(os.sep)
         lIndent = "  " * lLevel
-        lFolderName = "eNuts" if lRelRoot == "." else os.path.basename(lRoot)
-        lLines.append(f"{lIndent}- **{lFolderName}/**")
+        lLines.append(f"{lIndent}- **{os.path.basename(lRoot)}/**")
         lSubIndent = "  " * (lLevel + 1)
         for lFile in sorted(lFilteredFiles):
             lLines.append(f"{lSubIndent}- {lFile}")
@@ -133,12 +135,15 @@ def generateInventory():
                 for lChange in lEntry["changes"]:
                     lLines.append(f"* {lChange}")
             else:
-                lLines.append("* No structural file changes recorded.")
+                lLines.append(
+                    "* No structural file changes recorded (or filtered out)."
+                )
             lLines.append("")
 
     with open(C_OUTPUT_FILE, "w", encoding="utf-8") as lFileHandle:
         lFileHandle.write("\n".join(lLines))
-        print(f"Successfully generated {C_OUTPUT_FILE}")
+
+    print(f"Successfully generated {C_OUTPUT_FILE}")
 
 
 if __name__ == "__main__":
