@@ -32,6 +32,7 @@ async def main(app: QApplication, *args, **kwargs):
         windll.shell32.SetCurrentProcessExplicitAppUserModelID(cfg.applicationId)
 
     try:        
+        
         app.setStyleSheet(cfg.styleSheet)
 
         lWin: MainWindow = MainWindow(*args, **kwargs)        
