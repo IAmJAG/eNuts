@@ -5,19 +5,22 @@ from __future__ import annotations
 from typing import List
 
 # ==================================================================================
-from PySide6.QtWidgets import QBoxLayout
+from PySide6.QtWidgets import QBoxLayout, QMainWindow
 
 # ==================================================================================
 from jAGQt.types.interface.window import iMainWindowBase
 
 # ==================================================================================
 from ..types.interface.application import iENUTSService, iShell
+from .workspace import WorkSpace
 
 
 # ==================================================================================
 class Shell(iShell):
-    def _wIntializeUI(self: iMainWindowBase) -> None:
+    def _wInitializeUI(self: iMainWindowBase | QMainWindow) -> None:
+        print(f"[Shell] objectName={self.objectName()}", flush=True)
         try:
+            ws: WorkSpace = WorkSpace()
             layout: QBoxLayout = self.Layout
             layout.setDirection(QBoxLayout.Direction.LeftToRight)
             self.ContentSpacing = 0

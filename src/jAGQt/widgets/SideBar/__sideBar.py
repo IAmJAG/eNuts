@@ -15,5 +15,6 @@ class SideBar(QWidget, ObjectName, ComponentBase):
     def __init__(self, *args, **kwargs) -> None:        
         super().__init__(*args, **kwargs)
 
-    def _wInitalizeUI(self) -> None:
+    def _wInitializeUI(self) -> None:
+        print(f"[SideBar] objectName={self.objectName()}", flush=True)
         pass

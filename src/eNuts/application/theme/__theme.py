@@ -19,23 +19,6 @@ def loadStyles(path: str | Path) -> Dict[str, str]:
 
 
 # ==================================================================================
-def loadStyle(path: str | Path) -> str:
-    palette: Dict[str, str] = _loadPalette(path)
-    style: str = ""
-    root = Path(path)
-    for file in sorted(root.iterdir()):
-        if not file.is_file() or file.suffix.lower() != ".css":
-            continue
-        text = file.read_text(encoding="utf-8")
-        for key, value in palette.items():
-            text = text.replace(f"${key}", value)
-        style += text
-        if not style.endswith("\n"):
-            style += "\n"
-    return style
-
-
-# ==================================================================================
 def _loadPalette(path: str | Path) -> Dict[str, str]:
     palette: Dict[str, str] = {}
     palettePath = Path(path) / "palette"
@@ -47,6 +30,23 @@ def _loadPalette(path: str | Path) -> Dict[str, str]:
             if not line or line.startswith("#") or ":" not in line:
                 continue
             name, color = line.split(":", 1)
-            palette[name.strip().lower()] = Color(color.strip()).toHex()
-            
+            # KEEP original case – do NOT lower()
+            palette[name.strip()] = Color(color.strip()).toHex()
     return palette
+
+# ==================================================================================
+def loadStyle(path: str | Path) -> str:
+    palette: Dict[str, str] = _loadPalette(path)
+    style: str = ""
+    root = Path(path)
+    for file in sorted(root.iterdir()):
+        if not file.is_file() or file.suffix.lower() != ".css":
+            continue
+        text = file.read_text(encoding="utf-8")
+        # Longest keys first to protect $textMuted from $text, etc.
+        for key in sorted(palette.keys(), key=len, reverse=True):
+            text = text.replace(f"${key}", palette[key])
+        style += text
+        if not style.endswith("\n"):
+            style += "\n"
+    return style
