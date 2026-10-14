@@ -25,7 +25,7 @@ jobs:
           python-version: '3.x'
 
       - name: Generate Inventory File
-        run: python src/jAGFx/utilities/__generateInventory.py
+        run: python src/utilities/__generateInventory.py
 
       - name: Commit and Push Changes
         run: |
@@ -39,4 +39,3 @@ jobs:
             git commit -m "docs: update inventory.md using utility script"
             git push
           fi
-          
