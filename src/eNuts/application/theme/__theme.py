@@ -8,42 +8,44 @@ from typing import Dict
 
 # ==================================================================================
 def loadStyles(path: str | Path) -> Dict[str, str]:
-    styles: Dict[str, str] = dict[str, str]()
-    for file in Path(path).iterdir():
-        if file.is_dir():
-            styles[file.name.lower()] = loadStyle(file)
-
+    styles: Dict[str, str] = {}
+    root = Path(path)
+    if not root.is_dir():
+        return styles
+    for entry in root.iterdir():
+        if entry.is_dir():
+            styles[entry.name.lower()] = loadStyle(entry)
     return styles
 
 
 # ==================================================================================
 def loadStyle(path: str | Path) -> str:
-    palette: dict[str, Color] = _loadPalette(path)
+    palette: Dict[str, str] = _loadPalette(path)
     style: str = ""
-    for file in Path(path).iterdir():
-        if file.is_file():
-            if file.suffix != ".css":
-                continue
-            text = file.read_text()
-
-            for key, value in palette.items():
-                text = text.replace(f"${key}", key, str(value))
-
-            style += text
-
+    root = Path(path)
+    for file in sorted(root.iterdir()):
+        if not file.is_file() or file.suffix.lower() != ".css":
+            continue
+        text = file.read_text(encoding="utf-8")
+        for key, value in palette.items():
+            text = text.replace(f"${key}", value)
+        style += text
+        if not style.endswith("\n"):
+            style += "\n"
     return style
 
 
 # ==================================================================================
-def _loadPalette(path: str | Path) -> dict[str, Color]:
-    palette: Dict[str, Color] = dict[str, Color]()
-    palettePath: Path = os.path.join(path, "palette")
-    if not os.path.exists(palettePath):
+def _loadPalette(path: str | Path) -> Dict[str, str]:
+    palette: Dict[str, str] = {}
+    palettePath = Path(path) / "palette"
+    if not palettePath.is_file():
         return palette
-
-    with open(palettePath, "r") as f:
+    with open(palettePath, "r", encoding="utf-8") as f:
         for line in f:
-            name, color = line.split(":")
-            palette[name.strip().lower()] = parseColor(color.strip())
-
+            line = line.strip()
+            if not line or line.startswith("#") or ":" not in line:
+                continue
+            name, color = line.split(":", 1)
+            palette[name.strip().lower()] = color.strip()
     return palette
