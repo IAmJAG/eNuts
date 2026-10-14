@@ -1,72 +1,32 @@
 # ==================================================================================================
-# src/eNuts/apps/main.py
+# src/eNuts/apps/training.py
 # ==================================================================================================
-from asyncio import CancelledError, Event, set_event_loop
-from ctypes import windll
-from sys import platform
+# Thin entry: full SCRCPY / window startup lives in apps.main.
+# ==================================================================================================
+from asyncio import set_event_loop
 
 # ==================================================================================================
 from PySide6.QtWidgets import QApplication
 from qasync import QEventLoop
 
 # ==================================================================================================
-from jAGFx.types.interface.configuration import iApplicationConfiguration
-from jAGQt.types import ShowAnimation
-
-# ==================================================================================================
-from ..configuration import eNutsConfiguration
-from ..types.interface.configuration import iENUTSConfiguration
-from ..UI.windows import MainWindow
+from .main import main as _mainImpl
 
 
 # ==================================================================================================
-async def _training(app: QApplication, *args, **kwargs):
-    cfg: iENUTSConfiguration | iApplicationConfiguration = eNutsConfiguration()
-
-    lShutdownEvent: Event = Event()
-
-    def _onAboutToQuit() -> None:
-        lShutdownEvent.set()
-
-    app.aboutToQuit.connect(_onAboutToQuit)
-    app.setQuitOnLastWindowClosed(True)
-
-    if platform == "win32":
-        windll.shell32.SetCurrentProcessExplicitAppUserModelID(cfg.applicationId)
-
-    try:
-        lWin: MainWindow = MainWindow(*args, **kwargs)
-        app.setStyleSheet(cfg.styleSheet)
-        lWin.Show(ShowAnimation.SlideTop, 500)
-
-        # Keep the event loop alive until the last window closes / aboutToQuit.
-        # Note: builtins.wait is time.sleep (see __monkeyPatch); do not use it here.
-        await lShutdownEvent.wait()
-
-    except CancelledError:
-        raise
-
-    except Exception as ex:
-        error(f"Unhandled exception: {type(ex).__name__}: {ex}")
-
-    finally:
-        debug("entering finally")
-        if not lShutdownEvent.is_set():
-            lShutdownEvent.set()
-        debug("leaving finally")
-
-    app.quit()
+async def training(app: QApplication, *args, **kwargs):
+    """Delegate to main implementation (SCRCPYEmitter + MainWindow)."""
+    await _mainImpl(app, *args, **kwargs)
 
 
 # ==================================================================================================
 def program(*args):
-    debug("App Main Started")
     app: QApplication = QApplication()
     loop: QEventLoop = QEventLoop(app)
 
     set_event_loop(loop)
     with loop:
-        loop.run_until_complete(_training(app))
+        loop.run_until_complete(training(app))
 
 
 # ==================================================================================================

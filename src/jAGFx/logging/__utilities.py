@@ -47,6 +47,7 @@ DEF_FILE_FORMATTER: Dict[str, Any] = {
 fmtList = [
     "%(light_black)s[%(asctime)s]%(reset)s",
     "%(log_color)s[%(levelname)-8s]%(reset)s ",
+    "%(log_color)s[%(caller)-8s]%(reset)s ",
     "%(message_log_color)s%(message)s%(reset)s",
 ]
 C_LOG_FORMAT = "".join(fmtList)
@@ -92,12 +93,13 @@ def _getConsoleLogger(name: str) -> colorlog.StreamHandler:
 
     lConsoleHandler: colorlog.StreamHandler = colorlog.StreamHandler()
     lConsoleHandler.set_name(name)
-    lFormatter: colorlog.ColoredFormatter = colorlog.ColoredFormatter(
-        fmt=C_LOG_FORMAT,
-        datefmt="%Y%m%d %H%M%S",
-        log_colors=C_LOG_COLORS,
-        secondary_log_colors=C_SECONDARY_COLORS,
-    )
+    lFormatter: DefaultFormatter = DefaultFormatter()
+    # lFormatter: colorlog.ColoredFormatter = colorlog.ColoredFormatter(
+    #     fmt=C_LOG_FORMAT,
+    #     datefmt="%Y%m%d %H%M%S",
+    #     log_colors=C_LOG_COLORS,
+    #     secondary_log_colors=C_SECONDARY_COLORS,
+    # )
     filter: NamespaceFilter = NamespaceFilter()
     NamespaceFilter.setNSLogLevel("NOT.MINE", G_DEFAULT_LEVEL)
     lConsoleHandler.setFormatter(lFormatter)

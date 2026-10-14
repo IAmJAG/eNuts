@@ -1,0 +1,100 @@
+# ==================================================================================
+# src/jAGQt/widgets/commandBar/__commandBar.py
+# ==================================================================================
+from typing import Dict, Optional, Union
+
+# ==================================================================================
+from PySide6.QtWidgets import QAbstractButton, QBoxLayout, QSizePolicy, QWidget
+
+from jAGFx.workflow import workflow
+from jAGQt.utilities import newLayout
+
+# ==================================================================================
+from jAGQt.widgets.components import ComponentBase
+
+# ==================================================================================
+from ...types.interface.widgets.commandBar import (
+    iCommandBarButton,
+    iCommandBarGroup,
+)
+from .__base import _commandBarBase
+from .__commandBarGroup import CommandBarGroup
+
+# ==================================================================================
+QtPolicy = QSizePolicy.Policy
+# ==================================================================================
+
+
+# ==================================================================================
+@workflow("InitializeUI")
+class CommandBar(QWidget, ComponentBase, _commandBarBase):
+    OBJECT_NAME = "W_COMMANDBAR"
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._groups: Dict[str, iCommandBarGroup] = {}
+        self._buttons: Dict[str, iCommandBarButton] = {}
+
+    def _wInitializeUI(self) -> None:
+        super()._wInitializeUI()
+        self.setObjectName(self.OBJECT_NAME)
+        self.setSizePolicy(QtPolicy.Expanding, QtPolicy.Fixed)
+        self.Layout = newLayout(QBoxLayout, spacing=0, margins=(0, 0, 0, 0))
+
+    def _assertButton(self, button: QAbstractButton) -> None:
+        if not isinstance(button, QAbstractButton | iCommandBarButton):
+            raise TypeError("CommandBar.AddButton expects a QAbstractButton subclass")
+
+    def addButton(
+        self,
+        button: str | iCommandBarButton,
+        group: Optional[Union[str, iCommandBarGroup]] = None,
+    ) -> iCommandBarButton:
+        lGroup: Optional[CommandBarGroup] = self._resolveGroup(group) if group is not None else None
+        if lGroup is None:
+            return super().addButton(button)
+        return lGroup.addButton(button)
+
+    def addGroup(self, name: str) -> CommandBarGroup:
+        if name in self._groups:
+            return self._groups[name]
+
+        lGroup = CommandBarGroup(name, parent=self)
+        self._groups[name] = lGroup
+        self.Layout.addWidget(lGroup)
+        return lGroup
+
+    def addStretch(self, stretch: int = 1) -> None:
+        self.Layout.addStretch(stretch)
+
+    def setSpacingSize(self, size: int) -> None:
+        self.Layout.setSpacing(size)
+
+    def clear(self) -> None:
+        while self.Layout.count():
+            lItem = self.Layout.takeAt(0)
+            if lItem is None:
+                continue
+            lWidget = lItem.widget()
+            if lWidget is not None:
+                lWidget.setParent(None)
+                lWidget.deleteLater()
+        self._groups.clear()
+
+    # ==================================================================================
+    def _resolveGroup(
+        self, group: Optional[Union[str, CommandBarGroup]]
+    ) -> Optional[CommandBarGroup]:
+        if group is None:
+            return None
+        if isinstance(group, CommandBarGroup):
+            if group not in self._groups.values():
+                group.setParent(self)
+                self.Layout.addWidget(group)
+                self._groups[group.Name] = group
+            return group
+
+        lExisting = self._groups.get(group)
+        if lExisting is not None:
+            return lExisting
+        return self.addGroup(name=group)

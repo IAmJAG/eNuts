@@ -16,8 +16,12 @@ LOG_LEVEL: int = VERBOSE
 
 # ==================================================================================================
 def _program(module: str, app: str, clean: bool = False, *args, **kwargs):
-    try:        
-        lModule: launchModule = import_module(f"{module}.{app}")
+    try:
+        moduleNS: str = f"{module}.{app}"
+        addFileHandler(moduleNS, LOG_LEVEL)
+        debug(f"Current module namespace: {moduleNS}")
+
+        lModule: launchModule = import_module(moduleNS)
         lArguments: list[str] = RebuildArguments(argv[0], *args, **kwargs)
         lExitCode = lModule.program(lArguments)
         return lExitCode
@@ -32,9 +36,7 @@ def _program(module: str, app: str, clean: bool = False, *args, **kwargs):
 
 # ==================================================================================================
 def program(args: list = argv):
-    setupLogging("", LOG_LEVEL)
-    addFileHandler("eNuts", LOG_LEVEL)    
-    debug(f"Current module namespace: {__name__}")
+    setupLogging("", LOG_LEVEL)    
     lArgs, lKWArgs = ProcessArguments(args)
     return _program(*lArgs, **lKWArgs)
 

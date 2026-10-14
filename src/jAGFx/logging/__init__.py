@@ -13,12 +13,12 @@ __all__ = [
     "setNamespaceLevel",
     "setupLogging",
     "addFileHandler",
-    "VERBOSE"
+    "VERBOSE",
     "verbose",
     "debug",
-    "info",    
+    "info",
     "warning",
     "error",
     "critical",
-    "fatal"
+    "fatal",
 ]

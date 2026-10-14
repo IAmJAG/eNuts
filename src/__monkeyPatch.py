@@ -21,7 +21,7 @@ from jAGFx.logging import (
 )
 
 # ==================================================================================================
-from jAGFx.types import Is, isAny, isListOfT, isNone, isUnion
+from jAGFx.types import Is, isAny, isListOfT, isNone, isNoOpMethod, isUnion
 from utilities import (
     ProcessArguments,
     PyCacheClean,
@@ -67,6 +67,7 @@ setattr(builtins, "isAny", isAny)
 setattr(builtins, "isNone", isNone)
 setattr(builtins, "isListOfT", isListOfT)
 setattr(builtins, "Is", Is)
+setattr(builtins, "isNoOpMethod", isNoOpMethod)
 
 # ==================================================================================================
 # GLOBAL functions - logging
