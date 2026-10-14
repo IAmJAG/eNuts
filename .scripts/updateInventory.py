@@ -13,7 +13,23 @@ C_EXCLUDED_EXTENSIONS = {
     ".tmp",
     ".cache",
     ".DS_Store",
+    ".pyc",
+    ".f", ".ff", ".fff"
 }  # File extensions to filter out
+
+C_EXCLUDED_DIRECTORIES = {
+    ".git",
+    ".docs",
+    "__pycache__",
+    ".idea",
+    ".vscode",
+    ".git",
+    "objects",
+    ".github",
+    ".vscode",
+    ".kilo",
+    "LOGS",
+}  # Directories to skip entirely during inventory scanning
 # ------------------------------
 
 
@@ -111,6 +127,9 @@ def generateInventory():
     ]
 
     for lRoot, lDirs, lFiles in os.walk(C_TARGET_DIR):
+        # Exclude specified directories in-place to prevent os.walk from entering them
+        lDirs[:] = [lDir for lDir in lDirs if lDir not in C_EXCLUDED_DIRECTORIES]
+
         lFilteredFiles = [lF for lF in lFiles if _shouldIncludeFile(lF)]
         lLevel = lRoot.replace(C_TARGET_DIR, "").count(os.sep)
         lIndent = "  " * lLevel
