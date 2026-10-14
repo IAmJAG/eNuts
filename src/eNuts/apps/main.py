@@ -13,34 +13,28 @@ from qasync import QEventLoop
 from jAGFx.types.interface.configuration import iApplicationConfiguration
 
 # ==================================================================================================
+from ..application import eNutsApplication
 from ..configuration import eNutsConfiguration
 from ..types.interface.configuration import iENUTSConfiguration
 from ..UI.windows import MainWindow
 
 
 # ==================================================================================================
-async def main(app: QApplication, *args, **kwargs):
+async def main(app: eNutsApplication, *args, **kwargs):
     cfg: iENUTSConfiguration | iApplicationConfiguration = eNutsConfiguration()
 
-    lShutdownEvent: Event = Event()
-
-    def _onAboutToQuit() -> None: lShutdownEvent.set()
-    app.aboutToQuit.connect(_onAboutToQuit)
-    app.setQuitOnLastWindowClosed(False)
+    shutdownEvent: Event = Event()
 
     if platform == "win32":
         windll.shell32.SetCurrentProcessExplicitAppUserModelID(cfg.applicationId)
 
-    try:        
-        
-        app.setStyleSheet(cfg.styleSheet)
+    try:
+        app.setStyleSheet(cfg.theme)
 
-        lWin: MainWindow = MainWindow(*args, **kwargs)        
+        lWin: MainWindow = MainWindow(shutdownEvent, *args, **kwargs)        
         lWin.show()
 
-        app.setQuitOnLastWindowClosed(True)
-
-        await lShutdownEvent.wait()
+        await shutdownEvent.wait()
 
     except CancelledError:
         pass
@@ -49,17 +43,17 @@ async def main(app: QApplication, *args, **kwargs):
         error(f"[main] Error occur {str(ex)}", ex)
 
     finally:
-        if not lShutdownEvent.is_set():
-            lShutdownEvent.set()
+        if not shutdownEvent.is_set():
+            shutdownEvent.set()
 
     app.quit()
 
 # ==================================================================================================
-def program(*args):
-    app: QApplication = QApplication()
+def program(*args):    
+    app: eNutsApplication = eNutsApplication()
     loop: QEventLoop = QEventLoop(app)
-
     set_event_loop(loop)
+    
     with loop:
         loop.run_until_complete(main(app))
 

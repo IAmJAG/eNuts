@@ -34,10 +34,8 @@ class eNutsConfiguration(ApplicationConfiguration, iENUTSConfiguration, iConfigu
     
     def save(self, path=None) -> iENUTSConfiguration:
         super().save(path)
-        self._styleSheet = getStyleSheet(os.path.join(CONFIG_PATH, f"{self.style}.qss"))
         return self
     
     def load(self, path=None) -> iENUTSConfiguration:
         super().load(path)
-        self._styleSheet = getStyleSheet(os.path.join(CONFIG_PATH, f"{self.style}.qss"))
         return self

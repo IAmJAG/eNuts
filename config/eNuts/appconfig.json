@@ -4,8 +4,7 @@
     "company": "jAG",
     "applicationId": "JAG-ENUTS",
     "icon": "logo",
-    "style": "ironman",
-    "LDPath": "D:/LDPlayer/",
+    "theme": "ironman",
     "assetFolder": null,
     "__type__": "eNuts.configuration.eNutsConfiguration"
 }
