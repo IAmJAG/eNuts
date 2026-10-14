@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-14 03:22:22 UTC*
+*Auto-generated on: 2026-10-14 05:31:09 UTC*
 
 ## Current Directory Structure
 
@@ -8,6 +8,13 @@ eNuts/
 ├── .bin/
 │   └── scrcpy-server.jar
 ├── .gitignore
+├── .kilocode/
+│   ├── rules/
+│   │   ├── CodingStyle.md
+│   │   ├── Documentation.md
+│   │   └── NamingConventions.md
+│   └── templates/
+│       └── documentTemplates.md
 ├── .scripts/
 │   └── updateInventory.py
 ├── README.md
@@ -39,42 +46,35 @@ eNuts/
 │   │   │   ├── .ff
 │   │   │   ├── widgets/
 │   │   │   │   ├── pages/
-│   │   │   │   │   ├── dashboard/
 │   │   │   │   │   ├── recorder/
 │   │   │   │   │   │   └── __recorderPage.py
 │   │   │   │   │   └── settings/
 │   │   │   │   │       └── __settingsPage.py
-│   │   │   │   ├── spinners/
-│   │   │   │   │   ├── __evolvingNeuralBrain.py
-│   │   │   │   │   ├── __evolvingNeuralOrb.py
-│   │   │   │   │   └── __revolvingNeuralOrb.py
-│   │   │   │   └── streamer/
+│   │   │   │   └── spinners/
+│   │   │   │       ├── __evolvingNeuralBrain.py
+│   │   │   │       ├── __evolvingNeuralOrb.py
+│   │   │   │       └── __revolvingNeuralOrb.py
 │   │   │   └── windows/
 │   │   │       └── __mainWindow.py
 │   │   ├── application/
 │   │   │   ├── __eNutsService.py
-│   │   │   ├── __shell.py
-│   │   │   ├── device/
-│   │   │   └── workspace/
+│   │   │   └── __shell.py
 │   │   ├── apps/
 │   │   │   ├── main.py
 │   │   │   └── training.py
 │   │   ├── configuration/
 │   │   │   ├── __eNutsConfiguration.py
 │   │   │   └── __information.py
-│   │   ├── types/
-│   │   │   ├── .ff
-│   │   │   └── interface/
-│   │   │       ├── .ff
-│   │   │       ├── application/
-│   │   │       │   ├── __eNutsService.py
-│   │   │       │   └── __shell.py
-│   │   │       └── configuration/
-│   │   │           └── __eNutsConfiguration.py
-│   │   └── utilities/
-│   │       └── asyncADB/
+│   │   └── types/
+│   │       ├── .ff
+│   │       └── interface/
+│   │           ├── .ff
+│   │           ├── application/
+│   │           │   ├── __enutsService.py
+│   │           │   └── __shell.py
+│   │           └── configuration/
+│   │               └── __eNutsConfiguration.py
 │   ├── fluxCore/
-│   │   ├── .fff
 │   │   ├── action/
 │   │   │   ├── __action.py
 │   │   │   └── android/
@@ -97,14 +97,12 @@ eNuts/
 │   │   │           └── __injectKeyRelease.py
 │   │   ├── device/
 │   │   │   └── __device.py
-│   │   ├── deviceInput/
 │   │   ├── devices/
 │   │   │   └── __scrcpy.py
 │   │   ├── emitters/
 │   │   │   └── scrcpy/
 │   │   │       └── __SCRCPYEmitter.py
 │   │   ├── types/
-│   │   │   ├── .fff
 │   │   │   ├── geometry/
 │   │   │   │   ├── __circle.py
 │   │   │   │   ├── __point.py
@@ -115,7 +113,6 @@ eNuts/
 │   │   │   │   │   └── __androidAction.py
 │   │   │   │   ├── device/
 │   │   │   │   │   └── __device.py
-│   │   │   │   ├── deviceInput/
 │   │   │   │   ├── devices/
 │   │   │   │   │   └── __scrcpy.py
 │   │   │   │   ├── emitters/
@@ -205,26 +202,16 @@ eNuts/
 │   │       └── __workflow.py
 │   ├── jAGQt/
 │   │   ├── .ff
-│   │   ├── animations/
-│   │   ├── icons/
-│   │   │   └── animations/
 │   │   ├── types/
-│   │   │   ├── .fff
 │   │   │   └── interface/
-│   │   │       ├── .fff
-│   │   │       ├── animations/
 │   │   │       ├── components/
 │   │   │       │   └── __componentBase.py
-│   │   │       ├── icons/
-│   │   │       │   └── animation/
 │   │   │       ├── widgets/
 │   │   │       │   ├── __page.py
-│   │   │       │   ├── commandBar/
-│   │   │       │   │   ├── __commandBar.py
-│   │   │       │   │   ├── __commandBarButton.py
-│   │   │       │   │   └── __commandBarGroup.py
-│   │   │       │   ├── dashboard/
-│   │   │       │   └── icons/
+│   │   │       │   └── commandBar/
+│   │   │       │       ├── __commandBar.py
+│   │   │       │       ├── __commandBarButton.py
+│   │   │       │       └── __commandBarGroup.py
 │   │   │       └── window/
 │   │   │           ├── __mainWindowBase.py
 │   │   │           └── windowBase/
@@ -234,6 +221,18 @@ eNuts/
 │   │   │   ├── __layout.py
 │   │   │   └── __pushButton.py
 │   │   ├── widgets/
+│   │   │   ├── Image/
+│   │   │   │   └── __image.py
+│   │   │   ├── SideBar/
+│   │   │   │   ├── __sideBar.py
+│   │   │   │   └── components/
+│   │   │   │       ├── __sideBarContent.py
+│   │   │   │       ├── __sideBarGroup.py
+│   │   │   │       ├── __sideBarHeader.py
+│   │   │   │       ├── __sideBarIcon.py
+│   │   │   │       ├── __sideBarItem.py
+│   │   │   │       ├── __sideBarSeparator.py
+│   │   │   │       └── __sideBarText.py
 │   │   │   ├── __header.py
 │   │   │   ├── commandBar/
 │   │   │   │   ├── __base.py
@@ -244,25 +243,8 @@ eNuts/
 │   │   │   │       └── __commandBarButton.py
 │   │   │   ├── components/
 │   │   │   │   └── __componentBase.py
-│   │   │   ├── dashboard/
-│   │   │   ├── header/
-│   │   │   ├── icon/
-│   │   │   ├── image/
-│   │   │   │   └── __image.py
 │   │   │   ├── page/
 │   │   │   │   └── __page.py
-│   │   │   ├── sideBar/
-│   │   │   │   ├── __sideBar.py
-│   │   │   │   ├── components/
-│   │   │   │   │   ├── __sideBarContent.py
-│   │   │   │   │   ├── __sideBarGroup.py
-│   │   │   │   │   ├── __sideBarHeader.py
-│   │   │   │   │   ├── __sideBarIcon.py
-│   │   │   │   │   ├── __sideBarItem.py
-│   │   │   │   │   ├── __sideBarSeparator.py
-│   │   │   │   │   └── __sideBarText.py
-│   │   │   │   └── types/
-│   │   │   ├── text/
 │   │   │   └── workspace/
 │   │   │       └── __workspace.py
 │   │   └── window/
@@ -318,248 +300,10 @@ src:
 		CONSTANTS(S)/GLOBAL(S)
 			LOG_LEVEL -> : log_level
 
-src/eNuts/application:
-	__eNutsService.py - 
-		CLASSE(S):
-			Service -> : service
-	__shell.py - 
-		CLASSE(S):
-			Shell -> : shell
-
-src/eNuts/apps:
-	main.py - 
-		FUNCTION(S):
-			main -> : main
-			program -> : program
-	training.py - 
-		FUNCTION(S):
-			training -> : training
-			program -> : program
-
-src/eNuts/configuration:
-	__eNutsConfiguration.py - 
-		CLASSE(S):
-			eNutsConfiguration -> : enutsconfiguration
-		CONSTANTS(S)/GLOBAL(S)
-			CONFIG_PATH -> : config_path
-	__information.py - 
-		CLASSE(S):
-			ApplicationInformation -> : applicationinformation
-
-src/eNuts/types/interface/application:
-	__eNutsService.py - 
-		CLASSE(S):
-			iENUTSService -> : ienutsservice
-	__shell.py - 
-		CLASSE(S):
-			iShell -> : ishell
-
-src/eNuts/types/interface/configuration:
-	__eNutsConfiguration.py - 
-		CLASSE(S):
-			iENUTSConfiguration -> : ienutsconfiguration
-
-src/eNuts/UI/widgets/pages/recorder:
-	__recorderPage.py - 
-		CLASSE(S):
-			KAndGRecorderPage -> : kandgrecorderpage
-
-src/eNuts/UI/widgets/pages/settings:
-	__settingsPage.py - 
-		CLASSE(S):
-			SettingsPage -> : settingspage
-		FUNCTION(S):
-			_applyThemePalette -> : _applythemepalette
-		CONSTANTS(S)/GLOBAL(S)
-			C_THEME_NAMES -> : c_theme_names
-			C_DARK_THEMES -> : c_dark_themes
-
-src/eNuts/UI/widgets/spinners:
-	__evolvingNeuralBrain.py - 
-		CLASSE(S):
-			_BrainBakeWorker -> : _brainbakeworker
-			EvolvingNeuralBrain -> : evolvingneuralbrain
-		FUNCTION(S):
-			_hash01 -> : _hash01
-			_brainPoint -> : _brainpoint
-	__evolvingNeuralOrb.py - 
-		CLASSE(S):
-			_MeshBakeWorker -> : _meshbakeworker
-			EvolvingNeuralOrb -> : evolvingneuralorb
-		FUNCTION(S):
-			_spherePoint -> : _spherepoint
-	__revolvingNeuralOrb.py - 
-		CLASSE(S):
-			RevolvingNeuralOrb -> : revolvingneuralorb
-
-src/eNuts/UI/windows:
-	__mainWindow.py - 
-		CLASSE(S):
-			MainWindow -> : mainwindow
-
-src/fluxCore/action:
-	__action.py - 
-		CLASSE(S):
-			Action -> : action
-		CONSTANTS(S)/GLOBAL(S)
-			DEVICE_MINIMUM_WAIT -> : device_minimum_wait
-
-src/fluxCore/action/android:
-	__androidAction.py - 
-		CLASSE(S):
-			AndroidAction -> : androidaction
-	__const.py - 
-		CONSTANTS(S)/GLOBAL(S)
-			PRESSURE_MAX -> : pressure_max
-			PRESSURE_MIN -> : pressure_min
-			PRIMARY_BUTTON -> : primary_button
-			DEFAULT_FINGER_ID -> : default_finger_id
-
-src/fluxCore/action/android/enums:
-	__eCommands.py - 
-		CLASSE(S):
-			eCommandType -> : ecommandtype
-	__eKeyCode.py - 
-		CLASSE(S):
-			eKeyCode -> : ekeycode
-	__eKeyState.py - 
-		CLASSE(S):
-			eKeyState -> : ekeystate
-	__eMetaState.py - 
-		CLASSE(S):
-			eMetaState -> : emetastate
-	__ePanelCommand.py - 
-		CLASSE(S):
-			ePanelCommand -> : epanelcommand
-	__ePowerMode.py - 
-		CLASSE(S):
-			ePowerMode -> : epowermode
-
-src/fluxCore/action/android/gesture:
-	__tap.py - 
-		CLASSE(S):
-			Tap -> : tap
-	__touch.py - 
-		CLASSE(S):
-			Touch -> : touch
-
-src/fluxCore/action/android/injectKey:
-	__injectKey.py - 
-		CLASSE(S):
-			InjectKey -> : injectkey
-	__injectKeyBase.py - 
-		CLASSE(S):
-			InjectKeyBase -> : injectkeybase
-	__injectKeyPress.py - 
-		CLASSE(S):
-			InjectKeyPress -> : injectkeypress
-	__injectKeyRelease.py - 
-		CLASSE(S):
-			InjectKeyRelease -> : injectkeyrelease
-
-src/fluxCore/device:
-	__device.py - 
-		CLASSE(S):
-			Device -> : device
-
 src/fluxCore/devices:
 	__scrcpy.py - 
 		CLASSE(S):
 			SCRCPY -> : scrcpy
-
-src/fluxCore/emitters/scrcpy:
-	__SCRCPYEmitter.py - 
-		CLASSE(S):
-			SCRCPYEmitter -> : scrcpyemitter
-		CONSTANTS(S)/GLOBAL(S)
-			JAR_NAME -> : jar_name
-			SERVER_PATH -> : server_path
-			ANDROID_PATH -> : android_path
-			MAX_SIZE -> : max_size
-			MAX_FPS -> : max_fps
-			BITRATE -> : bitrate
-
-src/fluxCore/types/geometry:
-	__circle.py - 
-		CLASSE(S):
-			Circle -> : circle
-	__point.py - 
-		CLASSE(S):
-			Point -> : point
-	__rectangle.py - 
-		CLASSE(S):
-			Rectangle -> : rectangle
-
-src/fluxCore/types/interface/action:
-	__actionMetadata.py - 
-		CLASSE(S):
-			iActionMetadata -> : iactionmetadata
-		CONSTANTS(S)/GLOBAL(S)
-			DEVICE_MINIMUM_WAIT -> : device_minimum_wait
-	__androidAction.py - 
-		CLASSE(S):
-			iAndroidAction -> : iandroidaction
-
-src/fluxCore/types/interface/device:
-	__device.py - 
-		CLASSE(S):
-			iDevice -> : idevice
-
-src/fluxCore/types/interface/devices:
-	__scrcpy.py - 
-		CLASSE(S):
-			iSCRCPY -> : iscrcpy
-
-src/fluxCore/types/interface/emitters:
-	__SCRCPYEmitter.py - 
-		CLASSE(S):
-			iSCRCPYEmitter -> : iscrcpyemitter
-
-src/fluxCore/types/interface/geometry:
-	__geoBase.py - 
-		CLASSE(S):
-			iGeometry -> : igeometry
-	__point.py - 
-		CLASSE(S):
-			iPoint -> : ipoint
-
-src/fluxCore/types/interface/packets:
-	__frame.py - 
-		CLASSE(S):
-			iFrame -> : iframe
-	__packet.py - 
-		CLASSE(S):
-			iPacket -> : ipacket
-
-src/fluxCore/types/interface/sockets:
-	__controlSocket.py - 
-		CLASSE(S):
-			iControlSocket -> : icontrolsocket
-	__socket.py - 
-		CLASSE(S):
-			iSocket -> : isocket
-	__videoSocket.py - 
-		CLASSE(S):
-			iVideoSocket -> : ivideosocket
-
-src/fluxCore/types/packets:
-	__frame.py - 
-		CLASSE(S):
-			Frame -> : frame
-	__packet.py - 
-		CLASSE(S):
-			Packet -> : packet
-
-src/fluxCore/types/sockets:
-	__controlSocket.py - 
-		CLASSE(S):
-			ControlSocket -> : controlsocket
-	__socket.py - 
-		CLASSE(S):
-			SocketBase -> : socketbase
-	__videoSocket.py - 
-		CLASSE(S):
-			VideoSocket -> : videosocket
 
 src/fluxCore/utilities:
 	__adbutils.py - 
@@ -603,378 +347,164 @@ src/fluxCore/utilities/scrcpy:
 		CLASSE(S):
 			SCRCPYServerConfig -> : scrcpyserverconfig
 
-src/jAGFx/collections:
-	__tsDictionary.py - 
+src/fluxCore/device:
+	__device.py - 
 		CLASSE(S):
-			TSDictionary -> : tsdictionary
-	__tsList.py - 
-		CLASSE(S):
-			TSList -> : tslist
+			Device -> : device
 
-src/jAGFx/configuration:
-	__applicationConfig.py - 
+src/fluxCore/action:
+	__action.py - 
 		CLASSE(S):
-			ApplicationConfiguration -> : applicationconfiguration
+			Action -> : action
 		CONSTANTS(S)/GLOBAL(S)
-			CFGINSTANCE -> : cfginstance
-			LOGGER_SECTION -> : logger_section
-			CONFIG_PATH -> : config_path
-			CONFIG_FILENAME -> : config_filename
-			ConfigType -> : configtype
-	__configuration.py - 
-		CLASSE(S):
-			Configuration -> : configuration
+			DEVICE_MINIMUM_WAIT -> : device_minimum_wait
 
-src/jAGFx/globals:
-	serializer.py - 
+src/fluxCore/action/android:
+	__androidAction.py - 
+		CLASSE(S):
+			AndroidAction -> : androidaction
+	__const.py - 
 		CONSTANTS(S)/GLOBAL(S)
-			KNOWN_TYPES -> : known_types
+			PRESSURE_MAX -> : pressure_max
+			PRESSURE_MIN -> : pressure_min
+			PRIMARY_BUTTON -> : primary_button
+			DEFAULT_FINGER_ID -> : default_finger_id
 
-src/jAGFx/IPC:
-	__IOQueue.py - 
+src/fluxCore/action/android/enums:
+	__eCommands.py - 
 		CLASSE(S):
-			IOQueue -> : ioqueue
-	__message.py - 
+			eCommandType -> : ecommandtype
+	__eKeyCode.py - 
 		CLASSE(S):
-			Message -> : message
+			eKeyCode -> : ekeycode
+	__eKeyState.py - 
+		CLASSE(S):
+			eKeyState -> : ekeystate
+	__eMetaState.py - 
+		CLASSE(S):
+			eMetaState -> : emetastate
+	__ePanelCommand.py - 
+		CLASSE(S):
+			ePanelCommand -> : epanelcommand
+	__ePowerMode.py - 
+		CLASSE(S):
+			ePowerMode -> : epowermode
 
-src/jAGFx/logging:
-	__log.py - 
-	__logging.py - 
-		FUNCTION(S):
-			_resolveErr -> : _resolveerr
-			verbose -> : verbose
-			debug -> : debug
-			info -> : info
-			warning -> : warning
-			error -> : error
-			critical -> : critical
-			fatal -> : fatal
-			_exitOnError -> : _exitonerror
+src/fluxCore/action/android/injectKey:
+	__injectKey.py - 
+		CLASSE(S):
+			InjectKey -> : injectkey
+	__injectKeyBase.py - 
+		CLASSE(S):
+			InjectKeyBase -> : injectkeybase
+	__injectKeyPress.py - 
+		CLASSE(S):
+			InjectKeyPress -> : injectkeypress
+	__injectKeyRelease.py - 
+		CLASSE(S):
+			InjectKeyRelease -> : injectkeyrelease
+
+src/fluxCore/action/android/gesture:
+	__tap.py - 
+		CLASSE(S):
+			Tap -> : tap
+	__touch.py - 
+		CLASSE(S):
+			Touch -> : touch
+
+src/fluxCore/types/sockets:
+	__controlSocket.py - 
+		CLASSE(S):
+			ControlSocket -> : controlsocket
+	__socket.py - 
+		CLASSE(S):
+			SocketBase -> : socketbase
+	__videoSocket.py - 
+		CLASSE(S):
+			VideoSocket -> : videosocket
+
+src/fluxCore/types/geometry:
+	__circle.py - 
+		CLASSE(S):
+			Circle -> : circle
+	__point.py - 
+		CLASSE(S):
+			Point -> : point
+	__rectangle.py - 
+		CLASSE(S):
+			Rectangle -> : rectangle
+
+src/fluxCore/types/interface/devices:
+	__scrcpy.py - 
+		CLASSE(S):
+			iSCRCPY -> : iscrcpy
+
+src/fluxCore/types/interface/sockets:
+	__controlSocket.py - 
+		CLASSE(S):
+			iControlSocket -> : icontrolsocket
+	__socket.py - 
+		CLASSE(S):
+			iSocket -> : isocket
+	__videoSocket.py - 
+		CLASSE(S):
+			iVideoSocket -> : ivideosocket
+
+src/fluxCore/types/interface/geometry:
+	__geoBase.py - 
+		CLASSE(S):
+			iGeometry -> : igeometry
+	__point.py - 
+		CLASSE(S):
+			iPoint -> : ipoint
+
+src/fluxCore/types/interface/device:
+	__device.py - 
+		CLASSE(S):
+			iDevice -> : idevice
+
+src/fluxCore/types/interface/action:
+	__actionMetadata.py - 
+		CLASSE(S):
+			iActionMetadata -> : iactionmetadata
 		CONSTANTS(S)/GLOBAL(S)
-			VERBOSE -> : verbose
-			EXITONERROR -> : exitonerror
-	__utilities.py - 
-		FUNCTION(S):
-			_getConsoleLogger -> : _getconsolelogger
-			_refreshQueueListener -> : _refreshqueuelistener
-			setupLogging -> : setuplogging
-			addFileHandler -> : addfilehandler
-			removeFileHandler -> : removefilehandler
-			setNamespaceLevel -> : setnamespacelevel
-			stopLogging -> : stoplogging
+			DEVICE_MINIMUM_WAIT -> : device_minimum_wait
+	__androidAction.py - 
+		CLASSE(S):
+			iAndroidAction -> : iandroidaction
+
+src/fluxCore/types/interface/packets:
+	__frame.py - 
+		CLASSE(S):
+			iFrame -> : iframe
+	__packet.py - 
+		CLASSE(S):
+			iPacket -> : ipacket
+
+src/fluxCore/types/interface/emitters:
+	__SCRCPYEmitter.py - 
+		CLASSE(S):
+			iSCRCPYEmitter -> : iscrcpyemitter
+
+src/fluxCore/types/packets:
+	__frame.py - 
+		CLASSE(S):
+			Frame -> : frame
+	__packet.py - 
+		CLASSE(S):
+			Packet -> : packet
+
+src/fluxCore/emitters/scrcpy:
+	__SCRCPYEmitter.py - 
+		CLASSE(S):
+			SCRCPYEmitter -> : scrcpyemitter
 		CONSTANTS(S)/GLOBAL(S)
-			DEF_FILE_HANDLER -> : def_file_handler
-			DEF_FILE_FORMATTER -> : def_file_formatter
-			C_LOG_FORMAT -> : c_log_format
-			C_LOG_COLORS -> : c_log_colors
-			C_SECONDARY_COLORS -> : c_secondary_colors
-			G_LOG_QUEUE -> : g_log_queue
-			G_LOG_LISTENER -> : g_log_listener
-			G_ACTIVE_HANDLERS -> : g_active_handlers
-			G_NAMESPACE_LEVELS -> : g_namespace_levels
-			G_DEFAULT_LEVEL -> : g_default_level
-			EXITONERROR -> : exitonerror
-			fmtList -> : fmtlist
-
-src/jAGFx/logging/data:
-	__baseSourceInformation.py - 
-		CLASSE(S):
-			BaseSourceInformation -> : basesourceinformation
-	__callerInformation.py - 
-		CLASSE(S):
-			CallerInformation -> : callerinformation
-
-src/jAGFx/logging/filters:
-	__namespaceFilter.py - 
-		CLASSE(S):
-			NamespaceFilter -> : namespacefilter
-
-src/jAGFx/logging/formatters:
-	__defaultFormatter.py - 
-		CLASSE(S):
-			DefaultFormatter -> : defaultformatter
-		CONSTANTS(S)/GLOBAL(S)
-			C_LOG_FORMAT -> : c_log_format
-			C_LOG_COLORS -> : c_log_colors
-			C_SECONDARY_COLORS -> : c_secondary_colors
-			fmtList -> : fmtlist
-
-src/jAGFx/logging/handlers:
-	__dateRotatingFileHandler.py - 
-		CLASSE(S):
-			DateRotatingFileHandler -> : daterotatingfilehandler
-	__dynamicQueueHandler.py - 
-		CLASSE(S):
-			DynamicQueueHandler -> : dynamicqueuehandler
-
-src/jAGFx/names:
-	__helpers.py - 
-		FUNCTION(S):
-			getRandomName -> : getrandomname
-			resetNames -> : resetnames
-			name -> : name
-	__names.py - 
-		CLASSE(S):
-			_names -> : _names
-
-src/jAGFx/serializer:
-	__serializable.py - 
-		CLASSE(S):
-			Serializable -> : serializable
-	__utilities.py - 
-		FUNCTION(S):
-			_decodeEnum -> : _decodeenum
-			_decodeSerializeable -> : _decodeserializeable
-			_decodeFunction -> : _decodefunction
-			_decodeCustomType -> : _decodecustomtype
-			jsonDecode -> : jsondecode
-			importClass -> : importclass
-
-src/jAGFx/services:
-	__asyncProcess.py - 
-		CLASSE(S):
-			AsyncProcess -> : asyncprocess
-	__asyncService.py - 
-		CLASSE(S):
-			AsyncService -> : asyncservice
-	__subscription.py - 
-		CLASSE(S):
-			Subscription -> : subscription
-			AsyncSubscription -> : asyncsubscription
-
-src/jAGFx/singleton:
-	__singleton.py - 
-		CLASSE(S):
-			SingletonM -> : singletonm
-		FUNCTION(S):
-			SingletonF -> : singletonf
-			SingletonC -> : singletonc
-		CONSTANTS(S)/GLOBAL(S)
-			_SINGLETONINSTANCES -> : _singletoninstances
-			_INSTANCELOCK -> : _instancelock
-
-src/jAGFx/types:
-	__ANSIColors.py - 
-		CLASSE(S):
-			eAnsiColors -> : eansicolors
-	__typeChecks.py - 
-		FUNCTION(S):
-			isNoOpMethod -> : isnoopmethod
-			isUnion -> : isunion
-			isAny -> : isany
-			isNone -> : isnone
-			isListOfT -> : islistoft
-			_isStandardType -> : _isstandardtype
-			_isGenericType -> : _isgenerictype
-			Is -> : is
-
-src/jAGFx/types/interface/communication:
-	__IOQueue.py - 
-		CLASSE(S):
-			iIOQueue -> : iioqueue
-	__message.py - 
-		CLASSE(S):
-			iMessage -> : imessage
-
-src/jAGFx/types/interface/configuration:
-	__applicationConfiguration.py - 
-		CLASSE(S):
-			iApplicationConfiguration -> : iapplicationconfiguration
-	__configuration.py - 
-		CLASSE(S):
-			iConfiguration -> : iconfiguration
-
-src/jAGFx/types/interface/logger:
-	__sourceInformation.py - 
-		CLASSE(S):
-			iSourceInformation -> : isourceinformation
-
-src/jAGFx/types/interface/serializer:
-	__serializable.py - 
-		CLASSE(S):
-			iSerializable -> : iserializable
-
-src/jAGFx/types/interface/services:
-	__services.py - 
-		CLASSE(S):
-			iService -> : iservice
-	__subscription.py - 
-		CLASSE(S):
-			iSubscription -> : isubscription
-
-src/jAGFx/workflow:
-	__workflow.py - 
-		FUNCTION(S):
-			_normalize_workflow_name -> : _normalize_workflow_name
-			_discover_workflows -> : _discover_workflows
-			_run_workflow -> : _run_workflow
-			_wrap_init -> : _wrap_init
-			_prepare_subclass -> : _prepare_subclass
-			_install_subclass_hook -> : _install_subclass_hook
-			workflow -> : workflow
-			workflow -> : workflow
-			workflow -> : workflow
-		CONSTANTS(S)/GLOBAL(S)
-			_T -> : _t
-			_SYNC_WF_PREFIX -> : _sync_wf_prefix
-			_ASYNC_WF_PREFIX -> : _async_wf_prefix
-			_WORKFLOW_METADATA -> : _workflow_metadata
-			_WORKFLOW_ASYNC -> : _workflow_async
-			_WORKFLOW_GUARD -> : _workflow_guard
-			_WORKFLOW_INIT_WRAPPED -> : _workflow_init_wrapped
-			_WORKFLOW_SUBCLASS_WRAPPED -> : _workflow_subclass_wrapped
-
-src/jAGQt/types/interface/components:
-	__componentBase.py - 
-		CLASSE(S):
-			iComponentBase -> : icomponentbase
-
-src/jAGQt/types/interface/widgets:
-	__page.py - 
-		CLASSE(S):
-			Page -> : page
-		CONSTANTS(S)/GLOBAL(S)
-			Policy -> : policy
-
-src/jAGQt/types/interface/widgets/commandBar:
-	__commandBar.py - 
-		CLASSE(S):
-			iCommandBar -> : icommandbar
-	__commandBarButton.py - 
-		CLASSE(S):
-			iCommandBarButton -> : icommandbarbutton
-	__commandBarGroup.py - 
-		CLASSE(S):
-			iCommandBarGroup -> : icommandbargroup
-
-src/jAGQt/types/interface/window:
-	__mainWindowBase.py - 
-		CLASSE(S):
-			iMainWindowBase -> : imainwindowbase
-
-src/jAGQt/types/interface/window/windowBase:
-	__windowBase.py - 
-		CLASSE(S):
-			iWindowBase -> : iwindowbase
-
-src/jAGQt/utilities:
-	__animation.py - 
-		CLASSE(S):
-			AnimationError -> : animationerror
-		FUNCTION(S):
-			ValidateAnimationTarget -> : validateanimationtarget
-			ValidateAnimationRange -> : validateanimationrange
-			CreatePropertyAnimation -> : createpropertyanimation
-			AnimateProperty -> : animateproperty
-	__layout.py - 
-		FUNCTION(S):
-			newLayout -> : newlayout
-			newLayout -> : newlayout
-			newLayout -> : newlayout
-			contentMargins -> : contentmargins
-			_findLayoutParent -> : _findlayoutparent
-			_replaceNestedLayout -> : _replacenestedlayout
-			replaceLayout -> : replacelayout
-	__pushButton.py - 
-		CLASSE(S):
-			_pushButton -> : _pushbutton
-		FUNCTION(S):
-			createButton -> : createbutton
-
-src/jAGQt/widgets:
-	__header.py - 
-		CLASSE(S):
-			Header -> : header
-
-src/jAGQt/widgets/commandBar:
-	__base.py - 
-		CLASSE(S):
-			_commandBarBase -> : _commandbarbase
-		CONSTANTS(S)/GLOBAL(S)
-			QtPolicy -> : qtpolicy
-	__commandBar.py - 
-		CLASSE(S):
-			CommandBar -> : commandbar
-		CONSTANTS(S)/GLOBAL(S)
-			QtPolicy -> : qtpolicy
-	__commandBarGroup.py - 
-		CLASSE(S):
-			CommandBarGroup -> : commandbargroup
-
-src/jAGQt/widgets/commandBar/commandBarButton:
-	__base.py - 
-		CLASSE(S):
-			_commandBarButtonBase -> : _commandbarbuttonbase
-	__commandBarButton.py - 
-		CLASSE(S):
-			CommandBarButton -> : commandbarbutton
-
-src/jAGQt/widgets/components:
-	__componentBase.py - 
-		CLASSE(S):
-			ComponentBase -> : componentbase
-
-src/jAGQt/widgets/image:
-	__image.py - 
-		CLASSE(S):
-			Image -> : image
-			_GLView -> : _glview
-		CONSTANTS(S)/GLOBAL(S)
-			Backend -> : backend
-
-src/jAGQt/widgets/page:
-	__page.py - 
-		CLASSE(S):
-			Page -> : page
-
-src/jAGQt/widgets/sideBar:
-	__sideBar.py - 
-		CLASSE(S):
-			DockPosition -> : dockposition
-			SideBar -> : sidebar
-
-src/jAGQt/widgets/sideBar/components:
-	__sideBarContent.py - 
-		CLASSE(S):
-			SideBarContent -> : sidebarcontent
-	__sideBarGroup.py - 
-		CLASSE(S):
-			SideBarGroupHeader -> : sidebargroupheader
-			SideBarGroup -> : sidebargroup
-	__sideBarHeader.py - 
-		CLASSE(S):
-			SideBarHeader -> : sidebarheader
-	__sideBarIcon.py - 
-		CLASSE(S):
-			SideBarIcon -> : sidebaricon
-	__sideBarItem.py - 
-		CLASSE(S):
-			ItemDisplayMode -> : itemdisplaymode
-			IconPosition -> : iconposition
-			SideBarItem -> : sidebaritem
-	__sideBarSeparator.py - 
-		CLASSE(S):
-			SeparatorType -> : separatortype
-			SideBarSeparator -> : sidebarseparator
-	__sideBarText.py - 
-		CLASSE(S):
-			SideBarText -> : sidebartext
-
-src/jAGQt/widgets/workspace:
-	__workspace.py - 
-		CLASSE(S):
-			Workspace -> : workspace
-
-src/jAGQt/window:
-	__mainWindowBase.py - 
-		CLASSE(S):
-			MainWindowBase -> : mainwindowbase
-
-src/jAGQt/window/windowBase:
-	__windowBase.py - 
-		CLASSE(S):
-			WindowBase -> : windowbase
+			JAR_NAME -> : jar_name
+			SERVER_PATH -> : server_path
+			ANDROID_PATH -> : android_path
+			MAX_SIZE -> : max_size
+			MAX_FPS -> : max_fps
+			BITRATE -> : bitrate
 
 src/utilities:
 	__asyncio.py - 
@@ -1027,6 +557,458 @@ src/utilities/io:
 			STYLEDIR -> : styledir
 			ICONDIR -> : icondir
 
+src/eNuts/UI/windows:
+	__mainWindow.py - 
+		CLASSE(S):
+			MainWindow -> : mainwindow
+
+src/eNuts/UI/widgets/pages/recorder:
+	__recorderPage.py - 
+		CLASSE(S):
+			KAndGRecorderPage -> : kandgrecorderpage
+
+src/eNuts/UI/widgets/pages/settings:
+	__settingsPage.py - 
+		CLASSE(S):
+			SettingsPage -> : settingspage
+		FUNCTION(S):
+			_applyThemePalette -> : _applythemepalette
+		CONSTANTS(S)/GLOBAL(S)
+			C_THEME_NAMES -> : c_theme_names
+			C_DARK_THEMES -> : c_dark_themes
+
+src/eNuts/UI/widgets/spinners:
+	__evolvingNeuralBrain.py - 
+		CLASSE(S):
+			_BrainBakeWorker -> : _brainbakeworker
+			EvolvingNeuralBrain -> : evolvingneuralbrain
+		FUNCTION(S):
+			_hash01 -> : _hash01
+			_brainPoint -> : _brainpoint
+	__evolvingNeuralOrb.py - 
+		CLASSE(S):
+			_MeshBakeWorker -> : _meshbakeworker
+			EvolvingNeuralOrb -> : evolvingneuralorb
+		FUNCTION(S):
+			_spherePoint -> : _spherepoint
+	__revolvingNeuralOrb.py - 
+		CLASSE(S):
+			RevolvingNeuralOrb -> : revolvingneuralorb
+
+src/eNuts/application:
+	__eNutsService.py - 
+		CLASSE(S):
+			Service -> : service
+	__shell.py - 
+		CLASSE(S):
+			Shell -> : shell
+
+src/eNuts/apps:
+	main.py - 
+		FUNCTION(S):
+			main -> : main
+			program -> : program
+	training.py - 
+		FUNCTION(S):
+			training -> : training
+			program -> : program
+
+src/eNuts/types/interface/application:
+	__enutsService.py - 
+		CLASSE(S):
+			iENUTSService -> : ienutsservice
+	__shell.py - 
+		CLASSE(S):
+			iShell -> : ishell
+
+src/eNuts/types/interface/configuration:
+	__eNutsConfiguration.py - 
+		CLASSE(S):
+			iENUTSConfiguration -> : ienutsconfiguration
+
+src/eNuts/configuration:
+	__eNutsConfiguration.py - 
+		CLASSE(S):
+			eNutsConfiguration -> : enutsconfiguration
+		CONSTANTS(S)/GLOBAL(S)
+			CONFIG_PATH -> : config_path
+	__information.py - 
+		CLASSE(S):
+			ApplicationInformation -> : applicationinformation
+
+src/jAGFx/singleton:
+	__singleton.py - 
+		CLASSE(S):
+			SingletonM -> : singletonm
+		FUNCTION(S):
+			SingletonF -> : singletonf
+			SingletonC -> : singletonc
+		CONSTANTS(S)/GLOBAL(S)
+			_SINGLETONINSTANCES -> : _singletoninstances
+			_INSTANCELOCK -> : _instancelock
+
+src/jAGFx/IPC:
+	__IOQueue.py - 
+		CLASSE(S):
+			IOQueue -> : ioqueue
+	__message.py - 
+		CLASSE(S):
+			Message -> : message
+
+src/jAGFx/logging:
+	__log.py - 
+	__logging.py - 
+		FUNCTION(S):
+			_resolveErr -> : _resolveerr
+			verbose -> : verbose
+			debug -> : debug
+			info -> : info
+			warning -> : warning
+			error -> : error
+			critical -> : critical
+			fatal -> : fatal
+			_exitOnError -> : _exitonerror
+		CONSTANTS(S)/GLOBAL(S)
+			VERBOSE -> : verbose
+			EXITONERROR -> : exitonerror
+	__utilities.py - 
+		FUNCTION(S):
+			_getConsoleLogger -> : _getconsolelogger
+			_refreshQueueListener -> : _refreshqueuelistener
+			setupLogging -> : setuplogging
+			addFileHandler -> : addfilehandler
+			removeFileHandler -> : removefilehandler
+			setNamespaceLevel -> : setnamespacelevel
+			stopLogging -> : stoplogging
+		CONSTANTS(S)/GLOBAL(S)
+			DEF_FILE_HANDLER -> : def_file_handler
+			DEF_FILE_FORMATTER -> : def_file_formatter
+			C_LOG_FORMAT -> : c_log_format
+			C_LOG_COLORS -> : c_log_colors
+			C_SECONDARY_COLORS -> : c_secondary_colors
+			G_LOG_QUEUE -> : g_log_queue
+			G_LOG_LISTENER -> : g_log_listener
+			G_ACTIVE_HANDLERS -> : g_active_handlers
+			G_NAMESPACE_LEVELS -> : g_namespace_levels
+			G_DEFAULT_LEVEL -> : g_default_level
+			EXITONERROR -> : exitonerror
+			fmtList -> : fmtlist
+
+src/jAGFx/logging/filters:
+	__namespaceFilter.py - 
+		CLASSE(S):
+			NamespaceFilter -> : namespacefilter
+
+src/jAGFx/logging/handlers:
+	__dateRotatingFileHandler.py - 
+		CLASSE(S):
+			DateRotatingFileHandler -> : daterotatingfilehandler
+	__dynamicQueueHandler.py - 
+		CLASSE(S):
+			DynamicQueueHandler -> : dynamicqueuehandler
+
+src/jAGFx/logging/data:
+	__baseSourceInformation.py - 
+		CLASSE(S):
+			BaseSourceInformation -> : basesourceinformation
+	__callerInformation.py - 
+		CLASSE(S):
+			CallerInformation -> : callerinformation
+
+src/jAGFx/logging/formatters:
+	__defaultFormatter.py - 
+		CLASSE(S):
+			DefaultFormatter -> : defaultformatter
+		CONSTANTS(S)/GLOBAL(S)
+			C_LOG_FORMAT -> : c_log_format
+			C_LOG_COLORS -> : c_log_colors
+			C_SECONDARY_COLORS -> : c_secondary_colors
+			fmtList -> : fmtlist
+
+src/jAGFx/services:
+	__asyncProcess.py - 
+		CLASSE(S):
+			AsyncProcess -> : asyncprocess
+	__asyncService.py - 
+		CLASSE(S):
+			AsyncService -> : asyncservice
+	__subscription.py - 
+		CLASSE(S):
+			Subscription -> : subscription
+			AsyncSubscription -> : asyncsubscription
+
+src/jAGFx/collections:
+	__tsDictionary.py - 
+		CLASSE(S):
+			TSDictionary -> : tsdictionary
+	__tsList.py - 
+		CLASSE(S):
+			TSList -> : tslist
+
+src/jAGFx/names:
+	__helpers.py - 
+		FUNCTION(S):
+			getRandomName -> : getrandomname
+			resetNames -> : resetnames
+			name -> : name
+	__names.py - 
+		CLASSE(S):
+			_names -> : _names
+
+src/jAGFx/workflow:
+	__workflow.py - 
+		FUNCTION(S):
+			_normalize_workflow_name -> : _normalize_workflow_name
+			_discover_workflows -> : _discover_workflows
+			_run_workflow -> : _run_workflow
+			_wrap_init -> : _wrap_init
+			_prepare_subclass -> : _prepare_subclass
+			_install_subclass_hook -> : _install_subclass_hook
+			workflow -> : workflow
+			workflow -> : workflow
+			workflow -> : workflow
+		CONSTANTS(S)/GLOBAL(S)
+			_T -> : _t
+			_SYNC_WF_PREFIX -> : _sync_wf_prefix
+			_ASYNC_WF_PREFIX -> : _async_wf_prefix
+			_WORKFLOW_METADATA -> : _workflow_metadata
+			_WORKFLOW_ASYNC -> : _workflow_async
+			_WORKFLOW_GUARD -> : _workflow_guard
+			_WORKFLOW_INIT_WRAPPED -> : _workflow_init_wrapped
+			_WORKFLOW_SUBCLASS_WRAPPED -> : _workflow_subclass_wrapped
+
+src/jAGFx/serializer:
+	__serializable.py - 
+		CLASSE(S):
+			Serializable -> : serializable
+	__utilities.py - 
+		FUNCTION(S):
+			_decodeEnum -> : _decodeenum
+			_decodeSerializeable -> : _decodeserializeable
+			_decodeFunction -> : _decodefunction
+			_decodeCustomType -> : _decodecustomtype
+			jsonDecode -> : jsondecode
+			importClass -> : importclass
+
+src/jAGFx/types:
+	__ANSIColors.py - 
+		CLASSE(S):
+			eAnsiColors -> : eansicolors
+	__typeChecks.py - 
+		FUNCTION(S):
+			isNoOpMethod -> : isnoopmethod
+			isUnion -> : isunion
+			isAny -> : isany
+			isNone -> : isnone
+			isListOfT -> : islistoft
+			_isStandardType -> : _isstandardtype
+			_isGenericType -> : _isgenerictype
+			Is -> : is
+
+src/jAGFx/types/interface/logger:
+	__sourceInformation.py - 
+		CLASSE(S):
+			iSourceInformation -> : isourceinformation
+
+src/jAGFx/types/interface/communication:
+	__IOQueue.py - 
+		CLASSE(S):
+			iIOQueue -> : iioqueue
+	__message.py - 
+		CLASSE(S):
+			iMessage -> : imessage
+
+src/jAGFx/types/interface/services:
+	__services.py - 
+		CLASSE(S):
+			iService -> : iservice
+	__subscription.py - 
+		CLASSE(S):
+			iSubscription -> : isubscription
+
+src/jAGFx/types/interface/serializer:
+	__serializable.py - 
+		CLASSE(S):
+			iSerializable -> : iserializable
+
+src/jAGFx/types/interface/configuration:
+	__applicationConfiguration.py - 
+		CLASSE(S):
+			iApplicationConfiguration -> : iapplicationconfiguration
+	__configuration.py - 
+		CLASSE(S):
+			iConfiguration -> : iconfiguration
+
+src/jAGFx/configuration:
+	__applicationConfig.py - 
+		CLASSE(S):
+			ApplicationConfiguration -> : applicationconfiguration
+		CONSTANTS(S)/GLOBAL(S)
+			CFGINSTANCE -> : cfginstance
+			LOGGER_SECTION -> : logger_section
+			CONFIG_PATH -> : config_path
+			CONFIG_FILENAME -> : config_filename
+			ConfigType -> : configtype
+	__configuration.py - 
+		CLASSE(S):
+			Configuration -> : configuration
+
+src/jAGFx/globals:
+	serializer.py - 
+		CONSTANTS(S)/GLOBAL(S)
+			KNOWN_TYPES -> : known_types
+
+src/jAGQt/utilities:
+	__animation.py - 
+		CLASSE(S):
+			AnimationError -> : animationerror
+		FUNCTION(S):
+			ValidateAnimationTarget -> : validateanimationtarget
+			ValidateAnimationRange -> : validateanimationrange
+			CreatePropertyAnimation -> : createpropertyanimation
+			AnimateProperty -> : animateproperty
+	__layout.py - 
+		FUNCTION(S):
+			newLayout -> : newlayout
+			newLayout -> : newlayout
+			newLayout -> : newlayout
+			contentMargins -> : contentmargins
+			_findLayoutParent -> : _findlayoutparent
+			_replaceNestedLayout -> : _replacenestedlayout
+			replaceLayout -> : replacelayout
+	__pushButton.py - 
+		CLASSE(S):
+			_pushButton -> : _pushbutton
+		FUNCTION(S):
+			createButton -> : createbutton
+
+src/jAGQt/window:
+	__mainWindowBase.py - 
+		CLASSE(S):
+			MainWindowBase -> : mainwindowbase
+
+src/jAGQt/window/windowBase:
+	__windowBase.py - 
+		CLASSE(S):
+			WindowBase -> : windowbase
+
+src/jAGQt/types/interface/components:
+	__componentBase.py - 
+		CLASSE(S):
+			iComponentBase -> : icomponentbase
+
+src/jAGQt/types/interface/window:
+	__mainWindowBase.py - 
+		CLASSE(S):
+			iMainWindowBase -> : imainwindowbase
+
+src/jAGQt/types/interface/window/windowBase:
+	__windowBase.py - 
+		CLASSE(S):
+			iWindowBase -> : iwindowbase
+
+src/jAGQt/types/interface/widgets:
+	__page.py - 
+		CLASSE(S):
+			Page -> : page
+		CONSTANTS(S)/GLOBAL(S)
+			Policy -> : policy
+
+src/jAGQt/types/interface/widgets/commandBar:
+	__commandBar.py - 
+		CLASSE(S):
+			iCommandBar -> : icommandbar
+	__commandBarButton.py - 
+		CLASSE(S):
+			iCommandBarButton -> : icommandbarbutton
+	__commandBarGroup.py - 
+		CLASSE(S):
+			iCommandBarGroup -> : icommandbargroup
+
+src/jAGQt/widgets:
+	__header.py - 
+		CLASSE(S):
+			Header -> : header
+
+src/jAGQt/widgets/components:
+	__componentBase.py - 
+		CLASSE(S):
+			ComponentBase -> : componentbase
+
+src/jAGQt/widgets/Image:
+	__image.py - 
+		CLASSE(S):
+			Image -> : image
+			_GLView -> : _glview
+		CONSTANTS(S)/GLOBAL(S)
+			Backend -> : backend
+
+src/jAGQt/widgets/SideBar:
+	__sideBar.py - 
+		CLASSE(S):
+			DockPosition -> : dockposition
+			SideBar -> : sidebar
+
+src/jAGQt/widgets/SideBar/components:
+	__sideBarContent.py - 
+		CLASSE(S):
+			SideBarContent -> : sidebarcontent
+	__sideBarGroup.py - 
+		CLASSE(S):
+			SideBarGroupHeader -> : sidebargroupheader
+			SideBarGroup -> : sidebargroup
+	__sideBarHeader.py - 
+		CLASSE(S):
+			SideBarHeader -> : sidebarheader
+	__sideBarIcon.py - 
+		CLASSE(S):
+			SideBarIcon -> : sidebaricon
+	__sideBarItem.py - 
+		CLASSE(S):
+			ItemDisplayMode -> : itemdisplaymode
+			IconPosition -> : iconposition
+			SideBarItem -> : sidebaritem
+	__sideBarSeparator.py - 
+		CLASSE(S):
+			SeparatorType -> : separatortype
+			SideBarSeparator -> : sidebarseparator
+	__sideBarText.py - 
+		CLASSE(S):
+			SideBarText -> : sidebartext
+
+src/jAGQt/widgets/page:
+	__page.py - 
+		CLASSE(S):
+			Page -> : page
+
+src/jAGQt/widgets/workspace:
+	__workspace.py - 
+		CLASSE(S):
+			Workspace -> : workspace
+
+src/jAGQt/widgets/commandBar:
+	__base.py - 
+		CLASSE(S):
+			_commandBarBase -> : _commandbarbase
+		CONSTANTS(S)/GLOBAL(S)
+			QtPolicy -> : qtpolicy
+	__commandBar.py - 
+		CLASSE(S):
+			CommandBar -> : commandbar
+		CONSTANTS(S)/GLOBAL(S)
+			QtPolicy -> : qtpolicy
+	__commandBarGroup.py - 
+		CLASSE(S):
+			CommandBarGroup -> : commandbargroup
+
+src/jAGQt/widgets/commandBar/commandBarButton:
+	__base.py - 
+		CLASSE(S):
+			_commandBarButtonBase -> : _commandbarbuttonbase
+	__commandBarButton.py - 
+		CLASSE(S):
+			CommandBarButton -> : commandbarbutton
+
 ```
 
 ---
@@ -1034,6 +1016,15 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+e4ca3c4:
+	feat: Enhance inventory update script and add coding style documentation
+		.docs/inventory.md
+		.kilocode/rules/CodingStyle.md
+		.kilocode/rules/Documentation.md
+		.kilocode/rules/NamingConventions.md
+		.kilocode/templates/documentTemplates.md
+		.scripts/updateInventory.py
+
 5580ac4:
 	docs: update inventory.md using utility script
 		.docs/inventory.md
@@ -1069,10 +1060,6 @@ ed6c79d:
 
 b091a46:
 	fix: update inventory generation script path to correct location
-		.github/workflows/update_inventory.yml
-
-b4e4687:
-	fix: clean up update_inventory workflow and improve script execution
 		.github/workflows/update_inventory.yml
 
 ```
