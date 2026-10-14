@@ -1,0 +1,42 @@
+name: Update eNuts Inventory
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths-ignore:
+      - 'eNuts/.docs/inventory.md' # Prevents infinite loop triggers
+
+jobs:
+  update-inventory:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Essential for git history and rename tracking
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Generate Inventory File
+        run: python eNuts/src/jAGFx/utilities/__generateInventory.py
+
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add eNuts/.docs/inventory.md
+          
+          if git diff --staged --quiet; then
+            echo "No inventory modifications needed."
+          else
+            git commit -m "docs: update eNuts/inventory.md using utility script"
+            git push
+          fi
