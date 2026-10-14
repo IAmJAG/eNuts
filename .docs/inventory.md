@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-14 05:31:09 UTC*
+*Auto-generated on: 2026-10-14 07:54:16 UTC*
 
 ## Current Directory Structure
 
@@ -32,12 +32,7 @@ eNuts/
 ├── config/
 │   ├── .fff
 │   └── eNuts/
-│       ├── appconfig.json
-│       ├── dark.qss
-│       ├── dracula.qss
-│       ├── ironman.qss
-│       ├── light.qss
-│       └── material.qss
+│       └── appconfig.json
 ├── src/
 │   ├── __monkeyPatch.py
 │   ├── eNuts/
@@ -58,7 +53,9 @@ eNuts/
 │   │   │       └── __mainWindow.py
 │   │   ├── application/
 │   │   │   ├── __eNutsService.py
-│   │   │   └── __shell.py
+│   │   │   ├── __shell.py
+│   │   │   └── theme/
+│   │   │       └── __theme.py
 │   │   ├── apps/
 │   │   │   ├── main.py
 │   │   │   └── training.py
@@ -603,6 +600,13 @@ src/eNuts/application:
 		CLASSE(S):
 			Shell -> : shell
 
+src/eNuts/application/theme:
+	__theme.py - 
+		FUNCTION(S):
+			loadStyles -> : loadstyles
+			loadStyle -> : loadstyle
+			_loadPalette -> : _loadpalette
+
 src/eNuts/apps:
 	main.py - 
 		FUNCTION(S):
@@ -1016,6 +1020,23 @@ src/jAGQt/widgets/commandBar/commandBarButton:
 ## Change Summary
 
 ```text
+266012a:
+	Remove legacy theme files and implement new theme system architecture
+		.docs/themeSpecification.md
+		config/eNuts/dark.qss
+		config/eNuts/dracula.qss
+		config/eNuts/ironman.qss
+		config/eNuts/light.qss
+		config/eNuts/material.qss
+		src/eNuts/application/theme/__theme.py
+		src/eNuts/apps/main.py
+		src/eNuts/configuration/__eNutsConfiguration.py
+		src/eNuts/types/interface/configuration/__eNutsConfiguration.py
+
+cff5658:
+	docs: update inventory.md using utility script
+		.docs/inventory.md
+
 e4ca3c4:
 	feat: Enhance inventory update script and add coding style documentation
 		.docs/inventory.md
@@ -1053,13 +1074,5 @@ fe09968:
 	fix: replace obsolete inventory generation script with updated version
 		.github/workflows/update_inventory.yml
 		.scripts/__updateInventory.py -> .scripts/updateInventory.py
-
-ed6c79d:
-	fix: update path for inventory generation script to correct location
-		.github/workflows/update_inventory.yml
-
-b091a46:
-	fix: update inventory generation script path to correct location
-		.github/workflows/update_inventory.yml
 
 ```
