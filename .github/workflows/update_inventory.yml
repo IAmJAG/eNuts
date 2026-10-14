@@ -5,7 +5,7 @@ on:
     branches:
       - development
     paths-ignore:
-      - '.docs/inventory.md' # Relative to eNuts folder
+      - '.docs/inventory.md'
 
 jobs:
   update-inventory:
@@ -13,26 +13,19 @@ jobs:
     permissions:
       contents: write
 
-    # Sets the working directory for ALL steps in this job to 'eNuts'
-    defaults:
-      run:
-        working-directory: eNuts
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Essential for git history and rename tracking
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.x'
 
-      - name: Generate Inventory
-        run: |
-          dir
-          
+      - name: Generate Inventory File
+        run: python src/jAGFx/utilities/__generateInventory.py
 
       - name: Commit and Push Changes
         run: |
@@ -46,3 +39,4 @@ jobs:
             git commit -m "docs: update inventory.md using utility script"
             git push
           fi
+          
