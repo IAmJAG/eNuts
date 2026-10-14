@@ -54,10 +54,11 @@ def _discover_workflows(cls: type) -> tuple[str, ...]:
 # ==================================================================================
 def _run_workflow(instance: object) -> None:
     names = getattr(type(instance), _WORKFLOW_METADATA, None)
-    
+    print(f"[workflow] running on {type(instance).__name__}: {names}", flush=True)
+
     preferAsync: bool = getattr(type(instance), _WORKFLOW_ASYNC, True)
     loop = getRunningLoop() if preferAsync else None
-    
+
     for name in names:
         method = getattr(instance, name, None)
         if not callable(method):
