@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-14 08:09:57 UTC*
+*Auto-generated on: 2026-10-14 08:39:48 UTC*
 
 ## Current Directory Structure
 
@@ -58,8 +58,7 @@ eNuts/
 │   │   │   └── theme/
 │   │   │       └── __theme.py
 │   │   ├── apps/
-│   │   │   ├── main.py
-│   │   │   └── training.py
+│   │   │   └── main.py
 │   │   ├── configuration/
 │   │   │   ├── __eNutsConfiguration.py
 │   │   │   └── __information.py
@@ -619,10 +618,6 @@ src/eNuts/apps:
 		FUNCTION(S):
 			main -> : main
 			program -> : program
-	training.py - 
-		FUNCTION(S):
-			training -> : training
-			program -> : program
 
 src/eNuts/types/interface/application:
 	__enutsService.py - 
@@ -1030,6 +1025,22 @@ src/jAGQt/widgets/commandBar/commandBarButton:
 ## Change Summary
 
 ```text
+a0546cf:
+	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
+
+56e657d:
+	feat: Refactor theme handling and improve application shutdown process
+		config/eNuts/appconfig.json
+		src/eNuts/UI/windows/__mainWindow.py
+		src/eNuts/application/__eNutsApplication.py
+		src/eNuts/apps/main.py
+		src/eNuts/apps/training.py
+		src/eNuts/configuration/__eNutsConfiguration.py
+
+ba9299e:
+	docs: update inventory.md using utility script
+		.docs/inventory.md
+
 9025411:
 	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
 
@@ -1071,17 +1082,6 @@ e4ca3c4:
 		.scripts/updateInventory.py
 
 5580ac4:
-	docs: update inventory.md using utility script
-		.docs/inventory.md
-
-9744238:
-	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
-
-47b8e0b:
-	fix: add additional excluded directories and update inventory generation logic
-		.scripts/updateInventory.py
-
-9f319a8:
 	docs: update inventory.md using utility script
 		.docs/inventory.md
 
