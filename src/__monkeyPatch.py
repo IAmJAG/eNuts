@@ -21,7 +21,7 @@ from jAGFx.logging import (
 )
 
 # ==================================================================================================
-from jAGFx.types import Is, isAny, isListOfT, isNone, isNoOpMethod, isUnion
+from jAGFx.types import Color, Is, isAny, isListOfT, isNone, isNoOpMethod, isUnion
 from utilities import (
     ProcessArguments,
     PyCacheClean,
@@ -31,6 +31,12 @@ from utilities import (
     getEventLoop,
     getRunningLoop,
 )
+
+# ==================================================================================================
+# types
+# ==================================================================================================
+setattr(builtins, "Color", Color)
+
 
 # ==================================================================================================
 # GLOBAL default value

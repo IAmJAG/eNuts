@@ -2,7 +2,32 @@
 from asyncio import AbstractEventLoop
 from logging import INFO, Filter, Formatter
 from sys import argv
-from typing import Any
+from typing import Any, overload
+
+# ==================================================================================================
+# types
+# ==================================================================================================
+class Color:
+    @overload
+    def __init__(self, a: float = 1.0, r: float = 0.0, g: float = 0.0, b: float = 0.0): ...
+    @overload
+    def __init__(self, r: float = 0.0, g: float = 0.0, b: float = 0.0): ...
+    @overload
+    def __init__(self, a: int = 1.0, r: int = 0.0, g: int = 0.0, b: int = 0.0): ...    
+    @overload
+    def __init__(self, r: int = 0.0, g: int = 0.0, b: int = 0.0): ...
+    @overload
+    def __init__(self, color: str): ...
+    @overload
+    def __init__(self, color: tuple[float, float, float, float]): ...
+    @overload
+    def __init__(self, color: tuple[float, float, float]): ...
+    @overload
+    def __init__(self, color: tuple[int, int, int , int]): ...    
+    @overload
+    def __init__(self, color: tuple[int, int , int]): ...
+    def __init__(self, *args, **kwargs): ...
+    
 
 # ==================================================================================
 # GLOBAL default value
