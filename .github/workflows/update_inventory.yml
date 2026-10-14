@@ -3,8 +3,7 @@ name: Update eNuts Inventory
 on:
   push:
     branches:
-      - main
-      - develop
+      - development
     paths-ignore:
       - 'eNuts/.docs/inventory.md' # Prevents infinite loop triggers
 
