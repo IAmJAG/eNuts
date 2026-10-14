@@ -44,6 +44,6 @@ def _loadPalette(path: str | Path) -> dict[str, Color]:
     with open(palettePath, "r") as f:
         for line in f:
             name, color = line.split(":")
-            palette[name.strip().lower()] = parseColor(color.strip())
+            palette[name.strip().lower()] = Color(color.strip())
 
     return palette
