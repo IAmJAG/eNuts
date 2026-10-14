@@ -29,8 +29,10 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Generate Inventory File
-        run: python scripts/__generateInventory.py
+      - name: Generate Inventory
+        run: |
+          dir
+          
 
       - name: Commit and Push Changes
         run: |
