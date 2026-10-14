@@ -5,13 +5,18 @@ on:
     branches:
       - development
     paths-ignore:
-      - 'eNuts/.docs/inventory.md' # Prevents infinite loop triggers
+      - '.docs/inventory.md' # Relative to eNuts folder
 
 jobs:
   update-inventory:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+
+    # Sets the working directory for ALL steps in this job to 'eNuts'
+    defaults:
+      run:
+        working-directory: eNuts
 
     steps:
       - name: Checkout repository
@@ -25,18 +30,17 @@ jobs:
           python-version: '3.x'
 
       - name: Generate Inventory File
-        working-directory: eNuts
         run: python src/jAGFx/utilities/__generateInventory.py
 
       - name: Commit and Push Changes
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add eNuts/.docs/inventory.md
+          git add .docs/inventory.md
           
           if git diff --staged --quiet; then
             echo "No inventory modifications needed."
           else
-            git commit -m "docs: update eNuts/inventory.md using utility script"
+            git commit -m "docs: update inventory.md using utility script"
             git push
           fi
