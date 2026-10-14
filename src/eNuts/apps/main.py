@@ -42,7 +42,7 @@ async def main(app: QApplication, *args, **kwargs):
         await lShutdownEvent.wait()
 
     except CancelledError:
-        raise
+        pass
  
     except Exception as ex:
         error(f"[main] Error occur {str(ex)}", ex)
