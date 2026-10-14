@@ -30,6 +30,7 @@ jobs:
           python-version: '3.x'
 
       - name: Generate Inventory File
+        working-directory: eNuts
         run: python src/utilities/__generateInventory.py
 
       - name: Commit and Push Changes
