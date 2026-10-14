@@ -15,6 +15,7 @@ class MainWindow(MainWindowBase, ApplicationInformation, Shell):
     def __init__(self, shutdownEvent: asyncEvent, *args, **kwargs) -> None:        
         super().__init__("ENUTS_WINDOW", *args, **kwargs)
         self._shutdownEvent: asyncEvent = shutdownEvent
+        print(f"[MainWindow] init finished, workflow={getattr(type(self), '__jagfx_workflow__', None)}", flush=True)
 
     def closeEvent(self, event) -> None:
         self._shutdownEvent.set()
