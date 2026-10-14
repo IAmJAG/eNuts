@@ -21,11 +21,11 @@ from .windowBase import WindowBase
 # ==================================================================================
 @workflow("InitializeUI", "InitializeSettings", "RestoreWindowsState")
 class MainWindowBase(WindowBase):
-    """Richer foundation for application main-window and dashboard classes."""
-
+    OBJECT_NAME = "W_MAIN_WINDOW"    
     def __init__(
         self, name: str = None,*args, **kwargs,
     ) -> None:
+        OBJNAME = kwargs.pop("objectName", self.OBJECT_NAME)
         super().__init__(name, False, *args, **kwargs)
 
     def _wInitializeSettings(self) -> None:

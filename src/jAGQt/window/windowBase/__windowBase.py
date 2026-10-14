@@ -16,7 +16,7 @@ from ...widgets.components import ComponentBase
 @workflow("InitializeUI")
 class WindowBase(QMainWindow, ComponentBase):
     def __init__(self, name: str = None, frameless: bool = False, *args, **kwargs):
-        self._layout: QBoxLayout = kwargs.pop("layout", None)
+        self._layout: QBoxLayout = kwargs.pop("layout", None)                
         
         super().__init__(*args, **kwargs)        
         if frameless:
@@ -25,8 +25,6 @@ class WindowBase(QMainWindow, ComponentBase):
         self.Name = name if name else getRandomName()
 
     def _wInitializeUI(self) -> None:
-        # A QMainWindow must never receive a layout directly: its internal QMainWindowLayout
-        # would be destroyed by the replacement. The layout goes on the central widget.
         lCentral: QWidget = self.centralWidget()
         if lCentral is None:
             lCentral = QWidget(self)
