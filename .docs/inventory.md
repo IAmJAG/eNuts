@@ -1,67 +1,13 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-14 02:26:10 UTC*
+*Auto-generated on: 2026-10-14 02:31:44 UTC*
 
 ## Current Directory Structure
 
 - **./**
   - .gitignore
   - README.md
-  - **.git/**
-    - FETCH_HEAD
-    - HEAD
-    - config
-    - config.worktree
-    - description
-    - index
-    - **objects/**
-      - **pack/**
-        - pack-20d3b14a0bc0e342bb046f2ecbed3da46258ea01.idx
-        - pack-20d3b14a0bc0e342bb046f2ecbed3da46258ea01.pack
-        - pack-20d3b14a0bc0e342bb046f2ecbed3da46258ea01.rev
-      - **info/**
-    - **refs/**
-      - **remotes/**
-        - **origin/**
-          - base
-          - development
-          - main
-          - staging
-      - **heads/**
-        - development
-      - **tags/**
-    - **hooks/**
-      - applypatch-msg.sample
-      - commit-msg.sample
-      - fsmonitor-watchman.sample
-      - post-update.sample
-      - pre-applypatch.sample
-      - pre-commit.sample
-      - pre-merge-commit.sample
-      - pre-push.sample
-      - pre-rebase.sample
-      - pre-receive.sample
-      - prepare-commit-msg.sample
-      - push-to-checkout.sample
-      - sendemail-validate.sample
-      - update.sample
-    - **logs/**
-      - HEAD
-      - **refs/**
-        - **remotes/**
-          - **origin/**
-            - base
-            - development
-            - main
-            - staging
-        - **heads/**
-          - development
-    - **info/**
-      - exclude
   - **.scripts/**
     - updateInventory.py
-  - **.github/**
-    - **workflows/**
-      - update_inventory.yml
   - **assets/**
     - gameInfo.json
     - logo copy.png
@@ -82,8 +28,6 @@
       - ironman.qss
       - light.qss
       - material.qss
-  - **.docs/**
-    - inventory.md
   - **typings/**
     - __builtins__.pyi
   - **.bin/**
@@ -377,13 +321,25 @@
             - __base.py
             - __commandBarButton.py
             - __init__.py
-  - **.vscode/**
-    - launch.json
-    - settings.json
 
 ---
 
 ## Push & Change History
+
+### Commit `9744238` — Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
+**Author:** IAmJAG | **Date:** 2026-10-14
+
+* No structural file changes recorded (or filtered out).
+
+### Commit `47b8e0b` — fix: add additional excluded directories and update inventory generation logic
+**Author:** IAmJAG | **Date:** 2026-10-14
+
+* Modified: `.scripts/updateInventory.py`
+
+### Commit `9f319a8` — docs: update inventory.md using utility script
+**Author:** github-actions[bot] | **Date:** 2026-10-14
+
+* Modified: `.docs/inventory.md`
 
 ### Commit `ef3ae08` — Refactor code structure for improved readability and maintainability
 **Author:** IAmJAG | **Date:** 2026-10-14
@@ -392,22 +348,6 @@
 * Modified: `.scripts/updateInventory.py`
 
 ### Commit `c6defaa` — fix: ensure .docs directory exists before tracking inventory.md
-**Author:** IAmJAG | **Date:** 2026-10-14
-
-* Modified: `.github/workflows/update_inventory.yml`
-
-### Commit `fe09968` — fix: replace obsolete inventory generation script with updated version
-**Author:** IAmJAG | **Date:** 2026-10-14
-
-* Modified: `.github/workflows/update_inventory.yml`
-* Renamed/Moved: `.scripts/__updateInventory.py` -> `.scripts/updateInventory.py`
-
-### Commit `ed6c79d` — fix: update path for inventory generation script to correct location
-**Author:** IAmJAG | **Date:** 2026-10-14
-
-* Modified: `.github/workflows/update_inventory.yml`
-
-### Commit `b091a46` — fix: update inventory generation script path to correct location
 **Author:** IAmJAG | **Date:** 2026-10-14
 
 * Modified: `.github/workflows/update_inventory.yml`
