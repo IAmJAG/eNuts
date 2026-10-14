@@ -75,7 +75,6 @@ def _parseChangeHistory(commitLimit):
                 lStatus = lParts[0][0]
                 lFilePath = lParts[1]
 
-                # Filter out excluded file extensions
                 if not _shouldIncludeFile(lFilePath):
                     continue
 
@@ -111,7 +110,6 @@ def generateInventory():
         "",
     ]
 
-    # 1. Build Directory Tree (filtering out excluded files)
     for lRoot, lDirs, lFiles in os.walk(C_TARGET_DIR):
         lFilteredFiles = [lF for lF in lFiles if _shouldIncludeFile(lF)]
         lLevel = lRoot.replace(C_TARGET_DIR, "").count(os.sep)
@@ -121,7 +119,6 @@ def generateInventory():
         for lFile in sorted(lFilteredFiles):
             lLines.append(f"{lSubIndent}- {lFile}")
 
-    # 2. Append Change History Section
     lLines.extend(["", "---", "", "## Push & Change History", ""])
 
     lHistory = _parseChangeHistory(C_MAX_COMMITS)

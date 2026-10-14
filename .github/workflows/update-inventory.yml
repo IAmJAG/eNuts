@@ -6,7 +6,7 @@ on:
       - main
       - develop
     paths-ignore:
-      - 'eNuts/.docs/inventory.md' # Prevents infinite workflow trigger loops
+      - 'eNuts/.docs/inventory.md' # Prevents infinite loop triggers
 
 jobs:
   update-inventory:
@@ -18,7 +18,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Required to read commit history and rename events
+          fetch-depth: 0  # Essential for git history and rename tracking
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -26,7 +26,7 @@ jobs:
           python-version: '3.x'
 
       - name: Generate Inventory File
-        run: python eNuts/src/utilities/__generateInventory.py
+        run: python eNuts/src/jAGFx/utilities/__generateInventory.py
 
       - name: Commit and Push Changes
         run: |
@@ -37,6 +37,6 @@ jobs:
           if git diff --staged --quiet; then
             echo "No inventory modifications needed."
           else
-            git commit -m "docs: update eNuts/inventory.md with structure and change history"
+            git commit -m "docs: update eNuts/inventory.md using utility script"
             git push
           fi
