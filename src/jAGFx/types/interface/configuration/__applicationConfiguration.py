@@ -1,5 +1,6 @@
 # ==================================================================================
-# src/jAGFx/types/interface/configuration/__applicationConfiguration.py
+from __future__ import annotations
+
 # ==================================================================================
 from typing import Protocol, runtime_checkable
 
@@ -9,16 +10,17 @@ from .__configuration import iConfiguration
 
 # ==================================================================================
 @runtime_checkable
-class iApplicationConfiguration(Protocol):
-    def __init__(self, Title: str = "", Company: str = "", ApplicationId: str = "", Icon: str = "") -> None: ...
-    @property
-    def sections(self) -> dict[str, iConfiguration]: ...
+class iApplicationConfiguration(iConfiguration, Protocol):
+    def __init__(
+        self, title: str = "", company: str = "",
+        applicationId: str = "", logo: str = ""
+    ) -> None: ...
+    
     @property
     def updatedAttributes(self) -> set: ...
     @property
     def isDirty(self) -> bool: ...
-    @property
-    def style(self) -> str: ...
+    
     @property
     def title(self) -> str: ...
     @property
@@ -26,6 +28,4 @@ class iApplicationConfiguration(Protocol):
     @property
     def applicationId(self) -> str: ...
     @property
-    def icon(self) -> str: ...
-    def load(self, path: str = None) -> iConfiguration: ...
-    def save(self, path: str = None) -> None: ...
+    def logo(self) -> str: ...

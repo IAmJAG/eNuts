@@ -11,27 +11,18 @@ from PySide6.QtWidgets import QBoxLayout, QMainWindow
 from jAGQt.types.interface.window import iMainWindowBase
 
 # ==================================================================================
-from ..types.interface.application import iENUTSService, iShell
+from ..types.interface.application import iShell
+from .__applicationInformation import ApplicationInformation
 from .workspace import WorkSpace
 
 
 # ==================================================================================
-class Shell(iShell):
-    def _wInitializeUI(self: iMainWindowBase | QMainWindow) -> None:
-        print(f"[Shell] objectName={self.objectName()}", flush=True)
+class Shell(ApplicationInformation):
+    def _wInitializeUI(self: iMainWindowBase) -> None:
         try:
-            ws: WorkSpace = WorkSpace()
-            layout: QBoxLayout = self.Layout
-            layout.setDirection(QBoxLayout.Direction.LeftToRight)
-            self.ContentSpacing = 0
-            self.ContentMargins = 0
+            print("[shell] intializeUI", flush=True)
+            super()._wInitializeUI()
 
         except Exception as ex:
             error("[shell] intializeUI FAIL", ex)
     # ==================================================================================
-    
-    def initializeInstance(self: iMainWindowBase) -> None:
-        pass
-
-    def bindServices(self, services: List[iENUTSService]) -> None:
-        pass

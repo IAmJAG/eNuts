@@ -1,38 +1,40 @@
 # ==================================================================================
-# src/jAGQt/window/windowBase/__windowBase.py
-# ==================================================================================
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QBoxLayout, QMainWindow, QWidget
 
 # ==================================================================================
-from jAGFx.names import getRandomName
 from jAGFx.workflow import workflow
 
 # ==================================================================================
-from ...widgets.components import ComponentBase
+from ...types.interface.window import iWindowBase
+from ...widgets.components import ComponentBase, ObjectName
 
 
 # ==================================================================================
 @workflow("InitializeUI")
-class WindowBase(QMainWindow, ComponentBase):
-    def __init__(self, name: str = None, frameless: bool = False, *args, **kwargs):
-        self._layout: QBoxLayout = kwargs.pop("layout", None)                
-        
+class WindowBase(QMainWindow, ObjectName, ComponentBase, iWindowBase):
+    OBJECT_NAME = "W_WINDOW_BASE"
+    def __init__(self, frameless: bool = False, *args, **kwargs):
+        layout: QBoxLayout = kwargs.pop("layout", None)
         super().__init__(*args, **kwargs)        
-        if frameless:
-            self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
-
-        self.Name = name if name else getRandomName()
+        if frameless: self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
+        self._layout: QBoxLayout = layout
 
     def _wInitializeUI(self) -> None:
-        lCentral: QWidget = self.centralWidget()
-        if lCentral is None:
-            lCentral = QWidget(self)
-            self.setCentralWidget(lCentral)
+        layout: QBoxLayout = self._layout if hasattr(self, "_layout") else None
+        if layout is None:
+            layout: QBoxLayout = QBoxLayout(QBoxLayout.Direction.TopToBottom)
+            layout.setSpacing(0)
+            layout.setContentsMargins(0, 0, 0, 0)
 
-        if self._layout is None:
-            self._layout = QBoxLayout(QBoxLayout.Direction.TopToBottom)
-            self.ContentSpacing = 0
-            self.ContentMargins = 0
+        central: QWidget = self.centralWidget()
+        if central is None: central: QWidget = QWidget(self)        
+        central.setLayout(layout)
+        self._layout: QBoxLayout = layout        
+        
 
-        lCentral.setLayout(self._layout)
+
+
+        
+
+        

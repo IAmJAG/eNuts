@@ -1,22 +1,31 @@
 # ==================================================================================
 from asyncio import Event as asyncEvent
 
-from jAGFx.workflow import workflow
-from jAGQt.window import MainWindowBase
+# ==================================================================================
+from jAGFx.types.interface.configuration import iApplicationConfiguration
+from jAGQt.window import WindowBase
 
 # ==================================================================================
-from ...application.__shell import Shell
-from ...configuration import ApplicationInformation
+from ...configuration import eNutsConfiguration
+from ...types.interface.configuration import iENUTSConfiguration
+from ...types.interface.UI.windows import iENUTSWindow
 
 
 # ==================================================================================
-@workflow("InitializeSettings", "InitializeUI", "RestoreWindowsState", "InitializeInfo")
-class MainWindow(MainWindowBase, ApplicationInformation, Shell):
-    def __init__(self, shutdownEvent: asyncEvent, *args, **kwargs) -> None:        
-        super().__init__("ENUTS_WINDOW", *args, **kwargs)
+class ENUTSWindow(WindowBase, iENUTSWindow):
+    OBJECT_NAME = "W_ENUTS_WINDOW"
+    def __init__(self, shutdownEvent: asyncEvent,
+        cfg: iApplicationConfiguration = eNutsConfiguration(),
+        *args, **kwargs
+    ) -> None:        
+        super().__init__(*args, **kwargs)
         self._shutdownEvent: asyncEvent = shutdownEvent
-        print(f"[MainWindow] init finished, workflow={getattr(type(self), '__jagfx_workflow__', None)}", flush=True)
+        self._config: iENUTSConfiguration = cfg
 
     def closeEvent(self, event) -> None:
         self._shutdownEvent.set()
         super().closeEvent(event)
+
+    @property
+    def config(self) -> iENUTSConfiguration:
+        return self._config

@@ -3,8 +3,8 @@
     "title": "eNuts",
     "company": "jAG",
     "applicationId": "JAG-ENUTS",
-    "icon": "logo",
+    "logo": "logo",
     "theme": "ironman",
-    "assetFolder": null,
+    "assetFolder": "assets",
     "__type__": "eNuts.configuration.eNutsConfiguration"
 }

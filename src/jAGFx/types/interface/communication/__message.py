@@ -11,10 +11,8 @@ from ..serializer import iSerializable
 class iMessage(iSerializable, Protocol):
     @property
     def payload(self) -> iSerializable: ...
-
     @property
     def correlationId(self) -> UUID: ...
-
     @property
     def messageId(self) -> UUID: ...
 

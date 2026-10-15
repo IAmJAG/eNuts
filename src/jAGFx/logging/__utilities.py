@@ -3,7 +3,11 @@ import queue
 
 # ==================================================================================
 from logging import (
+    CRITICAL,
+    DEBUG,
+    ERROR,
     INFO,
+    WARNING,
     Filter,
     Formatter,
     getLogger,
@@ -33,23 +37,26 @@ DEF_FILE_HANDLER = {
     "archiveRetention": 10,
 }
 
-DEF_FILE_FORMATTER: Dict[str, Any] = {
-    "class": DefaultFormatter,
-    "kwargs": {
-        "style": "{",
-        "fmt": "[{asctime}][{levelname:<8}][{caller}] {message}",
-        "datefmt": "%Y%m%d",
+DEF_FILE_FORMATTER: Dict[str, Any] = (
+    {
+        "class": DefaultFormatter,
+        "kwargs": {
+            "style": "{",
+            "fmt": "[{asctime}][{levelname:<8}] {message}",
+            "datefmt": "%Y%m%d",
+        },
     },
-},
+)
 
 
 # ==================================================================================
 fmtList = [
     "%(light_black)s[%(asctime)s]%(reset)s",
     "%(log_color)s[%(levelname)-8s]%(reset)s ",
-    "%(log_color)s[%(caller)-8s]%(reset)s ",
+    "%(log_color)s[%(name)-8s]%(reset)s ",
     "%(message_log_color)s%(message)s%(reset)s",
 ]
+# "%(log_color)s[%(caller)-8s]%(reset)s ",
 C_LOG_FORMAT = "".join(fmtList)
 C_LOG_COLORS = {
     "DEBUG": "light_black",
@@ -115,7 +122,9 @@ def _refreshQueueListener() -> None:
         G_LOG_LISTENER.stop()
 
     if G_LOG_QUEUE is not None and G_ACTIVE_HANDLERS:
-        G_LOG_LISTENER = QueueListener(G_LOG_QUEUE, *G_ACTIVE_HANDLERS, respect_handler_level=True)
+        G_LOG_LISTENER = QueueListener(
+            G_LOG_QUEUE, *G_ACTIVE_HANDLERS, respect_handler_level=True
+        )
         G_LOG_LISTENER.start()
 
 # ==================================================================================
@@ -140,27 +149,28 @@ def setupLogging(root: str, defaultLevel: int = G_DEFAULT_LEVEL) -> None:
 
 # ==================================================================================
 def addFileHandler(
-    name: str, defaultLevel: int = G_DEFAULT_LEVEL, 
+    name: str,
+    defaultLevel: int = G_DEFAULT_LEVEL,
     formatter: Formatter = DEF_FILE_FORMATTER,
-    filter: Filter = None
+    filter: Filter = None,
 ) -> None:
     global G_ACTIVE_HANDLERS, G_DEFAULT_LEVEL
     G_DEFAULT_LEVEL = defaultLevel
 
-    if name in G_ACTIVE_HANDLERS: 
+    if name in G_ACTIVE_HANDLERS:
         warning(f"File handler {name} already exists")
         return
 
     lHandlerArgs: Dict = DEF_FILE_HANDLER.copy()
     lHandlerArgs["filenameTemplate"] = f"{name}.{{timestamp}}"
-    
-    lHandler: DateRotatingFileHandler = DateRotatingFileHandler(**lHandlerArgs)    
+
+    lHandler: DateRotatingFileHandler = DateRotatingFileHandler(**lHandlerArgs)
     lHandler.setLevel(defaultLevel)
-    
-    if formatter == DEF_FILE_FORMATTER:        
+
+    if formatter == DEF_FILE_FORMATTER:
         formatter = DEF_FILE_FORMATTER[0]["class"](**DEF_FILE_FORMATTER[0]["kwargs"])
 
-    lHandler.setFormatter(formatter)    
+    lHandler.setFormatter(formatter)
     lHandler.propagate = True
 
     if filter is not None:
@@ -175,10 +185,26 @@ def removeFileHandler(name: str) -> None:
     if name in G_ACTIVE_HANDLERS:
         G_ACTIVE_HANDLERS.remove(name)
         _refreshQueueListener()
-        
+
 # ==================================================================================
 def setNamespaceLevel(namespace: str, level: int) -> None:
     NamespaceFilter.setNSLogLevel(namespace, level)
+
+# ==================================================================================
+def suppressedLogger(name: str | List[str], level: int = WARNING) -> None:
+    names: List[str] = name
+    if isinstance(names, str):
+        names = [name]
+    for _name in names:
+        NamespaceFilter.addNameFilter(_name, level)
+
+# ==================================================================================
+def unsuppressedLogger(name: str | List[str]) -> None:    
+    names: List[str] = name
+    if isinstance(names, str):
+        names = [name]
+    for _name in names:
+        NamespaceFilter.removeNameFilter(_name)
 
 # ==================================================================================
 def stopLogging():

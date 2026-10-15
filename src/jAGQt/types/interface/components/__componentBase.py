@@ -9,8 +9,7 @@ from PySide6.QtWidgets import QBoxLayout, QMainWindow, QWidget
 
 
 # ==================================================================================
-@runtime_checkable
-class iComponentBase(Protocol):    
+class iComponentBase:    
     @overload
     @property        
     def Name(self: QMainWindow) -> str: ...

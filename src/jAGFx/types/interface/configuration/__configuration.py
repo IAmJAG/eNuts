@@ -1,14 +1,18 @@
 # ==================================================================================
-# src/jAGFx/types/interface/configuration/__configuration.py
+from __future__ import annotations
+
 # ==================================================================================
 from typing import Protocol, runtime_checkable
+
+# ==================================================================================
+from ..serializer import iSerializable
 
 
 # ==================================================================================
 @runtime_checkable
-class iConfiguration[T: iConfiguration](Protocol):
+class iConfiguration(iSerializable, Protocol):
     @property
-    def sections(self) -> dict[str, T]: ...
-    def load(self, path: str) -> T: ...    
-    def save(self, path: str = None) -> T: ...
+    def sections(self) -> iConfiguration: ...
+    def load(self, path: str) -> iConfiguration: ...    
+    def save(self, path: str = None) -> iConfiguration: ...
         

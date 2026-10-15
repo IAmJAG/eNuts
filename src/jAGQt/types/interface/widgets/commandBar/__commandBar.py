@@ -10,8 +10,7 @@ from .__commandBarGroup import iCommandBarGroup
 
 
 # ==================================================================================
-@runtime_checkable
-class iCommandBar(iComponentBase, Protocol):
+class iCommandBar:
     @overload
     def addButton(self, button: str) -> iCommandBarButton: ...
     @overload

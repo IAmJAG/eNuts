@@ -1,14 +1,14 @@
 # ==================================================================================
 from typing import Protocol, runtime_checkable
 
+# ==================================================================================
+from jAGFx.types.interface.configuration import iApplicationConfiguration
+
 
 # ==================================================================================
 @runtime_checkable
-class iENUTSConfiguration[T: iENUTSConfiguration](Protocol): 
+class iENUTSConfiguration(iApplicationConfiguration, Protocol): 
     @property
     def theme(self) -> str: ...
     @property
     def assetFolder(self) -> str: ...
-
-    def save(self, path=None) -> T: ...
-    def load(self, path=None) -> T: ...

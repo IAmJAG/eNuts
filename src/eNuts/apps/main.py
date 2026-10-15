@@ -1,50 +1,35 @@
 # ==================================================================================================
-# src/eNuts/apps/main.py
-# ==================================================================================================
-from asyncio import CancelledError, Event, set_event_loop
-from ctypes import windll
-from sys import platform
+from asyncio import CancelledError, set_event_loop
+from asyncio import Event as asyncEvent
 
 # ==================================================================================================
-from PySide6.QtWidgets import QApplication
 from qasync import QEventLoop
+from rich import inspect, print
 
 # ==================================================================================================
-from jAGFx.types.interface.configuration import iApplicationConfiguration
-
-# ==================================================================================================
-from ..application import eNutsApplication
+from ..application import ApplicationInformation, Shell, eNutsApplication
 from ..configuration import eNutsConfiguration
 from ..types.interface.configuration import iENUTSConfiguration
-from ..UI.windows import MainWindow
 
 
 # ==================================================================================================
-async def main(app: eNutsApplication, *args, **kwargs):
-    cfg: iENUTSConfiguration | iApplicationConfiguration = eNutsConfiguration()
-
-    shutdownEvent: Event = Event()
-
-    if platform == "win32":
-        windll.shell32.SetCurrentProcessExplicitAppUserModelID(cfg.applicationId)
-
+async def main(app: eNutsApplication, *args, **kwargs):    
     try:
-        app.setStyleSheet(cfg.theme)
+        shutdownEvent: asyncEvent = asyncEvent()
+        cfg: iENUTSConfiguration = eNutsConfiguration()        
+        await app.asyncSetStyeSheet(cfg.theme)        
 
-        lWin: MainWindow = MainWindow(shutdownEvent, *args, **kwargs)        
-        lWin.show()
+        win: Shell = Shell(shutdownEvent, cfg) 
+        win.show()
 
         await shutdownEvent.wait()
-
+        
+    
     except CancelledError:
         pass
  
     except Exception as ex:
-        error(f"[main] Error occur {str(ex)}", ex)
-
-    finally:
-        if not shutdownEvent.is_set():
-            shutdownEvent.set()
+        error(f"[{__name__}] Error occur {str(ex)}", ex)
 
     app.quit()
 
@@ -52,10 +37,12 @@ async def main(app: eNutsApplication, *args, **kwargs):
 def program(*args):    
     app: eNutsApplication = eNutsApplication()
     loop: QEventLoop = QEventLoop(app)
+
     set_event_loop(loop)
+    args, kwargs = ProcessArguments(args)
     
     with loop:
-        loop.run_until_complete(main(app))
+        loop.run_until_complete(main(app, *args, **kwargs))
 
 
 # ==================================================================================================

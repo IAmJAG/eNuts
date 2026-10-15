@@ -19,10 +19,14 @@ CONFIG_DIR: str = "themes"
 # ==================================================================================
 class eNutsApplication(QApplication):
     def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self._styles: Dict[str, str] = None        
-        themePath: str = getConfigPath(CONFIG_DIR)        
-        self._styles = loadStyles(themePath)
+        super().__init__(*args, **kwargs)        
+        self._styles: Optional[Dict[str, str]] = None 
+        self._pendingTheme: Optional[str] = None        
+
+    async def asyncSetStyeSheet(self, themeName: str) -> None:
+        themePath: str = getConfigPath(CONFIG_DIR)
+        await self._loadStylesAsync(themePath)
+        self.setStyleSheet(themeName)
 
     async def _loadStylesAsync(self, themePath: str) -> None:
         self._styles = None
@@ -30,13 +34,14 @@ class eNutsApplication(QApplication):
         self._styles = loadedStyles
 
         if self._pendingTheme is not None:
-            self.setStyleSheet(self._pendingTheme)
+            theme: str = self._pendingTheme
+            self.setStyleSheet(theme)
             self._pendingTheme = None
 
     def setStyleSheet(self, themeName: str) -> None:
-        key: str = themeName.strip().lower()        
+        key: str = themeName.strip().lower()
         if key in self._styles:
-            styleSheet: str = self._styles[key]
+            styleSheet: str = self._styles.get(key, "")
             super().setStyleSheet(styleSheet)
             return
 
