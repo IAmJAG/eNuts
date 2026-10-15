@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-15 23:25:17 UTC*
+*Auto-generated on: 2026-10-15 23:59:10 UTC*
 
 ## Current Directory Structure
 
@@ -1066,6 +1066,10 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+1573197:
+	docs: update inventory.md with latest timestamp
+		.docs/inventory.md
+
 4961926:
 	fix: implement window state save/restore on Shell for ENUTSWindow hierarchy
 		src/eNuts/application/__shell.py
@@ -1104,43 +1108,5 @@ aa7073c:
 		src/eNuts/application/__applicationInformation.py
 		src/eNuts/application/__shell.py
 		src/eNuts/apps/main.py
-
-bbc1a2f:
-	Refactor configuration and logging modules; enhance application structure
-		config/eNuts/appconfig.json
-		src/eNuts/UI/windows/__mainWindow.py
-		src/eNuts/application/__applicationInformation.py
-		src/eNuts/application/__eNutsApplication.py -> src/eNuts/application/__eNutsApplications.py
-		src/eNuts/application/__eNutsService.py
-		src/eNuts/application/__shell.py
-		src/eNuts/apps/main.py
-		src/eNuts/apps/mainX.py
-		src/eNuts/configuration/__eNutsConfiguration.py
-		src/eNuts/configuration/__information.py
-		src/eNuts/types/interface/UI/windows/__mainWindow.py
-		src/eNuts/types/interface/application/__applicationInformation.py
-		src/eNuts/types/interface/application/__enutsService.py
-		src/eNuts/types/interface/application/__shell.py
-		src/eNuts/types/interface/configuration/__eNutsConfiguration.py
-		src/jAGFx/configuration/__applicationConfig.py
-		src/jAGFx/configuration/__configuration.py
-		src/jAGFx/logging/__log.py
-		src/jAGFx/logging/__logging.py
-		src/jAGFx/logging/__utilities.py
-		src/jAGFx/logging/filters/__namespaceFilter.py
-		src/jAGFx/logging/formatters/__defaultFormatter.py
-		src/jAGFx/types/interface/communication/__IOQueue.py
-		src/jAGFx/types/interface/communication/__message.py
-		src/jAGFx/types/interface/configuration/__applicationConfiguration.py
-		src/jAGFx/types/interface/configuration/__configuration.py
-		src/jAGQt/types/interface/components/__componentBase.py
-		src/jAGQt/types/interface/qt/__qwindow.py
-		src/jAGQt/types/interface/widgets/commandBar/__commandBar.py
-		src/jAGQt/types/interface/widgets/commandBar/__commandBarGroup.py
-		src/jAGQt/types/interface/window/__mainWindowBase.py
-		src/jAGQt/types/interface/window/windowBase/__windowBase.py
-		src/jAGQt/window/__mainWindowBase.py
-		src/jAGQt/window/windowBase/__windowBase.py
-		src/main.py
 
 ```

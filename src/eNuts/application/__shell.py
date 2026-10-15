@@ -16,6 +16,7 @@ class Shell(ApplicationInformation):
     def _wInitializeUI(self: iMainWindowBase) -> None:
         try:
             super()._wInitializeUI()
+            self.Title = self.title
 
         except Exception as ex:
             error("[shell] initializeUI FAIL", ex)

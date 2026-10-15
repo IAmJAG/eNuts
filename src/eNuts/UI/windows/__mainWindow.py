@@ -24,5 +24,5 @@ class ENUTSWindow(Shell, iENUTSWindow):
         cfg: iApplicationConfiguration = eNutsConfiguration(),
         *args, **kwargs
     ) -> None:        
-        super().__init__(shutdownEvent, cfg, *args, **kwargs)
+        super().__init__(shutdownEvent, cfg, *args, **kwargs)        
         

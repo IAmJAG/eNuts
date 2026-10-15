@@ -19,13 +19,12 @@ from ..UI.windows import ENUTSWindow
 async def main(app: eNutsApplication, *args, **kwargs):    
     try:
         cfg: iENUTSConfiguration = eNutsConfiguration()
-        await app.asyncSetStyeSheet(cfg.theme)
-
         if platform == "win32":
             windll.shell32.SetCurrentProcessExplicitAppUserModelID(cfg.applicationId)
 
-        shutdownEvent: asyncEvent = asyncEvent()        
+        await app.asyncSetStyeSheet(cfg.theme)
 
+        shutdownEvent: asyncEvent = asyncEvent()
         win: ENUTSWindow = ENUTSWindow(shutdownEvent, cfg) 
         win.show()
 
