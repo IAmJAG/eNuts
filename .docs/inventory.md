@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-15 23:05:24 UTC*
+*Auto-generated on: 2026-10-15 23:25:17 UTC*
 
 ## Current Directory Structure
 
@@ -1066,6 +1066,14 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+4961926:
+	fix: implement window state save/restore on Shell for ENUTSWindow hierarchy
+		src/eNuts/application/__shell.py
+
+a3d95a1:
+	docs: update inventory.md with latest timestamp
+		.docs/inventory.md
+
 6b6cbc9:
 	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
 
@@ -1134,13 +1142,5 @@ bbc1a2f:
 		src/jAGQt/window/__mainWindowBase.py
 		src/jAGQt/window/windowBase/__windowBase.py
 		src/main.py
-
-0e1d870:
-	debug: per-stage workflow entry/exit and exception traces
-		src/jAGFx/workflow/__workflow.py
-
-f965613:
-	debug: add _run_workflow entry trace print
-		src/jAGFx/workflow/__workflow.py
 
 ```
