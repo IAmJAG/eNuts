@@ -17,11 +17,10 @@ from .workspace import WorkSpace
 class Shell(ApplicationInformation):
     def _wInitializeUI(self: iMainWindowBase) -> None:
         try:
-            print("[shell] intializeUI", flush=True)
             super()._wInitializeUI()
 
         except Exception as ex:
-            error("[shell] intializeUI FAIL", ex)
+            error("[shell] initializeUI FAIL", ex)
     # ==================================================================================
     def _wInitializeSettings(self) -> None:
         company = self.Company if hasattr(self, "Company") else "jAGQt"
@@ -32,11 +31,9 @@ class Shell(ApplicationInformation):
         self._qsettings = QSettings(company, applicationId)
 
     def _wRestoreWindowsState(self) -> None:
-        print(self.applicationId)
         self.restoreWindowsState()
 
     def closeEvent(self, event) -> None:
-        print(self.applicationId)
         self.saveWindowState()
-        self._shutdownEvent.set()        
+        self._shutdownEvent.set()
         super().closeEvent(event)
