@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-14 10:41:44 UTC*
+*Auto-generated on: 2026-10-15 22:59:25 UTC*
 
 ## Current Directory Structure
 
@@ -72,8 +72,8 @@ eNuts/
 │   │   │   └── windows/
 │   │   │       └── __mainWindow.py
 │   │   ├── application/
-│   │   │   ├── __eNutsApplication.py
-│   │   │   ├── __eNutsService.py
+│   │   │   ├── __applicationInformation.py
+│   │   │   ├── __eNutsApplications.py
 │   │   │   ├── __shell.py
 │   │   │   ├── device/
 │   │   │   ├── theme/
@@ -81,7 +81,8 @@ eNuts/
 │   │   │   └── workspace/
 │   │   │       └── __workSpace.py
 │   │   ├── apps/
-│   │   │   └── main.py
+│   │   │   ├── main.py
+│   │   │   └── mainX.py
 │   │   ├── configuration/
 │   │   │   ├── __eNutsConfiguration.py
 │   │   │   └── __information.py
@@ -89,8 +90,11 @@ eNuts/
 │   │   │   ├── .ff
 │   │   │   └── interface/
 │   │   │       ├── .ff
+│   │   │       ├── UI/
+│   │   │       │   └── windows/
+│   │   │       │       └── __mainWindow.py
 │   │   │       ├── application/
-│   │   │       │   ├── __eNutsService.py
+│   │   │       │   ├── __applicationInformation.py
 │   │   │       │   └── __shell.py
 │   │   │       └── configuration/
 │   │   │           └── __eNutsConfiguration.py
@@ -241,6 +245,8 @@ eNuts/
 │   │   │       │   └── __componentBase.py
 │   │   │       ├── icons/
 │   │   │       │   └── animation/
+│   │   │       ├── qt/
+│   │   │       │   └── __qwindow.py
 │   │   │       ├── widgets/
 │   │   │       │   ├── __page.py
 │   │   │       │   ├── commandBar/
@@ -334,16 +340,18 @@ src:
 			program -> : program
 		CONSTANTS(S)/GLOBAL(S)
 			LOG_LEVEL -> : log_level
+			THIRD_PARTY_LOG_LEVEL -> : third_party_log_level
+			THIRD_PARTY_LOGGERS -> : third_party_loggers
 
 src/eNuts/application:
-	__eNutsApplication.py - 
+	__applicationInformation.py - 
+		CLASSE(S):
+			ApplicationInformation -> : applicationinformation
+	__eNutsApplications.py - 
 		CLASSE(S):
 			eNutsApplication -> : enutsapplication
 		CONSTANTS(S)/GLOBAL(S)
 			CONFIG_DIR -> : config_dir
-	__eNutsService.py - 
-		CLASSE(S):
-			Service -> : service
 	__shell.py - 
 		CLASSE(S):
 			Shell -> : shell
@@ -365,6 +373,10 @@ src/eNuts/apps:
 		FUNCTION(S):
 			main -> : main
 			program -> : program
+	mainX.py - 
+		FUNCTION(S):
+			main -> : main
+			program -> : program
 
 src/eNuts/configuration:
 	__eNutsConfiguration.py - 
@@ -377,9 +389,9 @@ src/eNuts/configuration:
 			ApplicationInformation -> : applicationinformation
 
 src/eNuts/types/interface/application:
-	__eNutsService.py - 
+	__applicationInformation.py - 
 		CLASSE(S):
-			iENUTSService -> : ienutsservice
+			iApplicationInformation -> : iapplicationinformation
 	__shell.py - 
 		CLASSE(S):
 			iShell -> : ishell
@@ -388,6 +400,11 @@ src/eNuts/types/interface/configuration:
 	__eNutsConfiguration.py - 
 		CLASSE(S):
 			iENUTSConfiguration -> : ienutsconfiguration
+
+src/eNuts/types/interface/UI/windows:
+	__mainWindow.py - 
+		CLASSE(S):
+			iENUTSWindow -> : ienutswindow
 
 src/eNuts/UI/widgets/pages/recorder:
 	__recorderPage.py - 
@@ -425,7 +442,7 @@ src/eNuts/UI/widgets/spinners:
 src/eNuts/UI/windows:
 	__mainWindow.py - 
 		CLASSE(S):
-			MainWindow -> : mainwindow
+			ENUTSWindow -> : enutswindow
 
 src/fluxCore/action:
 	__action.py - 
@@ -646,11 +663,8 @@ src/jAGFx/configuration:
 		CLASSE(S):
 			ApplicationConfiguration -> : applicationconfiguration
 		CONSTANTS(S)/GLOBAL(S)
-			CFGINSTANCE -> : cfginstance
-			LOGGER_SECTION -> : logger_section
 			CONFIG_PATH -> : config_path
 			CONFIG_FILENAME -> : config_filename
-			ConfigType -> : configtype
 	__configuration.py - 
 		CLASSE(S):
 			Configuration -> : configuration
@@ -692,6 +706,8 @@ src/jAGFx/logging:
 			addFileHandler -> : addfilehandler
 			removeFileHandler -> : removefilehandler
 			setNamespaceLevel -> : setnamespacelevel
+			suppressedLogger -> : suppressedlogger
+			unsuppressedLogger -> : unsuppressedlogger
 			stopLogging -> : stoplogging
 		CONSTANTS(S)/GLOBAL(S)
 			DEF_FILE_HANDLER -> : def_file_handler
@@ -862,6 +878,11 @@ src/jAGQt/types/interface/components:
 	__componentBase.py - 
 		CLASSE(S):
 			iComponentBase -> : icomponentbase
+
+src/jAGQt/types/interface/qt:
+	__qwindow.py - 
+		CLASSE(S):
+			iQMainWindow -> : iqmainwindow
 
 src/jAGQt/types/interface/widgets:
 	__page.py - 
@@ -1045,6 +1066,67 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+202544d:
+	refactor: update window classes to use workflow decorators and improve shutdown handling
+		src/eNuts/UI/windows/__mainWindow.py
+		src/eNuts/application/__applicationInformation.py
+		src/eNuts/application/__shell.py
+		src/eNuts/apps/main.py
+
+bbc1a2f:
+	Refactor configuration and logging modules; enhance application structure
+		config/eNuts/appconfig.json
+		src/eNuts/UI/windows/__mainWindow.py
+		src/eNuts/application/__applicationInformation.py
+		src/eNuts/application/__eNutsApplication.py -> src/eNuts/application/__eNutsApplications.py
+		src/eNuts/application/__eNutsService.py
+		src/eNuts/application/__shell.py
+		src/eNuts/apps/main.py
+		src/eNuts/apps/mainX.py
+		src/eNuts/configuration/__eNutsConfiguration.py
+		src/eNuts/configuration/__information.py
+		src/eNuts/types/interface/UI/windows/__mainWindow.py
+		src/eNuts/types/interface/application/__applicationInformation.py
+		src/eNuts/types/interface/application/__enutsService.py
+		src/eNuts/types/interface/application/__shell.py
+		src/eNuts/types/interface/configuration/__eNutsConfiguration.py
+		src/jAGFx/configuration/__applicationConfig.py
+		src/jAGFx/configuration/__configuration.py
+		src/jAGFx/logging/__log.py
+		src/jAGFx/logging/__logging.py
+		src/jAGFx/logging/__utilities.py
+		src/jAGFx/logging/filters/__namespaceFilter.py
+		src/jAGFx/logging/formatters/__defaultFormatter.py
+		src/jAGFx/types/interface/communication/__IOQueue.py
+		src/jAGFx/types/interface/communication/__message.py
+		src/jAGFx/types/interface/configuration/__applicationConfiguration.py
+		src/jAGFx/types/interface/configuration/__configuration.py
+		src/jAGQt/types/interface/components/__componentBase.py
+		src/jAGQt/types/interface/qt/__qwindow.py
+		src/jAGQt/types/interface/widgets/commandBar/__commandBar.py
+		src/jAGQt/types/interface/widgets/commandBar/__commandBarGroup.py
+		src/jAGQt/types/interface/window/__mainWindowBase.py
+		src/jAGQt/types/interface/window/windowBase/__windowBase.py
+		src/jAGQt/window/__mainWindowBase.py
+		src/jAGQt/window/windowBase/__windowBase.py
+		src/main.py
+
+0e1d870:
+	debug: per-stage workflow entry/exit and exception traces
+		src/jAGFx/workflow/__workflow.py
+
+f965613:
+	debug: add _run_workflow entry trace print
+		src/jAGFx/workflow/__workflow.py
+
+6edca3f:
+	debug: add MainWindow init workflow trace print
+		src/eNuts/UI/windows/__mainWindow.py
+
+63859a1:
+	docs: update inventory.md with latest timestamp and directory structure changes
+		.docs/inventory.md
+
 f677597:
 	feat: enhance UI initialization and add WorkSpace component with object name logging
 		src/eNuts/application/__shell.py
@@ -1073,39 +1155,5 @@ f677597:
 
 1d854e1:
 	Add new themes and palettes for eNuts application
-
-9aaa827:
-	fix: update settings.json to include important files and adjust visibility; refactor color parsing in _loadPalette function
-		.vscode/settings.json
-		src/eNuts/application/theme/__theme.py
-
-a26ec65:
-	feat(theme): add main.css stylesheets for all five theme packs
-		config/themes/dark/main.css
-		config/themes/dracula/main.css
-		config/themes/ironman/main.css
-		config/themes/light/main.css
-		config/themes/material/main.css
-
-54f674d:
-	feat(theme): add config/themes packs and fix palette substitution loader
-		config/themes/dark/palette
-		config/themes/dracula/palette
-		config/themes/ironman/palette
-		config/themes/light/palette
-		config/themes/material/palette
-		src/eNuts/application/theme/__theme.py
-
-3b17b4e:
-	docs: update inventory.md to reflect recent directory structure changes and timestamps
-		.docs/inventory.md
-
-2a81863:
-	feat: add GitHub Actions workflow to automate inventory updates
-		.github/workflows/update_inventory.yml -> update_inventory.yml
-
-9ea79bd:
-	docs: update inventory.md using utility script
-		.docs/inventory.md
 
 ```

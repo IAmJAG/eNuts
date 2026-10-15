@@ -8,9 +8,7 @@ from PySide6.QtCore import QSettings
 from jAGQt.types.interface.window import iMainWindowBase
 
 # ==================================================================================
-from ..types.interface.application import iShell
 from .__applicationInformation import ApplicationInformation
-from .workspace import WorkSpace
 
 
 # ==================================================================================
@@ -24,11 +22,11 @@ class Shell(ApplicationInformation):
             error("[shell] intializeUI FAIL", ex)
     # ==================================================================================
     def _wInitializeSettings(self) -> None:
-        company = self.Company if hasattr(self, "Company") else "jAGQt"
+        company = self.company if hasattr(self, "company") else "jAGQt"
         appId: str = (
-            self.ApplicationId if hasattr(self, "ApplicationId") else "ModernWindow"
+            self.applicationId if hasattr(self, "applicationId") else "modernWindow"
         )
-        applicationId = f"{company}.{appId}"
+        applicationId = self.applicationId or f"{appId}"
         self._qsettings = QSettings(company, applicationId)
 
     def _wRestoreWindowsState(self) -> None:
