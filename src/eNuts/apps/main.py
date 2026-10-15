@@ -1,25 +1,32 @@
 # ==================================================================================================
 from asyncio import CancelledError, set_event_loop
 from asyncio import Event as asyncEvent
+from ctypes import windll
+from sys import platform
 
 # ==================================================================================================
 from qasync import QEventLoop
 from rich import inspect, print
 
 # ==================================================================================================
-from ..application import ApplicationInformation, Shell, eNutsApplication
+from ..application import eNutsApplication
 from ..configuration import eNutsConfiguration
 from ..types.interface.configuration import iENUTSConfiguration
+from ..UI.windows import ENUTSWindow
 
 
 # ==================================================================================================
 async def main(app: eNutsApplication, *args, **kwargs):    
     try:
-        shutdownEvent: asyncEvent = asyncEvent()
-        cfg: iENUTSConfiguration = eNutsConfiguration()        
-        await app.asyncSetStyeSheet(cfg.theme)        
+        cfg: iENUTSConfiguration = eNutsConfiguration()
+        await app.asyncSetStyeSheet(cfg.theme)
 
-        win: Shell = Shell(shutdownEvent, cfg) 
+        if platform == "win32":
+            windll.shell32.SetCurrentProcessExplicitAppUserModelID(cfg.applicationId)
+
+        shutdownEvent: asyncEvent = asyncEvent()        
+
+        win: ENUTSWindow = ENUTSWindow(shutdownEvent, cfg) 
         win.show()
 
         await shutdownEvent.wait()

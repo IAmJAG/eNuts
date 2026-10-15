@@ -19,11 +19,12 @@ class ApplicationInformation(WindowBase, iApplicationInformation):
     ) -> None:
         super().__init__(*args, **kwargs)
         self._config = cfg        
+        self._shutdownEvent = shutdownEvent
+
         self._applicationId = cfg.applicationId
         self._company = cfg.company
         self._logo = cfg.logo
-        self._shutdownEvent = shutdownEvent
-
+        
     def closeEvent(self, event):
         self._shutdownEvent.set()
         return super().closeEvent(event)
