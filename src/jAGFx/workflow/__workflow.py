@@ -40,7 +40,7 @@ def _normalize_workflow_name(name: str) -> str:
 
 # ==================================================================================
 def _discover_workflows(cls: type) -> tuple[str, ...]:
-    """Discover ``_w...`` and ``_a...`` methods defined directly on ``cls"."""
+    """Discover ``_w...`` and ``_a...`` methods defined directly on ``cls``."""
     return tuple(
         name
         for name, value in cls.__dict__.items()
@@ -163,8 +163,8 @@ def _install_subclass_hook(cls: type) -> None:
         else:
             original_hook_function = original_hook
 
-        if getattr(original_hook_function, _WORKFLOW_SUBCLASS_WRAPPED, False):
-            return
+    if getattr(original_hook_function, _WORKFLOW_SUBCLASS_WRAPPED, False):
+        return
 
         @wraps(original_hook_function)
         def wrapped_hook(subclass, **kwargs):
