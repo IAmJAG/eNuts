@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-15 22:59:25 UTC*
+*Auto-generated on: 2026-10-15 23:05:24 UTC*
 
 ## Current Directory Structure
 
@@ -1066,6 +1066,30 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+6b6cbc9:
+	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
+
+1377905:
+	refactor: standardize variable naming in Shell class and improve settings initialization
+		.docs/inventory.md
+		src/eNuts/application/__shell.py
+
+f1c9051:
+	fix: restore correct indentation in _install_subclass_hook
+		src/jAGFx/workflow/__workflow.py
+
+0140158:
+	fix: correct docstring typo in _discover_workflows
+		src/jAGFx/workflow/__workflow.py
+
+28100a3:
+	chore: remove temporary Shell debug prints
+		src/eNuts/application/__shell.py
+
+aa7073c:
+	chore: remove temporary workflow debug traces
+		src/jAGFx/workflow/__workflow.py
+
 202544d:
 	refactor: update window classes to use workflow decorators and improve shutdown handling
 		src/eNuts/UI/windows/__mainWindow.py
@@ -1118,42 +1142,5 @@ bbc1a2f:
 f965613:
 	debug: add _run_workflow entry trace print
 		src/jAGFx/workflow/__workflow.py
-
-6edca3f:
-	debug: add MainWindow init workflow trace print
-		src/eNuts/UI/windows/__mainWindow.py
-
-63859a1:
-	docs: update inventory.md with latest timestamp and directory structure changes
-		.docs/inventory.md
-
-f677597:
-	feat: enhance UI initialization and add WorkSpace component with object name logging
-		src/eNuts/application/__shell.py
-		src/eNuts/application/theme/__theme.py
-		src/eNuts/application/workspace/__workSpace.py
-		src/jAGQt/widgets/SideBar/__sideBar.py
-		src/jAGQt/widgets/components/__objectName.py
-
-210d377:
-	Refactor SideBar components and introduce ObjectName class
-		src/jAGQt/widgets/SideBar/__sideBar.py
-		src/jAGQt/widgets/SideBar/components/__sideBarContent.py
-		src/jAGQt/widgets/SideBar/components/__sideBarGroup.py
-		src/jAGQt/widgets/SideBar/components/__sideBarHeader.py
-		src/jAGQt/widgets/SideBar/components/__sideBarIcon.py
-		src/jAGQt/widgets/SideBar/components/__sideBarItem.py
-		src/jAGQt/widgets/SideBar/components/__sideBarSeparator.py
-		src/jAGQt/widgets/SideBar/components/__sideBarText.py
-		src/jAGQt/widgets/components/__objectName.py
-		src/jAGQt/window/__mainWindowBase.py
-		src/jAGQt/window/windowBase/__windowBase.py
-
-2e0ad72:
-	docs: update inventory.md with latest timestamp and directory structure for theme files
-		.docs/inventory.md
-
-1d854e1:
-	Add new themes and palettes for eNuts application
 
 ```
