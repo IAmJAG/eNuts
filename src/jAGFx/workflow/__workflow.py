@@ -40,7 +40,7 @@ def _normalize_workflow_name(name: str) -> str:
 
 # ==================================================================================
 def _discover_workflows(cls: type) -> tuple[str, ...]:
-    """Discover ``_w...`` and ``_a...`` methods defined directly on ``cls``."""
+    """Discover ``_w...`` and ``_a...`` methods defined directly on ``cls"."""
     return tuple(
         name
         for name, value in cls.__dict__.items()
@@ -54,18 +54,15 @@ def _discover_workflows(cls: type) -> tuple[str, ...]:
 # ==================================================================================
 def _run_workflow(instance: object) -> None:
     names = getattr(type(instance), _WORKFLOW_METADATA, None)
-    print(f"[workflow] running on {type(instance).__name__}: {names}", flush=True)
 
     preferAsync: bool = getattr(type(instance), _WORKFLOW_ASYNC, True)
     loop = getRunningLoop() if preferAsync else None
 
     if not names:
-        print("[workflow] no stages to run", flush=True)
         return
 
     for name in names:
         method = getattr(instance, name, None)
-        print(f"[workflow] stage ENTER {name}  method={method}", flush=True)
         if not callable(method):
             raise AttributeError(
                 f"Workflow method {name!r} was not found on {type(instance).__name__}."
@@ -81,14 +78,10 @@ def _run_workflow(instance: object) -> None:
                     raise
 
             createTask(_runner)
-            print(f"[workflow] stage SCHEDULED (async) {name}", flush=True)
         else:
             try:
                 method()
-                print(f"[workflow] stage EXIT  {name}", flush=True)
-            except Exception as ex:
-                print(f"[workflow] stage FAIL  {name}: {ex}", flush=True)
-                print(format_exc(), flush=True)
+            except Exception:
                 raise
 
 
