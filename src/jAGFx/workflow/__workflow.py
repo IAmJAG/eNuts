@@ -3,7 +3,6 @@ from __future__ import annotations
 
 # ==================================================================================
 from functools import wraps
-from traceback import format_exc
 from typing import Callable, TypeVar, overload
 
 # ==================================================================================
@@ -163,8 +162,8 @@ def _install_subclass_hook(cls: type) -> None:
         else:
             original_hook_function = original_hook
 
-    if getattr(original_hook_function, _WORKFLOW_SUBCLASS_WRAPPED, False):
-        return
+        if getattr(original_hook_function, _WORKFLOW_SUBCLASS_WRAPPED, False):
+            return
 
         @wraps(original_hook_function)
         def wrapped_hook(subclass, **kwargs):
