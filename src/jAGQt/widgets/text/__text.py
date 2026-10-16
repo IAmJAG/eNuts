@@ -24,11 +24,16 @@ class Text(QLabel, ComponentBase):
     OBJECT_NAME = "W_TEXT"
 
     def __init__(
-        self, text: str, elidedMode: EMode = EMode.ElideRight,
-        wordWrap: bool = False, *args, **kwargs,
+        self,
+        text: str,
+        elidedMode: EMode = EMode.ElideRight,
+        wordWrap: bool = False,
+        *args,
+        **kwargs,
     ) -> None:
         lObjName: str = kwargs.pop("objectName", self.OBJECT_NAME)
-        super().__init__(objectName=lObjName, *args, **kwargs)
+        super().__init__(*args, **kwargs)
+        self.setObjectName(lObjName)
         self._fullText: str = text
         self._elidedMode: EMode = elidedMode
         self._wordWrap: bool = wordWrap
@@ -40,7 +45,6 @@ class Text(QLabel, ComponentBase):
         self.setText(self._fullText)
 
     def _applySizePolicy(self) -> None:
-        # Expand horizontally; never grow vertically unless word-wrap is on
         if self._wordWrap:
             self.setSizePolicy(QPolicy.Expanding, QPolicy.Preferred)
         else:
@@ -57,7 +61,6 @@ class Text(QLabel, ComponentBase):
         self._applySizePolicy()
         self._updateTextDisplay()
 
-    # ==================================================================================
     @property
     def ElidedMode(self) -> EMode:
         return self._elidedMode
@@ -77,7 +80,6 @@ class Text(QLabel, ComponentBase):
         self._updateTextDisplay()
 
     def _updateTextDisplay(self) -> None:
-        # If word wrap is enabled, let QLabel handle native multi-line wrapping automatically
         if self._wordWrap:
             super().setText(self._fullText)
             self.setVisible(bool(self._fullText.strip()))
