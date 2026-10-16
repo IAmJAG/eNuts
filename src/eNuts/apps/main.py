@@ -3,6 +3,7 @@ from asyncio import CancelledError, set_event_loop
 from asyncio import Event as asyncEvent
 from ctypes import windll
 from sys import platform
+from traceback import format_exc
 
 # ==================================================================================================
 from qasync import QEventLoop
@@ -16,7 +17,7 @@ from ..UI.windows import ENUTSWindow
 
 
 # ==================================================================================================
-async def main(app: eNutsApplication, *args, **kwargs):    
+async def main(app: eNutsApplication, *args, **kwargs):
     try:
         cfg: iENUTSConfiguration = eNutsConfiguration()
         if platform == "win32":
@@ -25,28 +26,33 @@ async def main(app: eNutsApplication, *args, **kwargs):
         await app.asyncSetStyeSheet(cfg.theme)
 
         shutdownEvent: asyncEvent = asyncEvent()
-        win: ENUTSWindow = ENUTSWindow(shutdownEvent, cfg) 
+        verbose("[main] creating ENUTSWindow")
+        win: ENUTSWindow = ENUTSWindow(shutdownEvent, cfg)
+        verbose("[main] ENUTSWindow created; showing")
         win.show()
 
         await shutdownEvent.wait()
-        
-    
+
     except CancelledError:
-        pass
- 
+        verbose("[main] CancelledError; shutting down")
+
     except Exception as ex:
         error(f"[{__name__}] Error occur {str(ex)}", ex)
+        error(f"[{__name__}] traceback:\n{format_exc()}")
+        raise
 
-    app.quit()
+    finally:
+        app.quit()
+
 
 # ==================================================================================================
-def program(*args):    
+def program(*args):
     app: eNutsApplication = eNutsApplication()
     loop: QEventLoop = QEventLoop(app)
 
     set_event_loop(loop)
     args, kwargs = ProcessArguments(args)
-    
+
     with loop:
         loop.run_until_complete(main(app, *args, **kwargs))
 
