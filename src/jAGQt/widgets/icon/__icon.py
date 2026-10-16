@@ -17,17 +17,23 @@ from ..components import ComponentBase
 @workflow
 class Icon(QLabel, ComponentBase):
     OBJECT_NAME = "W_ICON"
+
     def __init__(
-        self, icon: Optional[Union[QIcon, QPixmap, str]] = None,
+        self,
+        icon: Optional[Union[QIcon, QPixmap, str]] = None,
         background: Optional[Union[str, QColor]] = None,
         foreground: Optional[Union[str, QColor]] = None,
-        *args, **kwargs,
+        *args,
+        **kwargs,
     ) -> None:
         OBJNAME: str = kwargs.pop("objectName", self.OBJECT_NAME)
-        super().__init__(objectName=OBJNAME, *args, **kwargs)
+        # Do not pass objectName through super: with QLabel + ComponentBase, residual
+        # kwargs can reach object.__init__ and raise TypeError.
+        super().__init__(*args, **kwargs)
+        self.setObjectName(OBJNAME)
         self._icon: Optional[QIcon] = icon
-        self._background: QColor = background or  QColor(Qt.GlobalColor.transparent)
-        self._foreground: QColor = foreground or Qt.GlobalColor.darkGray
+        self._background: QColor = background or QColor(Qt.GlobalColor.transparent)
+        self._foreground: QColor = foreground or QColor(Qt.GlobalColor.darkGray)
 
     def _wInitializeUI(self):
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -36,20 +42,16 @@ class Icon(QLabel, ComponentBase):
         foreground: Optional[Union[str, QColor]] = self._foreground
 
         if isinstance(background, str):
-            self._background: QColor = QColor(background)
-
+            self._background = QColor(background)
         elif isinstance(background, QColor):
             self._background = background
-
         else:
             self._background = QColor(Qt.GlobalColor.transparent)
 
         if isinstance(foreground, str):
-            self._foreground: QColor = QColor(foreground)
-
+            self._foreground = QColor(foreground)
         elif isinstance(foreground, QColor):
             self._foreground = foreground
-
         else:
             self._foreground = QColor()
 
@@ -95,13 +97,13 @@ class Icon(QLabel, ComponentBase):
             self._updatePixmap()
 
     @property
-    def iconSize(self) -> int: 
+    def iconSize(self) -> int:
         return self.size().height()
 
     @property
-    def icon(self) -> Optional[Union[QIcon, QPixmap]]: 
+    def icon(self) -> Optional[Union[QIcon, QPixmap]]:
         return self._icon
-    
+
     def setIcon(self, icon: Optional[Union[QIcon, QPixmap, str]]):
         if icon is None:
             self.clear()
@@ -109,7 +111,6 @@ class Icon(QLabel, ComponentBase):
 
         if isinstance(icon, str):
             icon = QIcon(icon)
-
         elif isinstance(icon, QPixmap):
             icon = QIcon(icon)
 
