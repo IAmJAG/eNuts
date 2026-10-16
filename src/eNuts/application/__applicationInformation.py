@@ -15,7 +15,7 @@ from ..types.interface.application import iApplicationInformation
 
 
 # ==================================================================================
-class ApplicationInformation(WindowBase, iApplicationInformation):
+class ApplicationInformation(iApplicationInformation, WindowBase):
     def __init__(
         self: WindowBase, shutdownEvent: asyncEvent,
         cfg: iApplicationConfiguration,

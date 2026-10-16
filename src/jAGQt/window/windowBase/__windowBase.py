@@ -12,7 +12,7 @@ from ...widgets.components import ComponentBase, ObjectName
 
 # ==================================================================================
 @workflow("InitializeUI")
-class WindowBase(QMainWindow, ObjectName, ComponentBase, iWindowBase):
+class WindowBase(iWindowBase, ComponentBase, ObjectName, QMainWindow):
     OBJECT_NAME = "W_WINDOW_BASE"
     def __init__(self, frameless: bool = False, *args, **kwargs):
         layout: QBoxLayout = kwargs.pop("layout", None)
