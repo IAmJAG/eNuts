@@ -15,12 +15,18 @@ from .workspace import WorkSpace
 # ==================================================================================
 class Shell(ApplicationInformation):
     def _wInitializeUI(self: iMainWindowBase) -> None:
+        verbose("[Shell] _wInitializeUI ENTER")
         try:
             central: WorkSpace = WorkSpace()
-            self.setCentralWidget(central)            
+            verbose(f"[Shell] WorkSpace created objectName={central.objectName()!r}")
+            self.setCentralWidget(central)
+            verbose("[Shell] setCentralWidget done")
 
         except Exception as ex:
             error("[shell] initializeUI FAIL", ex)
+            raise
+        finally:
+            verbose("[Shell] _wInitializeUI EXIT")
 
     # ==================================================================================
     def _wInitializeSettings(self) -> None:
