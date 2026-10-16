@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 # ==================================================================================
+from traceback import format_exc
 from typing import Dict, Optional, Union
 
 # ==================================================================================
@@ -36,59 +37,79 @@ class SideBar(ComponentBase, ObjectName, QWidget):
         *args,
         **kwargs,
     ) -> None:
-        if len(icons) == 0:
-            raise ValueError("icons must not be empty")
+        if icons is None or len(icons) == 0:
+            raise ValueError("icons must not be None or empty")
 
-        verbose("[SideBar] __init__ ENTER")
-        super().__init__(*args, **kwargs)
-        self._titleText: str = title
-        self._descriptionText: str = description
-        self._icons: Dict[eSideBarState, Optional[Union[QIcon, QPixmap, str]]] = dict(
-            icons
+        verbose(
+            f"[SideBar] __init__ ENTER title={title!r} "
+            f"initialState={initialState!r} iconKeys={list(icons.keys())!r}"
         )
-        self._initialState: eSideBarState = initialState
+        try:
+            super().__init__(*args, **kwargs)
+            self._titleText: str = title
+            self._descriptionText: str = description
+            self._icons: Dict[eSideBarState, Optional[Union[QIcon, QPixmap, str]]] = (
+                dict(icons)
+            )
+            self._initialState: eSideBarState = initialState
+        except Exception as ex:
+            error("[SideBar] __init__ FAIL", ex)
+            error(f"[SideBar] __init__ traceback:\n{format_exc()}")
+            raise
         verbose(f"[SideBar] __init__ EXIT objectName={self.objectName()!r}")
 
     def _wInitializeUI(self) -> None:
         verbose("[SideBar] _wInitializeUI ENTER")
-        self.setSizePolicy(QSPolicy.Fixed, QSPolicy.Expanding)
-        # DEV visibility: fixed width + solid background so the sidebar is obvious
-        self.setFixedWidth(200)
-        self.setStyleSheet("background-color: #333337; border-right: 1px solid #3c3c3c;")
+        try:
+            self.setSizePolicy(QSPolicy.Fixed, QSPolicy.Expanding)
+            # DEV visibility: fixed width + solid background so the sidebar is obvious
+            self.setFixedWidth(200)
+            self.setStyleSheet(
+                "background-color: #333337; border-right: 1px solid #3c3c3c;"
+            )
 
-        titleText: str = self._titleText
-        descriptionText: str = self._descriptionText
-        icons = self._icons
-        initialState: eSideBarState = self._initialState
-        del self._titleText
-        del self._descriptionText
-        del self._icons
-        del self._initialState
+            titleText: str = self._titleText
+            descriptionText: str = self._descriptionText
+            icons = self._icons
+            initialState: eSideBarState = self._initialState
+            del self._titleText
+            del self._descriptionText
+            del self._icons
+            del self._initialState
 
-        header: SideBarHeader = SideBarHeader(
-            title=titleText,
-            description=descriptionText,
-            icons=icons,
-            initialState=initialState,
-        )
+            verbose("[SideBar] creating SideBarHeader")
+            header: SideBarHeader = SideBarHeader(
+                title=titleText,
+                description=descriptionText,
+                icons=icons,
+                initialState=initialState,
+            )
+            verbose(
+                f"[SideBar] SideBarHeader created objectName={header.objectName()!r}"
+            )
 
-        outerLayout: QBoxLayout = newLayout(
-            QBoxLayout,
-            spacing=0,
-            margins=(0, 0, 0, 0),
-            direction=QBoxLayout.Direction.TopToBottom,
-        )
-        outerLayout.addWidget(header, stretch=0)
-        outerLayout.addStretch(1)
+            outerLayout: QBoxLayout = newLayout(
+                QBoxLayout,
+                spacing=0,
+                margins=(0, 0, 0, 0),
+                direction=QBoxLayout.Direction.TopToBottom,
+            )
+            outerLayout.addWidget(header, stretch=0)
+            outerLayout.addStretch(1)
 
-        self.setLayout(outerLayout)
-        self._layout: QBoxLayout = outerLayout
-        self._header: SideBarHeader = header
+            self.setLayout(outerLayout)
+            self._layout: QBoxLayout = outerLayout
+            self._header: SideBarHeader = header
 
-        verbose(
-            f"[SideBar] _wInitializeUI EXIT "
-            f"fixedWidth={self.width()} sizePolicy={self.sizePolicy().horizontalPolicy()}"
-        )
+            verbose(
+                f"[SideBar] _wInitializeUI EXIT "
+                f"fixedWidth={self.width()} "
+                f"sizePolicy={self.sizePolicy().horizontalPolicy()}"
+            )
+        except Exception as ex:
+            error("[SideBar] _wInitializeUI FAIL", ex)
+            error(f"[SideBar] _wInitializeUI traceback:\n{format_exc()}")
+            raise
 
     # ==================================================================================
     @property
