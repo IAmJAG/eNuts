@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-16 02:47:16 UTC*
+*Auto-generated on: 2026-10-16 04:04:13 UTC*
 
 ## Current Directory Structure
 
@@ -22,6 +22,8 @@ eNuts/
 ├── assets/
 │   ├── gameInfo.json
 │   ├── icons/
+│   │   ├── collapse.png
+│   │   ├── expand.png
 │   │   └── logo.png
 │   ├── logo copy.png
 │   ├── logo.png
@@ -264,29 +266,27 @@ eNuts/
 │   │   │   ├── __layout.py
 │   │   │   └── __pushButton.py
 │   │   ├── widgets/
-│   │   │   ├── __header.py
-│   │   │   ├── commandBar/
-│   │   │   │   ├── __base.py
-│   │   │   │   ├── __commandBar.py
-│   │   │   │   ├── __commandBarGroup.py
-│   │   │   │   └── commandBarButton/
-│   │   │   │       ├── __base.py
-│   │   │   │       └── __commandBarButton.py
 │   │   │   ├── components/
 │   │   │   │   ├── __componentBase.py
 │   │   │   │   └── __objectName.py
 │   │   │   ├── dashboard/
 │   │   │   ├── header/
 │   │   │   ├── icon/
+│   │   │   │   ├── __icon.py
+│   │   │   │   └── __stateFullIcon.py
 │   │   │   ├── image/
 │   │   │   │   └── __image.py
 │   │   │   ├── page/
-│   │   │   │   └── __page.py
 │   │   │   ├── sideBar/
-│   │   │   │   └── __sideBar.py
-│   │   │   ├── text/
-│   │   │   └── workspace/
-│   │   │       └── __workspace.py
+│   │   │   │   ├── __eSideBarState.py
+│   │   │   │   ├── __sideBar.py
+│   │   │   │   └── components/
+│   │   │   │       ├── __sideBarHeader.py
+│   │   │   │       └── __sideBarItem.py
+│   │   │   └── text/
+│   │   │       ├── __description.py
+│   │   │       ├── __text.py
+│   │   │       └── __title.py
 │   │   └── window/
 │   │       ├── __mainWindowBase.py
 │   │       └── windowBase/
@@ -939,34 +939,6 @@ src/jAGQt/utilities:
 		FUNCTION(S):
 			createButton -> : createbutton
 
-src/jAGQt/widgets:
-	__header.py - 
-		CLASSE(S):
-			Header -> : header
-
-src/jAGQt/widgets/commandBar:
-	__base.py - 
-		CLASSE(S):
-			_commandBarBase -> : _commandbarbase
-		CONSTANTS(S)/GLOBAL(S)
-			QtPolicy -> : qtpolicy
-	__commandBar.py - 
-		CLASSE(S):
-			CommandBar -> : commandbar
-		CONSTANTS(S)/GLOBAL(S)
-			QtPolicy -> : qtpolicy
-	__commandBarGroup.py - 
-		CLASSE(S):
-			CommandBarGroup -> : commandbargroup
-
-src/jAGQt/widgets/commandBar/commandBarButton:
-	__base.py - 
-		CLASSE(S):
-			_commandBarButtonBase -> : _commandbarbuttonbase
-	__commandBarButton.py - 
-		CLASSE(S):
-			CommandBarButton -> : commandbarbutton
-
 src/jAGQt/widgets/components:
 	__componentBase.py - 
 		CLASSE(S):
@@ -978,6 +950,14 @@ src/jAGQt/widgets/components:
 			QSPolicy -> : qspolicy
 			StyleBackground -> : stylebackground
 
+src/jAGQt/widgets/icon:
+	__icon.py - 
+		CLASSE(S):
+			Icon -> : icon
+	__stateFullIcon.py - 
+		CLASSE(S):
+			StatefullIcon -> : statefullicon
+
 src/jAGQt/widgets/image:
 	__image.py - 
 		CLASSE(S):
@@ -986,22 +966,47 @@ src/jAGQt/widgets/image:
 		CONSTANTS(S)/GLOBAL(S)
 			Backend -> : backend
 
-src/jAGQt/widgets/page:
-	__page.py - 
-		CLASSE(S):
-			Page -> : page
-
 src/jAGQt/widgets/sideBar:
+	__eSideBarState.py - 
+		CLASSE(S):
+			eSideBarState -> : esidebarstate
 	__sideBar.py - 
 		CLASSE(S):
 			SideBar -> : sidebar
 		CONSTANTS(S)/GLOBAL(S)
 			QSPolicy -> : qspolicy
 
-src/jAGQt/widgets/workspace:
-	__workspace.py - 
+src/jAGQt/widgets/sideBar/components:
+	__sideBarHeader.py - 
 		CLASSE(S):
-			Workspace -> : workspace
+			SideBarHeader -> : sidebarheader
+		CONSTANTS(S)/GLOBAL(S)
+			C_ICON_SIZE -> : c_icon_size
+			QSPolicy -> : qspolicy
+	__sideBarItem.py - 
+		CLASSE(S):
+			SideBarItem -> : sidebaritem
+		CONSTANTS(S)/GLOBAL(S)
+			QSPolicy -> : qspolicy
+			StyleBackground -> : stylebackground
+
+src/jAGQt/widgets/text:
+	__description.py - 
+		CLASSE(S):
+			Description -> : description
+		CONSTANTS(S)/GLOBAL(S)
+			QPolicy -> : qpolicy
+	__text.py - 
+		CLASSE(S):
+			Text -> : text
+		CONSTANTS(S)/GLOBAL(S)
+			EMode -> : emode
+			QPolicy -> : qpolicy
+	__title.py - 
+		CLASSE(S):
+			Title -> : title
+		CONSTANTS(S)/GLOBAL(S)
+			QPolicy -> : qpolicy
 
 src/jAGQt/window:
 	__mainWindowBase.py - 
@@ -1071,52 +1076,44 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-a5c200a:
-	fix: cooperative __init__ on iENUTSWindow
-		src/eNuts/types/interface/UI/windows/__mainWindow.py
+573d746:
+	Remove animation dependencies from StatefullIcon (deferred)
+		src/jAGQt/widgets/icon/__stateFullIcon.py
 
-5de8d5d:
-	fix: cooperative __init__ on iWindowBase so MRO reaches QMainWindow
-		src/jAGQt/types/interface/window/windowBase/__windowBase.py
+3aa403e:
+	Add SideBar package implementation notes
+		.docs/jAGQt/widgets/sideBar/implementation.md
 
-56d3e4e:
-	docs: update inventory.md with latest timestamp and add constants for WorkSpace and SideBar
-		.docs/inventory.md
+fcdb55f:
+	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
 
-aef83b4:
-	refactor: reorder class inheritance for ApplicationInformation and WindowBase
-		src/eNuts/application/__applicationInformation.py
-		src/eNuts/application/workspace/__workSpace.py
-		src/jAGQt/window/windowBase/__windowBase.py
+91246d3:
+	Add SideBar package requirements
+		.docs/jAGQt/widgets/sideBar/requirement.md
 
-eae372d:
-	dev: verbose trace in ObjectName init/workflow
-		src/jAGQt/widgets/components/__objectName.py
+0548a90:
+	feat: add collapse and expand icons for UI enhancements
+		assets/icons/collapse.png
+		assets/icons/expand.png
 
-49ea445:
-	dev: verbose trace in Shell._wInitializeUI
-		src/eNuts/application/__shell.py
+cecaffa:
+	Document SideBar host widget
+		.docs/jAGQt/widgets/sideBar/sideBar.md
 
-cdb70a4:
-	dev: verbose trace + force SideBar visibility (fixed width + bg)
+edb16b9:
+	Document SideBarHeader component
+		.docs/jAGQt/widgets/sideBar/components/sideBarHeader.md
+
+8c636b6:
+	Document SideBarItem base component
+		.docs/jAGQt/widgets/sideBar/components/sideBarItem.md
+
+03da000:
+	Document eSideBarState enum
+		.docs/jAGQt/widgets/sideBar/eSideBarState.md
+
+16ef008:
+	Make SideBar icons parameter required (no default)
 		src/jAGQt/widgets/SideBar/__sideBar.py
-
-2f0f57a:
-	dev: verbose trace + force SideBar/WorkSpace visibility
-		src/eNuts/application/workspace/__workSpace.py
-
-a5f639e:
-	refactor: remove unnecessary style setting in WorkSpace initialization
-		src/eNuts/application/workspace/__workSpace.py
-
-0b6b05a:
-	feat: implement WorkSpace and SideBar components with UI initialization
-		src/eNuts/UI/windows/__mainWindow.py
-		src/eNuts/application/__applicationInformation.py
-		src/eNuts/application/__shell.py
-		src/eNuts/application/workspace/__workSpace.py
-		src/jAGQt/widgets/SideBar/__sideBar.py
-		src/jAGQt/widgets/components/__componentBase.py
-		src/jAGQt/widgets/components/__objectName.py
 
 ```
