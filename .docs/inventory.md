@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-16 02:44:52 UTC*
+*Auto-generated on: 2026-10-16 02:47:16 UTC*
 
 ## Current Directory Structure
 
@@ -1071,6 +1071,18 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+a5c200a:
+	fix: cooperative __init__ on iENUTSWindow
+		src/eNuts/types/interface/UI/windows/__mainWindow.py
+
+5de8d5d:
+	fix: cooperative __init__ on iWindowBase so MRO reaches QMainWindow
+		src/jAGQt/types/interface/window/windowBase/__windowBase.py
+
+56d3e4e:
+	docs: update inventory.md with latest timestamp and add constants for WorkSpace and SideBar
+		.docs/inventory.md
+
 aef83b4:
 	refactor: reorder class inheritance for ApplicationInformation and WindowBase
 		src/eNuts/application/__applicationInformation.py
@@ -1106,20 +1118,5 @@ a5f639e:
 		src/jAGQt/widgets/SideBar/__sideBar.py
 		src/jAGQt/widgets/components/__componentBase.py
 		src/jAGQt/widgets/components/__objectName.py
-
-f48b621:
-	refactor: clean up imports and formatting in __applicationInformation.py
-
-9ada711:
-	docs: update inventory.md with latest timestamp
-		.docs/inventory.md
-		src/eNuts/UI/windows/__mainWindow.py
-		src/eNuts/application/__shell.py
-		src/eNuts/apps/main.py
-		src/eNuts/types/interface/application/__shell.py
-
-9de06c5:
-	feat: add InitializeInfo workflow stage for title and icon
-		src/eNuts/UI/windows/__mainWindow.py
 
 ```
