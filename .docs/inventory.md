@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-15 23:59:10 UTC*
+*Auto-generated on: 2026-10-16 02:44:52 UTC*
 
 ## Current Directory Structure
 
@@ -367,6 +367,9 @@ src/eNuts/application/workspace:
 	__workSpace.py - 
 		CLASSE(S):
 			WorkSpace -> : workspace
+		CONSTANTS(S)/GLOBAL(S)
+			QSPolicy -> : qspolicy
+			StyleBackground -> : stylebackground
 
 src/eNuts/apps:
 	main.py - 
@@ -992,6 +995,8 @@ src/jAGQt/widgets/sideBar:
 	__sideBar.py - 
 		CLASSE(S):
 			SideBar -> : sidebar
+		CONSTANTS(S)/GLOBAL(S)
+			QSPolicy -> : qspolicy
 
 src/jAGQt/widgets/workspace:
 	__workspace.py - 
@@ -1066,47 +1071,55 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-1573197:
-	docs: update inventory.md with latest timestamp
-		.docs/inventory.md
+aef83b4:
+	refactor: reorder class inheritance for ApplicationInformation and WindowBase
+		src/eNuts/application/__applicationInformation.py
+		src/eNuts/application/workspace/__workSpace.py
+		src/jAGQt/window/windowBase/__windowBase.py
 
-4961926:
-	fix: implement window state save/restore on Shell for ENUTSWindow hierarchy
+eae372d:
+	dev: verbose trace in ObjectName init/workflow
+		src/jAGQt/widgets/components/__objectName.py
+
+49ea445:
+	dev: verbose trace in Shell._wInitializeUI
 		src/eNuts/application/__shell.py
 
-a3d95a1:
-	docs: update inventory.md with latest timestamp
-		.docs/inventory.md
+cdb70a4:
+	dev: verbose trace + force SideBar visibility (fixed width + bg)
+		src/jAGQt/widgets/SideBar/__sideBar.py
 
-6b6cbc9:
-	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
+2f0f57a:
+	dev: verbose trace + force SideBar/WorkSpace visibility
+		src/eNuts/application/workspace/__workSpace.py
 
-1377905:
-	refactor: standardize variable naming in Shell class and improve settings initialization
-		.docs/inventory.md
-		src/eNuts/application/__shell.py
+a5f639e:
+	refactor: remove unnecessary style setting in WorkSpace initialization
+		src/eNuts/application/workspace/__workSpace.py
 
-f1c9051:
-	fix: restore correct indentation in _install_subclass_hook
-		src/jAGFx/workflow/__workflow.py
-
-0140158:
-	fix: correct docstring typo in _discover_workflows
-		src/jAGFx/workflow/__workflow.py
-
-28100a3:
-	chore: remove temporary Shell debug prints
-		src/eNuts/application/__shell.py
-
-aa7073c:
-	chore: remove temporary workflow debug traces
-		src/jAGFx/workflow/__workflow.py
-
-202544d:
-	refactor: update window classes to use workflow decorators and improve shutdown handling
+0b6b05a:
+	feat: implement WorkSpace and SideBar components with UI initialization
 		src/eNuts/UI/windows/__mainWindow.py
 		src/eNuts/application/__applicationInformation.py
 		src/eNuts/application/__shell.py
+		src/eNuts/application/workspace/__workSpace.py
+		src/jAGQt/widgets/SideBar/__sideBar.py
+		src/jAGQt/widgets/components/__componentBase.py
+		src/jAGQt/widgets/components/__objectName.py
+
+f48b621:
+	refactor: clean up imports and formatting in __applicationInformation.py
+
+9ada711:
+	docs: update inventory.md with latest timestamp
+		.docs/inventory.md
+		src/eNuts/UI/windows/__mainWindow.py
+		src/eNuts/application/__shell.py
 		src/eNuts/apps/main.py
+		src/eNuts/types/interface/application/__shell.py
+
+9de06c5:
+	feat: add InitializeInfo workflow stage for title and icon
+		src/eNuts/UI/windows/__mainWindow.py
 
 ```
