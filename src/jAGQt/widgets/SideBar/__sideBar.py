@@ -20,6 +20,8 @@ from .components import SideBarHeader
 
 # ==================================================================================
 QSPolicy = QSizePolicy.Policy
+C_EXPANDED_WIDTH = 200
+C_COLLAPSED_WIDTH = 48
 # ==================================================================================
 
 
@@ -52,6 +54,7 @@ class SideBar(ComponentBase, ObjectName, QWidget):
                 dict(icons)
             )
             self._initialState: eSideBarState = initialState
+            self._sidebarState: eSideBarState = initialState
         except Exception as ex:
             error("[SideBar] __init__ FAIL", ex)
             error(f"[SideBar] __init__ traceback:\n{format_exc()}")
@@ -62,8 +65,6 @@ class SideBar(ComponentBase, ObjectName, QWidget):
         verbose("[SideBar] _wInitializeUI ENTER")
         try:
             self.setSizePolicy(QSPolicy.Fixed, QSPolicy.Expanding)
-            # DEV visibility: fixed width + solid background so the sidebar is obvious
-            self.setFixedWidth(200)
             self.setStyleSheet(
                 "background-color: #333337; border-right: 1px solid #3c3c3c;"
             )
@@ -100,6 +101,10 @@ class SideBar(ComponentBase, ObjectName, QWidget):
             self.setLayout(outerLayout)
             self._layout: QBoxLayout = outerLayout
             self._header: SideBarHeader = header
+            self._sidebarState = initialState
+
+            header.stateChanged.connect(self._onHeaderStateChanged)
+            self._applySideBarState(initialState)
 
             verbose(
                 f"[SideBar] _wInitializeUI EXIT "
@@ -110,6 +115,31 @@ class SideBar(ComponentBase, ObjectName, QWidget):
             error("[SideBar] _wInitializeUI FAIL", ex)
             error(f"[SideBar] _wInitializeUI traceback:\n{format_exc()}")
             raise
+
+    def _onHeaderStateChanged(self, state: object) -> None:
+        if not isinstance(state, eSideBarState):
+            warning(f"[SideBar] ignoring non-eSideBarState: {state!r}")
+            return
+        verbose(f"[SideBar] header stateChanged -> {state!r}")
+        self._applySideBarState(state)
+
+    def _applySideBarState(self, state: eSideBarState) -> None:
+        self._sidebarState = state
+        header = self._header
+
+        if state is eSideBarState.Collapsed:
+            self.setFixedWidth(C_COLLAPSED_WIDTH)
+            header._titleWidget.hide()
+            header._descriptionWidget.hide()
+        else:
+            self.setFixedWidth(C_EXPANDED_WIDTH)
+            header._titleWidget.show()
+            if header.Description.strip():
+                header._descriptionWidget.show()
+            else:
+                header._descriptionWidget.hide()
+
+        self.updateGeometry()
 
     # ==================================================================================
     @property
@@ -134,8 +164,11 @@ class SideBar(ComponentBase, ObjectName, QWidget):
 
     @property
     def State(self) -> eSideBarState:
-        return self._header.State
+        return self._sidebarState
 
     @State.setter
     def State(self, value: eSideBarState) -> None:
+        if value == self._sidebarState and self._header.State == value:
+            return
+        # Drive through header/icon so wipe + stateChanged fire
         self._header.State = value
