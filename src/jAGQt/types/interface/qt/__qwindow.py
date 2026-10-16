@@ -23,7 +23,13 @@ from PySide6.QtWidgets import (
 
 
 # ==================================================================================
-class iQMainWindow:
+# Protocol-only: must NOT be a regular base class in the runtime MRO of any
+# QMainWindow subclass. A normal class with "def event(...) -> bool: ..." would
+# sit before QMainWindow in the MRO and return None, breaking Qt event delivery
+# and often stopping the qasync loop immediately after show().
+# ==================================================================================
+@runtime_checkable
+class iQMainWindow(Protocol):
     @overload
     def addDockWidget(self, area: Qt.DockWidgetArea, dockwidget: QDockWidget) -> None: ...
     @overload
@@ -57,7 +63,7 @@ class iQMainWindow:
     def removeToolBar(self, toolbar: QToolBar) -> None: ...
     def removeToolBarBreak(self, before: QToolBar) -> None: ...
     def resizeDocks(
-        self, docks: collections.abc.Sequence[QDockWidget], 
+        self, docks: collections.abc.Sequence[QDockWidget],
         sizes: collections.abc.Sequence[int], orientation: Qt.Orientation) -> None: ...
     def restoreDockWidget(self, dockwidget: QDockWidget) -> bool: ...
     def restoreState(
