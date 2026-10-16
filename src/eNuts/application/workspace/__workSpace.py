@@ -28,8 +28,6 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
 
         sideBar: SideBar = SideBar()
         stack: QStackedWidget = QStackedWidget()
-        
-        self.setStyle("QWidget { border: none; }")
 
         layout: QBoxLayout = QBoxLayout(QBoxLayout.Direction.LeftToRight)
         layout.setSpacing(0)
