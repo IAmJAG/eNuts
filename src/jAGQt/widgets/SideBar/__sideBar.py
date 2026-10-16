@@ -104,7 +104,8 @@ class SideBar(ComponentBase, ObjectName, QWidget):
             self._sidebarState = initialState
 
             header.stateChanged.connect(self._onHeaderStateChanged)
-            self._applySideBarState(initialState)
+            # Do not name helpers _a... / _w... — @workflow discovers those prefixes.
+            self._syncLayoutForState(initialState)
 
             verbose(
                 f"[SideBar] _wInitializeUI EXIT "
@@ -121,9 +122,9 @@ class SideBar(ComponentBase, ObjectName, QWidget):
             warning(f"[SideBar] ignoring non-eSideBarState: {state!r}")
             return
         verbose(f"[SideBar] header stateChanged -> {state!r}")
-        self._applySideBarState(state)
+        self._syncLayoutForState(state)
 
-    def _applySideBarState(self, state: eSideBarState) -> None:
+    def _syncLayoutForState(self, state: eSideBarState) -> None:
         self._sidebarState = state
         header = self._header
 
