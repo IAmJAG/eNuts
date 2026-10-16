@@ -17,6 +17,8 @@ from PySide6.QtCore import (
     Signal,
 )
 
+from jAGFx.workflow import workflow
+
 # ==================================================================================
 from jAGQt.types.interface.animations import iAnimation
 from jAGQt.utilities import AnimationError
@@ -27,31 +29,24 @@ C_DEFAULT_DURATION_MS = 220
 
 
 # ==================================================================================
+@workflow
 class AnimationBase(QObject, ABC):
-    """Base for custom frame-driven animations.
-
-    Subclasses implement ``_onProgress(progress)`` where *progress* is in
-    ``[0.0, 1.0]``. Lifecycle: ``start`` / ``stop`` / ``isRunning``.
-    """
-
     started = Signal()
     finished = Signal()
     stopped = Signal()
-
     def __init__(
-        self,
-        durationMs: int = C_DEFAULT_DURATION_MS,
+        self, durationMs: int = C_DEFAULT_DURATION_MS,
         easing: QEasingCurve.Type = QEasingCurve.Type.OutCubic,
-        parent: Optional[QObject] = None,
-        *args,
-        **kwargs,
-    ) -> None:
+        *args, **kwargs,
+    ) -> None:        
         if durationMs < 0:
             raise AnimationError(f"durationMs must be >= 0, got {durationMs}")
 
-        super().__init__(parent, *args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._durationMs: int = int(durationMs)
-        self._easing: QEasingCurve.Type = easing
+        self._easing: QEasingCurve.Type = easing        
+
+    def _wIntializeDriver(self) -> None:
         self._driver: QVariantAnimation = QVariantAnimation(self)
         self._driver.setStartValue(0.0)
         self._driver.setEndValue(1.0)
@@ -88,12 +83,12 @@ class AnimationBase(QObject, ABC):
     # ==================================================================================
     def start(self) -> None:
         try:
-            if self.isRunning:
-                self.stop()
+            if self.isRunning: self.stop()
             self._onStart()
             self._driver.setCurrentTime(0)
             self._driver.start()
             self.started.emit()
+
         except Exception as ex:
             error("[AnimationBase] start FAIL", ex)
             error(f"[AnimationBase] start traceback:\n{format_exc()}")
@@ -101,11 +96,11 @@ class AnimationBase(QObject, ABC):
 
     def stop(self) -> None:
         try:
-            if not self.isRunning:
-                return
+            if not self.isRunning: return
             self._driver.stop()
             self._onStop()
             self.stopped.emit()
+
         except Exception as ex:
             error("[AnimationBase] stop FAIL", ex)
             error(f"[AnimationBase] stop traceback:\n{format_exc()}")
@@ -116,6 +111,7 @@ class AnimationBase(QObject, ABC):
         try:
             progress = float(value)
             self._onProgress(progress)
+
         except Exception as ex:
             error("[AnimationBase] _onValueChanged FAIL", ex)
             error(f"[AnimationBase] _onValueChanged traceback:\n{format_exc()}")
@@ -127,6 +123,7 @@ class AnimationBase(QObject, ABC):
             self._onProgress(1.0)
             self._onFinished()
             self.finished.emit()
+            
         except Exception as ex:
             error("[AnimationBase] _onDriverFinished FAIL", ex)
             error(f"[AnimationBase] _onDriverFinished traceback:\n{format_exc()}")
