@@ -6,7 +6,7 @@ from traceback import format_exc
 from typing import Dict, Optional, Union
 
 # ==================================================================================
-from PySide6.QtCore import QSize
+from PySide6.QtCore import QSize, Signal
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import QSizePolicy
 
@@ -29,6 +29,8 @@ C_ICON_SIZE = 24
 @workflow
 class SideBarHeader(SideBarItem):
     OBJECT_NAME = "W_SIDEBAR_HEADER"
+
+    stateChanged = Signal(object)  # eSideBarState
 
     def __init__(
         self,
@@ -83,6 +85,9 @@ class SideBarHeader(SideBarItem):
             iconWidget.setFixedSize(QSize(C_ICON_SIZE, C_ICON_SIZE))
             iconWidget.setSizePolicy(QSPolicy.Fixed, QSPolicy.Fixed)
             if initialState in icons:
+                # Set without emitting via direct path: assignment emits stateChanged
+                # only when value changes; initial set may emit — suppress by setting
+                # _state before UI if needed. Prefer set after connect is ready.
                 iconWidget.state = initialState
 
             titleWidget: Title = Title(
@@ -102,11 +107,17 @@ class SideBarHeader(SideBarItem):
             self._icon: StatefullIcon[eSideBarState] = iconWidget
             self._titleWidget: Title = titleWidget
             self._descriptionWidget: Description = descriptionWidget
+
+            iconWidget.stateChanged.connect(self._onIconStateChanged)
             verbose("[SideBarHeader] _wInitializeUI EXIT")
         except Exception as ex:
             error("[SideBarHeader] _wInitializeUI FAIL", ex)
             error(f"[SideBarHeader] _wInitializeUI traceback:\n{format_exc()}")
             raise
+
+    def _onIconStateChanged(self, state: object) -> None:
+        verbose(f"[SideBarHeader] stateChanged {state!r}")
+        self.stateChanged.emit(state)
 
     # ==================================================================================
     @property
