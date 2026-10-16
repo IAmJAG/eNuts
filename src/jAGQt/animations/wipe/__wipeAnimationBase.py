@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 # ==================================================================================
+import math
 from typing import Optional, Union
 
 # ==================================================================================
@@ -12,10 +13,10 @@ from PySide6.QtGui import QColor, QImage, QPainter, QPainterPath, QPen, QPixmap
 from PySide6.QtWidgets import QLabel, QWidget
 
 # ==================================================================================
-from jAGQt.animations import AnimationBase
 from jAGQt.utilities import AnimationError
 
 # ==================================================================================
+from ..__animationBase import AnimationBase
 from .__eWipeMode import eWipeMode
 
 # ==================================================================================
@@ -87,8 +88,6 @@ class WipeAnimationBase(AnimationBase):
         if isinstance(target, QLabel):
             target.setPixmap(pixmap)
             return
-        # Generic fallback: set as stylesheet is unsuitable; use QLabel path only.
-        # Non-QLabel widgets still receive a grab-based update if they support setPixmap.
         setPixmap = getattr(target, "setPixmap", None)
         if callable(setPixmap):
             setPixmap(pixmap)
@@ -159,11 +158,10 @@ class WipeAnimationBase(AnimationBase):
         elif self._mode is eWipeMode.Vertical:
             path.addRect(QRectF(0, 0, w, h * progress))
         else:
-            # Arc: windshield-style sector from bottom-center, sweeping left→right
             pivot = QPointF(w * 0.5, h * 1.05)
             radius = (w * w + h * h) ** 0.5
-            startAngle = 180.0  # Qt degrees: 0 = east, counter-clockwise
-            span = -180.0 * progress  # sweep toward the right
+            startAngle = 180.0
+            span = -180.0 * progress
             path.moveTo(pivot)
             path.arcTo(
                 pivot.x() - radius,
@@ -193,9 +191,6 @@ class WipeAnimationBase(AnimationBase):
         else:
             pivot = QPointF(w * 0.5, h * 1.05)
             radius = (w * w + h * h) ** 0.5
-            # Blade along the leading ray of the sector
-            import math
-
             angleRad = math.radians(180.0 - 180.0 * progress)
             end = QPointF(
                 pivot.x() + radius * math.cos(angleRad),
