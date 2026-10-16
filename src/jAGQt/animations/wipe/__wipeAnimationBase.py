@@ -27,6 +27,17 @@ ImageLike = Union[QPixmap, QImage, str]
 
 
 # ==================================================================================
+def _assertSetPixmap(target: QWidget) -> None:
+    if target is None:
+        raise AnimationError("Wipe target must not be None")
+    setPixmap = getattr(target, "setPixmap", None)
+    if not callable(setPixmap):
+        raise AnimationError(
+            f"Target {type(target).__name__} does not support setPixmap; "
+            f"use QLabel-based widgets (e.g. Icon)"
+        )
+
+
 def _toPixmap(source: Optional[ImageLike], sizeHint: QPixmap | None = None) -> QPixmap:
     if source is None:
         return QPixmap()
@@ -55,8 +66,7 @@ class WipeAnimationBase(AnimationBase):
         *args,
         **kwargs,
     ) -> None:
-        if target is None:
-            raise AnimationError("Wipe target must not be None")
+        _assertSetPixmap(target)
         super().__init__(*args, **kwargs)
         self._target: QWidget = target
         self._mode: eWipeMode = mode
@@ -84,17 +94,8 @@ class WipeAnimationBase(AnimationBase):
         return grab
 
     def _applyPixmap(self, pixmap: QPixmap) -> None:
-        target = self._target
-        if isinstance(target, QLabel):
-            target.setPixmap(pixmap)
-            return
-        setPixmap = getattr(target, "setPixmap", None)
-        if callable(setPixmap):
-            setPixmap(pixmap)
-            return
-        raise AnimationError(
-            f"Target {type(target).__name__} does not support setPixmap; use QLabel-based widgets"
-        )
+        _assertSetPixmap(self._target)
+        self._target.setPixmap(pixmap)  # type: ignore[attr-defined]
 
     def _scaled(self, pixmap: QPixmap) -> QPixmap:
         if pixmap.isNull():
