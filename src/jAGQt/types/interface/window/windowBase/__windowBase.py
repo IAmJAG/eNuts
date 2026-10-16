@@ -14,7 +14,10 @@ from ...qt import iQMainWindow
 
 # ==================================================================================
 class iWindowBase(iQMainWindow, iComponentBase):
-    def __init__(self, frameless: bool = False, *args, **kwargs) -> None: ...
+    # Must call super() so cooperative MI still reaches QMainWindow / QObject.
+    # A bare "..." body breaks the chain and triggers libshiboken errors.
+    def __init__(self, frameless: bool = False, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
 
     def saveWindowState(self) -> None: ...
     def restoreWindowsState(self) -> None: ...
