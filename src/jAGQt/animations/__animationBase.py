@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 # ==================================================================================
-from abc import ABC, abstractmethod
 from traceback import format_exc
 from typing import Optional
 
@@ -20,7 +19,6 @@ from PySide6.QtCore import (
 from jAGFx.workflow import workflow
 
 # ==================================================================================
-from jAGQt.types.interface.animations import iAnimation
 from jAGQt.utilities import AnimationError
 
 # ==================================================================================
@@ -29,8 +27,11 @@ C_DEFAULT_DURATION_MS = 220
 
 
 # ==================================================================================
+# QObject uses a Shiboken metaclass; do not mix with ABC (ABCMeta conflict).
+# Subclasses must override _onProgress; the base raises NotImplementedError.
+# ==================================================================================
 @workflow
-class AnimationBase(QObject, ABC):
+class AnimationBase(QObject):
     started = Signal()
     finished = Signal()
     stopped = Signal()
@@ -59,10 +60,10 @@ class AnimationBase(QObject, ABC):
         driver.valueChanged.connect(self._onValueChanged)
         driver.finished.connect(self._onDriverFinished)
         driver.setParent(self)
-        self._driver: QVariantAnimation = driver
+        self._driver = driver
 
     def _ensureDriver(self) -> QVariantAnimation:
-        if self._driver is None: 
+        if self._driver is None:
             self._wInitializeDriver()
         assert self._driver is not None
         return self._driver
@@ -71,7 +72,8 @@ class AnimationBase(QObject, ABC):
     @property
     def isRunning(self) -> bool:
         driver = self._driver
-        if driver is None: return False
+        if driver is None:
+            return False
         return driver.state() == QAbstractAnimation.State.Running
 
     @property
@@ -120,7 +122,7 @@ class AnimationBase(QObject, ABC):
             driver.stop()
             self._onStop()
             self.stopped.emit()
-                        
+
         except Exception as ex:
             error("[AnimationBase] stop FAIL", ex)
             error(f"[AnimationBase] stop traceback:\n{format_exc()}")
@@ -156,6 +158,8 @@ class AnimationBase(QObject, ABC):
     def _onFinished(self) -> None:
         """Hook invoked after a full run reaches progress 1.0."""
 
-    @abstractmethod
     def _onProgress(self, progress: float) -> None:
-        """Apply a frame for *progress* in ``[0.0, 1.0]``."""
+        """Apply a frame for *progress* in ``[0.0, 1.0]``. Subclasses must override."""
+        raise NotImplementedError(
+            f"{type(self).__name__} must implement _onProgress(progress)"
+        )
