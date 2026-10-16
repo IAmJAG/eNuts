@@ -9,13 +9,15 @@ from jAGFx.types.interface.configuration import iApplicationConfiguration
 
 # ==================================================================================
 from ...components import iComponentBase
-from ...qt import iQMainWindow
+
+# iQMainWindow is a Protocol for typing/intellisense only. It must NOT appear in the
+# runtime MRO of any QMainWindow subclass — its "..." method bodies would shadow
+# real Qt virtuals (especially event()) and return None.
 
 
 # ==================================================================================
-class iWindowBase(iQMainWindow, iComponentBase):
-    # Must call super() so cooperative MI still reaches QMainWindow / QObject.
-    # A bare "..." body breaks the chain and triggers libshiboken errors.
+class iWindowBase(iComponentBase):
+    # Cooperative passthrough so MI still reaches QMainWindow / QObject.
     def __init__(self, frameless: bool = False, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
