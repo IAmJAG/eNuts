@@ -29,15 +29,15 @@ class SideBar(ComponentBase, ObjectName, QWidget):
 
     def __init__(
         self,
+        icons: Dict[eSideBarState, Optional[Union[QIcon, QPixmap, str]]],
         title: str = "",
         description: str = "",
-        icons: Dict[eSideBarState, Optional[Union[QIcon, QPixmap, str]]] = None,
         initialState: eSideBarState = eSideBarState.Expanded,
         *args,
         **kwargs,
     ) -> None:
-        if icons is None or len(icons) == 0:
-            raise ValueError("icons must not be None or empty")
+        if len(icons) == 0:
+            raise ValueError("icons must not be empty")
 
         verbose("[SideBar] __init__ ENTER")
         super().__init__(*args, **kwargs)
