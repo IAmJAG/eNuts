@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 # ==================================================================================
+from traceback import format_exc
+
+# ==================================================================================
 from PySide6.QtCore import QRect, QSettings, Qt
 
 # ==================================================================================
@@ -18,12 +21,15 @@ class Shell(ApplicationInformation):
         verbose("[Shell] _wInitializeUI ENTER")
         try:
             central: WorkSpace = WorkSpace()
-            verbose(f"[Shell] WorkSpace created objectName={central.objectName()!r}")
+            verbose(
+                f"[Shell] WorkSpace created objectName={central.objectName()!r}"
+            )
             self.setCentralWidget(central)
             verbose("[Shell] setCentralWidget done")
 
         except Exception as ex:
-            error("[shell] initializeUI FAIL", ex)
+            error("[Shell] _wInitializeUI FAIL", ex)
+            error(f"[Shell] _wInitializeUI traceback:\n{format_exc()}")
             raise
         finally:
             verbose("[Shell] _wInitializeUI EXIT")
@@ -51,8 +57,10 @@ class Shell(ApplicationInformation):
             try:
                 state = int(self.settings.value("windowState"))
                 self.setWindowState(Qt.WindowState(state))
-            except (TypeError, ValueError):
-                pass
+            except (TypeError, ValueError) as ex:
+                warning(
+                    f"[Shell] restoreWindowsState invalid windowState={self.settings.value('windowState')!r}: {ex}"
+                )
 
     @property
     def settings(self) -> QSettings:
