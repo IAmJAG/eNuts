@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-16 04:04:13 UTC*
+*Auto-generated on: 2026-10-16 05:04:29 UTC*
 
 ## Current Directory Structure
 
@@ -236,6 +236,7 @@ eNuts/
 │   ├── jAGQt/
 │   │   ├── .ff
 │   │   ├── animations/
+│   │   │   └── __animationBase.py
 │   │   ├── icons/
 │   │   │   └── animations/
 │   │   ├── types/
@@ -243,6 +244,7 @@ eNuts/
 │   │   │   └── interface/
 │   │   │       ├── .fff
 │   │   │       ├── animations/
+│   │   │       │   └── __animation.py
 │   │   │       ├── components/
 │   │   │       │   └── __componentBase.py
 │   │   │       ├── icons/
@@ -877,6 +879,20 @@ src/jAGFx/workflow:
 			_WORKFLOW_INIT_WRAPPED -> : _workflow_init_wrapped
 			_WORKFLOW_SUBCLASS_WRAPPED -> : _workflow_subclass_wrapped
 
+src/jAGQt/animations:
+	__animationBase.py - 
+		CLASSE(S):
+			AnimationBase -> : animationbase
+		FUNCTION(S):
+			_assertProtocol -> : _assertprotocol
+		CONSTANTS(S)/GLOBAL(S)
+			C_DEFAULT_DURATION_MS -> : c_default_duration_ms
+
+src/jAGQt/types/interface/animations:
+	__animation.py - 
+		CLASSE(S):
+			iAnimation -> : ianimation
+
 src/jAGQt/types/interface/components:
 	__componentBase.py - 
 		CLASSE(S):
@@ -1076,44 +1092,42 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-573d746:
-	Remove animation dependencies from StatefullIcon (deferred)
-		src/jAGQt/widgets/icon/__stateFullIcon.py
+6e018f2:
+	Add animations package implementation notes
+		.docs/jAGQt/animations/implementation.md
 
-3aa403e:
-	Add SideBar package implementation notes
-		.docs/jAGQt/widgets/sideBar/implementation.md
+5b13370:
+	Add animations package requirements
+		.docs/jAGQt/animations/requirement.md
 
-fcdb55f:
-	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
+c3e9e5d:
+	Document AnimationBase
+		.docs/jAGQt/animations/animationBase.md
 
-91246d3:
-	Add SideBar package requirements
-		.docs/jAGQt/widgets/sideBar/requirement.md
+a882dc3:
+	Export AnimationBase from jAGQt.animations
 
-0548a90:
-	feat: add collapse and expand icons for UI enhancements
-		assets/icons/collapse.png
-		assets/icons/expand.png
+7532e23:
+	Add AnimationBase for custom animation subclasses
+		src/jAGQt/animations/__animationBase.py
 
-cecaffa:
-	Document SideBar host widget
-		.docs/jAGQt/widgets/sideBar/sideBar.md
+c323663:
+	Export iAnimation from types.interface.animations
 
-edb16b9:
-	Document SideBarHeader component
-		.docs/jAGQt/widgets/sideBar/components/sideBarHeader.md
+0ff991a:
+	Add iAnimation contract for custom animation variants
+		src/jAGQt/types/interface/animations/__animation.py
 
-8c636b6:
-	Document SideBarItem base component
-		.docs/jAGQt/widgets/sideBar/components/sideBarItem.md
+59d877f:
+	Text: set objectName after QLabel init (same MRO fix as Icon)
+		src/jAGQt/widgets/text/__text.py
 
-03da000:
-	Document eSideBarState enum
-		.docs/jAGQt/widgets/sideBar/eSideBarState.md
+b79a8ed:
+	Icon: set objectName after QLabel init to avoid MRO kwargs leak
+		src/jAGQt/widgets/icon/__icon.py
 
-16ef008:
-	Make SideBar icons parameter required (no default)
-		src/jAGQt/widgets/SideBar/__sideBar.py
+42f09e3:
+	Fix ComponentBase cooperative super so object.__init__ is not called with kwargs
+		src/jAGQt/widgets/components/__componentBase.py
 
 ```
