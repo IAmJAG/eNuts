@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-16 05:04:29 UTC*
+*Auto-generated on: 2026-10-16 05:42:56 UTC*
 
 ## Current Directory Structure
 
@@ -236,7 +236,13 @@ eNuts/
 │   ├── jAGQt/
 │   │   ├── .ff
 │   │   ├── animations/
-│   │   │   └── __animationBase.py
+│   │   │   ├── __animationBase.py
+│   │   │   └── wipe/
+│   │   │       ├── __eWipeMode.py
+│   │   │       ├── __wipeAnimationBase.py
+│   │   │       ├── __wipeIn.py
+│   │   │       ├── __wipeOut.py
+│   │   │       └── __wipeTransition.py
 │   │   ├── icons/
 │   │   │   └── animations/
 │   │   ├── types/
@@ -883,10 +889,31 @@ src/jAGQt/animations:
 	__animationBase.py - 
 		CLASSE(S):
 			AnimationBase -> : animationbase
-		FUNCTION(S):
-			_assertProtocol -> : _assertprotocol
 		CONSTANTS(S)/GLOBAL(S)
 			C_DEFAULT_DURATION_MS -> : c_default_duration_ms
+
+src/jAGQt/animations/wipe:
+	__eWipeMode.py - 
+		CLASSE(S):
+			eWipeMode -> : ewipemode
+	__wipeAnimationBase.py - 
+		CLASSE(S):
+			WipeAnimationBase -> : wipeanimationbase
+		FUNCTION(S):
+			_toPixmap -> : _topixmap
+		CONSTANTS(S)/GLOBAL(S)
+			C_BLADE_WIDTH -> : c_blade_width
+			C_BLADE_COLOR -> : c_blade_color
+			ImageLike -> : imagelike
+	__wipeIn.py - 
+		CLASSE(S):
+			WipeIn -> : wipein
+	__wipeOut.py - 
+		CLASSE(S):
+			WipeOut -> : wipeout
+	__wipeTransition.py - 
+		CLASSE(S):
+			WipeTransition -> : wipetransition
 
 src/jAGQt/types/interface/animations:
 	__animation.py - 
@@ -1092,42 +1119,42 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-6e018f2:
-	Add animations package implementation notes
-		.docs/jAGQt/animations/implementation.md
+f9e862f:
+	Avoid circular import; move math import to module top
+		src/jAGQt/animations/wipe/__wipeAnimationBase.py
 
-5b13370:
-	Add animations package requirements
-		.docs/jAGQt/animations/requirement.md
+a528982:
+	Re-export wipe animations from jAGQt.animations
 
-c3e9e5d:
-	Document AnimationBase
-		.docs/jAGQt/animations/animationBase.md
+cf7394d:
+	Export wipe animation types
 
-a882dc3:
-	Export AnimationBase from jAGQt.animations
+2904705:
+	Add WipeTransition single-pass wipe animation
+		src/jAGQt/animations/wipe/__wipeTransition.py
 
-7532e23:
-	Add AnimationBase for custom animation subclasses
+88d4248:
+	Add WipeIn animation
+		src/jAGQt/animations/wipe/__wipeIn.py
+
+a3467fe:
+	Add WipeOut animation
+		src/jAGQt/animations/wipe/__wipeOut.py
+
+c001792:
+	Add eWipeMode enum (Horizontal default, Vertical, Arc)
+		src/jAGQt/animations/wipe/__eWipeMode.py
+
+b0467cb:
+	Add WipeAnimationBase with grab+setPixmap and wipe mask geometry
+		src/jAGQt/animations/wipe/__wipeAnimationBase.py
+
+66746d9:
+	AnimationBase.start(*args, **kwargs); ensure driver init; fix workflow method name
 		src/jAGQt/animations/__animationBase.py
 
-c323663:
-	Export iAnimation from types.interface.animations
-
-0ff991a:
-	Add iAnimation contract for custom animation variants
+f0a2ab6:
+	iAnimation.start accepts *args, **kwargs
 		src/jAGQt/types/interface/animations/__animation.py
-
-59d877f:
-	Text: set objectName after QLabel init (same MRO fix as Icon)
-		src/jAGQt/widgets/text/__text.py
-
-b79a8ed:
-	Icon: set objectName after QLabel init to avoid MRO kwargs leak
-		src/jAGQt/widgets/icon/__icon.py
-
-42f09e3:
-	Fix ComponentBase cooperative super so object.__init__ is not called with kwargs
-		src/jAGQt/widgets/components/__componentBase.py
 
 ```

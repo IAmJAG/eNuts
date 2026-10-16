@@ -51,16 +51,18 @@ class AnimationBase(QObject, ABC):
         self._driver: Optional[QVariantAnimation] = None
 
     def _wInitializeDriver(self) -> None:
-        self._driver = QVariantAnimation(self)
-        self._driver.setStartValue(0.0)
-        self._driver.setEndValue(1.0)
-        self._driver.setDuration(self._durationMs)
-        self._driver.setEasingCurve(self._easing)
-        self._driver.valueChanged.connect(self._onValueChanged)
-        self._driver.finished.connect(self._onDriverFinished)
+        driver: QVariantAnimation = QVariantAnimation(self)
+        driver.setStartValue(0.0)
+        driver.setEndValue(1.0)
+        driver.setDuration(self._durationMs)
+        driver.setEasingCurve(self._easing)
+        driver.valueChanged.connect(self._onValueChanged)
+        driver.finished.connect(self._onDriverFinished)
+        driver.setParent(self)
+        self._driver: QVariantAnimation = driver
 
     def _ensureDriver(self) -> QVariantAnimation:
-        if self._driver is None:
+        if self._driver is None: 
             self._wInitializeDriver()
         assert self._driver is not None
         return self._driver
@@ -69,8 +71,7 @@ class AnimationBase(QObject, ABC):
     @property
     def isRunning(self) -> bool:
         driver = self._driver
-        if driver is None:
-            return False
+        if driver is None: return False
         return driver.state() == QAbstractAnimation.State.Running
 
     @property
@@ -105,6 +106,7 @@ class AnimationBase(QObject, ABC):
             driver.setCurrentTime(0)
             driver.start()
             self.started.emit()
+
         except Exception as ex:
             error("[AnimationBase] start FAIL", ex)
             error(f"[AnimationBase] start traceback:\n{format_exc()}")
@@ -118,6 +120,7 @@ class AnimationBase(QObject, ABC):
             driver.stop()
             self._onStop()
             self.stopped.emit()
+                        
         except Exception as ex:
             error("[AnimationBase] stop FAIL", ex)
             error(f"[AnimationBase] stop traceback:\n{format_exc()}")
