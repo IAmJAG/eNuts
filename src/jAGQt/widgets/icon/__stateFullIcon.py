@@ -7,7 +7,7 @@ from traceback import format_exc
 from typing import Dict, List, Optional, Union
 
 # ==================================================================================
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtGui import QColor, QIcon, QMouseEvent, QPixmap
 
 # ==================================================================================
@@ -24,6 +24,8 @@ C_DEFAULT_WIPE_MS = 220
 # ==================================================================================
 class StatefullIcon[T: Enum](Icon):
     """Multi-state icon; left-click cycles states with WipeTransition."""
+
+    stateChanged = Signal(object)  # new state (Enum member)
 
     def __init__(
         self,
@@ -80,8 +82,7 @@ class StatefullIcon[T: Enum](Icon):
         if isinstance(icon, QPixmap):
             return icon
         if isinstance(icon, str):
-            px = QPixmap(icon)
-            return px
+            return QPixmap(icon)
         if isinstance(icon, QIcon):
             size = self.size()
             if size.isEmpty() or size.width() <= 0 or size.height() <= 0:
@@ -99,6 +100,7 @@ class StatefullIcon[T: Enum](Icon):
         if state not in self._icons:
             raise KeyError(f"No icon registered for state {state!r}")
 
+        previous = self._state
         targetIcon = self._icons[state]
         self._pendingIcon = targetIcon
         self._state = state
@@ -107,6 +109,8 @@ class StatefullIcon[T: Enum](Icon):
             self._animating = False
             super().setIcon(targetIcon)
             self._pendingIcon = None
+            if previous != state:
+                self.stateChanged.emit(state)
             return
 
         try:
@@ -115,21 +119,23 @@ class StatefullIcon[T: Enum](Icon):
                 transition.stop()
 
             targetPx = self._iconToPixmap(targetIcon)
-            # originalImage=None → grab current widget appearance
             self._animating = True
             transition.start(targetImage=targetPx, originalImage=None)
+            if previous != state:
+                self.stateChanged.emit(state)
         except Exception as ex:
             error("[StatefullIcon] _runWipeToState FAIL", ex)
             error(f"[StatefullIcon] traceback:\n{format_exc()}")
             self._animating = False
             super().setIcon(targetIcon)
             self._pendingIcon = None
+            if previous != state:
+                self.stateChanged.emit(state)
             raise
 
     def _onWipeFinished(self) -> None:
         try:
             if self._pendingIcon is not None:
-                # Sync Icon internal _icon without restarting wipe
                 self._animating = False
                 super().setIcon(self._pendingIcon)
                 self._pendingIcon = None
@@ -172,7 +178,6 @@ class StatefullIcon[T: Enum](Icon):
 
     @state.setter
     def state(self, state: T) -> None:
-        """Set state with wipe when enabled (programmatic). Click uses the same path."""
         if state == self._state:
             return
         if state not in self._icons:
