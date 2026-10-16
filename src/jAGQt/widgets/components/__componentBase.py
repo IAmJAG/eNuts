@@ -10,6 +10,9 @@ from ...utilities import contentMargins, replaceLayout
 
 # ==================================================================================
 class ComponentBase:
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        
     @property
     def Name(self: QWidget | QMainWindow) -> str:
         return self.objectName()

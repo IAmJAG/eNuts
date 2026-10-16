@@ -17,11 +17,9 @@ from ..types.interface.application import iApplicationInformation
 # ==================================================================================
 class ApplicationInformation(WindowBase, iApplicationInformation):
     def __init__(
-        self: WindowBase,
-        shutdownEvent: asyncEvent,
+        self: WindowBase, shutdownEvent: asyncEvent,
         cfg: iApplicationConfiguration,
-        *args,
-        **kwargs,
+        *args, **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
         self._config = cfg

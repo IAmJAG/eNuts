@@ -23,10 +23,8 @@ class ENUTSWindow(Shell, iENUTSWindow):
     OBJECT_NAME = "W_ENUTS_WINDOW"
 
     def __init__(
-        self,
-        shutdownEvent: asyncEvent,
+        self, shutdownEvent: asyncEvent, 
         cfg: iApplicationConfiguration = eNutsConfiguration(),
-        *args,
-        **kwargs,
+        *args, **kwargs,
     ) -> None:
         super().__init__(shutdownEvent, cfg, *args, **kwargs)

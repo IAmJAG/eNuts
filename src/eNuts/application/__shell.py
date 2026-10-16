@@ -9,14 +9,15 @@ from jAGQt.types.interface.window import iMainWindowBase
 
 # ==================================================================================
 from .__applicationInformation import ApplicationInformation
+from .workspace import WorkSpace
 
 
 # ==================================================================================
 class Shell(ApplicationInformation):
     def _wInitializeUI(self: iMainWindowBase) -> None:
         try:
-            super()._wInitializeUI()
-            self.Title = self.title
+            central: WorkSpace = WorkSpace()
+            self.setCentralWidget(central)            
 
         except Exception as ex:
             error("[shell] initializeUI FAIL", ex)
