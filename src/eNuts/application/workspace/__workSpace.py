@@ -11,7 +11,7 @@ from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QStackedWidget, QWidget
 # ==================================================================================
 from jAGFx.workflow import workflow
 from jAGQt.widgets.components import ComponentBase, ObjectName
-from jAGQt.widgets.SideBar import SideBar, eSideBarState
+from jAGQt.widgets.sideBar import SideBar, eSideBarState
 from utilities.io import getICONPath
 
 # ==================================================================================
