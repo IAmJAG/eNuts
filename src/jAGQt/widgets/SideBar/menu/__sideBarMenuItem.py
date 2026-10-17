@@ -23,6 +23,8 @@ from .__eSideBarMenuRole import eSideBarMenuRole
 # ==================================================================================
 QSPolicy = QSizePolicy.Policy
 C_ICON_SIZE = 20
+C_HEADER_MARGIN = (8, 8, 8, 8)
+C_LEAF_MARGIN = (28, 6, 8, 6)  # extra left indent under parent header
 # ==================================================================================
 
 
@@ -37,8 +39,7 @@ class SideBarMenuItem(SideBarItem):
     - Header with children → toggle expand/collapse, then selection + clicked.
     - Leaf or header without children → selection + clicked only.
 
-    Accordion (closing siblings) is not enforced; the app may do that on
-    ``toggled`` / ``itemClicked``.
+    Leaves are indented via layout margins (``C_LEAF_MARGIN``).
     """
 
     OBJECT_NAME = "W_SIDEBAR_MENU_ITEM"
@@ -78,6 +79,14 @@ class SideBarMenuItem(SideBarItem):
             role = self._role
             del self._captionText
             del self._iconSource
+
+            # Indent leaves under their header (SideBarItem default margins are uniform).
+            margins = (
+                C_LEAF_MARGIN
+                if role is eSideBarMenuRole.Leaf
+                else C_HEADER_MARGIN
+            )
+            self._layout.setContentsMargins(*margins)
 
             iconWidget = Icon(icon=iconSrc, objectName=f"{self.OBJECT_NAME}_ICON")
             iconWidget.setFixedSize(QSize(C_ICON_SIZE, C_ICON_SIZE))
@@ -131,7 +140,6 @@ class SideBarMenuItem(SideBarItem):
     def mousePressEvent(self, event: QMouseEvent) -> None:
         try:
             if event.button() == Qt.MouseButton.LeftButton:
-                # Default header behavior: expand/collapse when there are children.
                 if (
                     self._role is eSideBarMenuRole.Header
                     and len(self._children) > 0
@@ -213,7 +221,6 @@ class SideBarMenuItem(SideBarItem):
 
     @property
     def ParentItem(self) -> Optional[SideBarMenuItem]:
-        """Header that owns this leaf, or None for top-level headers."""
         return self._parentItem
 
     @property
