@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 # ==================================================================================
-from typing import Optional
+from typing import Optional, Tuple
 
 # ==================================================================================
 from .__optionsBase import OptionsBase
@@ -11,6 +11,9 @@ from .__optionsBase import OptionsBase
 C_DEFAULT_EXPANDED_WIDTH: int = 200
 C_DEFAULT_COLLAPSED_WIDTH: int = 48
 C_DEFAULT_NAME: str = "SideBar"
+C_DEFAULT_MENU_ICON_SIZE: int = 20
+C_DEFAULT_MENU_HEADER_MARGIN: Tuple[int, int, int, int] = (8, 8, 8, 8)
+C_DEFAULT_MENU_LEAF_MARGIN: Tuple[int, int, int, int] = (28, 6, 8, 6)
 # ==================================================================================
 
 
@@ -18,10 +21,8 @@ C_DEFAULT_NAME: str = "SideBar"
 class SideBarOptions(OptionsBase):
     """Configuration settings for :class:`~jAGQt.widgets.SideBar.SideBar`.
 
-    ``animation`` is a fully qualified class name string (e.g.
-    ``jAGQt.animations.RubberBand``) or empty/None for no animation.
-    Live animation instances are never stored here; the host resolves the class
-    at apply time and keeps the instance on its own properties.
+    Chrome widths + optional animation class name, plus **menu row metrics**
+    (header/leaf margins and icon size) applied in code — not via QSS sizing.
     """
 
     def __init__(
@@ -32,19 +33,57 @@ class SideBarOptions(OptionsBase):
         expandedWidth: int = C_DEFAULT_EXPANDED_WIDTH,
         collapsedWidth: int = C_DEFAULT_COLLAPSED_WIDTH,
         animation: Optional[str] = None,
+        menuIconSize: int = C_DEFAULT_MENU_ICON_SIZE,
+        menuHeaderMarginLeft: int = C_DEFAULT_MENU_HEADER_MARGIN[0],
+        menuHeaderMarginTop: int = C_DEFAULT_MENU_HEADER_MARGIN[1],
+        menuHeaderMarginRight: int = C_DEFAULT_MENU_HEADER_MARGIN[2],
+        menuHeaderMarginBottom: int = C_DEFAULT_MENU_HEADER_MARGIN[3],
+        menuLeafMarginLeft: int = C_DEFAULT_MENU_LEAF_MARGIN[0],
+        menuLeafMarginTop: int = C_DEFAULT_MENU_LEAF_MARGIN[1],
+        menuLeafMarginRight: int = C_DEFAULT_MENU_LEAF_MARGIN[2],
+        menuLeafMarginBottom: int = C_DEFAULT_MENU_LEAF_MARGIN[3],
     ) -> None:
         super().__init__(name=name or C_DEFAULT_NAME, version=version, description=description)
         self._expandedWidth: int = int(expandedWidth)
         self._collapsedWidth: int = int(collapsedWidth)
         self._animation: Optional[str] = animation if animation else None
-        self.Properties.extend(["expandedWidth", "collapsedWidth", "animation"])
+        self._menuIconSize: int = int(menuIconSize)
+        self._menuHeaderMarginLeft: int = int(menuHeaderMarginLeft)
+        self._menuHeaderMarginTop: int = int(menuHeaderMarginTop)
+        self._menuHeaderMarginRight: int = int(menuHeaderMarginRight)
+        self._menuHeaderMarginBottom: int = int(menuHeaderMarginBottom)
+        self._menuLeafMarginLeft: int = int(menuLeafMarginLeft)
+        self._menuLeafMarginTop: int = int(menuLeafMarginTop)
+        self._menuLeafMarginRight: int = int(menuLeafMarginRight)
+        self._menuLeafMarginBottom: int = int(menuLeafMarginBottom)
+        self.Properties.extend(
+            [
+                "expandedWidth",
+                "collapsedWidth",
+                "animation",
+                "menuIconSize",
+                "menuHeaderMarginLeft",
+                "menuHeaderMarginTop",
+                "menuHeaderMarginRight",
+                "menuHeaderMarginBottom",
+                "menuLeafMarginLeft",
+                "menuLeafMarginTop",
+                "menuLeafMarginRight",
+                "menuLeafMarginBottom",
+            ]
+        )
         self._validateWidths()
+        self._validateMenuMetrics()
 
     def _validateWidths(self) -> None:
         if self._expandedWidth <= 0:
             raise ValueError(f"expandedWidth must be > 0, got {self._expandedWidth}")
         if self._collapsedWidth <= 0:
             raise ValueError(f"collapsedWidth must be > 0, got {self._collapsedWidth}")
+
+    def _validateMenuMetrics(self) -> None:
+        if self._menuIconSize <= 0:
+            raise ValueError(f"menuIconSize must be > 0, got {self._menuIconSize}")
 
     # ==================================================================================
     @property
@@ -75,3 +114,92 @@ class SideBarOptions(OptionsBase):
             self._animation = None
         else:
             self._animation = str(value).strip()
+
+    @property
+    def menuIconSize(self) -> int:
+        return self._menuIconSize
+
+    @menuIconSize.setter
+    def menuIconSize(self, value: int) -> None:
+        self._menuIconSize = int(value)
+        self._validateMenuMetrics()
+
+    @property
+    def menuHeaderMarginLeft(self) -> int:
+        return self._menuHeaderMarginLeft
+
+    @menuHeaderMarginLeft.setter
+    def menuHeaderMarginLeft(self, value: int) -> None:
+        self._menuHeaderMarginLeft = int(value)
+
+    @property
+    def menuHeaderMarginTop(self) -> int:
+        return self._menuHeaderMarginTop
+
+    @menuHeaderMarginTop.setter
+    def menuHeaderMarginTop(self, value: int) -> None:
+        self._menuHeaderMarginTop = int(value)
+
+    @property
+    def menuHeaderMarginRight(self) -> int:
+        return self._menuHeaderMarginRight
+
+    @menuHeaderMarginRight.setter
+    def menuHeaderMarginRight(self, value: int) -> None:
+        self._menuHeaderMarginRight = int(value)
+
+    @property
+    def menuHeaderMarginBottom(self) -> int:
+        return self._menuHeaderMarginBottom
+
+    @menuHeaderMarginBottom.setter
+    def menuHeaderMarginBottom(self, value: int) -> None:
+        self._menuHeaderMarginBottom = int(value)
+
+    @property
+    def menuLeafMarginLeft(self) -> int:
+        return self._menuLeafMarginLeft
+
+    @menuLeafMarginLeft.setter
+    def menuLeafMarginLeft(self, value: int) -> None:
+        self._menuLeafMarginLeft = int(value)
+
+    @property
+    def menuLeafMarginTop(self) -> int:
+        return self._menuLeafMarginTop
+
+    @menuLeafMarginTop.setter
+    def menuLeafMarginTop(self, value: int) -> None:
+        self._menuLeafMarginTop = int(value)
+
+    @property
+    def menuLeafMarginRight(self) -> int:
+        return self._menuLeafMarginRight
+
+    @menuLeafMarginRight.setter
+    def menuLeafMarginRight(self, value: int) -> None:
+        self._menuLeafMarginRight = int(value)
+
+    @property
+    def menuLeafMarginBottom(self) -> int:
+        return self._menuLeafMarginBottom
+
+    @menuLeafMarginBottom.setter
+    def menuLeafMarginBottom(self, value: int) -> None:
+        self._menuLeafMarginBottom = int(value)
+
+    def menuHeaderMargins(self) -> Tuple[int, int, int, int]:
+        return (
+            self._menuHeaderMarginLeft,
+            self._menuHeaderMarginTop,
+            self._menuHeaderMarginRight,
+            self._menuHeaderMarginBottom,
+        )
+
+    def menuLeafMargins(self) -> Tuple[int, int, int, int]:
+        return (
+            self._menuLeafMarginLeft,
+            self._menuLeafMarginTop,
+            self._menuLeafMarginRight,
+            self._menuLeafMarginBottom,
+        )
