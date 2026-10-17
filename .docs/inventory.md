@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-16 05:42:56 UTC*
+*Auto-generated on: 2026-10-17 02:48:15 UTC*
 
 ## Current Directory Structure
 
@@ -237,6 +237,19 @@ eNuts/
 │   │   ├── .ff
 │   │   ├── animations/
 │   │   │   ├── __animationBase.py
+│   │   │   ├── __pixmapUtils.py
+│   │   │   ├── blinds/
+│   │   │   │   ├── __blindsAnimationBase.py
+│   │   │   │   ├── __blindsIn.py
+│   │   │   │   ├── __blindsOut.py
+│   │   │   │   ├── __blindsTransition.py
+│   │   │   │   └── __eBlindsOrientation.py
+│   │   │   ├── drawer/
+│   │   │   │   ├── __drawerAnimationBase.py
+│   │   │   │   ├── __drawerIn.py
+│   │   │   │   ├── __drawerOut.py
+│   │   │   │   ├── __drawerTransition.py
+│   │   │   │   └── __eDrawerDirection.py
 │   │   │   └── wipe/
 │   │   │       ├── __eWipeMode.py
 │   │   │       ├── __wipeAnimationBase.py
@@ -891,6 +904,51 @@ src/jAGQt/animations:
 			AnimationBase -> : animationbase
 		CONSTANTS(S)/GLOBAL(S)
 			C_DEFAULT_DURATION_MS -> : c_default_duration_ms
+	__pixmapUtils.py - 
+		FUNCTION(S):
+			assertSetPixmap -> : assertsetpixmap
+			toPixmap -> : topixmap
+			grabWidget -> : grabwidget
+			scaleToTarget -> : scaletotarget
+			applyPixmap -> : applypixmap
+		CONSTANTS(S)/GLOBAL(S)
+			ImageLike -> : imagelike
+
+src/jAGQt/animations/blinds:
+	__blindsAnimationBase.py - 
+		CLASSE(S):
+			BlindsAnimationBase -> : blindsanimationbase
+		CONSTANTS(S)/GLOBAL(S)
+			C_DEFAULT_STRIPS -> : c_default_strips
+	__blindsIn.py - 
+		CLASSE(S):
+			BlindsIn -> : blindsin
+	__blindsOut.py - 
+		CLASSE(S):
+			BlindsOut -> : blindsout
+	__blindsTransition.py - 
+		CLASSE(S):
+			BlindsTransition -> : blindstransition
+	__eBlindsOrientation.py - 
+		CLASSE(S):
+			eBlindsOrientation -> : eblindsorientation
+
+src/jAGQt/animations/drawer:
+	__drawerAnimationBase.py - 
+		CLASSE(S):
+			DrawerAnimationBase -> : draweranimationbase
+	__drawerIn.py - 
+		CLASSE(S):
+			DrawerIn -> : drawerin
+	__drawerOut.py - 
+		CLASSE(S):
+			DrawerOut -> : drawerout
+	__drawerTransition.py - 
+		CLASSE(S):
+			DrawerTransition -> : drawertransition
+	__eDrawerDirection.py - 
+		CLASSE(S):
+			eDrawerDirection -> : edrawerdirection
 
 src/jAGQt/animations/wipe:
 	__eWipeMode.py - 
@@ -900,6 +958,7 @@ src/jAGQt/animations/wipe:
 		CLASSE(S):
 			WipeAnimationBase -> : wipeanimationbase
 		FUNCTION(S):
+			_assertSetPixmap -> : _assertsetpixmap
 			_toPixmap -> : _topixmap
 		CONSTANTS(S)/GLOBAL(S)
 			C_BLADE_WIDTH -> : c_blade_width
@@ -1000,6 +1059,8 @@ src/jAGQt/widgets/icon:
 	__stateFullIcon.py - 
 		CLASSE(S):
 			StatefullIcon -> : statefullicon
+		CONSTANTS(S)/GLOBAL(S)
+			C_DEFAULT_WIPE_MS -> : c_default_wipe_ms
 
 src/jAGQt/widgets/image:
 	__image.py - 
@@ -1017,6 +1078,8 @@ src/jAGQt/widgets/sideBar:
 		CLASSE(S):
 			SideBar -> : sidebar
 		CONSTANTS(S)/GLOBAL(S)
+			C_EXPANDED_WIDTH -> : c_expanded_width
+			C_COLLAPSED_WIDTH -> : c_collapsed_width
 			QSPolicy -> : qspolicy
 
 src/jAGQt/widgets/sideBar/components:
@@ -1119,42 +1182,42 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-f9e862f:
-	Avoid circular import; move math import to module top
-		src/jAGQt/animations/wipe/__wipeAnimationBase.py
+8e2afbd:
+	Export blinds animations
 
-a528982:
-	Re-export wipe animations from jAGQt.animations
+9ffa2d6:
+	Add BlindsTransition animation
+		src/jAGQt/animations/blinds/__blindsTransition.py
 
-cf7394d:
-	Export wipe animation types
+f44e460:
+	Add BlindsIn animation
+		src/jAGQt/animations/blinds/__blindsIn.py
 
-2904705:
-	Add WipeTransition single-pass wipe animation
-		src/jAGQt/animations/wipe/__wipeTransition.py
+81032da:
+	Add BlindsOut animation
+		src/jAGQt/animations/blinds/__blindsOut.py
 
-88d4248:
-	Add WipeIn animation
-		src/jAGQt/animations/wipe/__wipeIn.py
+467d7c1:
+	Add BlindsAnimationBase
+		src/jAGQt/animations/blinds/__blindsAnimationBase.py
 
-a3467fe:
-	Add WipeOut animation
-		src/jAGQt/animations/wipe/__wipeOut.py
+f3a5fcc:
+	Add eBlindsOrientation enum
+		src/jAGQt/animations/blinds/__eBlindsOrientation.py
 
-c001792:
-	Add eWipeMode enum (Horizontal default, Vertical, Arc)
-		src/jAGQt/animations/wipe/__eWipeMode.py
+58c1c1b:
+	Export drawer animations
 
-b0467cb:
-	Add WipeAnimationBase with grab+setPixmap and wipe mask geometry
-		src/jAGQt/animations/wipe/__wipeAnimationBase.py
+3c7d0e0:
+	Add DrawerTransition animation
+		src/jAGQt/animations/drawer/__drawerTransition.py
 
-66746d9:
-	AnimationBase.start(*args, **kwargs); ensure driver init; fix workflow method name
-		src/jAGQt/animations/__animationBase.py
+208c120:
+	Add DrawerIn animation
+		src/jAGQt/animations/drawer/__drawerIn.py
 
-f0a2ab6:
-	iAnimation.start accepts *args, **kwargs
-		src/jAGQt/types/interface/animations/__animation.py
+a83d2e7:
+	Add DrawerOut animation
+		src/jAGQt/animations/drawer/__drawerOut.py
 
 ```
