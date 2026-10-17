@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QStackedWidget, QWidget
 
 # ==================================================================================
 from jAGFx.workflow import workflow
+from jAGQt.options import AnimationOptions, SideBarOptions
 from jAGQt.widgets.components import ComponentBase, ObjectName
 from jAGQt.widgets.sideBar import SideBar, eSideBarState
 from utilities.io import getICONPath
@@ -17,6 +18,8 @@ from utilities.io import getICONPath
 # ==================================================================================
 QSPolicy = QSizePolicy.Policy
 StyleBackground = Qt.WidgetAttribute.WA_StyledBackground
+C_SIDEBAR_ANIMATION_TYPE: str = "jAGQt.animations.RubberBand"
+C_SIDEBAR_ANIMATION_MS: int = 280
 # ==================================================================================
 
 
@@ -48,16 +51,27 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
                 f"[WorkSpace] SideBar icons expand={expandPath!r} collapse={collapsePath!r}"
             )
 
+            sideBarOptions = SideBarOptions(
+                animation=C_SIDEBAR_ANIMATION_TYPE,
+            )
+            animationOptions = AnimationOptions(
+                name="RubberBand",
+                durationMs=C_SIDEBAR_ANIMATION_MS,
+            )
+
             sideBar: SideBar = SideBar(
                 icons={
                     eSideBarState.Expanded: expandPath,
                     eSideBarState.Collapsed: collapsePath,
                 },
                 title="eNuts",
+                options=sideBarOptions,
+                animationOptions=animationOptions,
             )
             verbose(
                 f"[WorkSpace] SideBar created objectName={sideBar.objectName()!r} "
-                f"state={sideBar.State!r}"
+                f"state={sideBar.State!r} "
+                f"animation={type(sideBar.Animation).__name__ if sideBar.Animation else None}"
             )
 
             stack: QStackedWidget = QStackedWidget()
