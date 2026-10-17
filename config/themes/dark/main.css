@@ -38,36 +38,38 @@ QWidget#W_SIDEBAR_HEADER {
     border-bottom: 1px solid $border;
 }
 
-/* SideBar menu — DEBUG backgrounds to verify selectors match */
+/* SideBar menu */
 QScrollArea#W_SIDEBAR_MENU,
 QWidget#W_SIDEBAR_MENU_COLUMN {
     background: transparent;
     border: none;
 }
 
-/* Any menu item: magenta — if you never see this, objectName is not matching */
 QWidget#W_SIDEBAR_MENU_ITEM {
-    background: #ff00ff;
-    color: #ffffff;
-    border: 1px solid #ffffff;
+    background: transparent;
+    color: $textMuted;
+    border: 1px solid transparent;
     border-radius: 0px;
-    padding: 6px 10px;
 }
 
-/* Header: green */
+/* Header rows — flush with menu column */
 QWidget#W_SIDEBAR_MENU_ITEM[role="header"] {
-    background: #00aa44;
+    margin-left: 0px;
     padding: 6px 10px;
     font-weight: 600;
-    color: #ffffff;
+    color: $text;
 }
 
-/* Leaf: red + left padding (indent) */
+/*
+ * Leaf rows — indent via margin-left (not padding).
+ * Qt layouts fill the widget; stylesheet padding on a laid-out QWidget
+ * does not shift child content. margin-left offsets the whole row in the body.
+ */
 QWidget#W_SIDEBAR_MENU_ITEM[role="leaf"] {
-    background: #cc0000;
-    padding: 4px 10px 4px 28px;
+    margin-left: 20px;
+    padding: 4px 10px;
     font-weight: 400;
-    color: #ffffff;
+    color: $textMuted;
 }
 
 QWidget#W_SIDEBAR_MENU_ITEM:hover,
