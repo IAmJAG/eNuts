@@ -3,7 +3,7 @@ from __future__ import annotations
 
 # ==================================================================================
 from traceback import format_exc
-from typing import Dict, Optional, Type, Union
+from typing import Dict, Optional, Tuple, Type, Union
 
 # ==================================================================================
 from PySide6.QtGui import QIcon, QPixmap
@@ -14,6 +14,11 @@ from jAGFx.serializer.__utilities import importClass
 from jAGFx.workflow import workflow
 from jAGQt.animations import SizeAnimationBase
 from jAGQt.options import AnimationOptions, SideBarOptions
+from jAGQt.options.__sideBarOptions import (
+    C_DEFAULT_MENU_HEADER_MARGIN,
+    C_DEFAULT_MENU_ICON_SIZE,
+    C_DEFAULT_MENU_LEAF_MARGIN,
+)
 from jAGQt.types.interface.animations import iAnimation
 
 # ==================================================================================
@@ -21,6 +26,7 @@ from ...utilities import newLayout
 from ..components import ComponentBase, ObjectName
 from .__eSideBarState import eSideBarState
 from .components import SideBarHeader
+from .menu import SideBarMenu, SideBarMenuItem
 
 # ==================================================================================
 QSPolicy = QSizePolicy.Policy
@@ -67,6 +73,9 @@ class SideBar(ComponentBase, ObjectName, QWidget):
             self._expandedWidth: int = C_EXPANDED_WIDTH
             self._collapsedWidth: int = C_COLLAPSED_WIDTH
             self._animation: Optional[iAnimation] = None
+            self._menuIconSize: int = C_DEFAULT_MENU_ICON_SIZE
+            self._menuHeaderMargins: Tuple[int, int, int, int] = C_DEFAULT_MENU_HEADER_MARGIN
+            self._menuLeafMargins: Tuple[int, int, int, int] = C_DEFAULT_MENU_LEAF_MARGIN
             self._sidebarState: eSideBarState = initialState
             self._layoutReady: bool = False
             self._content: Optional[QWidget] = None
@@ -104,9 +113,6 @@ class SideBar(ComponentBase, ObjectName, QWidget):
                 icons=icons,
                 initialState=initialState,
             )
-            verbose(
-                f"[SideBar] SideBarHeader created objectName={header.objectName()!r}"
-            )
 
             contentHost: QWidget = QWidget(self)
             contentHost.setObjectName(f"{self.OBJECT_NAME}_CONTENT")
@@ -119,7 +125,6 @@ class SideBar(ComponentBase, ObjectName, QWidget):
             )
             contentHost.setLayout(contentLayout)
 
-            # Footer host: pinned bottom (Settings and other global actions).
             footerHost: QWidget = QWidget(self)
             footerHost.setObjectName(f"{self.OBJECT_NAME}_FOOTER")
             footerHost.setSizePolicy(QSPolicy.Expanding, QSPolicy.Fixed)
@@ -185,13 +190,35 @@ class SideBar(ComponentBase, ObjectName, QWidget):
         if options is None:
             self._expandedWidth = C_EXPANDED_WIDTH
             self._collapsedWidth = C_COLLAPSED_WIDTH
+            self._menuIconSize = C_DEFAULT_MENU_ICON_SIZE
+            self._menuHeaderMargins = C_DEFAULT_MENU_HEADER_MARGIN
+            self._menuLeafMargins = C_DEFAULT_MENU_LEAF_MARGIN
             className: Optional[str] = None
         else:
             self._expandedWidth = int(options.expandedWidth)
             self._collapsedWidth = int(options.collapsedWidth)
+            self._menuIconSize = int(options.menuIconSize)
+            self._menuHeaderMargins = options.menuHeaderMargins()
+            self._menuLeafMargins = options.menuLeafMargins()
             className = options.animation
 
         self._animation = self._resolveAnimation(className, animationOptions)
+
+    def _pushMenuMetrics(self, widget: Optional[QWidget]) -> None:
+        if widget is None:
+            return
+        if isinstance(widget, SideBarMenu):
+            widget.applyMetrics(
+                iconSize=self._menuIconSize,
+                headerMargins=self._menuHeaderMargins,
+                leafMargins=self._menuLeafMargins,
+            )
+        elif isinstance(widget, SideBarMenuItem):
+            widget.applyMetrics(
+                iconSize=self._menuIconSize,
+                headerMargins=self._menuHeaderMargins,
+                leafMargins=self._menuLeafMargins,
+            )
 
     def _resolveAnimation(
         self,
@@ -240,6 +267,15 @@ class SideBar(ComponentBase, ObjectName, QWidget):
         o = SideBarOptions()
         o.expandedWidth = self._expandedWidth
         o.collapsedWidth = self._collapsedWidth
+        o.menuIconSize = self._menuIconSize
+        o.menuHeaderMarginLeft = self._menuHeaderMargins[0]
+        o.menuHeaderMarginTop = self._menuHeaderMargins[1]
+        o.menuHeaderMarginRight = self._menuHeaderMargins[2]
+        o.menuHeaderMarginBottom = self._menuHeaderMargins[3]
+        o.menuLeafMarginLeft = self._menuLeafMargins[0]
+        o.menuLeafMarginTop = self._menuLeafMargins[1]
+        o.menuLeafMarginRight = self._menuLeafMargins[2]
+        o.menuLeafMarginBottom = self._menuLeafMargins[3]
         if self._animation is not None:
             t = type(self._animation)
             o.animation = f"{t.__module__}.{t.__name__}"
@@ -301,10 +337,6 @@ class SideBar(ComponentBase, ObjectName, QWidget):
             assert anim is not None
             if anim.isRunning:
                 anim.stop()
-            verbose(
-                f"[SideBar] animation width {self.width()} -> {endWidth} "
-                f"state={state!r}"
-            )
             anim.start(endWidth=endWidth)
         except Exception as ex:
             error("[SideBar] animation start FAIL", ex)
@@ -319,10 +351,6 @@ class SideBar(ComponentBase, ObjectName, QWidget):
             self.setFixedWidth(endWidth)
             self._syncChromeForState(self._sidebarState)
             self.updateGeometry()
-            verbose(
-                f"[SideBar] size anim finished state={self._sidebarState!r} "
-                f"width={self.width()}"
-            )
         except Exception as ex:
             error("[SideBar] _onSizeAnimFinished FAIL", ex)
             error(f"[SideBar] traceback:\n{format_exc()}")
@@ -343,10 +371,10 @@ class SideBar(ComponentBase, ObjectName, QWidget):
 
         self._content = widget
         if widget is not None:
+            self._pushMenuMetrics(widget)
             layout.addWidget(widget, stretch=1)
 
     def setFooter(self, widget: Optional[QWidget]) -> None:
-        """Pinned bottom region (e.g. Settings) — outside the scroll menu."""
         host = self._footerHost
         layout = self._footerLayout
         if host is None or layout is None:
@@ -360,6 +388,7 @@ class SideBar(ComponentBase, ObjectName, QWidget):
 
         self._footer = widget
         if widget is not None:
+            self._pushMenuMetrics(widget)
             layout.addWidget(widget, stretch=0)
 
     # ==================================================================================
@@ -414,6 +443,18 @@ class SideBar(ComponentBase, ObjectName, QWidget):
     @CollapsedWidth.setter
     def CollapsedWidth(self, value: int) -> None:
         self._collapsedWidth = int(value)
+
+    @property
+    def MenuIconSize(self) -> int:
+        return self._menuIconSize
+
+    @property
+    def MenuHeaderMargins(self) -> Tuple[int, int, int, int]:
+        return self._menuHeaderMargins
+
+    @property
+    def MenuLeafMargins(self) -> Tuple[int, int, int, int]:
+        return self._menuLeafMargins
 
     @property
     def Animation(self) -> Optional[iAnimation]:
