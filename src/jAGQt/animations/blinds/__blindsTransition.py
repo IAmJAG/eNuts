@@ -2,41 +2,42 @@
 from __future__ import annotations
 
 # ==================================================================================
-from typing import Optional
+from PySide6.QtCore import QSize
 
 # ==================================================================================
 from jAGQt.utilities import AnimationError
 
 # ==================================================================================
-from ..__pixmapUtils import ImageLike, toPixmap
 from .__blindsAnimationBase import BlindsAnimationBase
+from .__eBlindsOrientation import eBlindsOrientation
 
 
 # ==================================================================================
 class BlindsTransition(BlindsAnimationBase):
-    """Single pass: blinds open from original to targetImage.
+    """Stepped size transition from current (or start*) to end*.
 
-    ``start(targetImage=..., originalImage=None)``
+    ``start(endWidth=..., endHeight=..., startWidth=optional, startHeight=optional)``
     """
 
     def _onStart(self, *args, **kwargs) -> None:
-        targetImage: Optional[ImageLike] = kwargs.get("targetImage")
-        originalImage: Optional[ImageLike] = kwargs.get("originalImage")
-        if targetImage is None and len(args) >= 1:
-            targetImage = args[0]  # type: ignore[assignment]
-        if originalImage is None and len(args) >= 2:
-            originalImage = args[1]  # type: ignore[assignment]
-        if targetImage is None:
-            raise AnimationError("BlindsTransition.start requires targetImage")
+        if self._orientation is eBlindsOrientation.Vertical:
+            endWidth = kwargs.get("endWidth", args[0] if args else None)
+            endHeight = kwargs.get("endHeight")
+            if endWidth is None:
+                raise AnimationError("BlindsTransition (Vertical) requires endWidth")
+        else:
+            endHeight = kwargs.get("endHeight", args[0] if args else None)
+            endWidth = kwargs.get("endWidth")
+            if endHeight is None:
+                raise AnimationError("BlindsTransition (Horizontal) requires endHeight")
 
-        self._content = toPixmap(targetImage)
-        self._original = (
-            self._grabTarget() if originalImage is None else toPixmap(originalImage)
-        )
-        self._applyPixmap(self._buildFrame(0.0, self._original, self._content))
+        self._resolveEnd(endWidth=endWidth, endHeight=endHeight)
 
-    def _onProgress(self, progress: float) -> None:
-        self._applyPixmap(self._buildFrame(progress, self._original, self._content))
+        startWidth = kwargs.get("startWidth")
+        startHeight = kwargs.get("startHeight")
+        if startWidth is not None or startHeight is not None:
+            w = int(startWidth) if startWidth is not None else self._startSize.width()
+            h = int(startHeight) if startHeight is not None else self._startSize.height()
+            self._startSize = QSize(max(0, w), max(0, h))
 
-    def _onFinished(self) -> None:
-        self._applyPixmap(self._buildFrame(1.0, self._original, self._content))
+        self._applySize(self._startSize)
