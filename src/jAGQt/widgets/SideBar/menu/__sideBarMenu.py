@@ -3,7 +3,7 @@ from __future__ import annotations
 
 # ==================================================================================
 from traceback import format_exc
-from typing import List, Optional, Union
+from typing import List, Optional, Tuple, Union
 
 # ==================================================================================
 from PySide6.QtCore import Qt, Signal
@@ -22,7 +22,12 @@ from jAGFx.workflow import workflow
 from ....utilities import newLayout
 from ...components import ComponentBase, ObjectName
 from .__eSideBarMenuRole import eSideBarMenuRole
-from .__sideBarMenuItem import SideBarMenuItem
+from .__sideBarMenuItem import (
+    C_HEADER_MARGIN,
+    C_ICON_SIZE,
+    C_LEAF_MARGIN,
+    SideBarMenuItem,
+)
 
 # ==================================================================================
 QSPolicy = QSizePolicy.Policy
@@ -33,17 +38,16 @@ StyleBackground = Qt.WidgetAttribute.WA_StyledBackground
 # ==================================================================================
 @workflow
 class SideBarMenu(ComponentBase, ObjectName, QScrollArea):
-    """Scrollable list of top-level SideBarMenuItems (headers with optional leaves).
+    """Scrollable list of top-level SideBarMenuItems.
 
-    **Default behavior:** click → single selection on the item (``selectOnClick``).
-    **Events:** ``itemClicked``, ``selectionChanged`` for app / custom policy.
-    Expand/accordion is not enforced here — use ``itemClicked`` / ``Expanded``.
+    Row metrics (icon size, header/leaf margins) come from SideBarOptions via
+    :meth:`applyMetrics` / SideBar content wiring.
     """
 
     OBJECT_NAME = "W_SIDEBAR_MENU"
 
-    itemClicked = Signal(object)  # SideBarMenuItem
-    selectionChanged = Signal(object)  # SideBarMenuItem | None
+    itemClicked = Signal(object)
+    selectionChanged = Signal(object)
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -52,6 +56,9 @@ class SideBarMenu(ComponentBase, ObjectName, QScrollArea):
         self._selectOnClick: bool = True
         self._column: Optional[QWidget] = None
         self._columnLayout: Optional[QBoxLayout] = None
+        self._iconSize: int = C_ICON_SIZE
+        self._headerMargins: Tuple[int, int, int, int] = C_HEADER_MARGIN
+        self._leafMargins: Tuple[int, int, int, int] = C_LEAF_MARGIN
 
     def _wInitializeUI(self) -> None:
         verbose("[SideBarMenu] _wInitializeUI ENTER")
@@ -82,6 +89,30 @@ class SideBarMenu(ComponentBase, ObjectName, QScrollArea):
             error(f"[SideBarMenu] traceback:\n{format_exc()}")
             raise
 
+    def applyMetrics(
+        self,
+        *,
+        iconSize: int,
+        headerMargins: Tuple[int, int, int, int],
+        leafMargins: Tuple[int, int, int, int],
+    ) -> None:
+        """Store metrics and push to existing rows (and future addItem/addChild)."""
+        self._iconSize = int(iconSize)
+        self._headerMargins = tuple(headerMargins)  # type: ignore
+        self._leafMargins = tuple(leafMargins)  # type: ignore
+        for top in self._items:
+            top.applyMetrics(
+                iconSize=self._iconSize,
+                headerMargins=self._headerMargins,
+                leafMargins=self._leafMargins,
+            )
+            for child in top.Children:
+                child.applyMetrics(
+                    iconSize=self._iconSize,
+                    headerMargins=self._headerMargins,
+                    leafMargins=self._leafMargins,
+                )
+
     def _insertBeforeStretch(self, widget: QWidget) -> None:
         layout = self._columnLayout
         if layout is None:
@@ -95,9 +126,21 @@ class SideBarMenu(ComponentBase, ObjectName, QScrollArea):
         role: eSideBarMenuRole = eSideBarMenuRole.Header,
     ) -> SideBarMenuItem:
         if isinstance(item, str):
-            row = SideBarMenuItem(caption=item, icon=icon, role=role)
+            row = SideBarMenuItem(
+                caption=item,
+                icon=icon,
+                role=role,
+                iconSize=self._iconSize,
+                headerMargins=self._headerMargins,
+                leafMargins=self._leafMargins,
+            )
         else:
             row = item
+            row.applyMetrics(
+                iconSize=self._iconSize,
+                headerMargins=self._headerMargins,
+                leafMargins=self._leafMargins,
+            )
 
         self._items.append(row)
         self._insertBeforeStretch(row)
@@ -138,7 +181,6 @@ class SideBarMenu(ComponentBase, ObjectName, QScrollArea):
         self.selectionChanged.emit(None)
 
     def selectItem(self, item: Optional[SideBarMenuItem]) -> None:
-        """Set single selection. Pass None to clear. Does not change expand state."""
         if item is None:
             self._clearSelectionFlags()
             self._selected = None
@@ -170,13 +212,10 @@ class SideBarMenu(ComponentBase, ObjectName, QScrollArea):
             self.itemClicked.emit(item)
 
     def parentOf(self, item: SideBarMenuItem) -> Optional[SideBarMenuItem]:
-        """Return the header that owns a leaf, or None."""
         return item.ParentItem
 
-    # ==================================================================================
     @property
     def SelectOnClick(self) -> bool:
-        """When True (default), selectionRequested applies single selection."""
         return self._selectOnClick
 
     @SelectOnClick.setter

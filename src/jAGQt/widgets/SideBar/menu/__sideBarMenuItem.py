@@ -3,7 +3,7 @@ from __future__ import annotations
 
 # ==================================================================================
 from traceback import format_exc
-from typing import List, Optional, Union
+from typing import List, Optional, Tuple, Union
 
 # ==================================================================================
 from PySide6.QtCore import QSize, Qt, Signal
@@ -24,8 +24,8 @@ from .__eSideBarMenuRole import eSideBarMenuRole
 # ==================================================================================
 QSPolicy = QSizePolicy.Policy
 C_ICON_SIZE = 20
-C_HEADER_MARGIN = (8, 8, 8, 8)
-C_LEAF_MARGIN = (28, 6, 8, 6)
+C_HEADER_MARGIN: Tuple[int, int, int, int] = (8, 8, 8, 8)
+C_LEAF_MARGIN: Tuple[int, int, int, int] = (28, 6, 8, 6)
 C_DEFAULT_ICON = "logo.png"
 # ==================================================================================
 
@@ -38,23 +38,22 @@ def _defaultIconPath() -> str:
 # ==================================================================================
 @workflow
 class SideBarMenuItem(SideBarItem):
-    """One menu row. Headers may own leaf children (one level only); leaves cannot.
-
-    Leaf indent is applied via layout margins (QSS padding/margin is unreliable
-    on laid-out QWidgets). Default icon is the app logo when none is provided.
-    """
+    """One menu row. Sizing (margins, icon) comes from metrics / SideBarOptions."""
 
     OBJECT_NAME = "W_SIDEBAR_MENU_ITEM"
 
-    clicked = Signal(object)  # SideBarMenuItem
-    toggled = Signal(object, bool)  # item, expanded
-    selectionRequested = Signal(object)  # SideBarMenuItem
+    clicked = Signal(object)
+    toggled = Signal(object, bool)
+    selectionRequested = Signal(object)
 
     def __init__(
         self,
         caption: str = "",
         icon: Optional[Union[QIcon, QPixmap, str]] = None,
         role: eSideBarMenuRole = eSideBarMenuRole.Header,
+        iconSize: int = C_ICON_SIZE,
+        headerMargins: Tuple[int, int, int, int] = C_HEADER_MARGIN,
+        leafMargins: Tuple[int, int, int, int] = C_LEAF_MARGIN,
         *args,
         **kwargs,
     ) -> None:
@@ -64,6 +63,9 @@ class SideBarMenuItem(SideBarItem):
             icon = _defaultIconPath()
         self._iconSource: Optional[Union[QIcon, QPixmap, str]] = icon
         self._role: eSideBarMenuRole = role
+        self._iconSize: int = int(iconSize)
+        self._headerMargins: Tuple[int, int, int, int] = tuple(headerMargins)  # type: ignore
+        self._leafMargins: Tuple[int, int, int, int] = tuple(leafMargins)  # type: ignore
         self._expanded: bool = True
         self._selected: bool = False
         self._children: List[SideBarMenuItem] = []
@@ -81,18 +83,19 @@ class SideBarMenuItem(SideBarItem):
             caption = self._captionText
             iconSrc = self._iconSource
             role = self._role
+            iconSize = self._iconSize
             del self._captionText
             del self._iconSource
 
             margins = (
-                C_LEAF_MARGIN
+                self._leafMargins
                 if role is eSideBarMenuRole.Leaf
-                else C_HEADER_MARGIN
+                else self._headerMargins
             )
             self._layout.setContentsMargins(*margins)
 
             iconWidget = Icon(icon=iconSrc, objectName=f"{self.OBJECT_NAME}_ICON")
-            iconWidget.setFixedSize(QSize(C_ICON_SIZE, C_ICON_SIZE))
+            iconWidget.setFixedSize(QSize(iconSize, iconSize))
             iconWidget.setSizePolicy(QSPolicy.Fixed, QSPolicy.Fixed)
 
             titleWidget = Title(caption, objectName=f"{self.OBJECT_NAME}_TITLE")
@@ -105,7 +108,6 @@ class SideBarMenuItem(SideBarItem):
 
             self._setRoleProperty(role)
             self._setSelectedProperty(False)
-
             self.setCursor(Qt.CursorShape.PointingHandCursor)
 
             if role is eSideBarMenuRole.Header:
@@ -126,6 +128,30 @@ class SideBarMenuItem(SideBarItem):
             error(f"[SideBarMenuItem] traceback:\n{format_exc()}")
             raise
 
+    def applyMetrics(
+        self,
+        *,
+        iconSize: Optional[int] = None,
+        headerMargins: Optional[Tuple[int, int, int, int]] = None,
+        leafMargins: Optional[Tuple[int, int, int, int]] = None,
+    ) -> None:
+        """Re-apply size metrics after construct (e.g. from SideBarOptions)."""
+        if iconSize is not None:
+            self._iconSize = int(iconSize)
+            if self._iconWidget is not None:
+                self._iconWidget.setFixedSize(QSize(self._iconSize, self._iconSize))
+        if headerMargins is not None:
+            self._headerMargins = tuple(headerMargins)  # type: ignore
+        if leafMargins is not None:
+            self._leafMargins = tuple(leafMargins)  # type: ignore
+        if self._layout is not None:
+            margins = (
+                self._leafMargins
+                if self._role is eSideBarMenuRole.Leaf
+                else self._headerMargins
+            )
+            self._layout.setContentsMargins(*margins)
+
     def _setRoleProperty(self, role: eSideBarMenuRole) -> None:
         self._role = role
         label = "header" if role is eSideBarMenuRole.Header else "leaf"
@@ -139,7 +165,6 @@ class SideBarMenuItem(SideBarItem):
         self.style().unpolish(self)
         self.style().polish(self)
 
-    # ==================================================================================
     def mousePressEvent(self, event: QMouseEvent) -> None:
         try:
             if event.button() == Qt.MouseButton.LeftButton:
@@ -148,7 +173,6 @@ class SideBarMenuItem(SideBarItem):
                     and len(self._children) > 0
                 ):
                     self.Expanded = not self._expanded
-
                 self.selectionRequested.emit(self)
                 self.clicked.emit(self)
                 event.accept()
@@ -158,7 +182,6 @@ class SideBarMenuItem(SideBarItem):
             error("[SideBarMenuItem] mousePressEvent FAIL", ex)
             raise
 
-    # ==================================================================================
     def addChild(
         self,
         item: Union[SideBarMenuItem, str],
@@ -172,11 +195,19 @@ class SideBarMenuItem(SideBarItem):
                 caption=item,
                 icon=icon,
                 role=eSideBarMenuRole.Leaf,
+                iconSize=self._iconSize,
+                headerMargins=self._headerMargins,
+                leafMargins=self._leafMargins,
             )
         else:
             child = item
             if child.Role is not eSideBarMenuRole.Leaf:
                 raise ValueError("Child menu items must have role Leaf (one level only)")
+            child.applyMetrics(
+                iconSize=self._iconSize,
+                headerMargins=self._headerMargins,
+                leafMargins=self._leafMargins,
+            )
 
         if self._body is None or self._bodyLayout is None:
             raise RuntimeError("SideBarMenuItem UI not initialized")
@@ -216,7 +247,6 @@ class SideBarMenuItem(SideBarItem):
             return
         parentLayout.addWidget(self._body, stretch=0)
 
-    # ==================================================================================
     @property
     def Role(self) -> eSideBarMenuRole:
         return self._role
