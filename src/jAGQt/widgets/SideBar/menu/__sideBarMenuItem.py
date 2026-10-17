@@ -12,6 +12,7 @@ from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 
 # ==================================================================================
 from jAGFx.workflow import workflow
+from utilities.io import getICONPath
 
 # ==================================================================================
 from ....utilities import newLayout
@@ -23,7 +24,15 @@ from .__eSideBarMenuRole import eSideBarMenuRole
 # ==================================================================================
 QSPolicy = QSizePolicy.Policy
 C_ICON_SIZE = 20
+C_HEADER_MARGIN = (8, 8, 8, 8)
+C_LEAF_MARGIN = (28, 6, 8, 6)
+C_DEFAULT_ICON = "logo.png"
 # ==================================================================================
+
+
+# ==================================================================================
+def _defaultIconPath() -> str:
+    return getICONPath(C_DEFAULT_ICON)
 
 
 # ==================================================================================
@@ -31,12 +40,8 @@ C_ICON_SIZE = 20
 class SideBarMenuItem(SideBarItem):
     """One menu row. Headers may own leaf children (one level only); leaves cannot.
 
-    Selection state is owned here (``Selected`` / QSS ``selected``).
-    Leaf indent is theme/QSS via ``role=leaf`` — not layout margins in code.
-
-    **Default click:**
-    - Header with children → toggle expand/collapse, then selection + clicked.
-    - Leaf or header without children → selection + clicked only.
+    Leaf indent is applied via layout margins (QSS padding/margin is unreliable
+    on laid-out QWidgets). Default icon is the app logo when none is provided.
     """
 
     OBJECT_NAME = "W_SIDEBAR_MENU_ITEM"
@@ -55,6 +60,8 @@ class SideBarMenuItem(SideBarItem):
     ) -> None:
         super().__init__(*args, **kwargs)
         self._captionText: str = caption
+        if icon is None:
+            icon = _defaultIconPath()
         self._iconSource: Optional[Union[QIcon, QPixmap, str]] = icon
         self._role: eSideBarMenuRole = role
         self._expanded: bool = True
@@ -76,6 +83,13 @@ class SideBarMenuItem(SideBarItem):
             role = self._role
             del self._captionText
             del self._iconSource
+
+            margins = (
+                C_LEAF_MARGIN
+                if role is eSideBarMenuRole.Leaf
+                else C_HEADER_MARGIN
+            )
+            self._layout.setContentsMargins(*margins)
 
             iconWidget = Icon(icon=iconSrc, objectName=f"{self.OBJECT_NAME}_ICON")
             iconWidget.setFixedSize(QSize(C_ICON_SIZE, C_ICON_SIZE))

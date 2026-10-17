@@ -70,7 +70,9 @@ class SideBar(ComponentBase, ObjectName, QWidget):
             self._sidebarState: eSideBarState = initialState
             self._layoutReady: bool = False
             self._content: Optional[QWidget] = None
+            self._footer: Optional[QWidget] = None
             self._contentHost: Optional[QWidget] = None
+            self._footerHost: Optional[QWidget] = None
         except Exception as ex:
             error("[SideBar] __init__ FAIL", ex)
             error(f"[SideBar] __init__ traceback:\n{format_exc()}")
@@ -117,6 +119,18 @@ class SideBar(ComponentBase, ObjectName, QWidget):
             )
             contentHost.setLayout(contentLayout)
 
+            # Footer host: pinned bottom (Settings and other global actions).
+            footerHost: QWidget = QWidget(self)
+            footerHost.setObjectName(f"{self.OBJECT_NAME}_FOOTER")
+            footerHost.setSizePolicy(QSPolicy.Expanding, QSPolicy.Fixed)
+            footerLayout: QBoxLayout = newLayout(
+                QBoxLayout,
+                spacing=0,
+                margins=(0, 0, 0, 0),
+                direction=QBoxLayout.Direction.TopToBottom,
+            )
+            footerHost.setLayout(footerLayout)
+
             outerLayout: QBoxLayout = newLayout(
                 QBoxLayout,
                 spacing=0,
@@ -125,16 +139,19 @@ class SideBar(ComponentBase, ObjectName, QWidget):
             )
             outerLayout.addWidget(header, stretch=0)
             outerLayout.addWidget(contentHost, stretch=1)
+            outerLayout.addWidget(footerHost, stretch=0)
 
             self.setLayout(outerLayout)
             self._layout: QBoxLayout = outerLayout
             self._header: SideBarHeader = header
             self._contentHost = contentHost
             self._contentLayout: QBoxLayout = contentLayout
+            self._footerHost = footerHost
+            self._footerLayout: QBoxLayout = footerLayout
             self._content = None
+            self._footer = None
             self._sidebarState = initialState
 
-            # Must not be named _a* / _w* — those prefixes are workflow steps.
             self._installOptionsFrom(pendingOptions, pendingAnimOptions)
 
             if self._animation is not None:
@@ -165,11 +182,6 @@ class SideBar(ComponentBase, ObjectName, QWidget):
         options: Optional[SideBarOptions],
         animationOptions: Optional[AnimationOptions],
     ) -> None:
-        """Copy option values onto instance properties, then caller drops options.
-
-        Named without ``_w``/``_a`` prefix so ``@workflow`` does not treat this
-        as a post-init workflow step.
-        """
         if options is None:
             self._expandedWidth = C_EXPANDED_WIDTH
             self._collapsedWidth = C_COLLAPSED_WIDTH
@@ -225,7 +237,6 @@ class SideBar(ComponentBase, ObjectName, QWidget):
         return instance
 
     def toOptions(self) -> SideBarOptions:
-        """Re-populate SideBarOptions from current instance properties."""
         o = SideBarOptions()
         o.expandedWidth = self._expandedWidth
         o.collapsedWidth = self._collapsedWidth
@@ -250,7 +261,6 @@ class SideBar(ComponentBase, ObjectName, QWidget):
         return self._expandedWidth
 
     def _syncChromeForState(self, state: eSideBarState) -> None:
-        """Show/hide header text for the given state (no size change)."""
         header = self._header
         if state is eSideBarState.Collapsed:
             header._titleWidget.hide()
@@ -320,7 +330,6 @@ class SideBar(ComponentBase, ObjectName, QWidget):
 
     # ==================================================================================
     def setContent(self, widget: Optional[QWidget]) -> None:
-        """Place a content widget in the stretch region below the header."""
         host = self._contentHost
         layout = self._contentLayout
         if host is None or layout is None:
@@ -336,6 +345,23 @@ class SideBar(ComponentBase, ObjectName, QWidget):
         if widget is not None:
             layout.addWidget(widget, stretch=1)
 
+    def setFooter(self, widget: Optional[QWidget]) -> None:
+        """Pinned bottom region (e.g. Settings) — outside the scroll menu."""
+        host = self._footerHost
+        layout = self._footerLayout
+        if host is None or layout is None:
+            raise RuntimeError("SideBar UI not initialized")
+
+        while layout.count():
+            item = layout.takeAt(0)
+            w = item.widget()
+            if w is not None:
+                w.setParent(None)
+
+        self._footer = widget
+        if widget is not None:
+            layout.addWidget(widget, stretch=0)
+
     # ==================================================================================
     @property
     def Header(self) -> SideBarHeader:
@@ -348,6 +374,14 @@ class SideBar(ComponentBase, ObjectName, QWidget):
     @Content.setter
     def Content(self, value: Optional[QWidget]) -> None:
         self.setContent(value)
+
+    @property
+    def Footer(self) -> Optional[QWidget]:
+        return self._footer
+
+    @Footer.setter
+    def Footer(self, value: Optional[QWidget]) -> None:
+        self.setFooter(value)
 
     @property
     def Title(self) -> str:

@@ -20,20 +20,24 @@ def _onMenuItemClicked(item: object) -> None:
 # ==================================================================================
 def buildSmokeTestSideBarMenu(
     deviceNames: list[str] | None = None,
-) -> SideBarMenu:
-    """Build the eNuts smoke-test navigation menu.
+) -> tuple[SideBarMenu, SideBarMenuItem]:
+    """Build smoke-test nav menu + pinned Settings footer item.
 
     Structure::
 
-        Dashboard
-        Devices
-            <deviceNames…>  (or a single placeholder leaf if empty)
-        Tools
-            Annotator
-            Key & Gesture Recorder
-        Settings
+        [scroll menu]
+          Dashboard
+          Devices
+              <deviceNames…> | (no devices)
+          Tools
+              Annotator
+              Key & Gesture Recorder
 
-    Click only prints the item title — no WorkSpace page wiring.
+        [footer — special]
+          Settings
+
+    Returns ``(menu, settingsItem)``. Default icons use the app logo.
+    Click only prints the item title — no page wiring.
     """
     menu = SideBarMenu()
 
@@ -51,7 +55,15 @@ def buildSmokeTestSideBarMenu(
     tools.addChild("Annotator")
     tools.addChild("Key & Gesture Recorder")
 
-    menu.addItem("Settings", role=eSideBarMenuRole.Header)
+    # Settings is special: not in the scroll list — pinned footer on SideBar.
+    settings = SideBarMenuItem(
+        caption="Settings",
+        role=eSideBarMenuRole.Header,
+    )
+    settings.clicked.connect(_onMenuItemClicked)
+    settings.selectionRequested.connect(
+        lambda item: menu.selectItem(item) if menu.SelectOnClick else None
+    )
 
     menu.itemClicked.connect(_onMenuItemClicked)
-    return menu
+    return menu, settings

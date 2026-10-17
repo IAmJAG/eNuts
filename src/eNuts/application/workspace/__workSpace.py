@@ -77,8 +77,9 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
                 f"animation={type(sideBar.Animation).__name__ if sideBar.Animation else None}"
             )
 
-            # Smoke-test menu only: print caption on click — no page/stack wiring.
-            sideBar.Content = buildSmokeTestSideBarMenu()
+            menu, settings = buildSmokeTestSideBarMenu()
+            sideBar.Content = menu
+            sideBar.Footer = settings
 
             stack: QStackedWidget = QStackedWidget()
             stack.setObjectName("W_WORKSPACE_STACK")
