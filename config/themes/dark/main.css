@@ -38,33 +38,36 @@ QWidget#W_SIDEBAR_HEADER {
     border-bottom: 1px solid $border;
 }
 
-/* SideBar menu */
+/* SideBar menu — DEBUG backgrounds to verify selectors match */
 QScrollArea#W_SIDEBAR_MENU,
 QWidget#W_SIDEBAR_MENU_COLUMN {
     background: transparent;
     border: none;
 }
 
+/* Any menu item: magenta — if you never see this, objectName is not matching */
 QWidget#W_SIDEBAR_MENU_ITEM {
-    background: transparent;
-    color: $textMuted;
-    border: 1px solid transparent;
+    background: #ff00ff;
+    color: #ffffff;
+    border: 1px solid #ffffff;
     border-radius: 0px;
     padding: 6px 10px;
 }
 
-/* Header rows (Dashboard, Devices, Tools, Settings, …) — no extra indent */
+/* Header: green */
 QWidget#W_SIDEBAR_MENU_ITEM[role="header"] {
+    background: #00aa44;
     padding: 6px 10px;
     font-weight: 600;
-    color: $text;
+    color: #ffffff;
 }
 
-/* Leaf rows only — indented under parent header */
+/* Leaf: red + left padding (indent) */
 QWidget#W_SIDEBAR_MENU_ITEM[role="leaf"] {
+    background: #cc0000;
     padding: 4px 10px 4px 28px;
     font-weight: 400;
-    color: $textMuted;
+    color: #ffffff;
 }
 
 QWidget#W_SIDEBAR_MENU_ITEM:hover,
