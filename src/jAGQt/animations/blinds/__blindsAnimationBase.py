@@ -4,21 +4,14 @@
 from __future__ import annotations
 
 # ==================================================================================
-from typing import Optional
-
-# ==================================================================================
-from PySide6.QtCore import QRectF, Qt
-from PySide6.QtGui import QPainter, QPixmap
+from PySide6.QtCore import QSize
 from PySide6.QtWidgets import QWidget
 
 # ==================================================================================
-from ..__animationBase import AnimationBase
-from ..__pixmapUtils import (
-    applyPixmap,
-    assertSetPixmap,
-    grabWidget,
-    scaleToTarget,
-)
+from jAGQt.utilities import AnimationError
+
+# ==================================================================================
+from ..__sizeAnimationBase import SizeAnimationBase
 from .__eBlindsOrientation import eBlindsOrientation
 
 # ==================================================================================
@@ -27,8 +20,8 @@ C_DEFAULT_STRIPS = 8
 
 
 # ==================================================================================
-class BlindsAnimationBase(AnimationBase):
-    """Window-blinds style strip reveal; paint via grab + setPixmap."""
+class BlindsAnimationBase(SizeAnimationBase):
+    """Size animation that advances in discrete strip steps (blinds)."""
 
     def __init__(
         self,
@@ -38,15 +31,9 @@ class BlindsAnimationBase(AnimationBase):
         *args,
         **kwargs,
     ) -> None:
-        assertSetPixmap(target)
-        if stripCount < 1:
-            stripCount = 1
-        super().__init__(*args, **kwargs)
-        self._target: QWidget = target
+        super().__init__(target, *args, **kwargs)
         self._orientation: eBlindsOrientation = orientation
-        self._stripCount: int = int(stripCount)
-        self._original: QPixmap = QPixmap()
-        self._content: QPixmap = QPixmap()
+        self._stripCount: int = max(1, int(stripCount))
 
     @property
     def orientation(self) -> eBlindsOrientation:
@@ -64,62 +51,49 @@ class BlindsAnimationBase(AnimationBase):
     def stripCount(self, value: int) -> None:
         self._stripCount = max(1, int(value))
 
-    def _grabTarget(self) -> QPixmap:
-        return grabWidget(self._target)
-
-    def _applyPixmap(self, pixmap: QPixmap) -> None:
-        applyPixmap(self._target, pixmap)
-
-    def _buildFrame(
-        self,
-        progress: float,
-        underneath: QPixmap,
-        revealed: QPixmap,
-    ) -> QPixmap:
-        """Each strip opens from 0→full along its short axis as progress advances."""
+    def _sizeAt(self, progress: float) -> QSize:
+        """Quantize progress into strip steps along the animated axis."""
         progress = max(0.0, min(1.0, progress))
-        w = max(1, self._target.width())
-        h = max(1, self._target.height())
-        frame = QPixmap(w, h)
-        frame.fill(Qt.GlobalColor.transparent)
-
-        under = scaleToTarget(underneath, self._target) if not underneath.isNull() else QPixmap()
-        over = scaleToTarget(revealed, self._target) if not revealed.isNull() else QPixmap()
-
-        painter = QPainter(frame)
-        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
-
-        if not under.isNull():
-            painter.drawPixmap(0, 0, under)
-
         n = self._stripCount
-        horizontal = self._orientation is eBlindsOrientation.Horizontal
+        # Map continuous progress to discrete strip index 0..n
+        step = int(progress * n)
+        if step > n:
+            step = n
+        stepped = step / n if n else 1.0
+        if progress >= 1.0:
+            stepped = 1.0
 
-        for i in range(n):
-            if horizontal:
-                stripH = h / n
-                y0 = i * stripH
-                openH = stripH * progress
-                src = QRectF(0, y0, w, openH)
-                dst = QRectF(0, y0, w, openH)
-            else:
-                stripW = w / n
-                x0 = i * stripW
-                openW = stripW * progress
-                src = QRectF(x0, 0, openW, h)
-                dst = QRectF(x0, 0, openW, h)
+        sw, sh = self._startSize.width(), self._startSize.height()
+        ew, eh = self._endSize.width(), self._endSize.height()
 
-            if src.width() <= 0 or src.height() <= 0:
-                continue
+        if self._orientation is eBlindsOrientation.Vertical:
+            w = int(round(sw + (ew - sw) * stepped))
+            h = sh if eh == sh else int(round(sh + (eh - sh) * progress))
+        else:
+            h = int(round(sh + (eh - sh) * stepped))
+            w = sw if ew == sw else int(round(sw + (ew - sw) * progress))
 
-            painter.save()
-            painter.setClipRect(dst)
-            if not over.isNull():
-                painter.drawPixmap(0, 0, over)
-            else:
-                painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
-                painter.fillRect(dst, Qt.GlobalColor.transparent)
-            painter.restore()
+        return QSize(max(0, w), max(0, h))
 
-        painter.end()
-        return frame
+    def _resolveEnd(
+        self,
+        *,
+        endWidth: int | None,
+        endHeight: int | None,
+    ) -> None:
+        self._captureStart()
+        w = self._startSize.width()
+        h = self._startSize.height()
+        if self._orientation is eBlindsOrientation.Vertical:
+            if endWidth is None:
+                raise AnimationError("Vertical blinds require endWidth")
+            w = max(0, int(endWidth))
+            if endHeight is not None:
+                h = max(0, int(endHeight))
+        else:
+            if endHeight is None:
+                raise AnimationError("Horizontal blinds require endHeight")
+            h = max(0, int(endHeight))
+            if endWidth is not None:
+                w = max(0, int(endWidth))
+        self._endSize = QSize(w, h)
