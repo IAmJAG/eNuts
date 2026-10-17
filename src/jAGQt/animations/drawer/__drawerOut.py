@@ -2,40 +2,36 @@
 from __future__ import annotations
 
 # ==================================================================================
-from typing import Optional
+from jAGQt.utilities import AnimationError
 
 # ==================================================================================
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QPixmap
-
-# ==================================================================================
-from ..__pixmapUtils import ImageLike, toPixmap
 from .__drawerAnimationBase import DrawerAnimationBase
+from .__eDrawerDirection import eDrawerDirection
 
 
 # ==================================================================================
 class DrawerOut(DrawerAnimationBase):
-    """Slide current content off-screen like a closing drawer."""
+    """Collapse the widget along the drawer direction.
+
+    ``start(endWidth=0)`` or ``start(endHeight=0)`` depending on direction.
+    Defaults to fully collapsed (0) on the animated axis.
+    """
 
     def _onStart(self, *args, **kwargs) -> None:
-        source: Optional[ImageLike] = kwargs.get("source")
-        if source is not None:
-            self._original = toPixmap(source)
+        d = self._direction
+        if d in (eDrawerDirection.Left, eDrawerDirection.Right):
+            endWidth = kwargs.get("endWidth", 0)
+            endHeight = None
         else:
-            self._original = self._grabTarget()
-        empty = QPixmap(max(1, self._target.width()), max(1, self._target.height()))
-        empty.fill(Qt.GlobalColor.transparent)
-        self._content = empty
-        self._applyPixmap(
-            self._buildFrame(0.0, self._content, self._original, slideIn=False)
-        )
+            endWidth = None
+            endHeight = kwargs.get("endHeight", 0)
 
-    def _onProgress(self, progress: float) -> None:
-        self._applyPixmap(
-            self._buildFrame(progress, self._content, self._original, slideIn=False)
-        )
+        if d in (eDrawerDirection.Left, eDrawerDirection.Right) and endWidth is None:
+            raise AnimationError("DrawerOut requires endWidth for horizontal drawer")
+        if d in (eDrawerDirection.Top, eDrawerDirection.Bottom) and endHeight is None:
+            raise AnimationError("DrawerOut requires endHeight for vertical drawer")
 
-    def _onFinished(self) -> None:
-        self._applyPixmap(
-            self._buildFrame(1.0, self._content, self._original, slideIn=False)
+        self._resolveEndSize(
+            endWidth=endWidth, endHeight=endHeight, collapsed=True
         )
+        self._applySize(self._startSize)
