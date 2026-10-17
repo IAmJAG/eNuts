@@ -1,7 +1,7 @@
 ## Overview & Design Context
 Fixed-width sidebar host with header, content slot, and optional width animation from options.
 
-* **Design Decision:** Public package surface remains `SideBar` and `eSideBarState`. Options apply-then-drop. Animation is start/stop only on the host.
+* **Design Decision:** Public package surface remains `SideBar` and `eSideBarState`. Options apply-then-drop. Animation is start/stop only on the host. Private helpers must not use `_w`/`_a` prefixes unless they are intentional workflow steps.
 
 ---
 
@@ -10,8 +10,8 @@ Fixed-width sidebar host with header, content slot, and optional width animation
 ### `SideBar`
 - **Purpose:** Application sidebar shell.
 - **Methods:**
-  - `_wInitializeUI()` -> Header, content host, apply options, wire state.
-  - `_applyOptions(options, animationOptions)` -> Copy settings to properties; resolve animation.
+  - `_wInitializeUI()` -> Header, content host, install options, wire state. (workflow step)
+  - `_installOptionsFrom(options, animationOptions)` -> Copy settings to properties; resolve animation. **Not** a workflow step (name avoids `_w`/`_a`).
   - `_resolveAnimation(className, animationOptions)` -> `iAnimation` or None.
   - `toOptions()` -> `SideBarOptions` from current properties.
   - `setContent(widget)` -> Place/replace content below header.

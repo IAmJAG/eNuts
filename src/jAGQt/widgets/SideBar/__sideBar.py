@@ -134,8 +134,8 @@ class SideBar(ComponentBase, ObjectName, QWidget):
             self._content = None
             self._sidebarState = initialState
 
-            self._applyOptions(pendingOptions, pendingAnimOptions)
-            # options dropped after apply — no retained reference
+            # Must not be named _a* / _w* — those prefixes are workflow steps.
+            self._installOptionsFrom(pendingOptions, pendingAnimOptions)
 
             if self._animation is not None:
                 finished = getattr(self._animation, "finished", None)
@@ -160,12 +160,16 @@ class SideBar(ComponentBase, ObjectName, QWidget):
             raise
 
     # ==================================================================================
-    def _applyOptions(
+    def _installOptionsFrom(
         self,
         options: Optional[SideBarOptions],
         animationOptions: Optional[AnimationOptions],
     ) -> None:
-        """Copy option values onto instance properties, then caller drops options."""
+        """Copy option values onto instance properties, then caller drops options.
+
+        Named without ``_w``/``_a`` prefix so ``@workflow`` does not treat this
+        as a post-init workflow step.
+        """
         if options is None:
             self._expandedWidth = C_EXPANDED_WIDTH
             self._collapsedWidth = C_COLLAPSED_WIDTH
@@ -186,7 +190,6 @@ class SideBar(ComponentBase, ObjectName, QWidget):
             return None
 
         className = str(className).strip()
-        # Ensure common animation package is imported so importClass can resolve
         try:
             import jAGQt.animations  # noqa: F401
         except Exception:
@@ -199,7 +202,6 @@ class SideBar(ComponentBase, ObjectName, QWidget):
             )
 
         if not issubclass(cls, SizeAnimationBase):
-            # Still allow any type that satisfies iAnimation if it is SizeAnimationBase-like
             if not (
                 hasattr(cls, "start")
                 and hasattr(cls, "stop")
@@ -217,7 +219,6 @@ class SideBar(ComponentBase, ObjectName, QWidget):
         try:
             instance = cls(target=self, durationMs=durationMs)
         except TypeError:
-            # Fallback if ctor does not accept durationMs
             instance = cls(target=self)
 
         verbose(f"[SideBar] resolved animation {className!r} -> {type(instance)!r}")
@@ -230,13 +231,7 @@ class SideBar(ComponentBase, ObjectName, QWidget):
         o.collapsedWidth = self._collapsedWidth
         if self._animation is not None:
             t = type(self._animation)
-            mod = t.__module__
-            # Prefer public package path when class is re-exported
-            if mod.endswith("." + t.__name__) or ".__" in mod:
-                # keep defining module; also try package short form for RubberBand etc.
-                o.animation = f"{mod}.{t.__name__}"
-            else:
-                o.animation = f"{mod}.{t.__name__}"
+            o.animation = f"{t.__module__}.{t.__name__}"
         else:
             o.animation = None
         return o
@@ -422,7 +417,6 @@ class SideBar(ComponentBase, ObjectName, QWidget):
     def State(self, value: eSideBarState) -> None:
         if not isinstance(value, eSideBarState):
             raise TypeError(f"State must be eSideBarState, got {type(value)!r}")
-        # Validate against header icon registered states before write-through
         icon = getattr(self._header, "_icon", None)
         if icon is not None:
             registered = getattr(icon, "_icons", None)
