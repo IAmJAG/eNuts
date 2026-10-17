@@ -21,12 +21,71 @@ QMenu {
 }
 
 /* ---------- Workspace ---------- */
-QWidget#Workspace {
+QWidget#Workspace,
+QWidget#W_WORKSPACE {
     background: $bg;
     color: $text;
 }
 
 /* ---------- SideBar ---------- */
+QWidget#W_SIDEBAR {
+    background: $surface;
+    border-right: 1px solid $border;
+}
+
+QWidget#W_SIDEBAR_HEADER {
+    background: $surface;
+    border-bottom: 1px solid $border;
+}
+
+/* SideBar menu */
+QScrollArea#W_SIDEBAR_MENU,
+QWidget#W_SIDEBAR_MENU_COLUMN {
+    background: transparent;
+    border: none;
+}
+
+QWidget#W_SIDEBAR_MENU_ITEM {
+    background: transparent;
+    color: $textMuted;
+    border: 1px solid transparent;
+    border-radius: 0px;
+    padding: 6px 10px;
+}
+
+QWidget#W_SIDEBAR_MENU_ITEM[role="header"] {
+    padding: 6px 10px;
+    font-weight: 600;
+    color: $text;
+}
+
+QWidget#W_SIDEBAR_MENU_ITEM[role="leaf"] {
+    padding: 4px 10px 4px 28px;
+    font-weight: 400;
+    color: $textMuted;
+}
+
+QWidget#W_SIDEBAR_MENU_ITEM:hover,
+QWidget#W_SIDEBAR_MENU_ITEM[hover="true"] {
+    background: $hover;
+    color: $text;
+    border-color: $border;
+}
+
+QWidget#W_SIDEBAR_MENU_ITEM[selected="true"] {
+    background: $selected;
+    color: $text;
+    border: 1px solid $accent;
+    border-left: 3px solid $accentAlt;
+    font-weight: 600;
+}
+
+QWidget#W_SIDEBAR_MENU_ITEM[selected="true"][hover="true"] {
+    background: $selectedHover;
+    border-color: $accent;
+    border-left-color: $accentAlt;
+}
+
 QWidget#SideBar {
     background: $surface;
     border-right: 1px solid $border;
@@ -138,7 +197,6 @@ QFrame#SideBarSeparator {
     margin: 8px 12px;
 }
 
-/* ---------- Page / Header ---------- */
 QWidget#W_PAGE {
     background: $bg;
     color: $text;
@@ -167,7 +225,6 @@ QWidget#W_PAGE_CONTENT {
     background: $bg;
 }
 
-/* ---------- Command bar ---------- */
 QWidget#W_COMMANDBAR {
     background: $surface;
     border-top: 1px solid $border;
@@ -206,7 +263,6 @@ QWidget#W_COMMANDBAR QPushButton:disabled {
     border-color: $border;
 }
 
-/* ---------- Controls ---------- */
 QPushButton {
     background: $control;
     color: $text;
@@ -363,7 +419,6 @@ QScrollBar::sub-line:horizontal {
     width: 0;
 }
 
-/* ---------- Settings ---------- */
 QWidget#SettingsPage,
 QWidget#SettingsRoot {
     background: $bg;
@@ -379,7 +434,6 @@ QComboBox#ThemeCombo {
     min-width: 220px;
 }
 
-/* ---------- Spinners ---------- */
 QWidget#EvolvingNeuralBrain,
 QWidget#EvolvingNeuralOrb,
 QWidget#RevolvingNeuralOrb {
