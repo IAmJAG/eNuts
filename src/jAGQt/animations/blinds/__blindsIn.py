@@ -2,39 +2,30 @@
 from __future__ import annotations
 
 # ==================================================================================
-from typing import Optional
-
-# ==================================================================================
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QPixmap
-
-# ==================================================================================
 from jAGQt.utilities import AnimationError
 
 # ==================================================================================
-from ..__pixmapUtils import ImageLike, toPixmap
 from .__blindsAnimationBase import BlindsAnimationBase
+from .__eBlindsOrientation import eBlindsOrientation
 
 
 # ==================================================================================
 class BlindsIn(BlindsAnimationBase):
-    """Open blinds to reveal targetImage."""
+    """Expand size in strip steps.
+
+    ``start(endWidth=...)`` or ``start(endHeight=...)`` required by orientation.
+    """
 
     def _onStart(self, *args, **kwargs) -> None:
-        targetImage: Optional[ImageLike] = kwargs.get("targetImage")
-        if targetImage is None and args:
-            targetImage = args[0]  # type: ignore[assignment]
-        if targetImage is None:
-            raise AnimationError("BlindsIn.start requires targetImage")
-
-        self._content = toPixmap(targetImage)
-        empty = QPixmap(max(1, self._target.width()), max(1, self._target.height()))
-        empty.fill(Qt.GlobalColor.transparent)
-        self._original = empty
-        self._applyPixmap(self._buildFrame(0.0, self._original, self._content))
-
-    def _onProgress(self, progress: float) -> None:
-        self._applyPixmap(self._buildFrame(progress, self._original, self._content))
-
-    def _onFinished(self) -> None:
-        self._applyPixmap(self._buildFrame(1.0, self._original, self._content))
+        if self._orientation is eBlindsOrientation.Vertical:
+            endWidth = kwargs.get("endWidth", args[0] if args else None)
+            endHeight = kwargs.get("endHeight")
+            if endWidth is None:
+                raise AnimationError("BlindsIn (Vertical) requires endWidth")
+        else:
+            endHeight = kwargs.get("endHeight", args[0] if args else None)
+            endWidth = kwargs.get("endWidth")
+            if endHeight is None:
+                raise AnimationError("BlindsIn (Horizontal) requires endHeight")
+        self._resolveEnd(endWidth=endWidth, endHeight=endHeight)
+        self._applySize(self._startSize)
