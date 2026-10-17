@@ -32,8 +32,13 @@ class SideBarMenuItem(SideBarItem):
     """One menu row. Headers may own leaf children (one level only); leaves cannot.
 
     Selection state is owned here (``Selected`` / QSS ``selected``).
-    Click only emits signals — expand/accordion policy is left to SideBarMenu
-    defaults or the application.
+
+    **Default click:**
+    - Header with children → toggle expand/collapse, then selection + clicked.
+    - Leaf or header without children → selection + clicked only.
+
+    Accordion (closing siblings) is not enforced; the app may do that on
+    ``toggled`` / ``itemClicked``.
     """
 
     OBJECT_NAME = "W_SIDEBAR_MENU_ITEM"
@@ -126,8 +131,13 @@ class SideBarMenuItem(SideBarItem):
     def mousePressEvent(self, event: QMouseEvent) -> None:
         try:
             if event.button() == Qt.MouseButton.LeftButton:
-                # Default path: request selection + notify click.
-                # Expand / accordion are not decided here.
+                # Default header behavior: expand/collapse when there are children.
+                if (
+                    self._role is eSideBarMenuRole.Header
+                    and len(self._children) > 0
+                ):
+                    self.Expanded = not self._expanded
+
                 self.selectionRequested.emit(self)
                 self.clicked.emit(self)
                 event.accept()
@@ -165,7 +175,6 @@ class SideBarMenuItem(SideBarItem):
         self._bodyLayout.addWidget(child)
         if self._expanded:
             self._body.show()
-        # Forward leaf selection/click through the same signals the menu already wires
         child.selectionRequested.connect(self.selectionRequested.emit)
         child.clicked.connect(self.clicked.emit)
         return child

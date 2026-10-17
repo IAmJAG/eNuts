@@ -1,10 +1,12 @@
 ## Overview & Design Context
 Scrollable SideBar menu: header rows with optional one-level leaves.
 
-* **Selection:** Owned on the item (`Selected` / QSS `selected`). Menu applies **single select on click by default** (`SelectOnClick`). Disable and handle `itemClicked` / `selectionRequested` for custom policy.
-* **No `ancestorSelected`:** Use `ParentItem` / `menu.parentOf(item)` to trace ancestors.
-* **Expand / accordion:** Not enforced by the menu; set `item.Expanded` from the app or a later policy.
-* **SideBar.State:** Menu does not listen; Title/theme handle width.
+* **Selection:** Owned on the item (`Selected`). Menu default: single select on click (`SelectOnClick`).
+* **Header click (default):** if the header has children, toggle expand/collapse, then selection + `clicked`.
+* **Leaf click:** selection + `clicked` only.
+* **No `ancestorSelected`:** use `ParentItem` / `menu.parentOf(item)`.
+* **Accordion:** not enforced; app may close siblings on `toggled` / `itemClicked`.
+* **SideBar.State:** menu does not listen; Title/theme handle width.
 
 ---
 
@@ -28,7 +30,6 @@ Scrollable SideBar menu: header rows with optional one-level leaves.
 menu = SideBarMenu()
 devices = menu.addItem("Devices")
 devices.addChild("Connected")
-menu.itemClicked.connect(onClick)       # always
-menu.selectionChanged.connect(onSelect) # default selection path
-# menu.SelectOnClick = False            # app owns selection via selectItem()
+# click Devices → expands/collapses + selects (default)
+menu.selectionChanged.connect(onSelect)
 ```
