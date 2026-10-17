@@ -53,7 +53,7 @@ def buildSmokeTestSideBarMenu(
 
     tools = menu.addItem("Tools", role=eSideBarMenuRole.Header)
     tools.addChild("Annotator")
-    tools.addChild("Key & Gesture Recorder")
+    tools.addChild("K&G Recorder")
 
     # Settings is special: not in the scroll list — pinned footer on SideBar.
     settings = SideBarMenuItem(
