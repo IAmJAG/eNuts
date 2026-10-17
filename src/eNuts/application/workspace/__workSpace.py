@@ -16,6 +16,9 @@ from jAGQt.widgets.sideBar import SideBar, eSideBarState
 from utilities.io import getICONPath
 
 # ==================================================================================
+from ...UI.navigation import buildSmokeTestSideBarMenu
+
+# ==================================================================================
 QSPolicy = QSizePolicy.Policy
 StyleBackground = Qt.WidgetAttribute.WA_StyledBackground
 C_SIDEBAR_ANIMATION_TYPE: str = "jAGQt.animations.RubberBand"
@@ -73,6 +76,9 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
                 f"state={sideBar.State!r} "
                 f"animation={type(sideBar.Animation).__name__ if sideBar.Animation else None}"
             )
+
+            # Smoke-test menu only: print caption on click — no page/stack wiring.
+            sideBar.Content = buildSmokeTestSideBarMenu()
 
             stack: QStackedWidget = QStackedWidget()
             stack.setObjectName("W_WORKSPACE_STACK")
