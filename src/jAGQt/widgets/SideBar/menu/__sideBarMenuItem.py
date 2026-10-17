@@ -32,13 +32,11 @@ class SideBarMenuItem(SideBarItem):
     """One menu row. Headers may own leaf children (one level only); leaves cannot.
 
     Selection state is owned here (``Selected`` / QSS ``selected``).
+    Leaf indent is theme/QSS via ``role=leaf`` — not layout margins in code.
 
     **Default click:**
     - Header with children → toggle expand/collapse, then selection + clicked.
     - Leaf or header without children → selection + clicked only.
-
-    Accordion (closing siblings) is not enforced; the app may do that on
-    ``toggled`` / ``itemClicked``.
     """
 
     OBJECT_NAME = "W_SIDEBAR_MENU_ITEM"
@@ -131,7 +129,6 @@ class SideBarMenuItem(SideBarItem):
     def mousePressEvent(self, event: QMouseEvent) -> None:
         try:
             if event.button() == Qt.MouseButton.LeftButton:
-                # Default header behavior: expand/collapse when there are children.
                 if (
                     self._role is eSideBarMenuRole.Header
                     and len(self._children) > 0
@@ -199,7 +196,6 @@ class SideBarMenuItem(SideBarItem):
             self._body.hide()
 
     def attachBodyTo(self, parentLayout: QBoxLayout) -> None:
-        """Place this header's children body under the row in the menu column."""
         if self._role is not eSideBarMenuRole.Header:
             return
         if self._body is None:
@@ -213,7 +209,6 @@ class SideBarMenuItem(SideBarItem):
 
     @property
     def ParentItem(self) -> Optional[SideBarMenuItem]:
-        """Header that owns this leaf, or None for top-level headers."""
         return self._parentItem
 
     @property
