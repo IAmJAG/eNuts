@@ -31,7 +31,9 @@ C_ICON_SIZE = 20
 class SideBarMenuItem(SideBarItem):
     """One menu row. Headers may own leaf children (one level only); leaves cannot.
 
-    No chevron. Expand/collapse is vertical show/hide of the children body.
+    Selection state is owned here (``Selected`` / QSS ``selected``).
+    Click only emits signals — expand/accordion policy is left to SideBarMenu
+    defaults or the application.
     """
 
     OBJECT_NAME = "W_SIDEBAR_MENU_ITEM"
@@ -54,18 +56,16 @@ class SideBarMenuItem(SideBarItem):
         self._role: eSideBarMenuRole = role
         self._expanded: bool = True
         self._selected: bool = False
-        self._ancestorSelected: bool = False
         self._children: List[SideBarMenuItem] = []
+        self._parentItem: Optional[SideBarMenuItem] = None
         self._body: Optional[QWidget] = None
         self._bodyLayout: Optional[QBoxLayout] = None
         self._iconWidget: Optional[Icon] = None
         self._titleWidget: Optional[Title] = None
-        self._shell: Optional[QWidget] = None
 
     def _wInitializeUI(self) -> None:
         verbose(f"[SideBarMenuItem] _wInitializeUI role={self._role!r}")
         try:
-            # Row chrome (leading + text) lives on this widget via SideBarItem
             super()._wInitializeUI()
 
             caption = self._captionText
@@ -88,11 +88,9 @@ class SideBarMenuItem(SideBarItem):
 
             self._setRoleProperty(role)
             self._setSelectedProperty(False)
-            self._setAncestorSelectedProperty(False)
 
             self.setCursor(Qt.CursorShape.PointingHandCursor)
 
-            # Children body only for headers; created lazily on first addChild
             if role is eSideBarMenuRole.Header:
                 body = QWidget(self)
                 body.setObjectName(f"{self.OBJECT_NAME}_BODY")
@@ -124,18 +122,12 @@ class SideBarMenuItem(SideBarItem):
         self.style().unpolish(self)
         self.style().polish(self)
 
-    def _setAncestorSelectedProperty(self, value: bool) -> None:
-        self._ancestorSelected = value
-        self.setProperty("ancestorSelected", "true" if value else "false")
-        self.style().unpolish(self)
-        self.style().polish(self)
-
     # ==================================================================================
     def mousePressEvent(self, event: QMouseEvent) -> None:
         try:
             if event.button() == Qt.MouseButton.LeftButton:
-                if self._role is eSideBarMenuRole.Header and self._children:
-                    self.Expanded = not self._expanded
+                # Default path: request selection + notify click.
+                # Expand / accordion are not decided here.
                 self.selectionRequested.emit(self)
                 self.clicked.emit(self)
                 event.accept()
@@ -168,15 +160,26 @@ class SideBarMenuItem(SideBarItem):
         if self._body is None or self._bodyLayout is None:
             raise RuntimeError("SideBarMenuItem UI not initialized")
 
+        child._parentItem = self
         self._children.append(child)
         self._bodyLayout.addWidget(child)
         if self._expanded:
             self._body.show()
+        # Forward leaf selection/click through the same signals the menu already wires
+        child.selectionRequested.connect(self.selectionRequested.emit)
+        child.clicked.connect(self.clicked.emit)
         return child
 
     def clearChildren(self) -> None:
         if self._bodyLayout is None:
             return
+        for child in list(self._children):
+            try:
+                child.selectionRequested.disconnect(self.selectionRequested.emit)
+                child.clicked.disconnect(self.clicked.emit)
+            except Exception:
+                pass
+            child._parentItem = None
         while self._bodyLayout.count():
             taken = self._bodyLayout.takeAt(0)
             w = taken.widget()
@@ -187,11 +190,7 @@ class SideBarMenuItem(SideBarItem):
             self._body.hide()
 
     def attachBodyTo(self, parentLayout: QBoxLayout) -> None:
-        """Insert this item's children body under the row in an outer column layout.
-
-        SideBarMenu owns a vertical column: [row, optional body, ...].
-        Call after the row widget is added to the menu layout.
-        """
+        """Place this header's children body under the row in the menu column."""
         if self._role is not eSideBarMenuRole.Header:
             return
         if self._body is None:
@@ -202,6 +201,11 @@ class SideBarMenuItem(SideBarItem):
     @property
     def Role(self) -> eSideBarMenuRole:
         return self._role
+
+    @property
+    def ParentItem(self) -> Optional[SideBarMenuItem]:
+        """Header that owns this leaf, or None for top-level headers."""
+        return self._parentItem
 
     @property
     def Caption(self) -> str:
@@ -235,14 +239,6 @@ class SideBarMenuItem(SideBarItem):
     @Selected.setter
     def Selected(self, value: bool) -> None:
         self._setSelectedProperty(bool(value))
-
-    @property
-    def AncestorSelected(self) -> bool:
-        return self._ancestorSelected
-
-    @AncestorSelected.setter
-    def AncestorSelected(self, value: bool) -> None:
-        self._setAncestorSelectedProperty(bool(value))
 
     @property
     def Children(self) -> List[SideBarMenuItem]:

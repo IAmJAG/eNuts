@@ -1,42 +1,34 @@
 ## Overview & Design Context
-Scrollable SideBar menu: top-level header rows with optional one-level leaf children. Single selection; parent of a selected leaf gets `ancestorSelected`. No chevron; header expand is show/hide of the body.
+Scrollable SideBar menu: header rows with optional one-level leaves.
 
-Plug into SideBar via `sideBar.setContent(menu)` / `sideBar.Content = menu`.
+* **Selection:** Owned on the item (`Selected` / QSS `selected`). Menu applies **single select on click by default** (`SelectOnClick`). Disable and handle `itemClicked` / `selectionRequested` for custom policy.
+* **No `ancestorSelected`:** Use `ParentItem` / `menu.parentOf(item)` to trace ancestors.
+* **Expand / accordion:** Not enforced by the menu; set `item.Expanded` from the app or a later policy.
+* **SideBar.State:** Menu does not listen; Title/theme handle width.
 
 ---
 
 ## Classes
 
 ### `SideBarMenu`
-- **Purpose:** Host list of `SideBarMenuItem` headers.
-- **Methods:**
-  - `addItem(item|str, icon=None, role=Header)` -> `SideBarMenuItem`
-  - `clear()`
-- **Properties:** `Items`, `SelectedItem`
-- **Signals:** `selectionChanged(item|None)`
+- **Signals:** `itemClicked(item)`, `selectionChanged(item|None)`
+- **Methods:** `addItem`, `clear`, `selectItem`, `parentOf`
+- **Properties:** `Items`, `SelectedItem`, `SelectOnClick`
 
 ### `SideBarMenuItem`
-- **Purpose:** One row (header or leaf).
-- **Methods:** `addChild(item|str, icon=None)`, `clearChildren()`, `attachBodyTo(layout)`
-- **Properties:** `Role`, `Caption`, `Expanded`, `Selected`, `AncestorSelected`, `Children`
-- **Signals:** `clicked`, `toggled`, `selectionRequested`
+- **Signals:** `clicked`, `selectionRequested`, `toggled`
+- **Properties:** `Role`, `Caption`, `Expanded`, `Selected`, `Children`, `ParentItem`
 
 ### `eSideBarMenuRole`
-- **Members:** `Header`, `Leaf`
+- `Header`, `Leaf`
 
 ## Sample Usage
 
 ```python
-from jAGQt.widgets.SideBar import (
-    SideBar, eSideBarState, SideBarMenu, SideBarMenuItem, eSideBarMenuRole,
-)
-
 menu = SideBarMenu()
 devices = menu.addItem("Devices")
 devices.addChild("Connected")
-devices.addChild("History")
-menu.addItem("Settings", role=eSideBarMenuRole.Header)
-
-sidebar.Content = menu
-menu.selectionChanged.connect(lambda item: ...)
+menu.itemClicked.connect(onClick)       # always
+menu.selectionChanged.connect(onSelect) # default selection path
+# menu.SelectOnClick = False            # app owns selection via selectItem()
 ```
