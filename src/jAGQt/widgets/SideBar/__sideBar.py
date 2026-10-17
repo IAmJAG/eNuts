@@ -11,6 +11,7 @@ from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 
 # ==================================================================================
 from jAGFx.workflow import workflow
+from jAGQt.animations import RubberBand
 
 # ==================================================================================
 from ...utilities import newLayout
@@ -22,6 +23,7 @@ from .components import SideBarHeader
 QSPolicy = QSizePolicy.Policy
 C_EXPANDED_WIDTH = 200
 C_COLLAPSED_WIDTH = 48
+C_STATE_ANIM_MS = 280
 # ==================================================================================
 
 
@@ -55,6 +57,8 @@ class SideBar(ComponentBase, ObjectName, QWidget):
             )
             self._initialState: eSideBarState = initialState
             self._sidebarState: eSideBarState = initialState
+            self._sizeAnim: Optional[RubberBand] = None
+            self._layoutReady: bool = False
         except Exception as ex:
             error("[SideBar] __init__ FAIL", ex)
             error(f"[SideBar] __init__ traceback:\n{format_exc()}")
@@ -103,9 +107,17 @@ class SideBar(ComponentBase, ObjectName, QWidget):
             self._header: SideBarHeader = header
             self._sidebarState = initialState
 
+            self._sizeAnim = RubberBand(
+                target=self,
+                durationMs=C_STATE_ANIM_MS,
+                parent=self,
+            )
+            self._sizeAnim.finished.connect(self._onSizeAnimFinished)
+
             header.stateChanged.connect(self._onHeaderStateChanged)
-            # Do not name helpers _a... / _w... — @workflow discovers those prefixes.
-            self._syncLayoutForState(initialState)
+            # Initial layout: instant (no rubber-band on first paint)
+            self._syncLayoutForState(initialState, animate=False)
+            self._layoutReady = True
 
             verbose(
                 f"[SideBar] _wInitializeUI EXIT "
@@ -122,25 +134,74 @@ class SideBar(ComponentBase, ObjectName, QWidget):
             warning(f"[SideBar] ignoring non-eSideBarState: {state!r}")
             return
         verbose(f"[SideBar] header stateChanged -> {state!r}")
-        self._syncLayoutForState(state)
+        self._syncLayoutForState(state, animate=self._layoutReady)
 
-    def _syncLayoutForState(self, state: eSideBarState) -> None:
-        self._sidebarState = state
-        header = self._header
-
+    def _targetWidthForState(self, state: eSideBarState) -> int:
         if state is eSideBarState.Collapsed:
-            self.setFixedWidth(C_COLLAPSED_WIDTH)
+            return C_COLLAPSED_WIDTH
+        return C_EXPANDED_WIDTH
+
+    def _syncChromeForState(self, state: eSideBarState) -> None:
+        """Show/hide header text for the given state (no size change)."""
+        header = self._header
+        if state is eSideBarState.Collapsed:
             header._titleWidget.hide()
             header._descriptionWidget.hide()
         else:
-            self.setFixedWidth(C_EXPANDED_WIDTH)
             header._titleWidget.show()
             if header.Description.strip():
                 header._descriptionWidget.show()
             else:
                 header._descriptionWidget.hide()
 
-        self.updateGeometry()
+    def _syncLayoutForState(
+        self, state: eSideBarState, *,
+        animate: bool = True,
+    ) -> None:
+        self._sidebarState = state
+        endWidth = self._targetWidthForState(state)
+
+        if state is eSideBarState.Collapsed:
+            # Hide text immediately when collapsing
+            self._syncChromeForState(state)
+        # When expanding, chrome is shown after the size animation finishes
+
+        if not animate or self._sizeAnim is None:
+            self.setFixedWidth(endWidth)
+            self._syncChromeForState(state)
+            self.updateGeometry()
+            return
+
+        try:
+            if self._sizeAnim.isRunning:
+                self._sizeAnim.stop()
+            verbose(
+                f"[SideBar] RubberBand width {self.width()} -> {endWidth} "
+                f"state={state!r}"
+            )
+            self._sizeAnim.start(endWidth=endWidth)
+        except Exception as ex:
+            error("[SideBar] RubberBand start FAIL", ex)
+            error(f"[SideBar] traceback:\n{format_exc()}")
+            self.setFixedWidth(endWidth)
+            self._syncChromeForState(state)
+            self.updateGeometry()
+
+    def _onSizeAnimFinished(self) -> None:
+        try:
+            # Ensure final width and chrome match logical state
+            endWidth = self._targetWidthForState(self._sidebarState)
+            self.setFixedWidth(endWidth)
+            self._syncChromeForState(self._sidebarState)
+            self.updateGeometry()
+            verbose(
+                f"[SideBar] size anim finished state={self._sidebarState!r} "
+                f"width={self.width()}"
+            )
+        except Exception as ex:
+            error("[SideBar] _onSizeAnimFinished FAIL", ex)
+            error(f"[SideBar] traceback:\n{format_exc()}")
+            raise
 
     # ==================================================================================
     @property
