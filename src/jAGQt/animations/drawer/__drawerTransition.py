@@ -2,66 +2,49 @@
 from __future__ import annotations
 
 # ==================================================================================
-from typing import Optional
+from PySide6.QtCore import QSize
 
 # ==================================================================================
 from jAGQt.utilities import AnimationError
 
 # ==================================================================================
-from ..__pixmapUtils import ImageLike, toPixmap
 from .__drawerAnimationBase import DrawerAnimationBase
+from .__eDrawerDirection import eDrawerDirection
 
 
 # ==================================================================================
 class DrawerTransition(DrawerAnimationBase):
-    """Single pass: original slides out while target slides in from the same direction.
+    """Animate widget size from current (or explicit start) to end along direction.
 
-    ``start(targetImage=..., originalImage=None)``
+    ``start(endWidth=..., endHeight=optional, startWidth=optional, startHeight=optional)``
+    Horizontal directions require ``endWidth``; vertical require ``endHeight``.
     """
 
     def _onStart(self, *args, **kwargs) -> None:
-        targetImage: Optional[ImageLike] = kwargs.get("targetImage")
-        originalImage: Optional[ImageLike] = kwargs.get("originalImage")
-        if targetImage is None and len(args) >= 1:
-            targetImage = args[0]  # type: ignore[assignment]
-        if originalImage is None and len(args) >= 2:
-            originalImage = args[1]  # type: ignore[assignment]
-        if targetImage is None:
-            raise AnimationError("DrawerTransition.start requires targetImage")
+        d = self._direction
+        endWidth = kwargs.get("endWidth")
+        endHeight = kwargs.get("endHeight")
+        if endWidth is None and d in (eDrawerDirection.Left, eDrawerDirection.Right):
+            if args:
+                endWidth = args[0]
+        if endHeight is None and d in (eDrawerDirection.Top, eDrawerDirection.Bottom):
+            if args:
+                endHeight = args[0]
 
-        self._content = toPixmap(targetImage)
-        self._original = (
-            self._grabTarget() if originalImage is None else toPixmap(originalImage)
+        if d in (eDrawerDirection.Left, eDrawerDirection.Right) and endWidth is None:
+            raise AnimationError("DrawerTransition requires endWidth")
+        if d in (eDrawerDirection.Top, eDrawerDirection.Bottom) and endHeight is None:
+            raise AnimationError("DrawerTransition requires endHeight")
+
+        self._resolveEndSize(
+            endWidth=endWidth, endHeight=endHeight, collapsed=False
         )
-        self._applyPixmap(self._compose(0.0))
 
-    def _compose(self, progress: float):
-        # Original exits (slideIn=False); new enters (slideIn=True) in one frame.
-        progress = max(0.0, min(1.0, progress))
-        w = max(1, self._target.width())
-        h = max(1, self._target.height())
-        from PySide6.QtCore import Qt
-        from PySide6.QtGui import QPainter, QPixmap
+        startWidth = kwargs.get("startWidth")
+        startHeight = kwargs.get("startHeight")
+        if startWidth is not None or startHeight is not None:
+            w = int(startWidth) if startWidth is not None else self._startSize.width()
+            h = int(startHeight) if startHeight is not None else self._startSize.height()
+            self._startSize = QSize(max(0, w), max(0, h))
 
-        from ..__pixmapUtils import scaleToTarget
-
-        frame = QPixmap(w, h)
-        frame.fill(Qt.GlobalColor.transparent)
-        under = scaleToTarget(self._original, self._target)
-        over = scaleToTarget(self._content, self._target)
-        painter = QPainter(frame)
-        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
-        if not under.isNull():
-            ox, oy = self._offset(w, h, progress, slideIn=False)
-            painter.drawPixmap(int(ox), int(oy), under)
-        if not over.isNull():
-            ox, oy = self._offset(w, h, progress, slideIn=True)
-            painter.drawPixmap(int(ox), int(oy), over)
-        painter.end()
-        return frame
-
-    def _onProgress(self, progress: float) -> None:
-        self._applyPixmap(self._compose(progress))
-
-    def _onFinished(self) -> None:
-        self._applyPixmap(self._compose(1.0))
+        self._applySize(self._startSize)
