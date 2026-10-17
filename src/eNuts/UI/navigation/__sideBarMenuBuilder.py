@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 # ==================================================================================
-from jAGQt.widgets.SideBar import SideBarMenu, SideBarMenuItem, eSideBarMenuRole
+from jAGQt.widgets.sideBar import SideBarMenu, SideBarMenuItem, eSideBarMenuRole
 
 # ==================================================================================
 
