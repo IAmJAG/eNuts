@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-17 02:48:15 UTC*
+*Auto-generated on: 2026-10-17 08:47:36 UTC*
 
 ## Current Directory Structure
 
@@ -39,6 +39,9 @@ eNuts/
 │   └── themes/
 │       ├── dark/
 │       │   ├── main.css
+│       │   ├── options/
+│       │   │   ├── Animation.json
+│       │   │   └── SideBar.json
 │       │   └── palette
 │       ├── dracula/
 │       │   ├── main.css
@@ -59,6 +62,8 @@ eNuts/
 │   │   ├── .ff
 │   │   ├── UI/
 │   │   │   ├── .ff
+│   │   │   ├── navigation/
+│   │   │   │   └── __sideBarMenuBuilder.py
 │   │   │   ├── widgets/
 │   │   │   │   ├── pages/
 │   │   │   │   │   ├── dashboard/
@@ -238,6 +243,7 @@ eNuts/
 │   │   ├── animations/
 │   │   │   ├── __animationBase.py
 │   │   │   ├── __pixmapUtils.py
+│   │   │   ├── __sizeAnimationBase.py
 │   │   │   ├── blinds/
 │   │   │   │   ├── __blindsAnimationBase.py
 │   │   │   │   ├── __blindsIn.py
@@ -250,6 +256,8 @@ eNuts/
 │   │   │   │   ├── __drawerOut.py
 │   │   │   │   ├── __drawerTransition.py
 │   │   │   │   └── __eDrawerDirection.py
+│   │   │   ├── rubberband/
+│   │   │   │   └── __rubberBand.py
 │   │   │   └── wipe/
 │   │   │       ├── __eWipeMode.py
 │   │   │       ├── __wipeAnimationBase.py
@@ -258,6 +266,10 @@ eNuts/
 │   │   │       └── __wipeTransition.py
 │   │   ├── icons/
 │   │   │   └── animations/
+│   │   ├── options/
+│   │   │   ├── __animationOptions.py
+│   │   │   ├── __optionsBase.py
+│   │   │   └── __sideBarOptions.py
 │   │   ├── types/
 │   │   │   ├── .fff
 │   │   │   └── interface/
@@ -301,9 +313,13 @@ eNuts/
 │   │   │   ├── sideBar/
 │   │   │   │   ├── __eSideBarState.py
 │   │   │   │   ├── __sideBar.py
-│   │   │   │   └── components/
-│   │   │   │       ├── __sideBarHeader.py
-│   │   │   │       └── __sideBarItem.py
+│   │   │   │   ├── components/
+│   │   │   │   │   ├── __sideBarHeader.py
+│   │   │   │   │   └── __sideBarItem.py
+│   │   │   │   └── menu/
+│   │   │   │       ├── __eSideBarMenuRole.py
+│   │   │   │       ├── __sideBarMenu.py
+│   │   │   │       └── __sideBarMenuItem.py
 │   │   │   └── text/
 │   │   │       ├── __description.py
 │   │   │       ├── __text.py
@@ -389,6 +405,8 @@ src/eNuts/application/workspace:
 		CLASSE(S):
 			WorkSpace -> : workspace
 		CONSTANTS(S)/GLOBAL(S)
+			C_SIDEBAR_ANIMATION_TYPE -> : c_sidebar_animation_type
+			C_SIDEBAR_ANIMATION_MS -> : c_sidebar_animation_ms
 			QSPolicy -> : qspolicy
 			StyleBackground -> : stylebackground
 
@@ -429,6 +447,12 @@ src/eNuts/types/interface/UI/windows:
 	__mainWindow.py - 
 		CLASSE(S):
 			iENUTSWindow -> : ienutswindow
+
+src/eNuts/UI/navigation:
+	__sideBarMenuBuilder.py - 
+		FUNCTION(S):
+			_onMenuItemClicked -> : _onmenuitemclicked
+			buildSmokeTestSideBarMenu -> : buildsmoketestsidebarmenu
 
 src/eNuts/UI/widgets/pages/recorder:
 	__recorderPage.py - 
@@ -913,6 +937,9 @@ src/jAGQt/animations:
 			applyPixmap -> : applypixmap
 		CONSTANTS(S)/GLOBAL(S)
 			ImageLike -> : imagelike
+	__sizeAnimationBase.py - 
+		CLASSE(S):
+			SizeAnimationBase -> : sizeanimationbase
 
 src/jAGQt/animations/blinds:
 	__blindsAnimationBase.py - 
@@ -950,6 +977,13 @@ src/jAGQt/animations/drawer:
 		CLASSE(S):
 			eDrawerDirection -> : edrawerdirection
 
+src/jAGQt/animations/rubberband:
+	__rubberBand.py - 
+		CLASSE(S):
+			RubberBand -> : rubberband
+		FUNCTION(S):
+			_elastic01 -> : _elastic01
+
 src/jAGQt/animations/wipe:
 	__eWipeMode.py - 
 		CLASSE(S):
@@ -973,6 +1007,30 @@ src/jAGQt/animations/wipe:
 	__wipeTransition.py - 
 		CLASSE(S):
 			WipeTransition -> : wipetransition
+
+src/jAGQt/options:
+	__animationOptions.py - 
+		CLASSE(S):
+			AnimationOptions -> : animationoptions
+		CONSTANTS(S)/GLOBAL(S)
+			C_DEFAULT_DURATION_MS -> : c_default_duration_ms
+			C_DEFAULT_NAME -> : c_default_name
+	__optionsBase.py - 
+		CLASSE(S):
+			OptionsBase -> : optionsbase
+		CONSTANTS(S)/GLOBAL(S)
+			C_OPTIONS_SUBDIR -> : c_options_subdir
+			C_THEMES_SUBDIR -> : c_themes_subdir
+	__sideBarOptions.py - 
+		CLASSE(S):
+			SideBarOptions -> : sidebaroptions
+		CONSTANTS(S)/GLOBAL(S)
+			C_DEFAULT_EXPANDED_WIDTH -> : c_default_expanded_width
+			C_DEFAULT_COLLAPSED_WIDTH -> : c_default_collapsed_width
+			C_DEFAULT_NAME -> : c_default_name
+			C_DEFAULT_MENU_ICON_SIZE -> : c_default_menu_icon_size
+			C_DEFAULT_MENU_HEADER_MARGIN -> : c_default_menu_header_margin
+			C_DEFAULT_MENU_LEAF_MARGIN -> : c_default_menu_leaf_margin
 
 src/jAGQt/types/interface/animations:
 	__animation.py - 
@@ -1080,6 +1138,7 @@ src/jAGQt/widgets/sideBar:
 		CONSTANTS(S)/GLOBAL(S)
 			C_EXPANDED_WIDTH -> : c_expanded_width
 			C_COLLAPSED_WIDTH -> : c_collapsed_width
+			C_STATE_ANIM_MS -> : c_state_anim_ms
 			QSPolicy -> : qspolicy
 
 src/jAGQt/widgets/sideBar/components:
@@ -1095,6 +1154,28 @@ src/jAGQt/widgets/sideBar/components:
 		CONSTANTS(S)/GLOBAL(S)
 			QSPolicy -> : qspolicy
 			StyleBackground -> : stylebackground
+
+src/jAGQt/widgets/sideBar/menu:
+	__eSideBarMenuRole.py - 
+		CLASSE(S):
+			eSideBarMenuRole -> : esidebarmenurole
+	__sideBarMenu.py - 
+		CLASSE(S):
+			SideBarMenu -> : sidebarmenu
+		CONSTANTS(S)/GLOBAL(S)
+			QSPolicy -> : qspolicy
+			StyleBackground -> : stylebackground
+	__sideBarMenuItem.py - 
+		CLASSE(S):
+			SideBarMenuItem -> : sidebarmenuitem
+		FUNCTION(S):
+			_defaultIconPath -> : _defaulticonpath
+		CONSTANTS(S)/GLOBAL(S)
+			C_ICON_SIZE -> : c_icon_size
+			C_HEADER_MARGIN -> : c_header_margin
+			C_LEAF_MARGIN -> : c_leaf_margin
+			C_DEFAULT_ICON -> : c_default_icon
+			QSPolicy -> : qspolicy
 
 src/jAGQt/widgets/text:
 	__description.py - 
@@ -1182,42 +1263,46 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-8e2afbd:
-	Export blinds animations
+2a884a9:
+	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
 
-9ffa2d6:
-	Add BlindsTransition animation
-		src/jAGQt/animations/blinds/__blindsTransition.py
+9263ffe:
+	fix(SideBar): shorten "Key & Gesture Recorder" to "K&G Recorder"
+		src/eNuts/UI/navigation/__sideBarMenuBuilder.py
 
-f44e460:
-	Add BlindsIn animation
-		src/jAGQt/animations/blinds/__blindsIn.py
+b1ce6a2:
+	feat(SideBar): store/push menu metrics from SideBarOptions to menu and footer
+		src/jAGQt/widgets/SideBar/__sideBar.py
 
-81032da:
-	Add BlindsOut animation
-		src/jAGQt/animations/blinds/__blindsOut.py
+6a74e25:
+	feat(SideBar): apply menu metrics from options to menu items
+		src/jAGQt/widgets/SideBar/menu/__sideBarMenu.py
+		src/jAGQt/widgets/SideBar/menu/__sideBarMenuItem.py
 
-467d7c1:
-	Add BlindsAnimationBase
-		src/jAGQt/animations/blinds/__blindsAnimationBase.py
+28f636d:
+	feat(SideBarOptions): menu header/leaf size metrics applied in code
+		src/jAGQt/options/__sideBarOptions.py
 
-f3a5fcc:
-	Add eBlindsOrientation enum
-		src/jAGQt/animations/blinds/__eBlindsOrientation.py
+db1613f:
+	fix(SideBar): leaf indent in code, default logo icon, Settings as footer
+		src/eNuts/UI/navigation/__sideBarMenuBuilder.py
+		src/eNuts/application/workspace/__workSpace.py
+		src/jAGQt/widgets/SideBar/__sideBar.py
+		src/jAGQt/widgets/SideBar/menu/__sideBarMenuItem.py
 
-58c1c1b:
-	Export drawer animations
+c8309b3:
+	fix(theme): indent SideBar leaf items with margin-left (padding ignored by layout)
+		config/themes/dark/main.css
 
-3c7d0e0:
-	Add DrawerTransition animation
-		src/jAGQt/animations/drawer/__drawerTransition.py
+8665bb3:
+	debug(theme): loud SideBar menu backgrounds to verify QSS role selectors
+		config/themes/dark/main.css
 
-208c120:
-	Add DrawerIn animation
-		src/jAGQt/animations/drawer/__drawerIn.py
+f5482bb:
+	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
 
-a83d2e7:
-	Add DrawerOut animation
-		src/jAGQt/animations/drawer/__drawerOut.py
+2d63fd0:
+	fix: correct import case for SideBar module
+		src/eNuts/UI/navigation/__sideBarMenuBuilder.py
 
 ```
