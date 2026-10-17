@@ -23,8 +23,6 @@ from .__eSideBarMenuRole import eSideBarMenuRole
 # ==================================================================================
 QSPolicy = QSizePolicy.Policy
 C_ICON_SIZE = 20
-C_HEADER_MARGIN = (8, 8, 8, 8)
-C_LEAF_MARGIN = (28, 6, 8, 6)  # extra left indent under parent header
 # ==================================================================================
 
 
@@ -34,12 +32,11 @@ class SideBarMenuItem(SideBarItem):
     """One menu row. Headers may own leaf children (one level only); leaves cannot.
 
     Selection state is owned here (``Selected`` / QSS ``selected``).
+    Leaf indent is theme/QSS via ``role=leaf`` — not layout margins in code.
 
     **Default click:**
     - Header with children → toggle expand/collapse, then selection + clicked.
     - Leaf or header without children → selection + clicked only.
-
-    Leaves are indented via layout margins (``C_LEAF_MARGIN``).
     """
 
     OBJECT_NAME = "W_SIDEBAR_MENU_ITEM"
@@ -79,14 +76,6 @@ class SideBarMenuItem(SideBarItem):
             role = self._role
             del self._captionText
             del self._iconSource
-
-            # Indent leaves under their header (SideBarItem default margins are uniform).
-            margins = (
-                C_LEAF_MARGIN
-                if role is eSideBarMenuRole.Leaf
-                else C_HEADER_MARGIN
-            )
-            self._layout.setContentsMargins(*margins)
 
             iconWidget = Icon(icon=iconSrc, objectName=f"{self.OBJECT_NAME}_ICON")
             iconWidget.setFixedSize(QSize(C_ICON_SIZE, C_ICON_SIZE))
@@ -207,7 +196,6 @@ class SideBarMenuItem(SideBarItem):
             self._body.hide()
 
     def attachBodyTo(self, parentLayout: QBoxLayout) -> None:
-        """Place this header's children body under the row in the menu column."""
         if self._role is not eSideBarMenuRole.Header:
             return
         if self._body is None:
