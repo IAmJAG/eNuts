@@ -3,7 +3,7 @@ from __future__ import annotations
 
 # ==================================================================================
 from traceback import format_exc
-from typing import Dict, Optional, Set
+from typing import Dict, List, Optional, Set
 
 # ==================================================================================
 from PySide6.QtCore import Qt, Signal, SignalInstance
@@ -117,10 +117,6 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             for key, page in pages.items():
                 idx = stack.addWidget(page)
                 pageIndex[key] = idx
-                verbose(
-                    f"[WorkSpace] stack add page key={key!r} "
-                    f"title={page.Title!r} index={idx}"
-                )
 
             if PAGE_DASHBOARD in pageIndex:
                 stack.setCurrentIndex(pageIndex[PAGE_DASHBOARD])
@@ -151,7 +147,6 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
 
             verbose(
                 f"[WorkSpace] _wInitializeUI EXIT "
-                f"sideBar.width={sideBar.width()} pages={list(pageIndex.keys())} "
                 f"deviceMgr={'yes' if self._deviceManager else 'no'}"
             )
         except Exception as ex:
@@ -159,7 +154,6 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             error(f"[WorkSpace] _wInitializeUI traceback:\n{format_exc()}")
             raise
 
-    # ------------------------------------------------------------------ navigation
     def _onNavItemClicked(self, item: object) -> None:
         key = pageKeyOf(item)
         if key is None:
@@ -182,7 +176,6 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
         verbose(f"[WorkSpace] showPage key={key!r} title={title!r} index={index}")
         return True
 
-    # ---------------------------------------------------------- deviceManager bind
     def _bindDeviceManager(self, mgr: Optional[deviceManager]) -> None:
         self._deviceManager = mgr
         if mgr is None:
@@ -203,10 +196,9 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
 
     def _onDevicesReadyUi(self, mgr: object) -> None:
         try:
-            if not isinstance(mgr, deviceManager):
-                return
-            verbose(f"[WorkSpace] devices ready count={len(mgr)}")
-            self._syncDevicesFromManager(mgr)
+            devices = self._listDevices(mgr)
+            verbose(f"[WorkSpace] devices ready count={len(devices)}")
+            self._syncDevicesList(devices)
         except Exception as ex:
             error("[WorkSpace] _onDevicesReadyUi FAIL", ex)
             error(f"[WorkSpace] traceback:\n{format_exc()}")
@@ -238,9 +230,17 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
     def _isDevice(obj: object) -> bool:
         return hasattr(obj, "id") and hasattr(obj, "name")
 
-    def _syncDevicesFromManager(self, mgr: deviceManager) -> None:
+    @staticmethod
+    def _listDevices(mgr: object) -> List[iDevice]:
+        if mgr is None:
+            return []
+        if hasattr(mgr, "values"):
+            return [d for d in list(mgr.values()) if hasattr(d, "id")]
+        return []
+
+    def _syncDevicesList(self, devices: List[iDevice]) -> None:
         liveKeys: Set[str] = set()
-        for device in list(mgr.values()):
+        for device in devices:
             if not self._isDevice(device):
                 continue
             key = self._registerDevice(device)
@@ -315,17 +315,23 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
 
     def _rebuildDevicesMenuLeaves(self) -> None:
         header = self._devicesHeader
-        mgr = self._deviceManager
         if header is None:
             return
 
+        devices = self._listDevices(self._deviceManager)
+        verbose(
+            f"[WorkSpace] rebuild devices menu "
+            f"mgr_count={len(devices)} prior_children={len(header.Children)}"
+        )
+
+        # Drop every leaf (including "(no devices)") then rebuild from mgr.
         header.clearChildren()
-        devices = list(mgr.values()) if mgr is not None else []
 
         if not devices:
             leaf = header.addChild("(no devices)")
             setPageKey(leaf, C_DEVICE_NONE)
             self._ensureDevicePage(C_DEVICE_NONE, "(no devices)")
+            header.Expanded = True
             verbose("[WorkSpace] devices menu → (no devices)")
             return
 
@@ -338,9 +344,13 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             setPageKey(leaf, key)
             self._ensureDevicePage(key, caption)
 
-        verbose(f"[WorkSpace] devices menu → {len(devices)} leaf(s)")
+        header.Expanded = True
+        captions = [c.Caption for c in header.Children]
+        verbose(
+            f"[WorkSpace] devices menu → {len(header.Children)} leaf(s) "
+            f"captions={captions!r}"
+        )
 
-    # ------------------------------------------------------------------ accessors
     @property
     def SideBar(self) -> Optional[SideBar]:
         return self._sideBar
