@@ -19,28 +19,28 @@ from .workspace import WorkSpace
 # ==================================================================================
 class Shell(ApplicationInformation):
     def _wInitializeUI(self: iMainWindowBase) -> None:
-        debug("[Shell] _wInitializeUI ENTER")
+        verbose("[Shell] _wInitializeUI ENTER")
         try:
             mgr = deviceManager(self._shutdownEvent)
             self._deviceManager = mgr
 
             central: WorkSpace = WorkSpace(deviceMgr=mgr)
-            debug(
+            verbose(
                 f"[Shell] WorkSpace created objectName={central.objectName()!r}"
             )
             self.setCentralWidget(central)
             self._workSpace = central
-            debug("[Shell] setCentralWidget done")
+            verbose("[Shell] setCentralWidget done")
 
             mgr.runDiscovery()
-            debug("[Shell] deviceManager.runDiscovery started")
+            verbose("[Shell] deviceManager.runDiscovery started")
 
         except Exception as ex:
             error("[Shell] _wInitializeUI FAIL", ex)
             error(f"[Shell] _wInitializeUI traceback:\n{format_exc()}")
             raise
         finally:
-            debug("[Shell] _wInitializeUI EXIT")
+            verbose("[Shell] _wInitializeUI EXIT")
 
     def _wInitializeSettings(self) -> None:
         company = self.company or "jAGQt"
@@ -84,6 +84,7 @@ class Shell(ApplicationInformation):
     def closeEvent(self, event) -> None:
         self.saveWindowState()
         self._shutdownEvent.set()
+        # Detach UI frame handlers before widgets are destroyed.
         ws = getattr(self, "_workSpace", None)
         if ws is not None and hasattr(ws, "detachAllStreams"):
             try:

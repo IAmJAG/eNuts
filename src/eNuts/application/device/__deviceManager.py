@@ -62,12 +62,12 @@ class deviceManager(AsyncSubscription):
             raise KeyError(f"No SCRCPYEmitter registered for id={deviceId!r}")
 
         if not self._streamReady.get(deviceId, False):
-            debug(f"[deviceManager] ensureRunning initialize id={deviceId!r}")
+            verbose(f"[deviceManager] ensureRunning initialize id={deviceId!r}")
             await emitter.initialize()
             self._streamReady[deviceId] = True
 
         if not emitter.isRunning:
-            debug(f"[deviceManager] ensureRunning start id={deviceId!r}")
+            verbose(f"[deviceManager] ensureRunning start id={deviceId!r}")
             emitter.start()
 
         return emitter
@@ -79,7 +79,7 @@ class deviceManager(AsyncSubscription):
         try:
             if device.isRunning:
                 device.stop()
-                debug(f"[deviceManager] stopped emitter id={deviceId!r}")
+                verbose(f"[deviceManager] stopped emitter id={deviceId!r}")
         except Exception as ex:
             warning(f"[deviceManager] stop emitter id={deviceId!r} failed: {ex}")
         self._streamReady.pop(deviceId, None)
@@ -88,7 +88,7 @@ class deviceManager(AsyncSubscription):
         """Stop every running emitter (app shutdown)."""
         for device in list(self._devices.values()):
             self._stopEmitter(device)
-        debug("[deviceManager] stopAll done")
+        verbose("[deviceManager] stopAll done")
 
     async def _discovery(self) -> None:
         isShuttingDown = self._shutdownEvent.is_set
@@ -99,7 +99,7 @@ class deviceManager(AsyncSubscription):
             return found
 
         devices: Dict[str, iDevice] = await _getDevices()
-        debug(
+        verbose(
             f"[deviceManager] initial discovery count={len(devices)} "
             f"ids={list(devices.keys())}"
         )
@@ -115,7 +115,7 @@ class deviceManager(AsyncSubscription):
             self.setSuppressEvent(False)
 
         self.raiseEvent(DEVICE_INITIALIZED_EVENT, self)
-        debug(
+        verbose(
             f"[deviceManager] INITIALIZED stored={len(self._devices)} "
             f"ids={list(self._devices.keys())}"
         )
@@ -147,7 +147,7 @@ class deviceManager(AsyncSubscription):
                 error("[deviceManager] discovery FAIL", ex)
 
         createTask(_discoveryRunner)
-        debug("[deviceManager] runDiscovery scheduled")
+        verbose("[deviceManager] runDiscovery scheduled")
 
     def addDevice(self, device: iDevice) -> Optional[iDevice]:
         if device is None:
@@ -156,7 +156,7 @@ class deviceManager(AsyncSubscription):
         if deviceId in self._devices:
             return self._devices[deviceId]
         self._devices[deviceId] = device
-        debug(
+        verbose(
             f"[deviceManager] addDevice id={deviceId!r} "
             f"name={getattr(device, 'name', None)!r} "
             f"type={type(device).__name__}"
@@ -171,7 +171,7 @@ class deviceManager(AsyncSubscription):
         removed: Optional[iDevice] = self._devices.pop(deviceId, None)
         if removed is not None:
             self._stopEmitter(removed)
-            debug(f"[deviceManager] removeDevice id={deviceId!r}")
+            verbose(f"[deviceManager] removeDevice id={deviceId!r}")
             self.raiseEvent(DEVICE_REMOVED_EVENT, removed)
             return removed
         return None
