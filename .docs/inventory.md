@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-18 05:28:18 UTC*
+*Auto-generated on: 2026-10-18 05:46:56 UTC*
 
 ## Current Directory Structure
 
@@ -64,6 +64,10 @@ eNuts/
 │   │   │   ├── .ff
 │   │   │   ├── navigation/
 │   │   │   │   └── __sideBarMenuBuilder.py
+│   │   │   ├── pages/
+│   │   │   │   ├── __navigationPages.py
+│   │   │   │   ├── __pageKeys.py
+│   │   │   │   └── __smokePages.py
 │   │   │   ├── widgets/
 │   │   │   │   ├── pages/
 │   │   │   │   ├── spinners/
@@ -466,8 +470,34 @@ src/eNuts/types/interface/UI/windows:
 src/eNuts/UI/navigation:
 	__sideBarMenuBuilder.py - 
 		FUNCTION(S):
-			_onMenuItemClicked -> : _onmenuitemclicked
+			_setPageKey -> : _setpagekey
+			pageKeyOf -> : pagekeyof
 			buildSmokeTestSideBarMenu -> : buildsmoketestsidebarmenu
+		CONSTANTS(S)/GLOBAL(S)
+			C_PAGE_KEY_PROP -> : c_page_key_prop
+
+src/eNuts/UI/pages:
+	__navigationPages.py - 
+		FUNCTION(S):
+			buildBlankPage -> : buildblankpage
+			buildNavigationPages -> : buildnavigationpages
+	__pageKeys.py - 
+		FUNCTION(S):
+			devicePageKey -> : devicepagekey
+		CONSTANTS(S)/GLOBAL(S)
+			PAGE_DASHBOARD -> : page_dashboard
+			PAGE_DEVICES -> : page_devices
+			PAGE_TOOLS -> : page_tools
+			PAGE_ANNOTATOR -> : page_annotator
+			PAGE_KG_RECORDER -> : page_kg_recorder
+			PAGE_SETTINGS -> : page_settings
+			C_DEVICE_KEY_PREFIX -> : c_device_key_prefix
+			C_DEVICE_NONE -> : c_device_none
+	__smokePages.py - 
+		FUNCTION(S):
+			buildSmokeTestPages -> : buildsmoketestpages
+		CONSTANTS(S)/GLOBAL(S)
+			PAGE_KEYS -> : page_keys
 
 src/eNuts/UI/widgets/spinners:
 	__evolvingNeuralBrain.py - 
@@ -1309,6 +1339,33 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+861a0ea:
+	chore(pages): retire __smokePages; re-export from navigation pages
+		src/eNuts/UI/pages/__smokePages.py
+
+bcf5cf7:
+	feat(nav): Phase 0-3 â€” blank Page per menu node (headers + leaves)
+		src/eNuts/UI/navigation/__sideBarMenuBuilder.py
+		src/eNuts/UI/pages/__navigationPages.py
+		src/eNuts/UI/pages/__pageKeys.py
+		src/eNuts/application/workspace/__workSpace.py
+
+570c13d:
+	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
+
+09b31b1:
+	feat(device): implement deviceManager for handling device events and discovery
+		.docs/inventory.md
+		src/eNuts/UI/widgets/pages/recorder/__recorderPage.py
+		src/eNuts/UI/widgets/pages/settings/__settingsPage.py
+		src/eNuts/application/device/__deviceManager.py
+
+a969ca7:
+	feat(WorkSpace): wire SideBar menu selection to stacked Pages
+		src/eNuts/UI/navigation/__sideBarMenuBuilder.py
+		src/eNuts/UI/pages/__smokePages.py
+		src/eNuts/application/workspace/__workSpace.py
+
 7f6683f:
 	fix(inventory): update auto-generated timestamp and enhance directory structure
 		.docs/inventory.md
@@ -1331,26 +1388,5 @@ src/utilities/io:
 		src/eNuts/application/workspace/__workSpace.py
 		src/jAGQt/animations/__sizeAnimationBase.py
 		src/jAGQt/animations/rubberband/__rubberBand.py
-
-ef0be5a:
-	fix(SideBar/Text): fill menu column width; do not elide captions into emptiness
-		src/jAGQt/widgets/SideBar/menu/__sideBarMenu.py
-		src/jAGQt/widgets/text/__text.py
-
-3996575:
-	fix(SideBar): showEvent re-applies expanded width and captions
-		src/jAGQt/widgets/SideBar/__sideBar.py
-
-85fbdec:
-	fix(SideBar): force expanded chrome on showEvent; title min width from metrics
-		src/jAGQt/widgets/SideBar/menu/__sideBarMenuItem.py
-
-c2f38d2:
-	fix(SideBar): chrome follows width; Expanded always shows captions
-		src/jAGQt/widgets/SideBar/__sideBar.py
-
-6400eab:
-	fix(SideBar): keep state, width, and chrome in lockstep
-		src/jAGQt/widgets/SideBar/__sideBar.py
 
 ```
