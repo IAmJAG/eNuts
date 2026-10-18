@@ -7,7 +7,7 @@ from typing import Optional, Union
 # ==================================================================================
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QIcon, QPixmap, QResizeEvent
-from PySide6.QtWidgets import QBoxLayout, QHBoxLayout, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 
 # ==================================================================================
 from jAGFx.workflow import workflow
@@ -24,18 +24,23 @@ QBoxDirection = QBoxLayout.Direction
 QPolicy = QSizePolicy.Policy
 # ==================================================================================
 
+
 # ==================================================================================
 @workflow("InitializeUI")
 class Header(QWidget, ComponentBase):
     OBJECT_NAME = "W_HEADER"
+
     def __init__(
-        self, title: str = "", description: Optional[str] = "",
+        self,
+        title: str = "",
+        description: Optional[str] = "",
         icon: Optional[Union[QIcon, QPixmap, str]] = None,
         iconPosition: IconPosition = IconPosition.TitleRow,
         iconSize: int = 24,
         iconBG: Optional[Union[str, QColor]] = None,
-        iconFG: Optional[Union[str, QColor]] = None,        
-        *args, **kwargs,
+        iconFG: Optional[Union[str, QColor]] = None,
+        *args,
+        **kwargs,
     ) -> None:
         lObjName: str = kwargs.pop("objectName", self.OBJECT_NAME)
         super().__init__(objectName=lObjName, *args, **kwargs)
@@ -44,10 +49,12 @@ class Header(QWidget, ComponentBase):
         self._descriptionText: str = description or ""
         self._iconData: Optional[Union[QIcon, QPixmap, str]] = icon
         self._iconPosition: IconPosition = iconPosition
-        self._iconBG: Optional[Union[str, QColor]] = iconBG or QColor(Qt.GlobalColor.transparent)
+        self._iconBG: Optional[Union[str, QColor]] = iconBG or QColor(
+            Qt.GlobalColor.transparent
+        )
         self._iconFG: Optional[Union[str, QColor]] = iconFG or Qt.GlobalColor.darkGray
         self._iconSize: int = iconSize
-        
+
     def _wInitializeUI(self, rebuild: bool = True) -> None:
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         title: Title = Title(self._titleText)
@@ -66,21 +73,34 @@ class Header(QWidget, ComponentBase):
 
         self._title = title
         self._description = description
-        self._icon: icon = icon
-        self.setLayout(newLayout(QVBoxLayout, spacing=0, margins=0))
+        self._icon: Icon = icon
+        # QBoxLayout only — QVBoxLayout/QHBoxLayout reject Direction in __init__.
+        self.setLayout(
+            newLayout(
+                QBoxLayout,
+                spacing=0,
+                margins=0,
+                direction=QBoxDirection.TopToBottom,
+            )
+        )
 
         if rebuild:
             self._rebuildLayout()
 
-    # ==================================================================================
     def _clearLayout(self) -> None:
-        layout: QBoxLayout = self.layout()
+        layout = self.layout()
+        if layout is None:
+            return
         while layout.count():
             item = layout.takeAt(0)
-            if item is None: continue
+            if item is None:
+                continue
             widget = item.widget()
             if widget is not None:
                 widget.setParent(None)
+            childLayout = item.layout()
+            if childLayout is not None:
+                childLayout.setParent(None)
 
     def _rebuildLayout(self) -> None:
         icon: Icon = self._icon
@@ -88,70 +108,111 @@ class Header(QWidget, ComponentBase):
         description: Description = self._description
         iconPosition: IconPosition = self._iconPosition
 
-        hasIcon: bool = icon is not None and isinstance(icon, Icon)                
-        rowLayout: QBoxLayout = newLayout(QHBoxLayout, spacing=8, margins=0)
-        mainLayout: QBoxLayout = self.layout()
+        hasIcon: bool = icon is not None and isinstance(icon, Icon)
+        rowLayout: QBoxLayout = newLayout(
+            QBoxLayout,
+            spacing=8,
+            margins=0,
+            direction=QBoxDirection.LeftToRight,
+        )
+        mainLayout = self.layout()
+        if mainLayout is None:
+            return
         self._clearLayout()
 
-        if iconPosition == IconPosition.TitleRow:                        
-            iconSize: int = title.size().height()
-            icon.setFixedSize(iconSize, iconSize)           
+        if iconPosition == IconPosition.TitleRow:
+            iconSize: int = max(title.sizeHint().height(), self._iconSize)
+            icon.setFixedSize(iconSize, iconSize)
 
-            rowLayout.setDirection(QBoxDirection.LeftToRight)
-            if hasIcon: rowLayout.addWidget(icon)
+            if hasIcon:
+                rowLayout.addWidget(icon)
             rowLayout.addWidget(title, 1)
 
             mainLayout.addLayout(rowLayout)
             mainLayout.addWidget(description)
 
-        elif iconPosition in [IconPosition.Left, IconPosition.Right]:            
-            iconSize: int = title.size().height() + description.size().height()
+        elif iconPosition in (IconPosition.Left, IconPosition.Right):
+            iconSize = max(
+                title.sizeHint().height() + description.sizeHint().height(),
+                self._iconSize,
+            )
             icon.setFixedSize(iconSize, iconSize)
-            
-            titleColLayout: QBoxLayout = newLayout(QVBoxLayout, spacing=0, margins=0, direction=QBoxDirection.TopToBottom)
+
+            titleColLayout: QBoxLayout = newLayout(
+                QBoxLayout,
+                spacing=0,
+                margins=0,
+                direction=QBoxDirection.TopToBottom,
+            )
             titleColLayout.addWidget(title)
             titleColLayout.addWidget(description)
 
-            rowLayout.setDirection(QBoxDirection.LeftToRight)
-            if hasIcon: rowLayout.addWidget(icon)
-            rowLayout.addLayout(titleColLayout, 1)            
+            if iconPosition == IconPosition.Left and hasIcon:
+                rowLayout.addWidget(icon)
+            rowLayout.addLayout(titleColLayout, 1)
+            if iconPosition == IconPosition.Right and hasIcon:
+                rowLayout.addWidget(icon)
             mainLayout.addLayout(rowLayout)
+
         else:
-            iconSize: int = self._iconSize
+            iconSize = self._iconSize
             icon.setFixedSize(iconSize, iconSize)
             if iconPosition == IconPosition.Top:
-                if hasIcon: mainLayout.addWidget(icon)
+                if hasIcon:
+                    mainLayout.addWidget(icon)
                 mainLayout.addWidget(title)
                 mainLayout.addWidget(description)
-
             elif iconPosition == IconPosition.Bottom:
                 mainLayout.addWidget(title)
                 mainLayout.addWidget(description)
-                if hasIcon: mainLayout.addWidget(icon)        
-    
+                if hasIcon:
+                    mainLayout.addWidget(icon)
+
     def resizeEvent(self, event: QResizeEvent) -> None:
         super().resizeEvent(event)
 
+    # ---- lowercase API -----------------------------------------------------------
     @property
     def title(self) -> str:
-        return self._title.Text if self._title and isinstance(self._title, Title) else ""
+        return self.Title
 
     @title.setter
     def title(self, value: str) -> None:
-        if self._title:
-            self._title.setText(value)
-            self._title.setVisible(bool(value))            
-            self._rebuildLayout()
+        self.Title = value
 
     @property
     def description(self) -> str:
-        description: Description = self._description
-        return description.Text if description and isinstance(description, Description) else ""
+        return self.Description
 
     @description.setter
     def description(self, value: str) -> None:
+        self.Description = value
+
+    # ---- Page-facing Title / Description -----------------------------------------
+    @property
+    def Title(self) -> str:
+        return self._title.Text if self._title and isinstance(self._title, Title) else ""
+
+    @Title.setter
+    def Title(self, value: str) -> None:
+        if self._title:
+            self._title.Text = value
+            self._title.setVisible(bool(value))
+            self._rebuildLayout()
+
+    @property
+    def Description(self) -> str:
+        description: Description = self._description
+        return (
+            description.Text
+            if description and isinstance(description, Description)
+            else ""
+        )
+
+    @Description.setter
+    def Description(self, value: str) -> None:
         if self._description:
-            self._description.setText(value)
+            self._description.Text = value
             self._description.setVisible(bool(value))
             self._rebuildLayout()
 
@@ -171,6 +232,7 @@ class Header(QWidget, ComponentBase):
 
     @iconPosition.setter
     def iconPosition(self, value: IconPosition) -> None:
-        if value is self._iconPosition: return
+        if value is self._iconPosition:
+            return
         self._iconPosition = value
         self._rebuildLayout()
