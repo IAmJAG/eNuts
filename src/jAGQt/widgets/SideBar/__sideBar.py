@@ -157,6 +157,7 @@ class SideBar(ComponentBase, ObjectName, QWidget):
             self._sidebarState = initialState
 
             self._installOptionsFrom(pendingOptions, pendingAnimOptions)
+            header.setCollapsedWidth(self._collapsedWidth)
 
             if self._animation is not None:
                 finished = getattr(self._animation, "finished", None)
@@ -223,8 +224,7 @@ class SideBar(ComponentBase, ObjectName, QWidget):
             self._content.setChromeCollapsed(collapsed)
         if isinstance(self._footer, SideBarMenuItem):
             self._footer.setChromeCollapsed(collapsed)
-        if hasattr(self._header, "setChromeCollapsed"):
-            self._header.setChromeCollapsed(collapsed)
+        self._header.setChromeCollapsed(collapsed)
 
     def _resolveAnimation(
         self,
@@ -300,16 +300,6 @@ class SideBar(ComponentBase, ObjectName, QWidget):
 
     def _syncChromeForState(self, state: eSideBarState) -> None:
         collapsed = state is eSideBarState.Collapsed
-        header = self._header
-        if collapsed:
-            header._titleWidget.hide()
-            header._descriptionWidget.hide()
-        else:
-            header._titleWidget.show()
-            if header.Description.strip():
-                header._descriptionWidget.show()
-            else:
-                header._descriptionWidget.hide()
         self._pushChromeCollapsed(collapsed)
 
     def _syncLayoutForState(
@@ -449,6 +439,7 @@ class SideBar(ComponentBase, ObjectName, QWidget):
     @CollapsedWidth.setter
     def CollapsedWidth(self, value: int) -> None:
         self._collapsedWidth = int(value)
+        self._header.setCollapsedWidth(self._collapsedWidth)
 
     @property
     def MenuIconSize(self) -> int:
