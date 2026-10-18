@@ -1,81 +1,157 @@
 # ==================================================================================
-# src/jAGQt/widgets/SideBar/components/__sideBarHeader.py
-# ==================================================================================
-from typing import Optional
+from __future__ import annotations
 
 # ==================================================================================
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QIcon, QMouseEvent
-from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QStyle, QWidget
-
-from ....utilities import newLayout
+from traceback import format_exc
+from typing import Dict, Optional, Union
 
 # ==================================================================================
-from ...components import ComponentBase
+from PySide6.QtCore import QSize, Signal
+from PySide6.QtGui import QIcon, QPixmap
+from PySide6.QtWidgets import QSizePolicy
 
 # ==================================================================================
-from .__sideBarIcon import SideBarIcon
-from .__sideBarText import SideBarText
+from jAGFx.workflow import workflow
+
+# ==================================================================================
+from ...icon import StatefullIcon
+from ...text import Description, Title
+from ..__eSideBarState import eSideBarState
+from .__sideBarItem import SideBarItem
+
+# ==================================================================================
+QSPolicy = QSizePolicy.Policy
+C_ICON_SIZE = 32
+C_COLLAPSED_WIDTH = 48
+# ==================================================================================
 
 
 # ==================================================================================
-class SideBarHeader(QWidget, ComponentBase):
-    """Independent header region for the SideBar (title + optional collapse control)."""
+@workflow
+class SideBarHeader(SideBarItem):
+    OBJECT_NAME = "W_SIDEBAR_HEADER"
 
-    CollapseRequested = Signal()
+    stateChanged = Signal(object)  # eSideBarState
 
     def __init__(
-        self, title: str = "", icon: Optional[object] = None, iconSize: int = 20,
-        showCollapseButton: bool = True, spacing: int = 8, parent: Optional[QWidget] = None,
-        *args, **kwargs,
+        self,
+        title: str,
+        description: str,
+        icons: Dict[eSideBarState, Optional[Union[QIcon, QPixmap, str]]],
+        initialState: eSideBarState = eSideBarState.Expanded,
+        *args,
+        **kwargs,
     ) -> None:
-        super().__init__(parent, *args, **kwargs)
+        if icons is None or len(icons) == 0:
+            raise ValueError("icons must not be None or empty")
 
-        self.setObjectName("SideBarHeader")
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-
-        self._showCollapseButton: bool = showCollapseButton
-        self._collapsed: bool = False
-        self._collapseIconSize: int = max(14, min(iconSize, 18))
-
-        self._iconWidget = SideBarIcon(icon=icon, iconSize=iconSize, parent=self)
-        self._titleWidget = SideBarText(text=title, parent=self)
-        self._titleWidget.setObjectName("SideBarHeaderTitle")
-
-        self._collapseButton = SideBarIcon(
-            icon=None,
-            iconSize=self._collapseIconSize,
-            parent=self,
+        verbose(
+            f"[SideBarHeader] __init__ ENTER title={title!r} "
+            f"initialState={initialState!r}"
         )
-        self._collapseButton.setObjectName("SideBarHeaderCollapse")
-        self._collapseButton.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._collapseButton.mousePressEvent = self._onCollapseClicked  # type: ignore
-
-        self._layout: QBoxLayout = newLayout(
-            QBoxLayout, spacing=spacing, margins=(8, 8, 9, 8)
+        try:
+            super().__init__(*args, **kwargs)
+            self._titleText: str = title
+            self._descriptionText: str = description
+            self._icons: Dict[eSideBarState, Optional[Union[QIcon, QPixmap, str]]] = (
+                dict(icons)
+            )
+            self._initialState: eSideBarState = initialState
+            self._collapsedWidth: int = C_COLLAPSED_WIDTH
+            self._iconSize: int = C_ICON_SIZE
+            self._chromeCollapsed: bool = False
+            self._expandedMargins = (8, 8, 8, 8)
+        except Exception as ex:
+            error("[SideBarHeader] __init__ FAIL", ex)
+            error(f"[SideBarHeader] __init__ traceback:\n{format_exc()}")
+            raise
+        verbose(
+            f"[SideBarHeader] __init__ EXIT objectName={self.objectName()!r}"
         )
-        self._layout.setDirection(QBoxLayout.Direction.LeftToRight)
-        self.setLayout(self._layout)
 
-        self._rebuild()
-        self._refreshCollapseIcon()
+    def _wInitializeUI(self) -> None:
+        verbose("[SideBarHeader] _wInitializeUI ENTER")
+        try:
+            super()._wInitializeUI()
 
-    # ================================================================================== public API
-    def SetTitle(self, title: str) -> None:
-        self.Title = title
+            titleText: str = self._titleText
+            descriptionText: str = self._descriptionText
+            icons = self._icons
+            initialState: eSideBarState = self._initialState
+            del self._titleText
+            del self._descriptionText
+            del self._icons
+            del self._initialState
 
-    def SetIcon(self, icon) -> None:
-        self._iconWidget.SetIcon(icon)
+            iconWidget: StatefullIcon[eSideBarState] = StatefullIcon(
+                icons=icons,
+                objectName=f"{self.OBJECT_NAME}_ICON",
+            )
+            iconWidget.setFixedSize(QSize(C_ICON_SIZE, C_ICON_SIZE))
+            iconWidget.setSizePolicy(QSPolicy.Fixed, QSPolicy.Fixed)
+            if initialState in icons:
+                iconWidget.state = initialState
 
-    def SetCollapsed(self, collapsed: bool) -> None:
-        lValue = bool(collapsed)
-        if lValue == self._collapsed:
+            titleWidget: Title = Title(
+                titleText, objectName=f"{self.OBJECT_NAME}_TITLE"
+            )
+            descriptionWidget: Description = Description(
+                descriptionText,
+                objectName=f"{self.OBJECT_NAME}_DESCRIPTION",
+            )
+            if not descriptionText:
+                descriptionWidget.hide()
+
+            self._addLeading(iconWidget)
+            self._addTextWidget(titleWidget)
+            self._addTextWidget(descriptionWidget)
+
+            self._icon: StatefullIcon[eSideBarState] = iconWidget
+            self._titleWidget: Title = titleWidget
+            self._descriptionWidget: Description = descriptionWidget
+            self._expandedMargins = (
+                self._layout.contentsMargins().left(),
+                self._layout.contentsMargins().top(),
+                self._layout.contentsMargins().right(),
+                self._layout.contentsMargins().bottom(),
+            )
+
+            iconWidget.stateChanged.connect(self._onIconStateChanged)
+            verbose("[SideBarHeader] _wInitializeUI EXIT")
+        except Exception as ex:
+            error("[SideBarHeader] _wInitializeUI FAIL", ex)
+            error(f"[SideBarHeader] _wInitializeUI traceback:\n{format_exc()}")
+            raise
+
+    def setChromeCollapsed(self, collapsed: bool) -> None:
+        """Icon-only: hide text, center icon in collapsed rail width."""
+        self._chromeCollapsed = bool(collapsed)
+        if self._layout is None:
             return
-        self._collapsed = lValue
-        self._refreshCollapseIcon()
+        if self._chromeCollapsed:
+            self._titleWidget.hide()
+            self._descriptionWidget.hide()
+            hPad = max(0, (self._collapsedWidth - self._iconSize) // 2)
+            top = self._expandedMargins[1]
+            bottom = self._expandedMargins[3]
+            self._layout.setContentsMargins(hPad, top, hPad, bottom)
+        else:
+            self._layout.setContentsMargins(*self._expandedMargins)
+            self._titleWidget.show()
+            if self.Description.strip():
+                self._descriptionWidget.show()
+            else:
+                self._descriptionWidget.hide()
 
-    # ================================================================================== properties
+    def setCollapsedWidth(self, width: int) -> None:
+        self._collapsedWidth = int(width)
+        if self._chromeCollapsed:
+            self.setChromeCollapsed(True)
+
+    def _onIconStateChanged(self, state: object) -> None:
+        verbose(f"[SideBarHeader] stateChanged {state!r}")
+        self.stateChanged.emit(state)
+
     @property
     def Title(self) -> str:
         return self._titleWidget.Text
@@ -85,49 +161,26 @@ class SideBarHeader(QWidget, ComponentBase):
         self._titleWidget.Text = value
 
     @property
-    def ShowCollapseButton(self) -> bool:
-        return self._showCollapseButton
+    def Description(self) -> str:
+        return self._descriptionWidget.Text
 
-    @ShowCollapseButton.setter
-    def ShowCollapseButton(self, value: bool) -> None:
-        if value == self._showCollapseButton: return
-        self._showCollapseButton = bool(value)
-        self._rebuild()
-
-    @property
-    def IconWidget(self) -> SideBarIcon:
-        return self._iconWidget
+    @Description.setter
+    def Description(self, value: str) -> None:
+        self._descriptionWidget.Text = value
+        if not self._chromeCollapsed:
+            self._descriptionWidget.setVisible(bool(value.strip()) if value else False)
 
     @property
-    def TitleWidget(self) -> SideBarText:
-        return self._titleWidget
+    def State(self) -> eSideBarState:
+        return self._icon.state
 
-    @property
-    def CollapseButton(self) -> SideBarIcon:
-        return self._collapseButton
+    @State.setter
+    def State(self, value: eSideBarState) -> None:
+        self._icon.state = value
 
-    # ================================================================================== private
-    def _standardIcon(self, standardPixmap: QStyle.StandardPixmap) -> QIcon:
-        return self.style().standardIcon(standardPixmap)
-
-    def _refreshCollapseIcon(self) -> None:
-        if self._collapsed:
-            lIcon = self._standardIcon(QStyle.StandardPixmap.SP_ArrowRight)
-        else:
-            lIcon = self._standardIcon(QStyle.StandardPixmap.SP_ArrowLeft)
-        self._collapseButton.SetIcon(lIcon)
-
-    def _rebuild(self) -> None:
-        # Detach from layout only — keep parent so no top-level window flashes
-        while self._layout.count():
-            self._layout.takeAt(0)
-
-        self._layout.addWidget(self._iconWidget)
-        self._layout.addWidget(self._titleWidget, 1)
-
-        if self._showCollapseButton:
-            self._layout.addWidget(self._collapseButton)
-
-    def _onCollapseClicked(self, event: QMouseEvent) -> None:
-        if event.button() == Qt.MouseButton.LeftButton:
-            self.CollapseRequested.emit()
+    def addIcon(
+        self,
+        state: eSideBarState,
+        icon: Optional[Union[QIcon, QPixmap, str]] = None,
+    ) -> None:
+        self._icon.addIcon(state, icon)

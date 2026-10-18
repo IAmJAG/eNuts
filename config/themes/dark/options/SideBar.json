@@ -1,0 +1,9 @@
+{
+  "name": "SideBar",
+  "version": 1,
+  "description": "Default SideBar chrome widths and width animation class",
+  "expandedWidth": 200,
+  "collapsedWidth": 48,
+  "animation": "jAGQt.animations.RubberBand",
+  "__type__": "jAGQt.options.SideBarOptions"
+}

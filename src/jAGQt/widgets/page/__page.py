@@ -1,6 +1,4 @@
 # ==================================================================================
-# src/jAGQt/widgets/page/__page.py
-# ==================================================================================
 from typing import Optional
 from uuid import UUID, uuid4
 
@@ -8,6 +6,7 @@ from uuid import UUID, uuid4
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QBoxLayout,
+    QLayout,
     QSizePolicy,
     QSpacerItem,
     QWidget,
@@ -23,29 +22,22 @@ from ...types.interface.widgets.commandBar import (
     iCommandBarGroup,
 )
 from ...utilities import newLayout
-from .. import Header
 from ..commandBar import CommandBar
 from ..components import ComponentBase
+from ..header import Header
 
 
 # ==================================================================================
 @workflow("InitializeUI")
 class Page(QWidget, ComponentBase):
     OBJECT_NAME = "W_PAGE"
-
     def __init__(
-        self,
-        title: str = "jAGQt Page",
-        description: str = "",
-        commandBarOn: bool = False,
-        id: Optional[str] = None,
-        *args,
-        **kwargs,
+        self, title: str, description: str = "",
+        commandBarOn: bool = False, id: Optional[str] = None,
+        *args, **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
-        self._id: str = str(uuid4()) if id is None else id
-
-        # temp until _wInitializeUI
+        self._id: str | UUID = uuid4() if id is None else id
         self._title = title
         self._description = description
         self._isCommandBarOn: bool = commandBarOn
@@ -62,15 +54,21 @@ class Page(QWidget, ComponentBase):
 
         self.setObjectName(OBJNAME)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
 
-        pageHeader: Header = Header( title=titleText, description=descriptionText)
+        pageHeader: Header = Header(title=titleText, description=descriptionText)
         pageHeader.setObjectName(f"{OBJNAME}_HEADER")
 
         content: QWidget = QWidget()
-        content.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        content.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
         content.setObjectName(f"{OBJNAME}_CONTENT")
 
         cntLayout: QBoxLayout = newLayout(QBoxLayout, spacing=0, margins=(0, 0, 0, 0))
+        cntLayout.setSizeConstraint(QLayout.SizeConstraint.SetNoConstraint)
         content.setLayout(cntLayout)
 
         commandBar: Optional[iCommandBar] = CommandBar() if isCommandBarOn else None
@@ -81,8 +79,9 @@ class Page(QWidget, ComponentBase):
             margins=(0, 0, 0, 0),
             direction=QBoxLayout.Direction.TopToBottom,
         )
+        mainLayout.setSizeConstraint(QLayout.SizeConstraint.SetNoConstraint)
         mainLayout.addWidget(pageHeader)
-        mainLayout.addWidget(content)
+        mainLayout.addWidget(content, 1)  # stretch — fills remaining height
         if commandBar is not None:
             mainLayout.addWidget(commandBar)
 
@@ -91,13 +90,19 @@ class Page(QWidget, ComponentBase):
         self._commandBar: Optional[iCommandBar] = commandBar
 
         self.setLayout(mainLayout)
+        # Page.Layout (ComponentBase) targets the *content* slot, not mainLayout
         self._layout: QBoxLayout = cntLayout
 
-    def addComponent(self, component: iComponentBase) -> None:
-        self.addWidget(component)
+    def addComponent(self, component: iComponentBase, stretch: int = 1) -> None:
+        self.addWidget(component, stretch=stretch)
 
-    def addWidget(self, widget: QWidget) -> None:
-        self.Layout.addWidget(widget)
+    def addWidget(self, widget: QWidget, stretch: int = 1) -> None:
+        """Add to W_PAGE_CONTENT. stretch must be passed — default 1 fills area."""
+        widget.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
+        widget.setMinimumSize(0, 0)
+        self.Layout.addWidget(widget, stretch)
 
     def addSpacer(
         self,
@@ -117,13 +122,17 @@ class Page(QWidget, ComponentBase):
         return True
 
     def addCommand(
-        self,
-        button: str | iCommandBarButton,
+        self, button: str | iCommandBarButton,
         group: Optional[str | iCommandBarGroup] = None,
     ) -> None:
         if not self._assertCommandBar():
             return
         self._commandBar.addButton(button, group)
+
+    def addCommandStretch(self, stretch: int = 1) -> None:
+        if not self._assertCommandBar():
+            return
+        self._commandBar.addStretch(stretch)
 
     def addCommandGroup(self, name: str | iCommandBarGroup) -> None:
         if not self._assertCommandBar():
@@ -174,13 +183,15 @@ class Page(QWidget, ComponentBase):
     def CommandBarState(self) -> bool:
         return bool(self._commandBar)
 
-    def setCommandBarState(self, value: bool) -> None:
+    @CommandBarState.setter
+    def CommandBarState(self, value: bool) -> None:
+        self._setCommandBarState(value)
+
+    def _setCommandBarState(self, value: bool) -> None:
         if bool(self._commandBar) == value:
             return
         if value:
             self._commandBar = CommandBar(parent=self)
-            self._mainLayout.addWidget(self._commandBar)
         else:
-            self._mainLayout.removeWidget(self._commandBar)
             self._commandBar.deleteLater()
             self._commandBar = None

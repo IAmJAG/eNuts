@@ -1,66 +1,60 @@
 # ==================================================================================================
-# src/eNuts/apps/main.py
-# ==================================================================================================
-from asyncio import CancelledError, Event, set_event_loop
+from asyncio import CancelledError, set_event_loop
+from asyncio import Event as asyncEvent
 from ctypes import windll
 from sys import platform
+from traceback import format_exc
 
 # ==================================================================================================
-from PySide6.QtWidgets import QApplication
 from qasync import QEventLoop
+from rich import inspect, print
 
 # ==================================================================================================
-from jAGFx.types.interface.configuration import iApplicationConfiguration
-
-# ==================================================================================================
+from ..application import eNutsApplication
 from ..configuration import eNutsConfiguration
 from ..types.interface.configuration import iENUTSConfiguration
-from ..UI.windows import MainWindow
+from ..UI.windows import ENUTSWindow
 
 
 # ==================================================================================================
-async def main(app: QApplication, *args, **kwargs):
-    cfg: iENUTSConfiguration | iApplicationConfiguration = eNutsConfiguration()
+async def main(app: eNutsApplication, *args, **kwargs):
+    try:
+        cfg: iENUTSConfiguration = eNutsConfiguration()
+        if platform == "win32":
+            windll.shell32.SetCurrentProcessExplicitAppUserModelID(cfg.applicationId)
 
-    lShutdownEvent: Event = Event()
+        await app.asyncSetStyeSheet(cfg.theme)
 
-    def _onAboutToQuit() -> None: lShutdownEvent.set()
-    app.aboutToQuit.connect(_onAboutToQuit)
-    app.setQuitOnLastWindowClosed(False)
+        shutdownEvent: asyncEvent = asyncEvent()
+        verbose("[main] creating ENUTSWindow")
+        win: ENUTSWindow = ENUTSWindow(shutdownEvent, cfg)
+        verbose("[main] ENUTSWindow created; showing")
+        win.show()
 
-    if platform == "win32":
-        windll.shell32.SetCurrentProcessExplicitAppUserModelID(cfg.applicationId)
-
-    try:        
-        app.setStyleSheet(cfg.styleSheet)
-
-        lWin: MainWindow = MainWindow(*args, **kwargs)        
-        lWin.show()
-
-        app.setQuitOnLastWindowClosed(True)
-
-        await lShutdownEvent.wait()
+        await shutdownEvent.wait()
 
     except CancelledError:
-        pass
+        verbose("[main] CancelledError; shutting down")
 
     except Exception as ex:
-        error(f"[main] Error occur {str(ex)}", ex)
+        error(f"[{__name__}] Error occur {str(ex)}", ex)
+        error(f"[{__name__}] traceback:\n{format_exc()}")
+        raise
 
     finally:
-        if not lShutdownEvent.is_set():
-            lShutdownEvent.set()
+        app.quit()
 
-    app.quit()
 
 # ==================================================================================================
 def program(*args):
-    app: QApplication = QApplication()
+    app: eNutsApplication = eNutsApplication()
     loop: QEventLoop = QEventLoop(app)
 
     set_event_loop(loop)
+    args, kwargs = ProcessArguments(args)
+
     with loop:
-        loop.run_until_complete(main(app))
+        loop.run_until_complete(main(app, *args, **kwargs))
 
 
 # ==================================================================================================

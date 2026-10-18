@@ -3,7 +3,6 @@ from __future__ import annotations
 
 # ==================================================================================
 from functools import wraps
-from traceback import format_exc
 from typing import Callable, TypeVar, overload
 
 # ==================================================================================
@@ -54,10 +53,13 @@ def _discover_workflows(cls: type) -> tuple[str, ...]:
 # ==================================================================================
 def _run_workflow(instance: object) -> None:
     names = getattr(type(instance), _WORKFLOW_METADATA, None)
-    
+
     preferAsync: bool = getattr(type(instance), _WORKFLOW_ASYNC, True)
     loop = getRunningLoop() if preferAsync else None
-    
+
+    if not names:
+        return
+
     for name in names:
         method = getattr(instance, name, None)
         if not callable(method):

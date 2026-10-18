@@ -1,7 +1,8 @@
 # ==================================================================================
-# src/jAGQt/types/interface/window/__mainWindowBase.py
-# ==================================================================================
 from PySide6.QtCore import QSettings
+
+# ==================================================================================
+from jAGFx.configuration import ApplicationConfiguration
 
 # ==================================================================================
 from .windowBase import iWindowBase
@@ -13,4 +14,6 @@ class iMainWindowBase(iWindowBase):
     def saveWindowState(self) -> None: ...
     def restoreWindowsState(self) -> None: ...
     @property
-    def Settings(self) -> QSettings: ...
+    def settings(self) -> QSettings: ...
+    @property
+    def config(self, ) -> ApplicationConfiguration: ...

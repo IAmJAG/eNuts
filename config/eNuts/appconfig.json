@@ -3,9 +3,8 @@
     "title": "eNuts",
     "company": "jAG",
     "applicationId": "JAG-ENUTS",
-    "icon": "logo",
-    "style": "ironman",
-    "LDPath": "D:/LDPlayer/",
-    "assetFolder": null,
+    "logo": "logo",
+    "theme": "ironman",
+    "assetFolder": "assets",
     "__type__": "eNuts.configuration.eNutsConfiguration"
 }

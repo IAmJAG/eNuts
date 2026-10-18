@@ -17,16 +17,17 @@ from .__log import log
 # ==================================================================================
 VERBOSE: int = 5
 addLevelName(VERBOSE, "VERBOSE")
-
 EXITONERROR: bool = True
 # ==================================================================================
 
 # ==================================================================================
 def _resolveErr(err: Exception | None) -> Exception | None:
     """Use explicit err, else the active exception from an enclosing except block."""
-    if err is not None: return err
+    if err is not None:
+        return err
     lActive = exc_info()[1]
-    if isinstance(lActive, BaseException): return lActive
+    if isinstance(lActive, BaseException):
+        return lActive
     return None
 
 # ==================================================================================
@@ -47,8 +48,6 @@ def warning(message: str | tuple | list | dict, err: Exception = None):
 
 # ==================================================================================
 def error(message: str | tuple | list | dict, err: Exception = None):
-    # Always attach traceback for ERROR+ (explicit err or active exception).
-    # EXITONERROR only when the caller explicitly passed err=.
     lErr = _resolveErr(err)
     log(messages=message, level=ERROR, err=lErr)
     if err is not None:

@@ -1,0 +1,454 @@
+/* eNuts theme — main.css (tokens substituted from palette) */
+
+QMainWindow,
+QWidget {
+    background: $bg;
+    color: $text;
+    font-family: "Segoe UI", "Arial", sans-serif;
+    font-size: 12px;
+}
+
+/* Force text roles */
+QLabel,
+QGroupBox,
+QCheckBox,
+QRadioButton,
+QStatusBar,
+QMenuBar,
+QMenu {
+    color: $text;
+    background: transparent;
+}
+
+/* ---------- Workspace ---------- */
+QWidget#Workspace,
+QWidget#W_WORKSPACE {
+    background: $bg;
+    color: $text;
+}
+
+/* ---------- SideBar ---------- */
+QWidget#W_SIDEBAR {
+    background: $surface;
+    border-right: 1px solid $border;
+}
+
+QWidget#W_SIDEBAR_HEADER {
+    background: $surface;
+    border-bottom: 1px solid $border;
+}
+
+/* SideBar menu */
+QScrollArea#W_SIDEBAR_MENU,
+QWidget#W_SIDEBAR_MENU_COLUMN {
+    background: transparent;
+    border: none;
+}
+
+QWidget#W_SIDEBAR_MENU_ITEM {
+    background: transparent;
+    color: $textMuted;
+    border: 1px solid transparent;
+    border-radius: 0px;
+}
+
+/* Header rows — flush with menu column */
+QWidget#W_SIDEBAR_MENU_ITEM[role="header"] {
+    margin-left: 0px;
+    padding: 6px 10px;
+    font-weight: 600;
+    color: $text;
+}
+
+/*
+ * Leaf rows — indent via margin-left (not padding).
+ * Qt layouts fill the widget; stylesheet padding on a laid-out QWidget
+ * does not shift child content. margin-left offsets the whole row in the body.
+ */
+QWidget#W_SIDEBAR_MENU_ITEM[role="leaf"] {
+    margin-left: 20px;
+    padding: 4px 10px;
+    font-weight: 400;
+    color: $textMuted;
+}
+
+QWidget#W_SIDEBAR_MENU_ITEM:hover,
+QWidget#W_SIDEBAR_MENU_ITEM[hover="true"] {
+    background: $hover;
+    color: $text;
+    border-color: $border;
+}
+
+QWidget#W_SIDEBAR_MENU_ITEM[selected="true"] {
+    background: $selected;
+    color: $text;
+    border: 1px solid $accent;
+    border-left: 3px solid $accentAlt;
+    font-weight: 600;
+}
+
+QWidget#W_SIDEBAR_MENU_ITEM[selected="true"][hover="true"] {
+    background: $selectedHover;
+    border-color: $accent;
+    border-left-color: $accentAlt;
+}
+
+/* Legacy SideBar selectors (older names) */
+QWidget#SideBar {
+    background: $surface;
+    border-right: 1px solid $border;
+}
+
+QWidget#SideBarHeader {
+    background: $surface;
+    border-bottom: 1px solid $border;
+}
+
+QLabel#SideBarHeaderTitle {
+    color: $text;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+QPushButton#SideBarHeaderCollapse {
+    background: transparent;
+    color: $textMuted;
+    border: 1px solid transparent;
+    border-radius: 0px;
+    padding: 4px;
+}
+
+QPushButton#SideBarHeaderCollapse:hover {
+    background: $hover;
+    color: $text;
+    border-color: $border;
+}
+
+QScrollArea#SideBarContent,
+QWidget#SideBarContentContainer {
+    background: transparent;
+    border: none;
+}
+
+QWidget#SideBarGroup {
+    background: transparent;
+}
+
+QWidget#SideBarGroupHeader {
+    background: transparent;
+}
+
+QLabel#SideBarGroupTitle {
+    color: $textMuted;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+QWidget#SideBarGroupIndicator {
+    background: $accent;
+}
+
+QWidget#SideBarGroupBody {
+    background: transparent;
+}
+
+QWidget#SideBarItem {
+    background: transparent;
+    color: $textMuted;
+    border: 1px solid transparent;
+    border-radius: 0px;
+    padding: 6px 10px;
+}
+
+QWidget#SideBarItem QLabel#SideBarText {
+    color: $textMuted;
+}
+
+QWidget#SideBarItem:hover,
+QWidget#SideBarItem[hover="true"] {
+    background: $hover;
+    color: $text;
+    border-color: $border;
+}
+
+QWidget#SideBarItem:hover QLabel#SideBarText,
+QWidget#SideBarItem[hover="true"] QLabel#SideBarText {
+    color: $text;
+}
+
+QWidget#SideBarItem[selected="true"] {
+    background: $selected;
+    color: $text;
+    border: 1px solid $accent;
+    border-left: 3px solid $accentAlt;
+    font-weight: 600;
+}
+
+QWidget#SideBarItem[selected="true"] QLabel#SideBarText {
+    color: $text;
+}
+
+QWidget#SideBarItem[selected="true"][hover="true"] {
+    background: $selectedHover;
+    border-color: $accent;
+    border-left-color: $accentAlt;
+}
+
+QLabel#SideBarIcon {
+    color: $textMuted;
+}
+
+QFrame#SideBarSeparator {
+    background: $border;
+    border: none;
+    max-height: 1px;
+    margin: 8px 12px;
+}
+
+/* ---------- Page / Header ---------- */
+QWidget#W_PAGE {
+    background: $bg;
+    color: $text;
+}
+
+QWidget#W_PAGE_HEADER,
+QFrame#W_HEADER {
+    background: $surface;
+    border-bottom: 1px solid $border;
+}
+
+QLabel#W_HEADER_TITLE,
+QLabel#W_PAGE_HEADER_TITLE {
+    color: $text;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+QLabel#W_HEADER_DESCRIPTION,
+QLabel#W_PAGE_HEADER_DESCRIPTION {
+    color: $textMuted;
+    font-size: 12px;
+}
+
+QWidget#W_PAGE_CONTENT {
+    background: $bg;
+}
+
+/* ---------- Command bar ---------- */
+QWidget#W_COMMANDBAR {
+    background: $surface;
+    border-top: 1px solid $border;
+}
+
+QWidget#C_COMMANDBAR_GROUP {
+    background: transparent;
+}
+
+QPushButton#C_COMMANDBAR_BUTTON,
+QWidget#W_COMMANDBAR QPushButton {
+    background: $control;
+    color: $text;
+    border: 1px solid $border;
+    border-radius: 0px;
+    padding: 5px 12px;
+}
+
+QPushButton#C_COMMANDBAR_BUTTON:hover,
+QWidget#W_COMMANDBAR QPushButton:hover {
+    background: $hover;
+    color: $text;
+    border-color: $accentAlt;
+}
+
+QPushButton#C_COMMANDBAR_BUTTON:pressed,
+QWidget#W_COMMANDBAR QPushButton:pressed {
+    background: $selected;
+    border-color: $accent;
+}
+
+QPushButton#C_COMMANDBAR_BUTTON:disabled,
+QWidget#W_COMMANDBAR QPushButton:disabled {
+    color: $disabled;
+    background: $surface;
+    border-color: $border;
+}
+
+/* ---------- Controls ---------- */
+QPushButton {
+    background: $control;
+    color: $text;
+    border: 1px solid $border;
+    border-radius: 0px;
+    padding: 6px 12px;
+}
+
+QPushButton:hover {
+    background: $hover;
+    border-color: $accentAlt;
+}
+
+QPushButton:pressed {
+    background: $selected;
+    border-color: $accent;
+}
+
+QPushButton:disabled {
+    color: $disabled;
+    background: $surface;
+}
+
+QPushButton#ApplyThemeBtn {
+    background: $accent;
+    color: $onAccent;
+    border-color: $accent;
+    font-weight: 600;
+}
+
+QPushButton#ApplyThemeBtn:hover {
+    background: $accentAlt;
+    border-color: $accentAlt;
+    color: $onAccent;
+}
+
+QComboBox,
+QLineEdit,
+QSpinBox,
+QTextEdit,
+QPlainTextEdit {
+    background-color: $control;
+    color: $text;
+    border: 1px solid $border;
+    border-radius: 0px;
+    padding: 6px 8px;
+    selection-background-color: $accent;
+    selection-color: $onAccent;
+}
+
+QComboBox:hover,
+QLineEdit:hover,
+QSpinBox:hover {
+    border-color: $accentAlt;
+}
+
+QComboBox:focus,
+QLineEdit:focus,
+QSpinBox:focus {
+    border-color: $accent;
+}
+
+QComboBox QAbstractItemView {
+    background: $surface;
+    color: $text;
+    border: 1px solid $border;
+    selection-background-color: $selected;
+    selection-color: $text;
+}
+
+QGroupBox {
+    border: 1px solid $border;
+    border-radius: 0px;
+    margin-top: 12px;
+    padding-top: 8px;
+    background-color: $surface;
+    color: $text;
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    left: 10px;
+    padding: 0 4px;
+    color: $accentAlt;
+}
+
+QTabWidget::pane {
+    border: 1px solid $border;
+    background: $bg;
+    top: -1px;
+}
+
+QTabBar::tab {
+    background: $control;
+    color: $text;
+    border: 1px solid $border;
+    padding: 8px 16px;
+    margin-right: 2px;
+    border-radius: 0px;
+}
+
+QTabBar::tab:selected {
+    background: $selected;
+    color: $text;
+    border-color: $accent;
+    border-bottom-color: $selected;
+}
+
+QTabBar::tab:hover:!selected {
+    background: $hover;
+    color: $text;
+}
+
+QScrollBar:vertical {
+    background: $surface;
+    width: 10px;
+    margin: 0;
+    border: none;
+}
+
+QScrollBar::handle:vertical {
+    background: $border;
+    min-height: 24px;
+    border-radius: 0px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: $textMuted;
+}
+
+QScrollBar::add-line:vertical,
+QScrollBar::sub-line:vertical {
+    height: 0;
+}
+
+QScrollBar:horizontal {
+    background: $surface;
+    height: 10px;
+    margin: 0;
+    border: none;
+}
+
+QScrollBar::handle:horizontal {
+    background: $border;
+    min-width: 24px;
+}
+
+QScrollBar::handle:horizontal:hover {
+    background: $textMuted;
+}
+
+QScrollBar::add-line:horizontal,
+QScrollBar::sub-line:horizontal {
+    width: 0;
+}
+
+/* ---------- Settings ---------- */
+QWidget#SettingsPage,
+QWidget#SettingsRoot {
+    background: $bg;
+    color: $text;
+}
+
+QGroupBox#SettingsAppearancePanel {
+    background: $surface;
+    border: 1px solid $border;
+}
+
+QComboBox#ThemeCombo {
+    min-width: 220px;
+}
+
+/* ---------- Spinners ---------- */
+QWidget#EvolvingNeuralBrain,
+QWidget#EvolvingNeuralOrb,
+QWidget#RevolvingNeuralOrb {
+    background: $bg;
+}

@@ -1,216 +1,508 @@
 # ==================================================================================
-# src/jAGQt/widgets/SideBar/__sideBar.py
-# ==================================================================================
-from enum import Enum, auto
-from typing import Callable, Optional, Union
+from __future__ import annotations
 
 # ==================================================================================
-from PySide6.QtCore import QEasingCurve, Qt, Signal
-from PySide6.QtGui import QIcon, QPixmap
-from PySide6.QtWidgets import QBoxLayout, QLayoutItem, QSizePolicy, QWidget
-
-from ...utilities import AnimateProperty, newLayout
+from traceback import format_exc
+from typing import Dict, Optional, Tuple, Type, Union
 
 # ==================================================================================
-from ..components import ComponentBase
+from PySide6.QtCore import QTimer
+from PySide6.QtGui import QIcon, QPixmap, QResizeEvent, QShowEvent
+from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 
 # ==================================================================================
-from .components import (
-    IconPosition,
-    ItemDisplayMode,
-    SeparatorType,
-    SideBarContent,
-    SideBarGroup,
-    SideBarHeader,
-    SideBarItem,
-    SideBarSeparator,
+from jAGFx.serializer.__utilities import importClass
+from jAGFx.workflow import workflow
+from jAGQt.animations import SizeAnimationBase
+from jAGQt.options import AnimationOptions, SideBarOptions
+from jAGQt.options.__sideBarOptions import (
+    C_DEFAULT_MENU_CHILD_FONT_PT,
+    C_DEFAULT_MENU_CHILD_ICON_SIZE,
+    C_DEFAULT_MENU_CHILD_INDENT,
+    C_DEFAULT_MENU_FONT_PT,
+    C_DEFAULT_MENU_ICON_SIZE,
+    C_DEFAULT_MENU_ITEM_MARGIN,
 )
+from jAGQt.types.interface.animations import iAnimation
+
+# ==================================================================================
+from ...utilities import newLayout
+from ..components import ComponentBase, ObjectName
+from .__eSideBarState import eSideBarState
+from .components import SideBarHeader
+from .menu import SideBarMenu, SideBarMenuItem
+
+# ==================================================================================
+QSPolicy = QSizePolicy.Policy
+C_EXPANDED_WIDTH = 200
+C_COLLAPSED_WIDTH = 48
+C_STATE_ANIM_MS = 280
+C_WIDTH_TOLERANCE = 4
+# ==================================================================================
 
 
 # ==================================================================================
-class DockPosition(Enum):
-    Left = auto()
-    Right = auto()
-
-
-# ==================================================================================
-class SideBar(QWidget, ComponentBase):
-    """Main SideBar composer.
-
-    Independent components are composed here. All key behaviours are configurable.
-    Menu morph methods (addWidget / insertWidget / …) operate on the content layout.
-    """
-
-    ItemClicked = Signal(object)
-    CollapsedChanged = Signal(bool)
-    WidthChanged = Signal(int)
+@workflow
+class SideBar(ComponentBase, ObjectName, QWidget):
+    OBJECT_NAME = "W_SIDEBAR"
 
     def __init__(
         self,
+        icons: Dict[eSideBarState, Optional[Union[QIcon, QPixmap, str]]],
         title: str = "",
-        icon: Optional[Union[QIcon, QPixmap, str]] = None,
-        expandedWidth: int = 240,
-        collapsedWidth: int = 48,
-        iconSize: int = 24,
-        dockPosition: DockPosition = DockPosition.Left,
-        startCollapsed: bool = False,
-        autoCollapse: bool = False,
-        animationDurationMs: int = 220,
-        parent: Optional[QWidget] = None,
+        description: str = "",
+        initialState: eSideBarState = eSideBarState.Expanded,
+        options: Optional[SideBarOptions] = None,
+        animationOptions: Optional[AnimationOptions] = None,
         *args,
         **kwargs,
     ) -> None:
-        super().__init__(parent, *args, **kwargs)
+        if icons is None or len(icons) == 0:
+            raise ValueError("icons must not be None or empty")
 
-        self.setObjectName("SideBar")
-        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
-        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-
-        self._expandedWidth: int = max(collapsedWidth, expandedWidth)
-        self._collapsedWidth: int = max(1, collapsedWidth)
-        self._iconSize: int = max(1, iconSize)
-        self._dockPosition: DockPosition = dockPosition
-        self._autoCollapse: bool = autoCollapse
-        self._collapsed: bool = startCollapsed
-        self._animationDurationMs: int = max(0, animationDurationMs)
-        self._activeAnimation = None
-
-        self._header = SideBarHeader(
-            title=title,
-            icon=icon,
-            iconSize=self._iconSize,
-            showCollapseButton=True,
-            parent=self,
+        verbose(
+            f"[SideBar] __init__ ENTER title={title!r} "
+            f"initialState={initialState!r} iconKeys={list(icons.keys())!r}"
         )
-        self._content = SideBarContent(parent=self)
+        try:
+            super().__init__(*args, **kwargs)
+            self._titleText: str = title
+            self._descriptionText: str = description
+            self._icons: Dict[eSideBarState, Optional[Union[QIcon, QPixmap, str]]] = (
+                dict(icons)
+            )
+            self._initialState: eSideBarState = initialState
+            self._pendingOptions: Optional[SideBarOptions] = options
+            self._pendingAnimationOptions: Optional[AnimationOptions] = animationOptions
 
-        self._layout: QBoxLayout = newLayout(
-            QBoxLayout, spacing=0, margins=(0, 0, 1, 0)
+            self._expandedWidth: int = C_EXPANDED_WIDTH
+            self._collapsedWidth: int = C_COLLAPSED_WIDTH
+            self._animation: Optional[iAnimation] = None
+            self._menuIconSize: int = C_DEFAULT_MENU_ICON_SIZE
+            self._menuChildIconSize: int = C_DEFAULT_MENU_CHILD_ICON_SIZE
+            self._menuFontPt: int = C_DEFAULT_MENU_FONT_PT
+            self._menuChildFontPt: int = C_DEFAULT_MENU_CHILD_FONT_PT
+            self._menuItemMargins: Tuple[int, int, int, int] = C_DEFAULT_MENU_ITEM_MARGIN
+            self._menuChildIndent: int = C_DEFAULT_MENU_CHILD_INDENT
+            self._sidebarState: eSideBarState = initialState
+            self._layoutReady: bool = False
+            self._content: Optional[QWidget] = None
+            self._footer: Optional[QWidget] = None
+            self._contentHost: Optional[QWidget] = None
+            self._footerHost: Optional[QWidget] = None
+        except Exception as ex:
+            error("[SideBar] __init__ FAIL", ex)
+            error(f"[SideBar] __init__ traceback:\n{format_exc()}")
+            raise
+        verbose(f"[SideBar] __init__ EXIT objectName={self.objectName()!r}")
+
+    def _wInitializeUI(self) -> None:
+        verbose("[SideBar] _wInitializeUI ENTER")
+        try:
+            self.setSizePolicy(QSPolicy.Fixed, QSPolicy.Expanding)
+
+            titleText: str = self._titleText
+            descriptionText: str = self._descriptionText
+            icons = self._icons
+            initialState: eSideBarState = self._initialState
+            pendingOptions = self._pendingOptions
+            pendingAnimOptions = self._pendingAnimationOptions
+            del self._titleText
+            del self._descriptionText
+            del self._icons
+            del self._initialState
+            del self._pendingOptions
+            del self._pendingAnimationOptions
+
+            header: SideBarHeader = SideBarHeader(
+                title=titleText,
+                description=descriptionText,
+                icons=icons,
+                initialState=initialState,
+            )
+
+            contentHost: QWidget = QWidget(self)
+            contentHost.setObjectName(f"{self.OBJECT_NAME}_CONTENT")
+            contentHost.setSizePolicy(QSPolicy.Expanding, QSPolicy.Expanding)
+            contentLayout: QBoxLayout = newLayout(
+                QBoxLayout,
+                spacing=0,
+                margins=(0, 0, 0, 0),
+                direction=QBoxLayout.Direction.TopToBottom,
+            )
+            contentHost.setLayout(contentLayout)
+
+            footerHost: QWidget = QWidget(self)
+            footerHost.setObjectName(f"{self.OBJECT_NAME}_FOOTER")
+            footerHost.setSizePolicy(QSPolicy.Expanding, QSPolicy.Fixed)
+            footerLayout: QBoxLayout = newLayout(
+                QBoxLayout,
+                spacing=0,
+                margins=(0, 0, 0, 0),
+                direction=QBoxLayout.Direction.TopToBottom,
+            )
+            footerHost.setLayout(footerLayout)
+
+            outerLayout: QBoxLayout = newLayout(
+                QBoxLayout,
+                spacing=0,
+                margins=(0, 0, 0, 0),
+                direction=QBoxLayout.Direction.TopToBottom,
+            )
+            outerLayout.addWidget(header, stretch=0)
+            outerLayout.addWidget(contentHost, stretch=1)
+            outerLayout.addWidget(footerHost, stretch=0)
+
+            self.setLayout(outerLayout)
+            self._layout: QBoxLayout = outerLayout
+            self._header: SideBarHeader = header
+            self._contentHost = contentHost
+            self._contentLayout: QBoxLayout = contentLayout
+            self._footerHost = footerHost
+            self._footerLayout: QBoxLayout = footerLayout
+            self._content = None
+            self._footer = None
+            self._sidebarState = initialState
+
+            self._installOptionsFrom(pendingOptions, pendingAnimOptions)
+            header.setCollapsedWidth(self._collapsedWidth)
+
+            if self._animation is not None:
+                finished = getattr(self._animation, "finished", None)
+                stopped = getattr(self._animation, "stopped", None)
+                if finished is not None:
+                    finished.connect(self._onSizeAnimFinished)
+                if stopped is not None:
+                    stopped.connect(self._onSizeAnimFinished)
+
+            header.stateChanged.connect(self._onHeaderStateChanged)
+
+            if header.State is not initialState:
+                header.State = initialState
+
+            self._syncStateFully(initialState, animate=False)
+            self._layoutReady = True
+
+            verbose(
+                f"[SideBar] _wInitializeUI EXIT "
+                f"state={self._sidebarState!r} "
+                f"width={self.width()} "
+                f"target={self._targetWidthForState(self._sidebarState)} "
+                f"animation={type(self._animation).__name__ if self._animation else None}"
+            )
+        except Exception as ex:
+            error("[SideBar] _wInitializeUI FAIL", ex)
+            error(f"[SideBar] _wInitializeUI traceback:\n{format_exc()}")
+            raise
+
+    def showEvent(self, event: QShowEvent) -> None:
+        super().showEvent(event)
+        self._syncStateFully(self._sidebarState, animate=False)
+        # First layout pass inside QScrollArea often runs before the viewport has
+        # a real width. Defer one more chrome/column pass so captions paint.
+        QTimer.singleShot(0, self._deferredShowReflow)
+        verbose(
+            f"[SideBar] showEvent state={self._sidebarState!r} "
+            f"width={self.width()} target={self._targetWidthForState(self._sidebarState)}"
         )
-        self._layout.setDirection(QBoxLayout.Direction.TopToBottom)
-        self.setLayout(self._layout)
 
-        self._layout.addWidget(self._header)
-        self._layout.addWidget(self._content, 1)
+    def _deferredShowReflow(self) -> None:
+        try:
+            self._syncStateFully(self._sidebarState, animate=False)
+            if isinstance(self._content, SideBarMenu):
+                fill = getattr(self._content, "_fillColumnWidth", None)
+                if callable(fill):
+                    fill()
+                self._content.setChromeCollapsed(
+                    self._sidebarState is eSideBarState.Collapsed
+                )
+            if isinstance(self._footer, SideBarMenuItem):
+                self._footer.setChromeCollapsed(
+                    self._sidebarState is eSideBarState.Collapsed
+                )
+            self.updateGeometry()
+            self.update()
+            verbose(
+                f"[SideBar] deferredShowReflow state={self._sidebarState!r} "
+                f"width={self.width()}"
+            )
+        except Exception as ex:
+            error("[SideBar] deferredShowReflow FAIL", ex)
+            error(f"[SideBar] traceback:\n{format_exc()}")
 
-        self._header.CollapseRequested.connect(self.ToggleCollapsed)
-
-        self._applyCollapsedState(animate=False)
-
-    # ================================================================================== public API – items / groups
-    def AddItem(
-        self, text: str = "", icon: Optional[Union[QIcon, QPixmap, str]] = None,
-        displayMode: ItemDisplayMode = ItemDisplayMode.IconAndText,
-        iconPosition: IconPosition = IconPosition.Left, callback: Optional[Callable] = None,
-    ) -> SideBarItem:
-        lItem = SideBarItem(
-            text=text, icon=icon, displayMode=displayMode, iconPosition=iconPosition,
-            iconSize=self._iconSize, callback=callback, parent=self._content.Container,
-        )
-        lItem.Clicked.connect(self._onItemClicked)
-        self._content.AddWidget(lItem)
-        self._syncItemDisplayMode(lItem)
-        return lItem
-
-    def AddGroup(
-        self, title: str = "", icon: Optional[Union[QIcon, QPixmap, str]] = None,
-        startCollapsed: bool = False, iconSize: Optional[int] = None,
-    ) -> SideBarGroup:
-        lSize = iconSize if iconSize is not None else max(1, self._iconSize - 2)
-        lGroup = SideBarGroup(
-            title=title,
-            icon=icon,
-            iconSize=lSize,
-            startCollapsed=startCollapsed,
-            animationDurationMs=self._animationDurationMs,
-            parent=self._content.Container,
-        )
-        lGroup.ItemClicked.connect(self._onItemClicked)
-        self._content.AddWidget(lGroup)
-        if self._collapsed:
-            lGroup.SetSidebarCollapsed(True)
-        return lGroup
-
-    def AddSeparator(self, separatorType: SeparatorType = SeparatorType.Line) -> SideBarSeparator:
-        lSep = SideBarSeparator(separatorType=separatorType, parent=self._content.Container)
-        self._content.AddWidget(lSep)
-        return lSep
-
-    def AddStretch(self, stretch: int = 1) -> None:
-        self._content.AddStretch(stretch)
-
-    def ClearItems(self) -> None:
-        self._content.Clear()
-
-    # ================================================================================== menu morph methods (content layout)
-    def addWidget(self, widget: QWidget, stretch: int = 0, alignment: Qt.AlignmentFlag = Qt.AlignmentFlag(0)) -> None:
-        self._content.ContentLayout.addWidget(widget, stretch, alignment)
-
-    def insertWidget(self, index: int, widget: QWidget, stretch: int = 0, alignment: Qt.AlignmentFlag = Qt.AlignmentFlag(0)) -> None:
-        self._content.ContentLayout.insertWidget(index, widget, stretch, alignment)
-
-    def addLayout(self, layout, stretch: int = 0) -> None:
-        self._content.ContentLayout.addLayout(layout, stretch)
-
-    def insertLayout(self, index: int, layout, stretch: int = 0) -> None:
-        self._content.ContentLayout.insertLayout(index, layout, stretch)
-
-    def addItem(self, item: QLayoutItem) -> None:
-        self._content.ContentLayout.addItem(item)
-
-    def insertItem(self, index: int, item: QLayoutItem) -> None:
-        self._content.ContentLayout.insertItem(index, item)
-
-    def addStretch(self, stretch: int = 0) -> None:
-        self._content.ContentLayout.addStretch(stretch)
-
-    def addSpacing(self, size: int) -> None:
-        self._content.ContentLayout.addSpacing(size)
-
-    def addStrut(self, size: int) -> None:
-        self._content.ContentLayout.addStrut(size)
-
-    def removeWidget(self, widget: QWidget) -> None:
-        self._content.ContentLayout.removeWidget(widget)
-
-    def removeItem(self, item: QLayoutItem) -> None:
-        self._content.ContentLayout.removeItem(item)
-
-    def takeAt(self, index: int) -> QLayoutItem:
-        return self._content.ContentLayout.takeAt(index)
-
-    # ================================================================================== public API – collapse
-    def Collapse(self, animate: bool = True) -> None:
-        if self._collapsed:
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        super().resizeEvent(event)
+        if not self._layoutReady:
             return
-        self._collapsed = True
-        self._applyCollapsedState(animate=animate)
-        self.CollapsedChanged.emit(True)
+        target = self._targetWidthForState(self._sidebarState)
+        animating = self._animation is not None and self._animation.isRunning
+        if not animating and abs(self.width() - target) > C_WIDTH_TOLERANCE:
+            warning(
+                f"[SideBar] width desync width={self.width()} target={target} "
+                f"state={self._sidebarState!r} — correcting"
+            )
+            self.setFixedWidth(target)
+        self._pushChromeCollapsed(self._sidebarState is eSideBarState.Collapsed)
 
-    def Expand(self, animate: bool = True) -> None:
-        if not self._collapsed:
-            return
-        self._collapsed = False
-        self._applyCollapsedState(animate=animate)
-        self.CollapsedChanged.emit(False)
-
-    def ToggleCollapsed(self, animate: bool = True) -> None:
-        if self._collapsed:
-            self.Expand(animate=animate)
+    def _installOptionsFrom(
+        self,
+        options: Optional[SideBarOptions],
+        animationOptions: Optional[AnimationOptions],
+    ) -> None:
+        if options is None:
+            self._expandedWidth = C_EXPANDED_WIDTH
+            self._collapsedWidth = C_COLLAPSED_WIDTH
+            self._menuIconSize = C_DEFAULT_MENU_ICON_SIZE
+            self._menuChildIconSize = C_DEFAULT_MENU_CHILD_ICON_SIZE
+            self._menuFontPt = C_DEFAULT_MENU_FONT_PT
+            self._menuChildFontPt = C_DEFAULT_MENU_CHILD_FONT_PT
+            self._menuItemMargins = C_DEFAULT_MENU_ITEM_MARGIN
+            self._menuChildIndent = C_DEFAULT_MENU_CHILD_INDENT
+            className: Optional[str] = None
         else:
-            self.Collapse(animate=animate)
+            self._expandedWidth = int(options.expandedWidth)
+            self._collapsedWidth = int(options.collapsedWidth)
+            self._menuIconSize = int(options.menuIconSize)
+            self._menuChildIconSize = int(options.menuChildIconSize)
+            self._menuFontPt = int(options.menuFontPt)
+            self._menuChildFontPt = int(options.menuChildFontPt)
+            self._menuItemMargins = options.menuItemMargins()
+            self._menuChildIndent = int(options.menuChildIndent)
+            className = options.animation
 
-    # ================================================================================== properties
+        self._animation = self._resolveAnimation(className, animationOptions)
+
+    def _pushMenuMetrics(self, widget: Optional[QWidget]) -> None:
+        if widget is None:
+            return
+        kwargs = dict(
+            rootIconSize=self._menuIconSize,
+            childIconSize=self._menuChildIconSize,
+            rootFontPt=self._menuFontPt,
+            childFontPt=self._menuChildFontPt,
+            itemMargins=self._menuItemMargins,
+            childIndent=self._menuChildIndent,
+            collapsedWidth=self._collapsedWidth,
+        )
+        if isinstance(widget, SideBarMenu):
+            widget.applyMetrics(**kwargs)
+        elif isinstance(widget, SideBarMenuItem):
+            widget.applyMetrics(**kwargs)
+
+    def _pushChromeCollapsed(self, collapsed: bool) -> None:
+        verbose(
+            f"[SideBar] pushChrome collapsed={collapsed} "
+            f"width={self.width()} state={self._sidebarState!r}"
+        )
+        if isinstance(self._content, SideBarMenu):
+            self._content.setChromeCollapsed(collapsed)
+        elif isinstance(self._content, SideBarMenuItem):
+            self._content.setChromeCollapsed(collapsed)
+        if isinstance(self._footer, SideBarMenuItem):
+            self._footer.setChromeCollapsed(collapsed)
+        self._header.setChromeCollapsed(collapsed)
+
+    def _resolveAnimation(
+        self,
+        className: Optional[str],
+        animationOptions: Optional[AnimationOptions],
+    ) -> Optional[iAnimation]:
+        if className is None or not str(className).strip():
+            return None
+
+        className = str(className).strip()
+        try:
+            import jAGQt.animations  # noqa: F401
+        except Exception:
+            pass
+
+        cls: Optional[Type] = importClass(className)
+        if cls is None:
+            raise ValueError(
+                f"SideBar could not resolve animation class {className!r}"
+            )
+
+        if not issubclass(cls, SizeAnimationBase):
+            if not (
+                hasattr(cls, "start")
+                and hasattr(cls, "stop")
+                and hasattr(cls, "isRunning")
+            ):
+                raise TypeError(
+                    f"Animation class {className!r} does not satisfy iAnimation / SizeAnimationBase"
+                )
+
+        durationMs = (
+            animationOptions.durationMs
+            if animationOptions is not None
+            else C_STATE_ANIM_MS
+        )
+        try:
+            instance = cls(target=self, durationMs=durationMs)
+        except TypeError:
+            instance = cls(target=self)
+
+        verbose(f"[SideBar] resolved animation {className!r} -> {type(instance)!r}")
+        return instance
+
+    def toOptions(self) -> SideBarOptions:
+        o = SideBarOptions()
+        o.expandedWidth = self._expandedWidth
+        o.collapsedWidth = self._collapsedWidth
+        o.menuIconSize = self._menuIconSize
+        o.menuChildIconSize = self._menuChildIconSize
+        o.menuFontPt = self._menuFontPt
+        o.menuChildFontPt = self._menuChildFontPt
+        o.menuItemMarginLeft = self._menuItemMargins[0]
+        o.menuItemMarginTop = self._menuItemMargins[1]
+        o.menuItemMarginRight = self._menuItemMargins[2]
+        o.menuItemMarginBottom = self._menuItemMargins[3]
+        o.menuChildIndent = self._menuChildIndent
+        if self._animation is not None:
+            t = type(self._animation)
+            o.animation = f"{t.__module__}.{t.__name__}"
+        else:
+            o.animation = None
+        return o
+
+    def _onHeaderStateChanged(self, state: object) -> None:
+        if not isinstance(state, eSideBarState):
+            warning(f"[SideBar] ignoring non-eSideBarState: {state!r}")
+            return
+        verbose(f"[SideBar] header stateChanged -> {state!r}")
+        self._syncStateFully(state, animate=self._layoutReady)
+
+    def _targetWidthForState(self, state: eSideBarState) -> int:
+        if state is eSideBarState.Collapsed:
+            return self._collapsedWidth
+        return self._expandedWidth
+
+    def _syncStateFully(
+        self,
+        state: eSideBarState,
+        *,
+        animate: bool = True,
+    ) -> None:
+        """Single path: state, fixed width, and chrome always match.
+
+        Must not be named ``_a...`` — @workflow auto-invokes those with no args.
+        """
+        self._sidebarState = state
+        endWidth = self._targetWidthForState(state)
+        collapsed = state is eSideBarState.Collapsed
+
+        useAnim = (
+            animate
+            and self._animation is not None
+            and abs(endWidth - self.width()) > C_WIDTH_TOLERANCE
+        )
+
+        if not useAnim:
+            self.setFixedWidth(endWidth)
+            self._pushChromeCollapsed(collapsed)
+            self.updateGeometry()
+            return
+
+        if not collapsed:
+            self._pushChromeCollapsed(False)
+        else:
+            self._pushChromeCollapsed(True)
+
+        try:
+            anim = self._animation
+            assert anim is not None
+            if anim.isRunning:
+                anim.stop()
+            anim.start(endWidth=endWidth)
+        except Exception as ex:
+            error("[SideBar] animation start FAIL", ex)
+            error(f"[SideBar] traceback:\n{format_exc()}")
+            self.setFixedWidth(endWidth)
+            self._pushChromeCollapsed(collapsed)
+            self.updateGeometry()
+
+    def _onSizeAnimFinished(self) -> None:
+        try:
+            endWidth = self._targetWidthForState(self._sidebarState)
+            self.setFixedWidth(endWidth)
+            self._pushChromeCollapsed(self._sidebarState is eSideBarState.Collapsed)
+            self.updateGeometry()
+        except Exception as ex:
+            error("[SideBar] _onSizeAnimFinished FAIL", ex)
+            error(f"[SideBar] traceback:\n{format_exc()}")
+            raise
+
+    def setContent(self, widget: Optional[QWidget]) -> None:
+        host = self._contentHost
+        layout = self._contentLayout
+        if host is None or layout is None:
+            raise RuntimeError("SideBar UI not initialized")
+
+        while layout.count():
+            item = layout.takeAt(0)
+            w = item.widget()
+            if w is not None:
+                w.setParent(None)
+
+        self._content = widget
+        if widget is not None:
+            self._pushMenuMetrics(widget)
+            layout.addWidget(widget, stretch=1)
+            self._pushChromeCollapsed(self._sidebarState is eSideBarState.Collapsed)
+
+    def setFooter(self, widget: Optional[QWidget]) -> None:
+        host = self._footerHost
+        layout = self._footerLayout
+        if host is None or layout is None:
+            raise RuntimeError("SideBar UI not initialized")
+
+        while layout.count():
+            item = layout.takeAt(0)
+            w = item.widget()
+            if w is not None:
+                w.setParent(None)
+
+        self._footer = widget
+        if widget is not None:
+            self._pushMenuMetrics(widget)
+            layout.addWidget(widget, stretch=0)
+            self._pushChromeCollapsed(self._sidebarState is eSideBarState.Collapsed)
+
     @property
-    def Collapsed(self) -> bool:
-        return self._collapsed
+    def Header(self) -> SideBarHeader:
+        return self._header
 
-    @Collapsed.setter
-    def Collapsed(self, value: bool) -> None:
-        if bool(value):
-            self.Collapse()
-        else:
-            self.Expand()
+    @property
+    def Content(self) -> Optional[QWidget]:
+        return self._content
+
+    @Content.setter
+    def Content(self, value: Optional[QWidget]) -> None:
+        self.setContent(value)
+
+    @property
+    def Footer(self) -> Optional[QWidget]:
+        return self._footer
+
+    @Footer.setter
+    def Footer(self, value: Optional[QWidget]) -> None:
+        self.setFooter(value)
+
+    @property
+    def Title(self) -> str:
+        return self._header.Title
+
+    @Title.setter
+    def Title(self, value: str) -> None:
+        self._header.Title = value
+
+    @property
+    def Description(self) -> str:
+        return self._header.Description
+
+    @Description.setter
+    def Description(self, value: str) -> None:
+        self._header.Description = value
 
     @property
     def ExpandedWidth(self) -> int:
@@ -218,9 +510,7 @@ class SideBar(QWidget, ComponentBase):
 
     @ExpandedWidth.setter
     def ExpandedWidth(self, value: int) -> None:
-        self._expandedWidth = max(self._collapsedWidth, int(value))
-        if not self._collapsed:
-            self._applyCollapsedState(animate=False)
+        self._expandedWidth = int(value)
 
     @property
     def CollapsedWidth(self) -> int:
@@ -228,146 +518,69 @@ class SideBar(QWidget, ComponentBase):
 
     @CollapsedWidth.setter
     def CollapsedWidth(self, value: int) -> None:
-        self._collapsedWidth = max(1, int(value))
-        if self._collapsed:
-            self._applyCollapsedState(animate=False)
+        self._collapsedWidth = int(value)
+        self._header.setCollapsedWidth(self._collapsedWidth)
 
     @property
-    def IconSize(self) -> int:
-        return self._iconSize
+    def MenuIconSize(self) -> int:
+        return self._menuIconSize
 
-    @IconSize.setter
-    def IconSize(self, value: int) -> None:
-        lSize = max(1, int(value))
-        if lSize == self._iconSize:
+    @property
+    def MenuChildIconSize(self) -> int:
+        return self._menuChildIconSize
+
+    @property
+    def MenuItemMargins(self) -> Tuple[int, int, int, int]:
+        return self._menuItemMargins
+
+    @property
+    def MenuChildIndent(self) -> int:
+        return self._menuChildIndent
+
+    @property
+    def Animation(self) -> Optional[iAnimation]:
+        return self._animation
+
+    @Animation.setter
+    def Animation(self, value: Optional[iAnimation]) -> None:
+        if self._animation is not None:
+            finished = getattr(self._animation, "finished", None)
+            stopped = getattr(self._animation, "stopped", None)
+            if finished is not None:
+                try:
+                    finished.disconnect(self._onSizeAnimFinished)
+                except Exception:
+                    pass
+            if stopped is not None:
+                try:
+                    stopped.disconnect(self._onSizeAnimFinished)
+                except Exception:
+                    pass
+        self._animation = value
+        if value is not None:
+            finished = getattr(value, "finished", None)
+            stopped = getattr(value, "stopped", None)
+            if finished is not None:
+                finished.connect(self._onSizeAnimFinished)
+            if stopped is not None:
+                stopped.connect(self._onSizeAnimFinished)
+
+    @property
+    def State(self) -> eSideBarState:
+        return self._sidebarState
+
+    @State.setter
+    def State(self, value: eSideBarState) -> None:
+        if not isinstance(value, eSideBarState):
+            raise TypeError(f"State must be eSideBarState, got {type(value)!r}")
+        icon = getattr(self._header, "_icon", None)
+        if icon is not None:
+            registered = getattr(icon, "_icons", None)
+            if registered is not None and value not in registered:
+                raise ValueError(
+                    f"State {value!r} has no icon registered on header StatefullIcon"
+                )
+        if value == self._sidebarState and self._header.State == value:
+            self._syncStateFully(value, animate=False)
             return
-        self._iconSize = lSize
-        self._header.IconWidget.IconSize = lSize
-        for lIdx in range(self._content.Count()):
-            lW = self._content.ContentLayout.itemAt(lIdx)
-            if lW is None:
-                continue
-            lWidget = lW.widget()
-            if isinstance(lWidget, SideBarItem):
-                lWidget.IconSize = lSize
-            elif isinstance(lWidget, SideBarGroup):
-                lWidget.IconSize = max(1, lSize - 2)
-
-    @property
-    def DockPosition(self) -> DockPosition:
-        return self._dockPosition
-
-    @DockPosition.setter
-    def DockPosition(self, value: DockPosition) -> None:
-        self._dockPosition = value
-
-    @property
-    def AutoCollapse(self) -> bool:
-        return self._autoCollapse
-
-    @AutoCollapse.setter
-    def AutoCollapse(self, value: bool) -> None:
-        self._autoCollapse = bool(value)
-
-    @property
-    def AnimationDurationMs(self) -> int:
-        return self._animationDurationMs
-
-    @AnimationDurationMs.setter
-    def AnimationDurationMs(self, value: int) -> None:
-        self._animationDurationMs = max(0, int(value))
-
-    @property
-    def Header(self) -> SideBarHeader:
-        return self._header
-
-    @property
-    def Content(self) -> SideBarContent:
-        return self._content
-
-    # ================================================================================== private
-    def _syncAllDisplayModes(self) -> None:
-        lMode = ItemDisplayMode.IconOnly if self._collapsed else ItemDisplayMode.IconAndText
-
-        self._header.TitleWidget.setVisible(not self._collapsed)
-        self._header.SetCollapsed(self._collapsed)
-
-        for lIdx in range(self._content.Count()):
-            lW = self._content.ContentLayout.itemAt(lIdx)
-            if lW is None: continue
-
-            lWidget = lW.widget()
-            if isinstance(lWidget, SideBarItem):
-                lWidget.DisplayMode = lMode
-
-            elif isinstance(lWidget, SideBarGroup):
-                lWidget.SetSidebarCollapsed(self._collapsed)
-
-    def _applyCollapsedState(self, animate: bool = True) -> None:
-        lTargetWidth = self._collapsedWidth if self._collapsed else self._expandedWidth
-
-        self._syncAllDisplayModes()
-
-        if animate and self._animationDurationMs > 0 and self.width() != lTargetWidth:
-            self.setMaximumWidth(16777215)
-            self._activeAnimation = AnimateProperty(
-                self, "minimumWidth", self.width(), lTargetWidth,
-                durationMs=self._animationDurationMs, easing=QEasingCurve.Type.OutCubic,
-                onFinished=self._onAnimationFinished,
-            )
-            AnimateProperty(
-                self, "maximumWidth", self.width(), lTargetWidth,
-                durationMs=self._animationDurationMs, easing=QEasingCurve.Type.OutCubic,
-            )
-
-        else:
-            self.setFixedWidth(lTargetWidth)
-            self._syncAllDisplayModes()
-            self.WidthChanged.emit(lTargetWidth)
-
-    def _onAnimationFinished(self) -> None:
-        lWidth = self._collapsedWidth if self._collapsed else self._expandedWidth
-        self.setFixedWidth(lWidth)
-        self._activeAnimation = None
-        self._syncAllDisplayModes()
-        self.WidthChanged.emit(lWidth)
-
-    def _onItemClicked(self, item: SideBarItem) -> None:
-        for lIdx in range(self._content.Count()):
-            lW = self._content.ContentLayout.itemAt(lIdx)
-            if lW is None:
-                continue
-            lWidget = lW.widget()
-
-            if isinstance(lWidget, SideBarItem):
-                lWidget.Selected = (lWidget is item)
-
-            elif isinstance(lWidget, SideBarGroup):
-                lOwns = lWidget.ContainsItem(item)
-
-                for lGIdx in range(lWidget.BodyWidget.layout().count()):
-                    lGW = lWidget.BodyWidget.layout().itemAt(lGIdx)
-                    if lGW and isinstance(lGW.widget(), SideBarItem):
-                        lGW.widget().Selected = (lGW.widget() is item)
-
-                lWidget.Selected = lOwns
-                if lOwns:
-                    lWidget.Expand(animate=True)
-                else:
-                    lWidget.Collapse(animate=True)
-
-        self.ItemClicked.emit(item)
-
-    def _syncItemDisplayMode(self, item: SideBarItem) -> None:
-        if self._collapsed:
-            item.DisplayMode = ItemDisplayMode.IconOnly
-
-    def enterEvent(self, event) -> None:
-        if self._autoCollapse and self._collapsed:
-            self.Expand()
-        super().enterEvent(event)
-
-    def leaveEvent(self, event) -> None:
-        if self._autoCollapse and not self._collapsed:
-            self.Collapse()
-        super().leaveEvent(event)
+        self._header.State = value

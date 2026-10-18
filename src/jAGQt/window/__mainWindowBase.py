@@ -1,15 +1,8 @@
 # ==================================================================================
-# src/jAGQt/window/__mainWindowBase.py
-# ==================================================================================
 from __future__ import annotations
-
-from enum import Enum
-from typing import Optional
 
 # ==================================================================================
 from PySide6.QtCore import QRect, QSettings, Qt
-from PySide6.QtGui import QGuiApplication
-from PySide6.QtWidgets import QWidget
 
 # ==================================================================================
 from jAGFx.workflow import workflow
@@ -21,19 +14,32 @@ from .windowBase import WindowBase
 # ==================================================================================
 @workflow("InitializeUI", "InitializeSettings", "RestoreWindowsState")
 class MainWindowBase(WindowBase):
-    """Richer foundation for application main-window and dashboard classes."""
-
+    OBJECT_NAME = "W_MAIN_WINDOW_BASE"
     def __init__(
-        self, name: str = None,*args, **kwargs,
+        self, company: str = None, applicationId: str = None, *args, **kwargs,
     ) -> None:
-        super().__init__(name, False, *args, **kwargs)
+        super().__init__(False, *args, **kwargs)
+        self._applicationId = applicationId
+        self._company = company
 
-    def _wInitializeSettings(self) -> None:
-        company = self.Company if hasattr(self, "Company") else "jAGQt"
-        appId: str = self.ApplicationId if hasattr(self, "ApplicationId") else "ModernWindow"
+    @property
+    def company(self) -> str:
+        return self._company
 
-        applicationId = f"{company}.{appId}"
-        self._qsettings = QSettings(company, applicationId)
+    @company.setter
+    def company(self, value: str):
+        self._company = value
+
+    @property
+    def applicationId(self) -> str:
+        return self._applicationId
+
+    @applicationId.setter
+    def applicationId(self, value: str):
+        self._applicationId = value        
+
+    def _wInitializeSettings(self) -> None:        
+        self._qsettings = QSettings(self.Company, self.ApplicationId)
 
     def _wRestoreWindowsState(self) -> None:
         self.restoreWindowsState()
@@ -56,11 +62,11 @@ class MainWindowBase(WindowBase):
                 pass
 
     @property
-    def Settings(self) -> QSettings:
+    def settings(self) -> QSettings:
         return self._qsettings
 
-    @Settings.setter
-    def Settings(self, value: QSettings) -> None:
+    @settings.setter
+    def settings(self, value: QSettings) -> None:
         self._qsettings = value
 
     def closeEvent(self, event) -> None:

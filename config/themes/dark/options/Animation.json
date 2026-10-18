@@ -1,0 +1,7 @@
+{
+  "name": "Animation",
+  "version": 1,
+  "description": "Default duration for SideBar width animation",
+  "durationMs": 280,
+  "__type__": "jAGQt.options.AnimationOptions"
+}

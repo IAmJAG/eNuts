@@ -1,5 +1,5 @@
 # ==================================================================================
-# src/jAGQt/types/components/__component.py
+# src/jAGQt/widgets/components/__componentBase.py
 # ==================================================================================
 from PySide6.QtCore import QMargins
 from PySide6.QtWidgets import QBoxLayout, QMainWindow, QWidget
@@ -10,6 +10,15 @@ from ...utilities import contentMargins, replaceLayout
 
 # ==================================================================================
 class ComponentBase:
+    def __init__(self, *args, **kwargs) -> None:
+        # When this mixin sits after Qt types in the MRO, residual kwargs can reach
+        # object.__init__ and raise TypeError. Prefer cooperative forwarding; fall
+        # back to a no-arg super call only for that case.
+        try:
+            super().__init__(*args, **kwargs)
+        except TypeError:
+            super().__init__()
+
     @property
     def Name(self: QWidget | QMainWindow) -> str:
         return self.objectName()
@@ -29,7 +38,8 @@ class ComponentBase:
     @property
     def Layout(self: QWidget | QMainWindow) -> QBoxLayout:
         lLayout: QBoxLayout = getattr(self, "_layout", None)
-        if lLayout is None: lLayout = self.layout()
+        if lLayout is None:
+            lLayout = self.layout()
         return lLayout
 
     @Layout.setter
@@ -44,7 +54,7 @@ class ComponentBase:
         return layout.spacing()
 
     @ContentSpacing.setter
-    def ContentSpacing(self: QWidget | QMainWindow, value: int):        
+    def ContentSpacing(self: QWidget | QMainWindow, value: int):
         layout: QBoxLayout = self.Layout
         layout.setSpacing(value)
 
@@ -54,10 +64,12 @@ class ComponentBase:
         return layout.contentsMargins()
 
     @ContentMargins.setter
-    def ContentMargins(self: QWidget | QMainWindow, value: QMargins | int | tuple[int] | list[int]):
+    def ContentMargins(
+        self: QWidget | QMainWindow,
+        value: QMargins | int | tuple[int] | list[int],
+    ):
         layout: QBoxLayout = self.Layout
         if isinstance(value, QMargins):
             layout.setContentsMargins(value)
-
         else:
             layout.setContentsMargins(contentMargins(value))
