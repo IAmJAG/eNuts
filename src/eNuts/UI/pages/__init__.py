@@ -9,6 +9,7 @@ from .__pageKeys import (
     PAGE_SETTINGS,
     PAGE_TOOLS,
     devicePageKey,
+    devicePageKeyFromId,
 )
 
 # ==================================================================================
@@ -23,4 +24,5 @@ __all__ = [
     "buildBlankPage",
     "buildNavigationPages",
     "devicePageKey",
+    "devicePageKeyFromId",
 ]

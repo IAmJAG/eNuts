@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 # ==================================================================================
-# Stable navigation keys. Device leaves use devicePageKey(name).
+# Stable navigation keys. Device leaves use devicePageKeyFromId(serial).
 
 PAGE_DASHBOARD = "dashboard"
 PAGE_DEVICES = "devices"
@@ -16,9 +16,18 @@ C_DEVICE_NONE = "device:none"
 
 
 # ==================================================================================
-def devicePageKey(name: str) -> str:
-    """Stable pageKey for a device leaf (or placeholder)."""
-    cleaned = (name or "").strip()
+def devicePageKeyFromId(deviceId: str) -> str:
+    """Stable pageKey from device id/serial."""
+    cleaned = (deviceId or "").strip()
+    if not cleaned:
+        return C_DEVICE_NONE
+    return f"{C_DEVICE_KEY_PREFIX}{cleaned}"
+
+
+# ==================================================================================
+def devicePageKey(nameOrId: str) -> str:
+    """Legacy helper: treat empty / '(no devices)' as none; else device:<value>."""
+    cleaned = (nameOrId or "").strip()
     if not cleaned or cleaned == "(no devices)":
         return C_DEVICE_NONE
     return f"{C_DEVICE_KEY_PREFIX}{cleaned}"

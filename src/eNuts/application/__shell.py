@@ -12,6 +12,7 @@ from jAGQt.types.interface.window import iMainWindowBase
 
 # ==================================================================================
 from .__applicationInformation import ApplicationInformation
+from .device import deviceManager
 from .workspace import WorkSpace
 
 
@@ -20,12 +21,19 @@ class Shell(ApplicationInformation):
     def _wInitializeUI(self: iMainWindowBase) -> None:
         verbose("[Shell] _wInitializeUI ENTER")
         try:
-            central: WorkSpace = WorkSpace()
+            mgr = deviceManager(self._shutdownEvent)
+            self._deviceManager = mgr
+
+            central: WorkSpace = WorkSpace(deviceMgr=mgr)
             verbose(
                 f"[Shell] WorkSpace created objectName={central.objectName()!r}"
             )
             self.setCentralWidget(central)
+            self._workSpace = central
             verbose("[Shell] setCentralWidget done")
+
+            mgr.runDiscovery()
+            verbose("[Shell] deviceManager.runDiscovery started")
 
         except Exception as ex:
             error("[Shell] _wInitializeUI FAIL", ex)
@@ -69,6 +77,10 @@ class Shell(ApplicationInformation):
     @settings.setter
     def settings(self, value: QSettings) -> None:
         self._qsettings = value
+
+    @property
+    def DeviceManager(self) -> deviceManager | None:
+        return getattr(self, "_deviceManager", None)
 
     def closeEvent(self, event) -> None:
         self.saveWindowState()

@@ -18,6 +18,7 @@ async def ADBDevices() -> Dict[str, AdbDevice]:
     devices: List[AdbDevice] = list(deviceList)
     return {d.serial: d for d in (devices or [])}
 
+
 async def ADBShell(device: AdbDevice, cmd: str) -> str:
     try:
         return await to_thread(device.shell, cmd)
@@ -29,6 +30,7 @@ async def ADBShell(device: AdbDevice, cmd: str) -> str:
 
         raise ex
 
+
 async def SCRCPYDevices() -> Dict[str, iSCRCPY]:
     adbDevices: Dict[str, AdbDevice] = await ADBDevices()
     scrcpyDevices: Dict[str, iDevice] = {}
@@ -37,11 +39,12 @@ async def SCRCPYDevices() -> Dict[str, iSCRCPY]:
         try:
             model: str = await ADBShell(d, "getprop ro.product.model")
             manufacturer: str = await ADBShell(d, "getprop ro.product.manufacturer")
-        
         except AdbError:
             continue
 
-        scrcpy: iSCRCPY = SCRCPY(serial, model, manufacturer)
+        # SCRCPY(serial, name) — prefer model, then manufacturer, then serial.
+        display = (model or "").strip() or (manufacturer or "").strip() or serial
+        scrcpy: iSCRCPY = SCRCPY(serial, display)
         scrcpyDevices[serial] = scrcpy
 
     return scrcpyDevices

@@ -3,13 +3,14 @@ from __future__ import annotations
 
 # ==================================================================================
 from traceback import format_exc
-from typing import Dict, Optional
+from typing import Dict, Optional, Set
 
 # ==================================================================================
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QStackedWidget, QWidget
 
 # ==================================================================================
+from fluxCore.types.interface.device import iDevice
 from jAGFx.workflow import workflow
 from jAGQt.options import AnimationOptions, SideBarOptions
 from jAGQt.widgets.components import ComponentBase, ObjectName
@@ -18,8 +19,21 @@ from jAGQt.widgets.sideBar import SideBar, SideBarMenuItem, eSideBarState
 from utilities.io import getICONPath
 
 # ==================================================================================
-from ...UI.navigation import buildSmokeTestSideBarMenu, pageKeyOf
-from ...UI.pages import PAGE_DASHBOARD, buildNavigationPages
+from ...UI.navigation import buildSmokeTestSideBarMenu, pageKeyOf, setPageKey
+from ...UI.pages import (
+    C_DEVICE_NONE,
+    PAGE_DASHBOARD,
+    PAGE_DEVICES,
+    buildBlankPage,
+    buildNavigationPages,
+    devicePageKeyFromId,
+)
+from ..device import (
+    DEVICE_ADDED_EVENT,
+    DEVICE_INITIALIZED_EVENT,
+    DEVICE_REMOVED_EVENT,
+    deviceManager,
+)
 
 # ==================================================================================
 QSPolicy = QSizePolicy.Policy
@@ -34,7 +48,17 @@ C_SIDEBAR_ANIMATION_MS: int = 280
 class WorkSpace(ComponentBase, ObjectName, QWidget):
     OBJECT_NAME = "W_WORKSPACE"
 
-    def __init__(self: QWidget, *args, **kwargs) -> None:
+    # Cross-thread safe bridge from deviceManager → Qt main thread.
+    _sigDevicesReady = Signal(object)
+    _sigDeviceAdded = Signal(object)
+    _sigDeviceRemoved = Signal(object)
+
+    def __init__(
+        self,
+        deviceMgr: Optional[deviceManager] = None,
+        *args,
+        **kwargs,
+    ) -> None:
         verbose("[WorkSpace] __init__ ENTER")
         try:
             super().__init__(*args, **kwargs)
@@ -42,6 +66,9 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             self._stack: Optional[QStackedWidget] = None
             self._pages: Dict[str, Page] = {}
             self._pageIndex: Dict[str, int] = {}
+            self._devicesHeader: Optional[SideBarMenuItem] = None
+            self._deviceManager: Optional[deviceManager] = deviceMgr
+            self._devicePageKeys: Set[str] = set()
         except Exception as ex:
             error("[WorkSpace] __init__ FAIL", ex)
             error(f"[WorkSpace] __init__ traceback:\n{format_exc()}")
@@ -49,7 +76,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
 
         verbose(f"[WorkSpace] __init__ EXIT objectName={self.objectName()!r}")
 
-    def _wInitializeUI(self: QWidget) -> None:
+    def _wInitializeUI(self) -> None:
         verbose("[WorkSpace] _wInitializeUI ENTER")
         try:
             self.setAttribute(StyleBackground, True)
@@ -57,9 +84,6 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
 
             expandPath: str = getICONPath("expand.png")
             collapsePath: str = getICONPath("collapse.png")
-            verbose(
-                f"[WorkSpace] SideBar icons expand={expandPath!r} collapse={collapsePath!r}"
-            )
 
             sideBarOptions = SideBarOptions(
                 animation=C_SIDEBAR_ANIMATION_TYPE,
@@ -80,18 +104,17 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
                 animationOptions=animationOptions,
             )
 
-            # Same device list for menu + pages (keep in sync).
-            deviceNames: list[str] | None = None
-            menu, settings = buildSmokeTestSideBarMenu(deviceNames)
+            menu, settings, devicesHeader = buildSmokeTestSideBarMenu()
             sideBar.Content = menu
             sideBar.Footer = settings
+            self._devicesHeader = devicesHeader
 
             stack: QStackedWidget = QStackedWidget()
             stack.setObjectName("W_WORKSPACE_STACK")
             stack.setStyleSheet("background-color: #252526;")
             stack.setSizePolicy(QSPolicy.Expanding, QSPolicy.Expanding)
 
-            pages = buildNavigationPages(deviceNames)
+            pages = buildNavigationPages()
             pageIndex: Dict[str, int] = {}
             for key, page in pages.items():
                 idx = stack.addWidget(page)
@@ -123,15 +146,22 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             self._pages = pages
             self._pageIndex = pageIndex
 
+            self._sigDevicesReady.connect(self._onDevicesReadyUi)
+            self._sigDeviceAdded.connect(self._onDeviceAddedUi)
+            self._sigDeviceRemoved.connect(self._onDeviceRemovedUi)
+            self._bindDeviceManager(self._deviceManager)
+
             verbose(
                 f"[WorkSpace] _wInitializeUI EXIT "
-                f"sideBar.width={sideBar.width()} pages={list(pageIndex.keys())}"
+                f"sideBar.width={sideBar.width()} pages={list(pageIndex.keys())} "
+                f"deviceMgr={'yes' if self._deviceManager else 'no'}"
             )
         except Exception as ex:
             error("[WorkSpace] _wInitializeUI FAIL", ex)
             error(f"[WorkSpace] _wInitializeUI traceback:\n{format_exc()}")
             raise
 
+    # ------------------------------------------------------------------ navigation
     def _onNavItemClicked(self, item: object) -> None:
         key = pageKeyOf(item)
         if key is None:
@@ -143,7 +173,6 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
         self.showPage(key)
 
     def showPage(self, key: str) -> bool:
-        """Switch the stack to the page registered under ``key``."""
         stack = self._stack
         index = self._pageIndex.get(key)
         if stack is None or index is None:
@@ -155,6 +184,163 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
         verbose(f"[WorkSpace] showPage key={key!r} title={title!r} index={index}")
         return True
 
+    # ---------------------------------------------------------- deviceManager bind
+    def _bindDeviceManager(self, mgr: Optional[deviceManager]) -> None:
+        self._deviceManager = mgr
+        if mgr is None:
+            return
+        mgr.subscribe(DEVICE_INITIALIZED_EVENT, self._onDevicesReadyEvent)
+        mgr.subscribe(DEVICE_ADDED_EVENT, self._onDeviceAddedEvent)
+        mgr.subscribe(DEVICE_REMOVED_EVENT, self._onDeviceRemovedEvent)
+        verbose("[WorkSpace] subscribed to deviceManager events")
+
+    def _onDevicesReadyEvent(self, mgr: object) -> None:
+        self._sigDevicesReady.emit(mgr)
+
+    def _onDeviceAddedEvent(self, device: object) -> None:
+        self._sigDeviceAdded.emit(device)
+
+    def _onDeviceRemovedEvent(self, device: object) -> None:
+        self._sigDeviceRemoved.emit(device)
+
+    def _onDevicesReadyUi(self, mgr: object) -> None:
+        try:
+            if not isinstance(mgr, deviceManager):
+                return
+            verbose(f"[WorkSpace] devices ready count={len(mgr)}")
+            self._syncDevicesFromManager(mgr)
+        except Exception as ex:
+            error("[WorkSpace] _onDevicesReadyUi FAIL", ex)
+            error(f"[WorkSpace] traceback:\n{format_exc()}")
+
+    def _onDeviceAddedUi(self, device: object) -> None:
+        try:
+            if not self._isDevice(device):
+                return
+            verbose(f"[WorkSpace] device added id={device.id!r} name={device.name!r}")
+            self._registerDevice(device)
+            self._rebuildDevicesMenuLeaves()
+        except Exception as ex:
+            error("[WorkSpace] _onDeviceAddedUi FAIL", ex)
+            error(f"[WorkSpace] traceback:\n{format_exc()}")
+
+    def _onDeviceRemovedUi(self, device: object) -> None:
+        try:
+            if not self._isDevice(device):
+                return
+            key = devicePageKeyFromId(str(device.id))
+            verbose(f"[WorkSpace] device removed id={device.id!r} key={key!r}")
+            self._unregisterDevicePage(key)
+            self._rebuildDevicesMenuLeaves()
+        except Exception as ex:
+            error("[WorkSpace] _onDeviceRemovedUi FAIL", ex)
+            error(f"[WorkSpace] traceback:\n{format_exc()}")
+
+    @staticmethod
+    def _isDevice(obj: object) -> bool:
+        return hasattr(obj, "id") and hasattr(obj, "name")
+
+    def _syncDevicesFromManager(self, mgr: deviceManager) -> None:
+        liveKeys: Set[str] = set()
+        for device in list(mgr.values()):
+            if not self._isDevice(device):
+                continue
+            key = self._registerDevice(device)
+            liveKeys.add(key)
+
+        for key in list(self._devicePageKeys - liveKeys):
+            self._unregisterDevicePage(key)
+
+        self._rebuildDevicesMenuLeaves()
+
+    def _registerDevice(self, device: iDevice) -> str:
+        key = devicePageKeyFromId(str(device.id))
+        title = (device.name or "").strip() or str(device.id)
+        self._ensureDevicePage(key, title)
+        self._devicePageKeys.add(key)
+        return key
+
+    def _ensureDevicePage(self, key: str, title: str) -> None:
+        stack = self._stack
+        if stack is None:
+            return
+        if key in self._pages:
+            page = self._pages[key]
+            try:
+                page.Title = title
+            except Exception:
+                pass
+            return
+        page = buildBlankPage(key, title, "Device")
+        idx = stack.addWidget(page)
+        self._pages[key] = page
+        self._pageIndex[key] = idx
+        verbose(f"[WorkSpace] registered device page key={key!r} index={idx}")
+
+    def _unregisterDevicePage(self, key: str) -> None:
+        if key == C_DEVICE_NONE or key not in self._pages:
+            self._devicePageKeys.discard(key)
+            return
+        stack = self._stack
+        if stack is None:
+            return
+
+        currentKey = None
+        cur = stack.currentIndex()
+        for k, i in self._pageIndex.items():
+            if i == cur:
+                currentKey = k
+                break
+        if currentKey == key:
+            self.showPage(PAGE_DEVICES)
+
+        page = self._pages.pop(key, None)
+        self._pageIndex.pop(key, None)
+        self._devicePageKeys.discard(key)
+        if page is not None:
+            stack.removeWidget(page)
+            page.deleteLater()
+        self._rebuildPageIndex()
+        verbose(f"[WorkSpace] unregistered device page key={key!r}")
+
+    def _rebuildPageIndex(self) -> None:
+        stack = self._stack
+        if stack is None:
+            return
+        self._pageIndex.clear()
+        for i in range(stack.count()):
+            w = stack.widget(i)
+            if isinstance(w, Page):
+                self._pageIndex[str(w.Id)] = i
+
+    def _rebuildDevicesMenuLeaves(self) -> None:
+        header = self._devicesHeader
+        mgr = self._deviceManager
+        if header is None:
+            return
+
+        header.clearChildren()
+        devices = list(mgr.values()) if mgr is not None else []
+
+        if not devices:
+            leaf = header.addChild("(no devices)")
+            setPageKey(leaf, C_DEVICE_NONE)
+            self._ensureDevicePage(C_DEVICE_NONE, "(no devices)")
+            verbose("[WorkSpace] devices menu → (no devices)")
+            return
+
+        for device in devices:
+            if not self._isDevice(device):
+                continue
+            key = devicePageKeyFromId(str(device.id))
+            caption = (device.name or "").strip() or str(device.id)
+            leaf = header.addChild(caption)
+            setPageKey(leaf, key)
+            self._ensureDevicePage(key, caption)
+
+        verbose(f"[WorkSpace] devices menu → {len(devices)} leaf(s)")
+
+    # ------------------------------------------------------------------ accessors
     @property
     def SideBar(self) -> Optional[SideBar]:
         return self._sideBar
@@ -166,3 +352,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
     @property
     def Pages(self) -> Dict[str, Page]:
         return dict(self._pages)
+
+    @property
+    def DeviceManager(self) -> Optional[deviceManager]:
+        return self._deviceManager

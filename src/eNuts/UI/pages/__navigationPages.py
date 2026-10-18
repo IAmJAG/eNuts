@@ -13,7 +13,6 @@ from .__pageKeys import (
     PAGE_KG_RECORDER,
     PAGE_SETTINGS,
     PAGE_TOOLS,
-    devicePageKey,
 )
 
 
@@ -26,12 +25,12 @@ def buildBlankPage(key: str, title: str, description: str = "") -> Page:
 
 
 # ==================================================================================
-def buildNavigationPages(
-    deviceNames: list[str] | None = None,
-) -> dict[str, Page]:
-    """Build one blank Page per navigation node (headers and leaves).
+def buildNavigationPages() -> dict[str, Page]:
+    """Static navigation pages (no live device leaves).
 
-    Insertion order is stack order. Keys must match menu ``pageKey`` values.
+    Device pages are registered at runtime by WorkSpace when discovery reports
+    devices. Always includes ``device:none`` placeholder until the first real
+    device appears.
     """
     pages: dict[str, Page] = {}
 
@@ -41,17 +40,9 @@ def buildNavigationPages(
     pages[PAGE_DEVICES] = buildBlankPage(
         PAGE_DEVICES, "Devices", "Device summary"
     )
-
-    names = list(deviceNames) if deviceNames else []
-    if names:
-        for name in names:
-            key = devicePageKey(name)
-            pages[key] = buildBlankPage(key, name, "Device")
-    else:
-        pages[C_DEVICE_NONE] = buildBlankPage(
-            C_DEVICE_NONE, "(no devices)", "No devices connected"
-        )
-
+    pages[C_DEVICE_NONE] = buildBlankPage(
+        C_DEVICE_NONE, "(no devices)", "No devices connected"
+    )
     pages[PAGE_TOOLS] = buildBlankPage(
         PAGE_TOOLS, "Tools", "Tools summary"
     )
