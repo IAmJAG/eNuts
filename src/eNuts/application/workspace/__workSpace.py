@@ -324,15 +324,11 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             f"mgr_count={len(devices)} prior_children={len(header.Children)}"
         )
 
-        # Drop every leaf (including "(no devices)") then rebuild from mgr.
+        # Drop every leaf then rebuild from mgr. No placeholder when empty.
         header.clearChildren()
 
         if not devices:
-            leaf = header.addChild("(no devices)")
-            setPageKey(leaf, C_DEVICE_NONE)
-            self._ensureDevicePage(C_DEVICE_NONE, "(no devices)")
-            header.Expanded = True
-            verbose("[WorkSpace] devices menu -> (no devices)")
+            verbose("[WorkSpace] devices menu -> empty (header only)")
             return
 
         for device in devices:
