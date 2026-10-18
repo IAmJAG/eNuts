@@ -180,7 +180,8 @@ class SideBar(ComponentBase, ObjectName, QWidget):
                 header.State = initialState
 
             # Single path: state + width + chrome together (no animation on init).
-            self._applyStateFully(initialState, animate=False)
+            # Named _sync* not _a* — workflow discovers _a* methods and calls them bare.
+            self._syncStateFully(initialState, animate=False)
             self._layoutReady = True
 
             verbose(
@@ -197,8 +198,7 @@ class SideBar(ComponentBase, ObjectName, QWidget):
 
     def showEvent(self, event: QShowEvent) -> None:
         super().showEvent(event)
-        # Re-lock width + chrome to state (layout may have fought fixed width).
-        self._applyStateFully(self._sidebarState, animate=False)
+        self._syncStateFully(self._sidebarState, animate=False)
         verbose(
             f"[SideBar] showEvent state={self._sidebarState!r} "
             f"width={self.width()} target={self._targetWidthForState(self._sidebarState)}"
@@ -209,7 +209,6 @@ class SideBar(ComponentBase, ObjectName, QWidget):
         if not self._layoutReady:
             return
         target = self._targetWidthForState(self._sidebarState)
-        # If something pulled width off target, snap back (ignore mid-animation).
         animating = self._animation is not None and self._animation.isRunning
         if not animating and abs(self.width() - target) > C_WIDTH_TOLERANCE:
             warning(
@@ -345,14 +344,14 @@ class SideBar(ComponentBase, ObjectName, QWidget):
             warning(f"[SideBar] ignoring non-eSideBarState: {state!r}")
             return
         verbose(f"[SideBar] header stateChanged -> {state!r}")
-        self._applyStateFully(state, animate=self._layoutReady)
+        self._syncStateFully(state, animate=self._layoutReady)
 
     def _targetWidthForState(self, state: eSideBarState) -> int:
         if state is eSideBarState.Collapsed:
             return self._collapsedWidth
         return self._expandedWidth
 
-    def _applyStateFully(
+    def _syncStateFully(
         self,
         state: eSideBarState,
         *,
@@ -362,6 +361,8 @@ class SideBar(ComponentBase, ObjectName, QWidget):
 
         Expanded  → width=expandedWidth, captions shown
         Collapsed → width=collapsedWidth, captions hidden
+
+        Must not be named ``_a...`` — @workflow auto-invokes those with no args.
         """
         self._sidebarState = state
         endWidth = self._targetWidthForState(state)
@@ -379,8 +380,6 @@ class SideBar(ComponentBase, ObjectName, QWidget):
             self.updateGeometry()
             return
 
-        # Expanding: show captions first. Collapsing: hide after width settles
-        # (or hide immediately so content does not reflow mid-anim).
         if not collapsed:
             self._pushChromeCollapsed(False)
         else:
@@ -559,6 +558,6 @@ class SideBar(ComponentBase, ObjectName, QWidget):
                     f"State {value!r} has no icon registered on header StatefullIcon"
                 )
         if value == self._sidebarState and self._header.State == value:
-            self._applyStateFully(value, animate=False)
+            self._syncStateFully(value, animate=False)
             return
         self._header.State = value
