@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-18 08:29:05 UTC*
+*Auto-generated on: 2026-10-18 09:08:30 UTC*
 
 ## Current Directory Structure
 
@@ -65,6 +65,7 @@ eNuts/
 │   │   │   ├── navigation/
 │   │   │   │   └── __sideBarMenuBuilder.py
 │   │   │   ├── pages/
+│   │   │   │   ├── __devicePage.py
 │   │   │   │   ├── __navigationPages.py
 │   │   │   │   ├── __pageKeys.py
 │   │   │   │   └── __smokePages.py
@@ -428,6 +429,7 @@ src/eNuts/application/workspace:
 		CONSTANTS(S)/GLOBAL(S)
 			C_SIDEBAR_ANIMATION_TYPE -> : c_sidebar_animation_type
 			C_SIDEBAR_ANIMATION_MS -> : c_sidebar_animation_ms
+			C_ON_FRAME -> : c_on_frame
 			QSPolicy -> : qspolicy
 			StyleBackground -> : stylebackground
 
@@ -479,6 +481,12 @@ src/eNuts/UI/navigation:
 			C_PAGE_KEY_PROP -> : c_page_key_prop
 
 src/eNuts/UI/pages:
+	__devicePage.py - 
+		CLASSE(S):
+			DeviceFrameBridge -> : deviceframebridge
+		FUNCTION(S):
+			buildDevicePage -> : builddevicepage
+			_applyFrame -> : _applyframe
 	__navigationPages.py - 
 		FUNCTION(S):
 			buildBlankPage -> : buildblankpage
@@ -487,6 +495,7 @@ src/eNuts/UI/pages:
 		FUNCTION(S):
 			devicePageKeyFromId -> : devicepagekeyfromid
 			devicePageKey -> : devicepagekey
+			serialFromPageKey -> : serialfrompagekey
 		CONSTANTS(S)/GLOBAL(S)
 			PAGE_DASHBOARD -> : page_dashboard
 			PAGE_DEVICES -> : page_devices
@@ -1349,6 +1358,26 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+a0930b5:
+	feat(WorkSpace): device pages use Image; lazy ensureRunning + ON_FRAME bridge
+		src/eNuts/application/workspace/__workSpace.py
+
+62005e6:
+	feat(Phase4.x-7): global SCRCPYEmitter from discovery, device Image pages, lazy stream
+		src/eNuts/UI/pages/__devicePage.py
+		src/eNuts/UI/pages/__pageKeys.py
+		src/eNuts/application/device/__deviceManager.py
+		src/eNuts/utilities/asyncADB/__asyncADB.py
+
+f79e650:
+	docs: update known_issues â€” ghost device leaf, logging, SCRCPY/Image notes
+		.docs/known_issues.md
+
+475ef14:
+	docs(issues): add known issues documentation for component and UI problems
+		.docs/inventory.md
+		.docs/known_issues.md
+
 685c990:
 	fix(WorkSpace): do not create (no devices) menu leaf when list is empty
 		src/eNuts/application/workspace/__workSpace.py
@@ -1376,29 +1405,5 @@ src/utilities/io:
 	fix(deviceManager/WorkSpace): reliable device store + force-clear (no devices) leaf
 		src/eNuts/application/device/__deviceManager.py
 		src/eNuts/application/workspace/__workSpace.py
-
-8061fd3:
-	feat(Phase4): wire deviceManager discovery to WorkSpace menu + pages
-		src/eNuts/UI/navigation/__sideBarMenuBuilder.py
-		src/eNuts/UI/pages/__navigationPages.py
-		src/eNuts/UI/pages/__pageKeys.py
-		src/eNuts/application/__shell.py
-		src/eNuts/application/workspace/__workSpace.py
-		src/eNuts/utilities/asyncADB/__asyncADB.py
-
-f5bb669:
-	feat(asyncADB): implement ADB device management functions and suppress event handling
-		.docs/inventory.md
-		src/eNuts/application/device/__deviceManager.py
-		src/eNuts/utilities/asyncADB/__asyncADB.py
-		src/jAGFx/services/__subscription.py
-		src/jAGFx/types/interface/services/__subscription.py
-
-4df7ace:
-	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
-
-f2a7da2:
-	fix(inventory): update auto-generated timestamp and enhance directory structure
-		.docs/inventory.md
 
 ```

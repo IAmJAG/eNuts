@@ -7,7 +7,7 @@ from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import QSizePolicy
 
 # ==================================================================================
-from jAGQt.widgets.Image import Image
+from jAGQt.widgets.image import Image
 from jAGQt.widgets.page import Page
 
 # ==================================================================================
