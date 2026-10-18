@@ -7,7 +7,7 @@ from typing import List, Optional, Tuple, Union
 
 # ==================================================================================
 from PySide6.QtCore import QSize, Qt, Signal
-from PySide6.QtGui import QFont, QFontMetrics, QIcon, QMouseEvent, QPixmap, QShowEvent
+from PySide6.QtGui import QFont, QIcon, QMouseEvent, QPixmap, QShowEvent
 from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 
 # ==================================================================================
@@ -44,9 +44,8 @@ def _defaultIconPath() -> str:
 class SideBarMenuItem(SideBarItem):
     """One menu row.
 
-    Hierarchy (ParentItem), not role, drives indent and visual weight:
-    root = larger icon + larger bold text; child = smaller icon + smaller normal text.
-    Collapsed rail: captions hidden, icons centered; **children stay visible**.
+    Hierarchy (ParentItem), not role, drives indent and visual weight.
+    Collapsed rail: captions hidden, icons centered; children stay visible.
     """
 
     OBJECT_NAME = "W_SIDEBAR_MENU_ITEM"
@@ -149,14 +148,12 @@ class SideBarMenuItem(SideBarItem):
 
     def showEvent(self, event: QShowEvent) -> None:
         super().showEvent(event)
-        # First real layout pass — re-apply chrome so captions are not stuck hidden.
         if self._chromeCollapsed:
             self._applyCollapsedChrome()
         else:
             self._applyExpandedChrome()
 
     def _applyHierarchyVisuals(self) -> None:
-        """Icon size + caption weight/size from hierarchy depth."""
         iconSize = self._effectiveIconSize()
         if self._iconWidget is not None:
             self._iconWidget.setFixedSize(QSize(iconSize, iconSize))
@@ -182,12 +179,16 @@ class SideBarMenuItem(SideBarItem):
             return
         self._layout.setContentsMargins(*self._hierarchyMargins())
         if self._titleWidget is not None:
-            caption = self._titleWidget.Text or ""
-            fm = QFontMetrics(self._titleWidget.font())
-            # Ensure the label claims horizontal space even before first resize.
-            self._titleWidget.setMinimumWidth(max(1, fm.horizontalAdvance(caption)))
+            # Let the row layout allocate space; do not force a large minWidth
+            # (that inflated SideBar sizeHint and fought the 200px fixed rail).
+            self._titleWidget.setMinimumWidth(0)
             self._titleWidget.setVisible(True)
             self._titleWidget.show()
+            # Force Text to repaint full caption after layout has a real width.
+            try:
+                self._titleWidget.setText(self._titleWidget.Text)
+            except Exception:
+                pass
         if self._textColumn is not None:
             for i in range(self._textColumn.count()):
                 w = self._textColumn.itemAt(i).widget()
@@ -197,7 +198,6 @@ class SideBarMenuItem(SideBarItem):
         self.updateGeometry()
 
     def _applyCollapsedChrome(self) -> None:
-        """Icon-only: hide caption, center icon; children remain visible."""
         if self._layout is None or self._iconWidget is None:
             return
         if self._titleWidget is not None:

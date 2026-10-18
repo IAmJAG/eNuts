@@ -6,6 +6,7 @@ from traceback import format_exc
 from typing import Dict, Optional, Tuple, Type, Union
 
 # ==================================================================================
+from PySide6.QtCore import QTimer
 from PySide6.QtGui import QIcon, QPixmap, QResizeEvent, QShowEvent
 from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 
@@ -179,8 +180,6 @@ class SideBar(ComponentBase, ObjectName, QWidget):
             if header.State is not initialState:
                 header.State = initialState
 
-            # Single path: state + width + chrome together (no animation on init).
-            # Named _sync* not _a* — workflow discovers _a* methods and calls them bare.
             self._syncStateFully(initialState, animate=False)
             self._layoutReady = True
 
@@ -199,10 +198,37 @@ class SideBar(ComponentBase, ObjectName, QWidget):
     def showEvent(self, event: QShowEvent) -> None:
         super().showEvent(event)
         self._syncStateFully(self._sidebarState, animate=False)
+        # First layout pass inside QScrollArea often runs before the viewport has
+        # a real width. Defer one more chrome/column pass so captions paint.
+        QTimer.singleShot(0, self._deferredShowReflow)
         verbose(
             f"[SideBar] showEvent state={self._sidebarState!r} "
             f"width={self.width()} target={self._targetWidthForState(self._sidebarState)}"
         )
+
+    def _deferredShowReflow(self) -> None:
+        try:
+            self._syncStateFully(self._sidebarState, animate=False)
+            if isinstance(self._content, SideBarMenu):
+                fill = getattr(self._content, "_fillColumnWidth", None)
+                if callable(fill):
+                    fill()
+                self._content.setChromeCollapsed(
+                    self._sidebarState is eSideBarState.Collapsed
+                )
+            if isinstance(self._footer, SideBarMenuItem):
+                self._footer.setChromeCollapsed(
+                    self._sidebarState is eSideBarState.Collapsed
+                )
+            self.updateGeometry()
+            self.update()
+            verbose(
+                f"[SideBar] deferredShowReflow state={self._sidebarState!r} "
+                f"width={self.width()}"
+            )
+        except Exception as ex:
+            error("[SideBar] deferredShowReflow FAIL", ex)
+            error(f"[SideBar] traceback:\n{format_exc()}")
 
     def resizeEvent(self, event: QResizeEvent) -> None:
         super().resizeEvent(event)
@@ -358,9 +384,6 @@ class SideBar(ComponentBase, ObjectName, QWidget):
         animate: bool = True,
     ) -> None:
         """Single path: state, fixed width, and chrome always match.
-
-        Expanded  → width=expandedWidth, captions shown
-        Collapsed → width=collapsedWidth, captions hidden
 
         Must not be named ``_a...`` — @workflow auto-invokes those with no args.
         """
