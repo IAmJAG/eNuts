@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-18 05:09:57 UTC*
+*Auto-generated on: 2026-10-18 05:28:18 UTC*
 
 ## Current Directory Structure
 
@@ -66,11 +66,6 @@ eNuts/
 │   │   │   │   └── __sideBarMenuBuilder.py
 │   │   │   ├── widgets/
 │   │   │   │   ├── pages/
-│   │   │   │   │   ├── dashboard/
-│   │   │   │   │   ├── recorder/
-│   │   │   │   │   │   └── __recorderPage.py
-│   │   │   │   │   └── settings/
-│   │   │   │   │       └── __settingsPage.py
 │   │   │   │   ├── spinners/
 │   │   │   │   │   ├── __evolvingNeuralBrain.py
 │   │   │   │   │   ├── __evolvingNeuralOrb.py
@@ -83,6 +78,7 @@ eNuts/
 │   │   │   ├── __eNutsApplications.py
 │   │   │   ├── __shell.py
 │   │   │   ├── device/
+│   │   │   │   └── __deviceManager.py
 │   │   │   ├── theme/
 │   │   │   │   └── __theme.py
 │   │   │   └── workspace/
@@ -402,6 +398,16 @@ src/eNuts/application:
 		CLASSE(S):
 			Shell -> : shell
 
+src/eNuts/application/device:
+	__deviceManager.py - 
+		CLASSE(S):
+			deviceManager -> : devicemanager
+		CONSTANTS(S)/GLOBAL(S)
+			DEVICE_ADDED_EVENT -> : device_added_event
+			DEVICE_REMOVED_EVENT -> : device_removed_event
+			DEVICE_INITIALIZED_EVENT -> : device_initialized_event
+			POLL_INTERVAL -> : poll_interval
+
 src/eNuts/application/theme:
 	__theme.py - 
 		FUNCTION(S):
@@ -462,21 +468,6 @@ src/eNuts/UI/navigation:
 		FUNCTION(S):
 			_onMenuItemClicked -> : _onmenuitemclicked
 			buildSmokeTestSideBarMenu -> : buildsmoketestsidebarmenu
-
-src/eNuts/UI/widgets/pages/recorder:
-	__recorderPage.py - 
-		CLASSE(S):
-			KAndGRecorderPage -> : kandgrecorderpage
-
-src/eNuts/UI/widgets/pages/settings:
-	__settingsPage.py - 
-		CLASSE(S):
-			SettingsPage -> : settingspage
-		FUNCTION(S):
-			_applyThemePalette -> : _applythemepalette
-		CONSTANTS(S)/GLOBAL(S)
-			C_THEME_NAMES -> : c_theme_names
-			C_DARK_THEMES -> : c_dark_themes
 
 src/eNuts/UI/widgets/spinners:
 	__evolvingNeuralBrain.py - 
@@ -1318,6 +1309,10 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+7f6683f:
+	fix(inventory): update auto-generated timestamp and enhance directory structure
+		.docs/inventory.md
+
 4309fd9:
 	fix(SideBar): deferred post-show chrome reflow so menu captions paint on first frame
 		src/jAGQt/widgets/SideBar/__sideBar.py
@@ -1357,10 +1352,5 @@ c2f38d2:
 6400eab:
 	fix(SideBar): keep state, width, and chrome in lockstep
 		src/jAGQt/widgets/SideBar/__sideBar.py
-
-b9353da:
-	fix(SideBar): atomic state/width/chrome sync; Text elision no longer hides labels
-		src/jAGQt/widgets/SideBar/components/__sideBarItem.py
-		src/jAGQt/widgets/text/__text.py
 
 ```
