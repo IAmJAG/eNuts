@@ -7,7 +7,7 @@ from typing import List, Optional, Tuple, Union
 
 # ==================================================================================
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QIcon, QPixmap
+from PySide6.QtGui import QIcon, QPixmap, QResizeEvent, QShowEvent
 from PySide6.QtWidgets import (
     QBoxLayout,
     QScrollArea,
@@ -76,12 +76,14 @@ class SideBarMenu(ComponentBase, ObjectName, QScrollArea):
 
             column = QWidget()
             column.setObjectName(f"{self.OBJECT_NAME}_COLUMN")
+            column.setSizePolicy(QSPolicy.Expanding, QSPolicy.Minimum)
             columnLayout = newLayout(
                 QBoxLayout,
                 spacing=0,
                 margins=(0, 0, 0, 0),
                 direction=QBoxLayout.Direction.TopToBottom,
             )
+            columnLayout.setAlignment(Qt.AlignmentFlag.AlignTop)
             columnLayout.addStretch(1)
             column.setLayout(columnLayout)
 
@@ -93,6 +95,31 @@ class SideBarMenu(ComponentBase, ObjectName, QScrollArea):
             error("[SideBarMenu] _wInitializeUI FAIL", ex)
             error(f"[SideBarMenu] traceback:\n{format_exc()}")
             raise
+
+    def _fillColumnWidth(self) -> None:
+        """Make the inner column (and rows) use the full viewport width."""
+        if self._column is None:
+            return
+        vw = self.viewport().width() if self.viewport() is not None else 0
+        if vw <= 0:
+            vw = self.width()
+        if vw > 0:
+            self._column.setMinimumWidth(vw)
+            self._column.setMaximumWidth(16777215)
+            for top in self._items:
+                top.setMinimumWidth(vw)
+                for child in top.Children:
+                    child.setMinimumWidth(max(0, vw - 4))
+
+    def showEvent(self, event: QShowEvent) -> None:
+        super().showEvent(event)
+        self._fillColumnWidth()
+        if not self._chromeCollapsed:
+            self.setChromeCollapsed(False)
+
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        super().resizeEvent(event)
+        self._fillColumnWidth()
 
     def _metricsKw(self) -> dict:
         return dict(
@@ -128,6 +155,7 @@ class SideBarMenu(ComponentBase, ObjectName, QScrollArea):
             top.applyMetrics(**kw)
             for child in top.Children:
                 child.applyMetrics(**kw)
+        self._fillColumnWidth()
 
     def setChromeCollapsed(self, collapsed: bool) -> None:
         self._chromeCollapsed = bool(collapsed)
@@ -135,7 +163,8 @@ class SideBarMenu(ComponentBase, ObjectName, QScrollArea):
             top.setChromeCollapsed(self._chromeCollapsed)
             for child in top.Children:
                 child.setChromeCollapsed(self._chromeCollapsed)
-            # Children stay visible when rail collapses (handled in item._syncBodyVisibility).
+        if not collapsed:
+            self._fillColumnWidth()
 
     def _insertBeforeStretch(self, widget: QWidget) -> None:
         layout = self._columnLayout
@@ -172,9 +201,12 @@ class SideBarMenu(ComponentBase, ObjectName, QScrollArea):
 
         if self._chromeCollapsed:
             row.setChromeCollapsed(True)
+        else:
+            row.setChromeCollapsed(False)
 
         row.selectionRequested.connect(self._onSelectionRequested)
         row.clicked.connect(self._onItemClicked)
+        self._fillColumnWidth()
         return row
 
     def clear(self) -> None:

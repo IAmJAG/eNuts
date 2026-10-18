@@ -15,6 +15,8 @@ from ..components import ComponentBase
 # ==================================================================================
 EMode = Qt.TextElideMode
 QPolicy = QSizePolicy.Policy
+# Below this, elision would often yield "" and look like missing text.
+C_MIN_ELIDE_WIDTH = 24
 # ==================================================================================
 
 
@@ -80,8 +82,6 @@ class Text(QLabel, ComponentBase):
         self._updateTextDisplay()
 
     def _updateTextDisplay(self) -> None:
-        # Visibility follows the *source* string, never the elided result.
-        # Width 0 (pre-layout) must not hide or elide away the caption.
         hasText = bool(self._fullText and self._fullText.strip())
         if self._wordWrap:
             super().setText(self._fullText)
@@ -94,7 +94,8 @@ class Text(QLabel, ComponentBase):
             - self.contentsMargins().right()
         )
 
-        if lAvailableWidth <= 0:
+        # Pre-layout or cramped: show the full caption (never paint as blank).
+        if lAvailableWidth < C_MIN_ELIDE_WIDTH:
             super().setText(self._fullText)
         else:
             lMetrics: QFontMetrics = QFontMetrics(self.font())
