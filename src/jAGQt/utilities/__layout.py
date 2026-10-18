@@ -9,8 +9,10 @@ from PySide6.QtWidgets import (
     QBoxLayout,
     QFormLayout,
     QGridLayout,
+    QHBoxLayout,
     QLayout,
     QMainWindow,
+    QVBoxLayout,
     QWidget,
 )
 
@@ -42,19 +44,26 @@ def newLayout(
 ) -> QLayout:
     """Create a layout with spacing and margins applied.
 
-    Direction control is only valid for QBoxLayout subclasses.
-    - QBoxLayout: direction defaults to TopToBottom when omitted.
-    - Other QLayout types: direction must be None (default); passing a
-      direction raises TypeError.
+    Prefer ``QBoxLayout`` + ``direction``. ``QVBoxLayout`` / ``QHBoxLayout``
+    do not accept Direction in ``__init__``; they are constructed bare and
+    optionally ``setDirection`` is applied only for true ``QBoxLayout``.
     """
-    if issubclass(layout, QBoxLayout):
+    if layout is QBoxLayout or (
+        issubclass(layout, QBoxLayout)
+        and layout not in (QVBoxLayout, QHBoxLayout)
+        and not issubclass(layout, (QVBoxLayout, QHBoxLayout))
+    ):
         lDirection = (
             direction
             if direction is not None
             else QBoxLayout.Direction.TopToBottom
         )
         lLayout: QLayout = layout(lDirection)
-
+    elif issubclass(layout, QBoxLayout):
+        # QVBoxLayout / QHBoxLayout: no Direction ctor arg.
+        lLayout = layout()
+        if direction is not None and hasattr(lLayout, "setDirection"):
+            lLayout.setDirection(direction)
     else:
         if direction is not None:
             raise TypeError(
@@ -78,7 +87,6 @@ def contentMargins(values: List[int] | Tuple[int, ...] | Set[int] | int) -> QMar
     if isinstance(values, Tuple | Set):
         values = list(values)
 
-    # Handle list
     if isinstance(values, list):
         lLen = len(values)
         if lLen == 1:
@@ -90,11 +98,12 @@ def contentMargins(values: List[int] | Tuple[int, ...] | Set[int] | int) -> QMar
         elif lLen == 4:
             return QMargins(values[0], values[1], values[2], values[3])
 
-    raise ValueError("Square values must be an int, or a list, tuple, or set of length 1, 2, or 4.")
+    raise ValueError(
+        "Square values must be an int, or a list, tuple, or set of length 1, 2, or 4."
+    )
 
 
 def _findLayoutParent(root: QLayout | None, target: QLayout) -> tuple[QLayout | None, int]:
-    """Return (parentLayout, index) where parentLayout holds target, or (None, -1)."""
     if root is None or root is target:
         return None, -1
 
@@ -116,7 +125,6 @@ def _findLayoutParent(root: QLayout | None, target: QLayout) -> tuple[QLayout | 
 
 
 def _replaceNestedLayout(parent: QLayout, index: int, newLayout: QLayout) -> None:
-    """Remove layout at index and insert newLayout at the same slot."""
     parent.takeAt(index)
 
     if isinstance(parent, QBoxLayout):
@@ -124,21 +132,12 @@ def _replaceNestedLayout(parent: QLayout, index: int, newLayout: QLayout) -> Non
     elif isinstance(parent, QFormLayout):
         parent.insertRow(index, newLayout)
     elif isinstance(parent, QGridLayout):
-        # Grid loses row/col unless recorded; fall back to addLayout
         parent.addLayout(newLayout, 0, 0)
     else:
         parent.addChildLayout(newLayout)
 
 
 def replaceLayout(widget: QWidget, oldLayout: QLayout | None, newLayout: QLayout) -> None:
-    """Install newLayout on widget, replacing oldLayout in its exact nesting position when present.
-
-    Existing layouts are detached with ``setParent(None)`` instead of being handed to a
-    temporary QWidget: transferring ownership to a throwaway widget lets its C++ destructor
-    run immediately and delete the layout, leaving the real widget with a dangling pointer.
-    """
-    # A QMainWindow owns a Qt-internal QMainWindowLayout which must never be detached from
-    # its window, so the layout swap happens on the central widget instead.
     if isinstance(widget, QMainWindow):
         lCentral: QWidget = widget.centralWidget()
         if lCentral is None:
@@ -148,7 +147,8 @@ def replaceLayout(widget: QWidget, oldLayout: QLayout | None, newLayout: QLayout
 
     if oldLayout is None or oldLayout is newLayout:
         lTop = widget.layout()
-        if lTop is not None and lTop is not newLayout: lTop.setParent(None)
+        if lTop is not None and lTop is not newLayout:
+            lTop.setParent(None)
         widget.setLayout(newLayout)
         return
 
