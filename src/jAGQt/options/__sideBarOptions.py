@@ -11,7 +11,10 @@ from .__optionsBase import OptionsBase
 C_DEFAULT_EXPANDED_WIDTH: int = 200
 C_DEFAULT_COLLAPSED_WIDTH: int = 48
 C_DEFAULT_NAME: str = "SideBar"
-C_DEFAULT_MENU_ICON_SIZE: int = 20
+C_DEFAULT_MENU_ICON_SIZE: int = 22
+C_DEFAULT_MENU_CHILD_ICON_SIZE: int = 16
+C_DEFAULT_MENU_FONT_PT: int = 12
+C_DEFAULT_MENU_CHILD_FONT_PT: int = 10
 C_DEFAULT_MENU_ITEM_MARGIN: Tuple[int, int, int, int] = (8, 8, 8, 8)
 C_DEFAULT_MENU_CHILD_INDENT: int = 20
 # ==================================================================================
@@ -21,12 +24,10 @@ C_DEFAULT_MENU_CHILD_INDENT: int = 20
 class SideBarOptions(OptionsBase):
     """Configuration for :class:`~jAGQt.widgets.SideBar.SideBar`.
 
-    Chrome widths, optional animation class name, and **menu row metrics**
-    applied in code (not QSS sizing).
-
-    Indentation is **hierarchical**: root rows use ``menuItemMargin*``;
-    any row with a parent gets ``menuChildIndent`` added to the left margin.
-    Role (header/leaf) does not drive indent.
+    Hierarchy (not role) drives visual weight:
+    - root rows: ``menuIconSize`` / ``menuFontPt`` / bold
+    - child rows: ``menuChildIconSize`` / ``menuChildFontPt`` / normal
+    - indent: ``menuChildIndent`` when ``ParentItem`` is set
     """
 
     def __init__(
@@ -38,6 +39,9 @@ class SideBarOptions(OptionsBase):
         collapsedWidth: int = C_DEFAULT_COLLAPSED_WIDTH,
         animation: Optional[str] = None,
         menuIconSize: int = C_DEFAULT_MENU_ICON_SIZE,
+        menuChildIconSize: int = C_DEFAULT_MENU_CHILD_ICON_SIZE,
+        menuFontPt: int = C_DEFAULT_MENU_FONT_PT,
+        menuChildFontPt: int = C_DEFAULT_MENU_CHILD_FONT_PT,
         menuItemMarginLeft: int = C_DEFAULT_MENU_ITEM_MARGIN[0],
         menuItemMarginTop: int = C_DEFAULT_MENU_ITEM_MARGIN[1],
         menuItemMarginRight: int = C_DEFAULT_MENU_ITEM_MARGIN[2],
@@ -49,6 +53,9 @@ class SideBarOptions(OptionsBase):
         self._collapsedWidth: int = int(collapsedWidth)
         self._animation: Optional[str] = animation if animation else None
         self._menuIconSize: int = int(menuIconSize)
+        self._menuChildIconSize: int = int(menuChildIconSize)
+        self._menuFontPt: int = int(menuFontPt)
+        self._menuChildFontPt: int = int(menuChildFontPt)
         self._menuItemMarginLeft: int = int(menuItemMarginLeft)
         self._menuItemMarginTop: int = int(menuItemMarginTop)
         self._menuItemMarginRight: int = int(menuItemMarginRight)
@@ -60,6 +67,9 @@ class SideBarOptions(OptionsBase):
                 "collapsedWidth",
                 "animation",
                 "menuIconSize",
+                "menuChildIconSize",
+                "menuFontPt",
+                "menuChildFontPt",
                 "menuItemMarginLeft",
                 "menuItemMarginTop",
                 "menuItemMarginRight",
@@ -79,10 +89,19 @@ class SideBarOptions(OptionsBase):
     def _validateMenuMetrics(self) -> None:
         if self._menuIconSize <= 0:
             raise ValueError(f"menuIconSize must be > 0, got {self._menuIconSize}")
+        if self._menuChildIconSize <= 0:
+            raise ValueError(
+                f"menuChildIconSize must be > 0, got {self._menuChildIconSize}"
+            )
+        if self._menuFontPt <= 0:
+            raise ValueError(f"menuFontPt must be > 0, got {self._menuFontPt}")
+        if self._menuChildFontPt <= 0:
+            raise ValueError(
+                f"menuChildFontPt must be > 0, got {self._menuChildFontPt}"
+            )
         if self._menuChildIndent < 0:
             raise ValueError(f"menuChildIndent must be >= 0, got {self._menuChildIndent}")
 
-    # ==================================================================================
     @property
     def expandedWidth(self) -> int:
         return self._expandedWidth
@@ -119,6 +138,33 @@ class SideBarOptions(OptionsBase):
     @menuIconSize.setter
     def menuIconSize(self, value: int) -> None:
         self._menuIconSize = int(value)
+        self._validateMenuMetrics()
+
+    @property
+    def menuChildIconSize(self) -> int:
+        return self._menuChildIconSize
+
+    @menuChildIconSize.setter
+    def menuChildIconSize(self, value: int) -> None:
+        self._menuChildIconSize = int(value)
+        self._validateMenuMetrics()
+
+    @property
+    def menuFontPt(self) -> int:
+        return self._menuFontPt
+
+    @menuFontPt.setter
+    def menuFontPt(self, value: int) -> None:
+        self._menuFontPt = int(value)
+        self._validateMenuMetrics()
+
+    @property
+    def menuChildFontPt(self) -> int:
+        return self._menuChildFontPt
+
+    @menuChildFontPt.setter
+    def menuChildFontPt(self, value: int) -> None:
+        self._menuChildFontPt = int(value)
         self._validateMenuMetrics()
 
     @property
