@@ -5,16 +5,33 @@ from __future__ import annotations
 from jAGQt.widgets.sideBar import SideBarMenu, SideBarMenuItem, eSideBarMenuRole
 
 # ==================================================================================
+from ..pages import (
+    PAGE_ANNOTATOR,
+    PAGE_DASHBOARD,
+    PAGE_DEVICES,
+    PAGE_KG_RECORDER,
+    PAGE_SETTINGS,
+)
+
+# ==================================================================================
+C_PAGE_KEY_PROP = "pageKey"
 
 
 # ==================================================================================
-def _onMenuItemClicked(item: object) -> None:
-    """Smoke-test handler: print the item caption (no navigation)."""
+def _setPageKey(item: SideBarMenuItem, key: str) -> None:
+    item.setProperty(C_PAGE_KEY_PROP, key)
+
+
+# ==================================================================================
+def pageKeyOf(item: object) -> str | None:
+    """Read the navigation key attached to a SideBarMenuItem, if any."""
     if not isinstance(item, SideBarMenuItem):
-        return
-    title = item.Caption
-    print(f"[SideBarMenu] clicked: {title!r}")
-    verbose(f"[SideBarMenu] clicked caption={title!r} role={item.Role!r}")
+        return None
+    value = item.property(C_PAGE_KEY_PROP)
+    if value is None:
+        return None
+    key = str(value).strip()
+    return key or None
 
 
 # ==================================================================================
@@ -26,44 +43,48 @@ def buildSmokeTestSideBarMenu(
     Structure::
 
         [scroll menu]
-          Dashboard
-          Devices
-              <deviceNames…> | (no devices)
-          Tools
-              Annotator
-              Key & Gesture Recorder
+          Dashboard          → pageKey=dashboard
+          Devices            (header expand only)
+              <devices…>     → pageKey=devices
+          Tools              (header expand only)
+              Annotator      → pageKey=annotator
+              K&G Recorder   → pageKey=kg-recorder
 
-        [footer — special]
-          Settings
+        [footer]
+          Settings           → pageKey=settings
 
-    Returns ``(menu, settingsItem)``. Default icons use the app logo.
-    Click only prints the item title — no page wiring.
+    Returns ``(menu, settingsItem)``. Navigation is owned by WorkSpace via
+    ``pageKeyOf`` + ``itemClicked``.
     """
     menu = SideBarMenu()
 
-    menu.addItem("Dashboard", role=eSideBarMenuRole.Leaf)
+    dashboard = menu.addItem("Dashboard", role=eSideBarMenuRole.Leaf)
+    _setPageKey(dashboard, PAGE_DASHBOARD)
 
     devices = menu.addItem("Devices", role=eSideBarMenuRole.Header)
+    # Header itself is expand/collapse only; children navigate.
     names = list(deviceNames) if deviceNames else []
     if names:
         for name in names:
-            devices.addChild(name)
+            child = devices.addChild(name)
+            _setPageKey(child, PAGE_DEVICES)
     else:
-        devices.addChild("(no devices)")
+        empty = devices.addChild("(no devices)")
+        _setPageKey(empty, PAGE_DEVICES)
 
     tools = menu.addItem("Tools", role=eSideBarMenuRole.Header)
-    tools.addChild("Annotator")
-    tools.addChild("K&G Recorder")
+    annotator = tools.addChild("Annotator")
+    _setPageKey(annotator, PAGE_ANNOTATOR)
+    recorder = tools.addChild("K&G Recorder")
+    _setPageKey(recorder, PAGE_KG_RECORDER)
 
-    # Settings is special: not in the scroll list — pinned footer on SideBar.
     settings = SideBarMenuItem(
         caption="Settings",
         role=eSideBarMenuRole.Header,
     )
-    settings.clicked.connect(_onMenuItemClicked)
+    _setPageKey(settings, PAGE_SETTINGS)
     settings.selectionRequested.connect(
         lambda item: menu.selectItem(item) if menu.SelectOnClick else None
     )
 
-    menu.itemClicked.connect(_onMenuItemClicked)
     return menu, settings
