@@ -22,6 +22,7 @@ from .__sideBarItem import SideBarItem
 # ==================================================================================
 QSPolicy = QSizePolicy.Policy
 C_ICON_SIZE = 32
+C_COLLAPSED_WIDTH = 48
 # ==================================================================================
 
 
@@ -56,6 +57,10 @@ class SideBarHeader(SideBarItem):
                 dict(icons)
             )
             self._initialState: eSideBarState = initialState
+            self._collapsedWidth: int = C_COLLAPSED_WIDTH
+            self._iconSize: int = C_ICON_SIZE
+            self._chromeCollapsed: bool = False
+            self._expandedMargins = (8, 8, 8, 8)
         except Exception as ex:
             error("[SideBarHeader] __init__ FAIL", ex)
             error(f"[SideBarHeader] __init__ traceback:\n{format_exc()}")
@@ -85,9 +90,6 @@ class SideBarHeader(SideBarItem):
             iconWidget.setFixedSize(QSize(C_ICON_SIZE, C_ICON_SIZE))
             iconWidget.setSizePolicy(QSPolicy.Fixed, QSPolicy.Fixed)
             if initialState in icons:
-                # Set without emitting via direct path: assignment emits stateChanged
-                # only when value changes; initial set may emit — suppress by setting
-                # _state before UI if needed. Prefer set after connect is ready.
                 iconWidget.state = initialState
 
             titleWidget: Title = Title(
@@ -107,6 +109,12 @@ class SideBarHeader(SideBarItem):
             self._icon: StatefullIcon[eSideBarState] = iconWidget
             self._titleWidget: Title = titleWidget
             self._descriptionWidget: Description = descriptionWidget
+            self._expandedMargins = (
+                self._layout.contentsMargins().left(),
+                self._layout.contentsMargins().top(),
+                self._layout.contentsMargins().right(),
+                self._layout.contentsMargins().bottom(),
+            )
 
             iconWidget.stateChanged.connect(self._onIconStateChanged)
             verbose("[SideBarHeader] _wInitializeUI EXIT")
@@ -115,11 +123,35 @@ class SideBarHeader(SideBarItem):
             error(f"[SideBarHeader] _wInitializeUI traceback:\n{format_exc()}")
             raise
 
+    def setChromeCollapsed(self, collapsed: bool) -> None:
+        """Icon-only: hide text, center icon in collapsed rail width."""
+        self._chromeCollapsed = bool(collapsed)
+        if self._layout is None:
+            return
+        if self._chromeCollapsed:
+            self._titleWidget.hide()
+            self._descriptionWidget.hide()
+            hPad = max(0, (self._collapsedWidth - self._iconSize) // 2)
+            top = self._expandedMargins[1]
+            bottom = self._expandedMargins[3]
+            self._layout.setContentsMargins(hPad, top, hPad, bottom)
+        else:
+            self._layout.setContentsMargins(*self._expandedMargins)
+            self._titleWidget.show()
+            if self.Description.strip():
+                self._descriptionWidget.show()
+            else:
+                self._descriptionWidget.hide()
+
+    def setCollapsedWidth(self, width: int) -> None:
+        self._collapsedWidth = int(width)
+        if self._chromeCollapsed:
+            self.setChromeCollapsed(True)
+
     def _onIconStateChanged(self, state: object) -> None:
         verbose(f"[SideBarHeader] stateChanged {state!r}")
         self.stateChanged.emit(state)
 
-    # ==================================================================================
     @property
     def Title(self) -> str:
         return self._titleWidget.Text
@@ -135,7 +167,8 @@ class SideBarHeader(SideBarItem):
     @Description.setter
     def Description(self, value: str) -> None:
         self._descriptionWidget.Text = value
-        self._descriptionWidget.setVisible(bool(value.strip()) if value else False)
+        if not self._chromeCollapsed:
+            self._descriptionWidget.setVisible(bool(value.strip()) if value else False)
 
     @property
     def State(self) -> eSideBarState:

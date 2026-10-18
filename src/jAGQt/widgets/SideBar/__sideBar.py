@@ -15,9 +15,9 @@ from jAGFx.workflow import workflow
 from jAGQt.animations import SizeAnimationBase
 from jAGQt.options import AnimationOptions, SideBarOptions
 from jAGQt.options.__sideBarOptions import (
-    C_DEFAULT_MENU_HEADER_MARGIN,
+    C_DEFAULT_MENU_CHILD_INDENT,
     C_DEFAULT_MENU_ICON_SIZE,
-    C_DEFAULT_MENU_LEAF_MARGIN,
+    C_DEFAULT_MENU_ITEM_MARGIN,
 )
 from jAGQt.types.interface.animations import iAnimation
 
@@ -74,8 +74,8 @@ class SideBar(ComponentBase, ObjectName, QWidget):
             self._collapsedWidth: int = C_COLLAPSED_WIDTH
             self._animation: Optional[iAnimation] = None
             self._menuIconSize: int = C_DEFAULT_MENU_ICON_SIZE
-            self._menuHeaderMargins: Tuple[int, int, int, int] = C_DEFAULT_MENU_HEADER_MARGIN
-            self._menuLeafMargins: Tuple[int, int, int, int] = C_DEFAULT_MENU_LEAF_MARGIN
+            self._menuItemMargins: Tuple[int, int, int, int] = C_DEFAULT_MENU_ITEM_MARGIN
+            self._menuChildIndent: int = C_DEFAULT_MENU_CHILD_INDENT
             self._sidebarState: eSideBarState = initialState
             self._layoutReady: bool = False
             self._content: Optional[QWidget] = None
@@ -106,7 +106,6 @@ class SideBar(ComponentBase, ObjectName, QWidget):
             del self._pendingOptions
             del self._pendingAnimationOptions
 
-            verbose("[SideBar] creating SideBarHeader")
             header: SideBarHeader = SideBarHeader(
                 title=titleText,
                 description=descriptionText,
@@ -181,7 +180,6 @@ class SideBar(ComponentBase, ObjectName, QWidget):
             error(f"[SideBar] _wInitializeUI traceback:\n{format_exc()}")
             raise
 
-    # ==================================================================================
     def _installOptionsFrom(
         self,
         options: Optional[SideBarOptions],
@@ -191,15 +189,15 @@ class SideBar(ComponentBase, ObjectName, QWidget):
             self._expandedWidth = C_EXPANDED_WIDTH
             self._collapsedWidth = C_COLLAPSED_WIDTH
             self._menuIconSize = C_DEFAULT_MENU_ICON_SIZE
-            self._menuHeaderMargins = C_DEFAULT_MENU_HEADER_MARGIN
-            self._menuLeafMargins = C_DEFAULT_MENU_LEAF_MARGIN
+            self._menuItemMargins = C_DEFAULT_MENU_ITEM_MARGIN
+            self._menuChildIndent = C_DEFAULT_MENU_CHILD_INDENT
             className: Optional[str] = None
         else:
             self._expandedWidth = int(options.expandedWidth)
             self._collapsedWidth = int(options.collapsedWidth)
             self._menuIconSize = int(options.menuIconSize)
-            self._menuHeaderMargins = options.menuHeaderMargins()
-            self._menuLeafMargins = options.menuLeafMargins()
+            self._menuItemMargins = options.menuItemMargins()
+            self._menuChildIndent = int(options.menuChildIndent)
             className = options.animation
 
         self._animation = self._resolveAnimation(className, animationOptions)
@@ -207,18 +205,26 @@ class SideBar(ComponentBase, ObjectName, QWidget):
     def _pushMenuMetrics(self, widget: Optional[QWidget]) -> None:
         if widget is None:
             return
+        kwargs = dict(
+            iconSize=self._menuIconSize,
+            itemMargins=self._menuItemMargins,
+            childIndent=self._menuChildIndent,
+            collapsedWidth=self._collapsedWidth,
+        )
         if isinstance(widget, SideBarMenu):
-            widget.applyMetrics(
-                iconSize=self._menuIconSize,
-                headerMargins=self._menuHeaderMargins,
-                leafMargins=self._menuLeafMargins,
-            )
+            widget.applyMetrics(**kwargs)
         elif isinstance(widget, SideBarMenuItem):
-            widget.applyMetrics(
-                iconSize=self._menuIconSize,
-                headerMargins=self._menuHeaderMargins,
-                leafMargins=self._menuLeafMargins,
-            )
+            widget.applyMetrics(**kwargs)
+
+    def _pushChromeCollapsed(self, collapsed: bool) -> None:
+        if isinstance(self._content, SideBarMenu):
+            self._content.setChromeCollapsed(collapsed)
+        elif isinstance(self._content, SideBarMenuItem):
+            self._content.setChromeCollapsed(collapsed)
+        if isinstance(self._footer, SideBarMenuItem):
+            self._footer.setChromeCollapsed(collapsed)
+        if hasattr(self._header, "setChromeCollapsed"):
+            self._header.setChromeCollapsed(collapsed)
 
     def _resolveAnimation(
         self,
@@ -268,14 +274,11 @@ class SideBar(ComponentBase, ObjectName, QWidget):
         o.expandedWidth = self._expandedWidth
         o.collapsedWidth = self._collapsedWidth
         o.menuIconSize = self._menuIconSize
-        o.menuHeaderMarginLeft = self._menuHeaderMargins[0]
-        o.menuHeaderMarginTop = self._menuHeaderMargins[1]
-        o.menuHeaderMarginRight = self._menuHeaderMargins[2]
-        o.menuHeaderMarginBottom = self._menuHeaderMargins[3]
-        o.menuLeafMarginLeft = self._menuLeafMargins[0]
-        o.menuLeafMarginTop = self._menuLeafMargins[1]
-        o.menuLeafMarginRight = self._menuLeafMargins[2]
-        o.menuLeafMarginBottom = self._menuLeafMargins[3]
+        o.menuItemMarginLeft = self._menuItemMargins[0]
+        o.menuItemMarginTop = self._menuItemMargins[1]
+        o.menuItemMarginRight = self._menuItemMargins[2]
+        o.menuItemMarginBottom = self._menuItemMargins[3]
+        o.menuChildIndent = self._menuChildIndent
         if self._animation is not None:
             t = type(self._animation)
             o.animation = f"{t.__module__}.{t.__name__}"
@@ -283,7 +286,6 @@ class SideBar(ComponentBase, ObjectName, QWidget):
             o.animation = None
         return o
 
-    # ==================================================================================
     def _onHeaderStateChanged(self, state: object) -> None:
         if not isinstance(state, eSideBarState):
             warning(f"[SideBar] ignoring non-eSideBarState: {state!r}")
@@ -297,8 +299,9 @@ class SideBar(ComponentBase, ObjectName, QWidget):
         return self._expandedWidth
 
     def _syncChromeForState(self, state: eSideBarState) -> None:
+        collapsed = state is eSideBarState.Collapsed
         header = self._header
-        if state is eSideBarState.Collapsed:
+        if collapsed:
             header._titleWidget.hide()
             header._descriptionWidget.hide()
         else:
@@ -307,6 +310,7 @@ class SideBar(ComponentBase, ObjectName, QWidget):
                 header._descriptionWidget.show()
             else:
                 header._descriptionWidget.hide()
+        self._pushChromeCollapsed(collapsed)
 
     def _syncLayoutForState(
         self,
@@ -356,7 +360,6 @@ class SideBar(ComponentBase, ObjectName, QWidget):
             error(f"[SideBar] traceback:\n{format_exc()}")
             raise
 
-    # ==================================================================================
     def setContent(self, widget: Optional[QWidget]) -> None:
         host = self._contentHost
         layout = self._contentLayout
@@ -373,6 +376,8 @@ class SideBar(ComponentBase, ObjectName, QWidget):
         if widget is not None:
             self._pushMenuMetrics(widget)
             layout.addWidget(widget, stretch=1)
+            if self._sidebarState is eSideBarState.Collapsed:
+                self._pushChromeCollapsed(True)
 
     def setFooter(self, widget: Optional[QWidget]) -> None:
         host = self._footerHost
@@ -390,8 +395,9 @@ class SideBar(ComponentBase, ObjectName, QWidget):
         if widget is not None:
             self._pushMenuMetrics(widget)
             layout.addWidget(widget, stretch=0)
+            if self._sidebarState is eSideBarState.Collapsed:
+                self._pushChromeCollapsed(True)
 
-    # ==================================================================================
     @property
     def Header(self) -> SideBarHeader:
         return self._header
@@ -449,12 +455,12 @@ class SideBar(ComponentBase, ObjectName, QWidget):
         return self._menuIconSize
 
     @property
-    def MenuHeaderMargins(self) -> Tuple[int, int, int, int]:
-        return self._menuHeaderMargins
+    def MenuItemMargins(self) -> Tuple[int, int, int, int]:
+        return self._menuItemMargins
 
     @property
-    def MenuLeafMargins(self) -> Tuple[int, int, int, int]:
-        return self._menuLeafMargins
+    def MenuChildIndent(self) -> int:
+        return self._menuChildIndent
 
     @property
     def Animation(self) -> Optional[iAnimation]:
