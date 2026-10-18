@@ -1,6 +1,4 @@
 # ==================================================================================
-# src/jAGQt/widgets/page/__page.py
-# ==================================================================================
 from typing import Optional
 from uuid import UUID, uuid4
 
@@ -24,26 +22,22 @@ from ...types.interface.widgets.commandBar import (
     iCommandBarGroup,
 )
 from ...utilities import newLayout
-from .. import Header
 from ..commandBar import CommandBar
 from ..components import ComponentBase
+from ..header import Header
 
 
 # ==================================================================================
 @workflow("InitializeUI")
 class Page(QWidget, ComponentBase):
     OBJECT_NAME = "W_PAGE"
-
     def __init__(
-        self,
-        title: str = "jAGQt Page", description: str = "",
+        self, title: str, description: str = "",
         commandBarOn: bool = False, id: Optional[str] = None,
         *args, **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
         self._id: str | UUID = uuid4() if id is None else id
-
-        # temp until _wInitializeUI
         self._title = title
         self._description = description
         self._isCommandBarOn: bool = commandBarOn

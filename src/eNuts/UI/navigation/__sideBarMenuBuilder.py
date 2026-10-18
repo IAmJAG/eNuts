@@ -41,7 +41,7 @@ def buildSmokeTestSideBarMenu(
     """
     menu = SideBarMenu()
 
-    menu.addItem("Dashboard", role=eSideBarMenuRole.Header)
+    menu.addItem("Dashboard", role=eSideBarMenuRole.Leaf)
 
     devices = menu.addItem("Devices", role=eSideBarMenuRole.Header)
     names = list(deviceNames) if deviceNames else []

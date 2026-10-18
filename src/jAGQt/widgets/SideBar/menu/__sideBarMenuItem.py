@@ -177,7 +177,9 @@ class SideBarMenuItem(SideBarItem):
                 self.clicked.emit(self)
                 event.accept()
                 return
+
             super().mousePressEvent(event)
+
         except Exception as ex:
             error("[SideBarMenuItem] mousePressEvent FAIL", ex)
             raise

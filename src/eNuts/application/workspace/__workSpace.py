@@ -25,7 +25,6 @@ C_SIDEBAR_ANIMATION_TYPE: str = "jAGQt.animations.RubberBand"
 C_SIDEBAR_ANIMATION_MS: int = 280
 # ==================================================================================
 
-
 # ==================================================================================
 @workflow
 class WorkSpace(ComponentBase, ObjectName, QWidget):
@@ -35,10 +34,12 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
         verbose("[WorkSpace] __init__ ENTER")
         try:
             super().__init__(*args, **kwargs)
+
         except Exception as ex:
             error("[WorkSpace] __init__ FAIL", ex)
             error(f"[WorkSpace] __init__ traceback:\n{format_exc()}")
             raise
+        
         verbose(f"[WorkSpace] __init__ EXIT objectName={self.objectName()!r}")
 
     def _wInitializeUI(self: QWidget) -> None:

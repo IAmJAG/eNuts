@@ -115,14 +115,13 @@ class StatefullIcon[T: Enum](Icon):
 
         try:
             transition = self._ensureTransition()
-            if transition.isRunning:
-                transition.stop()
+            if transition.isRunning: transition.stop()
 
             targetPx = self._iconToPixmap(targetIcon)
             self._animating = True
             transition.start(targetImage=targetPx, originalImage=None)
-            if previous != state:
-                self.stateChanged.emit(state)
+            if previous != state: self.stateChanged.emit(state)
+
         except Exception as ex:
             error("[StatefullIcon] _runWipeToState FAIL", ex)
             error(f"[StatefullIcon] traceback:\n{format_exc()}")
