@@ -16,6 +16,7 @@ LOG_LEVEL: int = TRACE
 THIRD_PARTY_LOG_LEVEL: int = WARNING
 THIRD_PARTY_LOGGERS: List[str] = [
     "asyncio",
+    "asyncio.windows_events",
     "qasync._windows._EventPoller",
     "qasync._windows._EventWorker",
     "qasync._windows._IocpProactor",
