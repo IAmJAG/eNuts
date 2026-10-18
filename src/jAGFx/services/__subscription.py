@@ -26,11 +26,15 @@ class Subscription(iSubscription):
             for callback in self._callbacks[event]:
                 callback(*args, **kwargs)
 
+    def setSuppressEvent(self, value: bool) -> None:
+        self._suppressEvent = value
+
 
 # ==================================================================================
 class AsyncSubscription(Subscription):
     def __init__(self) -> None:
         super().__init__()
+        self._suppressEvent = False
 
     def subscribe(self, event: str, callback: Callable[..., Awaitable]) -> None:
         super().subscribe(event, callback)
@@ -41,6 +45,8 @@ class AsyncSubscription(Subscription):
     def raiseEvent(self, event: str, *args, **kwargs) -> None:
         if event not in self._callbacks:
             return
+        if self._suppressEvent:
+            return
 
         for callback in self._callbacks[event]:
             if not callable(callback):
@@ -49,11 +55,14 @@ class AsyncSubscription(Subscription):
             if iscoroutinefunction(callback):
                 # createTask is available globally via __monkeyPatch
                 createTask(callback, *args, **kwargs)
+
             else:
                 callback(*args, **kwargs)
 
     async def asyncRaiseEvent(self, event: str, *args, **kwargs) -> None:
         if event not in self._callbacks:
+            return
+        if self._suppressEvent:
             return
 
         for callback in self._callbacks[event]:
@@ -62,6 +71,7 @@ class AsyncSubscription(Subscription):
 
             if iscoroutinefunction(callback):
                 await callback(*args, **kwargs)
+
             else:
                 callback(*args, **kwargs)
 

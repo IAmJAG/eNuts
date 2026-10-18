@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-18 05:46:56 UTC*
+*Auto-generated on: 2026-10-18 05:50:54 UTC*
 
 ## Current Directory Structure
 
@@ -106,7 +106,9 @@ eNuts/
 │   │   │       └── configuration/
 │   │   │           └── __eNutsConfiguration.py
 │   │   └── utilities/
+│   │       ├── .fff
 │   │       └── asyncADB/
+│   │           └── __asyncADB.py
 │   ├── fluxCore/
 │   │   ├── .fff
 │   │   ├── action/
@@ -521,6 +523,13 @@ src/eNuts/UI/windows:
 	__mainWindow.py - 
 		CLASSE(S):
 			ENUTSWindow -> : enutswindow
+
+src/eNuts/utilities/asyncADB:
+	__asyncADB.py - 
+		FUNCTION(S):
+			ADBDevices -> : adbdevices
+			ADBShell -> : adbshell
+			SCRCPYDevices -> : scrcpydevices
 
 src/fluxCore/action:
 	__action.py - 
@@ -1339,6 +1348,21 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+4df7ace:
+	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
+
+f2a7da2:
+	fix(inventory): update auto-generated timestamp and enhance directory structure
+		.docs/inventory.md
+
+fc82772:
+	fix(newLayout): only pass Direction to QBoxLayout, not QVBox/QHBox
+		src/jAGQt/utilities/__layout.py
+
+9984f27:
+	fix(Header): use QBoxLayout only; expose Title/Description for Page
+		src/jAGQt/widgets/header/__header.py
+
 861a0ea:
 	chore(pages): retire __smokePages; re-export from navigation pages
 		src/eNuts/UI/pages/__smokePages.py
@@ -1369,24 +1393,5 @@ a969ca7:
 7f6683f:
 	fix(inventory): update auto-generated timestamp and enhance directory structure
 		.docs/inventory.md
-
-4309fd9:
-	fix(SideBar): deferred post-show chrome reflow so menu captions paint on first frame
-		src/jAGQt/widgets/SideBar/__sideBar.py
-		src/jAGQt/widgets/SideBar/menu/__sideBarMenuItem.py
-
-04d140d:
-	fix(SideBar): rename _applyStateFully -> _syncStateFully (avoid workflow _a* discovery)
-		src/jAGQt/widgets/SideBar/__sideBar.py
-
-161a110:
-	fix(SideBar): _applyStateFully â€” width and chrome always from same state
-		src/jAGQt/widgets/SideBar/__sideBar.py
-
-4e37738:
-	fix(SideBar): strict state/width/chrome apply; correct header icon affordance
-		src/eNuts/application/workspace/__workSpace.py
-		src/jAGQt/animations/__sizeAnimationBase.py
-		src/jAGQt/animations/rubberband/__rubberBand.py
 
 ```

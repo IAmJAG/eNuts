@@ -4,9 +4,7 @@ from asyncio import sleep as asyncSleep
 from typing import Dict, List
 
 # ==================================================================================
-from fluxCore.devices import SCRCPY
 from fluxCore.types.interface.device import iDevice
-from fluxCore.types.interface.devices import iSCRCPY
 from fluxCore.types.interface.emitters import iSCRCPYEmitter
 from jAGFx.services import AsyncSubscription
 from jAGFx.workflow import workflow
