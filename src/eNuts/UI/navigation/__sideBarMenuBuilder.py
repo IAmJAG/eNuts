@@ -6,7 +6,6 @@ from jAGQt.widgets.sideBar import SideBarMenu, SideBarMenuItem, eSideBarMenuRole
 
 # ==================================================================================
 from ..pages import (
-    C_DEVICE_NONE,
     PAGE_ANNOTATOR,
     PAGE_DASHBOARD,
     PAGE_DEVICES,
@@ -41,7 +40,9 @@ def buildSmokeTestSideBarMenu() -> tuple[SideBarMenu, SideBarMenuItem, SideBarMe
     """Build nav menu + Settings footer; every static node has a pageKey.
 
     Returns ``(menu, settingsItem, devicesHeader)``.
-    Device leaves are filled at runtime by WorkSpace from deviceManager.
+
+    Devices starts with **no** children. WorkSpace adds leaves only when
+    deviceManager reports real devices (no ``(no devices)`` placeholder).
     """
     menu = SideBarMenu()
 
@@ -50,7 +51,8 @@ def buildSmokeTestSideBarMenu() -> tuple[SideBarMenu, SideBarMenuItem, SideBarMe
 
     devices = menu.addItem("Devices", role=eSideBarMenuRole.Header)
     setPageKey(devices, PAGE_DEVICES)
-    
+    # Intentionally no children until discovery.
+
     tools = menu.addItem("Tools", role=eSideBarMenuRole.Header)
     setPageKey(tools, PAGE_TOOLS)
     annotator = tools.addChild("Annotator")

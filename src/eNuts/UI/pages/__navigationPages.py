@@ -6,7 +6,6 @@ from jAGQt.widgets.page import Page
 
 # ==================================================================================
 from .__pageKeys import (
-    C_DEVICE_NONE,
     PAGE_ANNOTATOR,
     PAGE_DASHBOARD,
     PAGE_DEVICES,
@@ -29,8 +28,8 @@ def buildNavigationPages() -> dict[str, Page]:
     """Static navigation pages (no live device leaves).
 
     Device pages are registered at runtime by WorkSpace when discovery reports
-    devices. Always includes ``device:none`` placeholder until the first real
-    device appears.
+    devices. No ``device:none`` placeholder — Devices header alone until leaves
+    appear.
     """
     pages: dict[str, Page] = {}
 
@@ -39,9 +38,6 @@ def buildNavigationPages() -> dict[str, Page]:
     )
     pages[PAGE_DEVICES] = buildBlankPage(
         PAGE_DEVICES, "Devices", "Device summary"
-    )
-    pages[C_DEVICE_NONE] = buildBlankPage(
-        C_DEVICE_NONE, "(no devices)", "No devices connected"
     )
     pages[PAGE_TOOLS] = buildBlankPage(
         PAGE_TOOLS, "Tools", "Tools summary"

@@ -179,12 +179,9 @@ class SideBarMenuItem(SideBarItem):
             return
         self._layout.setContentsMargins(*self._hierarchyMargins())
         if self._titleWidget is not None:
-            # Let the row layout allocate space; do not force a large minWidth
-            # (that inflated SideBar sizeHint and fought the 200px fixed rail).
             self._titleWidget.setMinimumWidth(0)
             self._titleWidget.setVisible(True)
             self._titleWidget.show()
-            # Force Text to repaint full caption after layout has a real width.
             try:
                 self._titleWidget.setText(self._titleWidget.Text)
             except Exception:
@@ -347,8 +344,11 @@ class SideBarMenuItem(SideBarItem):
         return child
 
     def clearChildren(self) -> None:
+        """Remove and destroy all child menu items."""
         if self._bodyLayout is None:
+            self._children.clear()
             return
+
         for child in list(self._children):
             try:
                 child.selectionRequested.disconnect(self.selectionRequested.emit)
@@ -356,11 +356,17 @@ class SideBarMenuItem(SideBarItem):
             except Exception:
                 pass
             child._parentItem = None
+
         while self._bodyLayout.count():
             taken = self._bodyLayout.takeAt(0)
+            if taken is None:
+                continue
             w = taken.widget()
             if w is not None:
+                w.hide()
                 w.setParent(None)
+                w.deleteLater()
+
         self._children.clear()
         if self._body is not None:
             self._body.hide()
