@@ -28,7 +28,9 @@ class SideBarItem(ComponentBase, ObjectName, QWidget):
 
     def _wInitializeUI(self) -> None:
         self.setAttribute(StyleBackground, True)
+        # Fill the rail horizontally so caption Title gets real width (not 0).
         self.setSizePolicy(QSPolicy.Expanding, QSPolicy.Fixed)
+        self.setMinimumWidth(0)
 
         outerLayout: QBoxLayout = newLayout(
             QBoxLayout,
@@ -52,4 +54,5 @@ class SideBarItem(ComponentBase, ObjectName, QWidget):
         self._layout.insertWidget(0, widget, stretch=0)
 
     def _addTextWidget(self, widget: QWidget) -> None:
-        self._textColumn.addWidget(widget)
+        widget.setSizePolicy(QSPolicy.Expanding, QSPolicy.Fixed)
+        self._textColumn.addWidget(widget, stretch=0)

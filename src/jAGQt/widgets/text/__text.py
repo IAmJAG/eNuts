@@ -80,24 +80,28 @@ class Text(QLabel, ComponentBase):
         self._updateTextDisplay()
 
     def _updateTextDisplay(self) -> None:
+        # Visibility follows the *source* string, never the elided result.
+        # Width 0 (pre-layout) must not hide or elide away the caption.
+        hasText = bool(self._fullText and self._fullText.strip())
         if self._wordWrap:
             super().setText(self._fullText)
-            self.setVisible(bool(self._fullText.strip()))
+            self.setVisible(hasText)
             return
 
-        lMetrics: QFontMetrics = QFontMetrics(self.font())
         lAvailableWidth = (
             self.width()
             - self.contentsMargins().left()
             - self.contentsMargins().right()
         )
 
-        text: str = self._fullText
-        if lAvailableWidth > 0:
-            text = lMetrics.elidedText(text, self._elidedMode, lAvailableWidth)
-
-        super().setText(text)
-        self.setVisible(bool(text.strip()))
+        if lAvailableWidth <= 0:
+            super().setText(self._fullText)
+        else:
+            lMetrics: QFontMetrics = QFontMetrics(self.font())
+            super().setText(
+                lMetrics.elidedText(self._fullText, self._elidedMode, lAvailableWidth)
+            )
+        self.setVisible(hasText)
 
     def resizeEvent(self, event: QResizeEvent) -> None:
         super().resizeEvent(event)
