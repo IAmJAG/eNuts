@@ -7,9 +7,11 @@ from typing import Dict, List, Optional, Set
 
 # ==================================================================================
 from PySide6.QtCore import Qt, Signal, SignalInstance
+from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QStackedWidget, QWidget
 
 # ==================================================================================
+from fluxCore.emitters.scrcpy import SCRCPYEmitter
 from fluxCore.types.interface.device import iDevice
 from jAGFx.workflow import workflow
 from jAGQt.options import AnimationOptions, SideBarOptions
@@ -21,13 +23,15 @@ from utilities.io import getICONPath
 # ==================================================================================
 from ...UI.navigation import buildSmokeTestSideBarMenu, pageKeyOf, setPageKey
 from ...UI.pages import (
+    C_DEVICE_KEY_PREFIX,
     C_DEVICE_NONE,
     PAGE_DASHBOARD,
     PAGE_DEVICES,
-    buildBlankPage,
+    buildDevicePage,
     buildNavigationPages,
     devicePageKeyFromId,
 )
+from ...UI.pages.__pageKeys import serialFromPageKey
 from ..device import (
     DEVICE_ADDED_EVENT,
     DEVICE_INITIALIZED_EVENT,
@@ -40,6 +44,7 @@ QSPolicy = QSizePolicy.Policy
 StyleBackground = Qt.WidgetAttribute.WA_StyledBackground
 C_SIDEBAR_ANIMATION_TYPE: str = "jAGQt.animations.RubberBand"
 C_SIDEBAR_ANIMATION_MS: int = 280
+C_ON_FRAME = "ON_FRAME"
 # ==================================================================================
 
 
@@ -48,7 +53,6 @@ C_SIDEBAR_ANIMATION_MS: int = 280
 class WorkSpace(ComponentBase, ObjectName, QWidget):
     OBJECT_NAME = "W_WORKSPACE"
 
-    # Cross-thread safe bridge from deviceManager -> Qt main thread.
     _sigDevicesReady: SignalInstance = Signal(object)
     _sigDeviceAdded: SignalInstance = Signal(object)
     _sigDeviceRemoved: SignalInstance = Signal(object)
@@ -67,6 +71,8 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             self._devicesHeader: Optional[SideBarMenuItem] = None
             self._deviceManager: Optional[deviceManager] = deviceMgr
             self._devicePageKeys: Set[str] = set()
+            self._activeStreamSerial: Optional[str] = None
+            self._frameHandlerBySerial: Dict[str, object] = {}
 
         except Exception as ex:
             error("[WorkSpace] __init__ FAIL", ex)
@@ -174,7 +180,80 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
         page = self._pages.get(key)
         title = page.Title if page is not None else key
         verbose(f"[WorkSpace] showPage key={key!r} title={title!r} index={index}")
+
+        serial = serialFromPageKey(key)
+        if serial is not None:
+            createTask(self._attachDeviceStream, serial, page)
         return True
+
+    async def _attachDeviceStream(self, serial: str, page: Optional[Page]) -> None:
+        mgr = self._deviceManager
+        if mgr is None or page is None:
+            return
+        try:
+            emitter = await mgr.ensureRunning(serial)
+        except Exception as ex:
+            error(f"[WorkSpace] ensureRunning failed serial={serial!r}", ex)
+            error(f"[WorkSpace] traceback:\n{format_exc()}")
+            return
+
+        bridge = getattr(page, "_frameBridge", None)
+        if bridge is None:
+            warning(f"[WorkSpace] no frame bridge on page serial={serial!r}")
+            return
+
+        # One UI subscriber per serial; replace if re-entering page.
+        old = self._frameHandlerBySerial.pop(serial, None)
+        if old is not None:
+            try:
+                emitter.unsubscribe(C_ON_FRAME, old)
+            except Exception:
+                pass
+
+        def _onFrame(frame: object) -> None:
+            qimg = self._frameToQImage(frame, emitter)
+            if qimg is not None:
+                bridge.frameReady.emit(qimg)
+
+        emitter.subscribe(C_ON_FRAME, _onFrame)
+        self._frameHandlerBySerial[serial] = _onFrame
+        self._activeStreamSerial = serial
+        page._streamAttached = True  # type: ignore[attr-defined]
+        verbose(f"[WorkSpace] stream attached serial={serial!r}")
+
+    @staticmethod
+    def _frameToQImage(frame: object, emitter: SCRCPYEmitter) -> Optional[QImage]:
+        try:
+            decode = getattr(frame, "decode", None)
+            if decode is None:
+                return None
+            codec = getattr(emitter, "_codecContext", None)
+            if codec is None:
+                return None
+            vf = decode(codec, toGPU=False)
+            if vf is None:
+                return None
+            # PyAV VideoFrame -> QImage (RGB)
+            if hasattr(vf, "to_ndarray"):
+                import numpy as np
+
+                arr = vf.to_ndarray(format="rgb24")
+                if not isinstance(arr, np.ndarray):
+                    return None
+                h, w, _c = arr.shape
+                qimg = QImage(
+                    arr.data, w, h, 3 * w, QImage.Format.Format_RGB888
+                )
+                return qimg.copy()
+            if hasattr(vf, "to_image"):
+                pil = vf.to_image()
+                data = pil.convert("RGB").tobytes()
+                w, h = pil.size
+                qimg = QImage(data, w, h, 3 * w, QImage.Format.Format_RGB888)
+                return qimg.copy()
+        except Exception as ex:
+            warning(f"[WorkSpace] frame decode failed: {ex}")
+        return None
 
     def _bindDeviceManager(self, mgr: Optional[deviceManager]) -> None:
         self._deviceManager = mgr
@@ -218,8 +297,12 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
         try:
             if not self._isDevice(device):
                 return
-            key = devicePageKeyFromId(str(device.id))
-            verbose(f"[WorkSpace] device removed id={device.id!r} key={key!r}")
+            serial = str(device.id)
+            key = devicePageKeyFromId(serial)
+            verbose(f"[WorkSpace] device removed id={serial!r} key={key!r}")
+            self._frameHandlerBySerial.pop(serial, None)
+            if self._activeStreamSerial == serial:
+                self._activeStreamSerial = None
             self._unregisterDevicePage(key)
             self._rebuildDevicesMenuLeaves()
         except Exception as ex:
@@ -254,11 +337,13 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
     def _registerDevice(self, device: iDevice) -> str:
         key = devicePageKeyFromId(str(device.id))
         title = (device.name or "").strip() or str(device.id)
-        self._ensureDevicePage(key, title)
+        self._ensureDevicePage(key, title, serial=str(device.id))
         self._devicePageKeys.add(key)
         return key
 
-    def _ensureDevicePage(self, key: str, title: str) -> None:
+    def _ensureDevicePage(
+        self, key: str, title: str, serial: Optional[str] = None
+    ) -> None:
         stack = self._stack
         if stack is None:
             return
@@ -266,12 +351,20 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             page = self._pages[key]
             try:
                 page.Title = title
-
             except Exception:
                 pass
             return
 
-        page = buildBlankPage(key, title, "Device")
+        if serial is None:
+            serial = serialFromPageKey(key) or title
+
+        if key.startswith(C_DEVICE_KEY_PREFIX) and serial:
+            page = buildDevicePage(key, title, serial)
+        else:
+            from ...UI.pages import buildBlankPage
+
+            page = buildBlankPage(key, title, "Device")
+
         idx = stack.addWidget(page)
         self._pages[key] = page
         self._pageIndex[key] = idx
@@ -324,7 +417,6 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             f"mgr_count={len(devices)} prior_children={len(header.Children)}"
         )
 
-        # Drop every leaf then rebuild from mgr. No placeholder when empty.
         header.clearChildren()
 
         if not devices:
@@ -338,7 +430,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             caption = (device.name or "").strip() or str(device.id)
             leaf = header.addChild(caption)
             setPageKey(leaf, key)
-            self._ensureDevicePage(key, caption)
+            self._ensureDevicePage(key, caption, serial=str(device.id))
 
         header.Expanded = True
         captions = [c.Caption for c in header.Children]
