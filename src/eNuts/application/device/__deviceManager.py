@@ -6,7 +6,6 @@ from typing import Dict, Iterable, Iterator, Optional
 # ==================================================================================
 from fluxCore.emitters.scrcpy import SCRCPYEmitter
 from fluxCore.types.interface.device import iDevice
-from fluxCore.types.interface.emitters import iSCRCPYEmitter
 from jAGFx.services import AsyncSubscription
 
 # ==================================================================================
@@ -22,11 +21,7 @@ POLL_INTERVAL: float = 2.0
 
 # ==================================================================================
 class deviceManager(AsyncSubscription):
-    """App-wide device + SCRCPYEmitter registry.
-
-    Discovery stores one ``SCRCPYEmitter`` per serial (global). Callers use
-    ``get`` / ``ensureRunning``; do not construct a second emitter per serial.
-    """
+    """App-wide device + SCRCPYEmitter registry."""
 
     def __init__(self, shutdownEvent: Event, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -62,7 +57,6 @@ class deviceManager(AsyncSubscription):
         return None
 
     async def ensureRunning(self, deviceId: str) -> SCRCPYEmitter:
-        """Lazy-start global emitter for ``deviceId`` (idempotent)."""
         emitter = self.getEmitter(deviceId)
         if emitter is None:
             raise KeyError(f"No SCRCPYEmitter registered for id={deviceId!r}")
@@ -89,6 +83,12 @@ class deviceManager(AsyncSubscription):
         except Exception as ex:
             warning(f"[deviceManager] stop emitter id={deviceId!r} failed: {ex}")
         self._streamReady.pop(deviceId, None)
+
+    def stopAll(self) -> None:
+        """Stop every running emitter (app shutdown)."""
+        for device in list(self._devices.values()):
+            self._stopEmitter(device)
+        verbose("[deviceManager] stopAll done")
 
     async def _discovery(self) -> None:
         isShuttingDown = self._shutdownEvent.is_set
@@ -137,6 +137,8 @@ class deviceManager(AsyncSubscription):
             if not isShuttingDown():
                 await asyncSleep(POLL_INTERVAL)
 
+        self.stopAll()
+
     def runDiscovery(self) -> None:
         async def _discoveryRunner() -> None:
             try:
@@ -151,7 +153,6 @@ class deviceManager(AsyncSubscription):
         if device is None:
             return None
         deviceId: str = str(device.id)
-        # Keep existing global emitter if serial already registered.
         if deviceId in self._devices:
             return self._devices[deviceId]
         self._devices[deviceId] = device
