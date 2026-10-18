@@ -7,7 +7,7 @@ from typing import List, Optional, Tuple, Union
 
 # ==================================================================================
 from PySide6.QtCore import QSize, Qt, Signal
-from PySide6.QtGui import QIcon, QMouseEvent, QPixmap
+from PySide6.QtGui import QFont, QIcon, QMouseEvent, QPixmap
 from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 
 # ==================================================================================
@@ -23,7 +23,10 @@ from .__eSideBarMenuRole import eSideBarMenuRole
 
 # ==================================================================================
 QSPolicy = QSizePolicy.Policy
-C_ICON_SIZE = 20
+C_ROOT_ICON_SIZE = 22
+C_CHILD_ICON_SIZE = 16
+C_ROOT_FONT_PT = 12
+C_CHILD_FONT_PT = 10
 C_ITEM_MARGIN: Tuple[int, int, int, int] = (8, 8, 8, 8)
 C_CHILD_INDENT = 20
 C_COLLAPSED_WIDTH = 48
@@ -41,9 +44,9 @@ def _defaultIconPath() -> str:
 class SideBarMenuItem(SideBarItem):
     """One menu row.
 
-    **Role** (Header/Leaf): structure only — who may own children / body.
-    **Indent**: hierarchy only — extra left margin iff ``ParentItem`` is set.
-    Root leaves are not indented; nested headers would be.
+    Hierarchy (ParentItem), not role, drives indent and visual weight:
+    root = larger icon + larger bold text; child = smaller icon + smaller normal text.
+    Collapsed rail: captions hidden, icons centered; **children stay visible**.
     """
 
     OBJECT_NAME = "W_SIDEBAR_MENU_ITEM"
@@ -57,7 +60,10 @@ class SideBarMenuItem(SideBarItem):
         caption: str = "",
         icon: Optional[Union[QIcon, QPixmap, str]] = None,
         role: eSideBarMenuRole = eSideBarMenuRole.Header,
-        iconSize: int = C_ICON_SIZE,
+        rootIconSize: int = C_ROOT_ICON_SIZE,
+        childIconSize: int = C_CHILD_ICON_SIZE,
+        rootFontPt: int = C_ROOT_FONT_PT,
+        childFontPt: int = C_CHILD_FONT_PT,
         itemMargins: Tuple[int, int, int, int] = C_ITEM_MARGIN,
         childIndent: int = C_CHILD_INDENT,
         collapsedWidth: int = C_COLLAPSED_WIDTH,
@@ -70,7 +76,10 @@ class SideBarMenuItem(SideBarItem):
             icon = _defaultIconPath()
         self._iconSource: Optional[Union[QIcon, QPixmap, str]] = icon
         self._role: eSideBarMenuRole = role
-        self._iconSize: int = int(iconSize)
+        self._rootIconSize: int = int(rootIconSize)
+        self._childIconSize: int = int(childIconSize)
+        self._rootFontPt: int = int(rootFontPt)
+        self._childFontPt: int = int(childFontPt)
         self._itemMargins: Tuple[int, int, int, int] = tuple(itemMargins)  # type: ignore
         self._childIndent: int = int(childIndent)
         self._collapsedWidth: int = int(collapsedWidth)
@@ -84,6 +93,12 @@ class SideBarMenuItem(SideBarItem):
         self._iconWidget: Optional[Icon] = None
         self._titleWidget: Optional[Title] = None
 
+    def _isChild(self) -> bool:
+        return self._parentItem is not None
+
+    def _effectiveIconSize(self) -> int:
+        return self._childIconSize if self._isChild() else self._rootIconSize
+
     def _wInitializeUI(self) -> None:
         verbose(f"[SideBarMenuItem] _wInitializeUI role={self._role!r}")
         try:
@@ -92,10 +107,10 @@ class SideBarMenuItem(SideBarItem):
             caption = self._captionText
             iconSrc = self._iconSource
             role = self._role
-            iconSize = self._iconSize
             del self._captionText
             del self._iconSource
 
+            iconSize = self._effectiveIconSize()
             iconWidget = Icon(icon=iconSrc, objectName=f"{self.OBJECT_NAME}_ICON")
             iconWidget.setFixedSize(QSize(iconSize, iconSize))
             iconWidget.setSizePolicy(QSPolicy.Fixed, QSPolicy.Fixed)
@@ -111,6 +126,7 @@ class SideBarMenuItem(SideBarItem):
             self._setRoleProperty(role)
             self._setSelectedProperty(False)
             self.setCursor(Qt.CursorShape.PointingHandCursor)
+            self._applyHierarchyVisuals()
             self._applyExpandedChrome()
 
             if role is eSideBarMenuRole.Header:
@@ -131,9 +147,25 @@ class SideBarMenuItem(SideBarItem):
             error(f"[SideBarMenuItem] traceback:\n{format_exc()}")
             raise
 
+    def _applyHierarchyVisuals(self) -> None:
+        """Icon size + caption weight/size from hierarchy depth."""
+        iconSize = self._effectiveIconSize()
+        if self._iconWidget is not None:
+            self._iconWidget.setFixedSize(QSize(iconSize, iconSize))
+
+        if self._titleWidget is not None:
+            font: QFont = self._titleWidget.font()
+            if self._isChild():
+                font.setPointSize(self._childFontPt)
+                font.setBold(False)
+            else:
+                font.setPointSize(self._rootFontPt)
+                font.setBold(True)
+            self._titleWidget.setFont(font)
+
     def _hierarchyMargins(self) -> Tuple[int, int, int, int]:
         left, top, right, bottom = self._itemMargins
-        if self._parentItem is not None:
+        if self._isChild():
             left = left + self._childIndent
         return (left, top, right, bottom)
 
@@ -150,7 +182,7 @@ class SideBarMenuItem(SideBarItem):
                     w.show()
 
     def _applyCollapsedChrome(self) -> None:
-        """Icon-only row: hide caption, center icon in collapsed width."""
+        """Icon-only: hide caption, center icon; children remain visible."""
         if self._layout is None or self._iconWidget is None:
             return
         if self._titleWidget is not None:
@@ -160,10 +192,23 @@ class SideBarMenuItem(SideBarItem):
                 w = self._textColumn.itemAt(i).widget()
                 if w is not None:
                     w.hide()
-        hPad = max(0, (self._collapsedWidth - self._iconSize) // 2)
+        iconSize = self._effectiveIconSize()
+        hPad = max(0, (self._collapsedWidth - iconSize) // 2)
         top = self._itemMargins[1]
         bottom = self._itemMargins[3]
         self._layout.setContentsMargins(hPad, top, hPad, bottom)
+
+    def _syncBodyVisibility(self) -> None:
+        if self._body is None:
+            return
+        if not self._children:
+            self._body.hide()
+            return
+        # Collapsed rail: keep children visible (smaller icons).
+        if self._chromeCollapsed:
+            self._body.show()
+            return
+        self._body.setVisible(self._expanded)
 
     def setChromeCollapsed(self, collapsed: bool) -> None:
         self._chromeCollapsed = bool(collapsed)
@@ -171,25 +216,35 @@ class SideBarMenuItem(SideBarItem):
             self._applyCollapsedChrome()
         else:
             self._applyExpandedChrome()
+        self._syncBodyVisibility()
 
     def applyMetrics(
         self,
         *,
-        iconSize: Optional[int] = None,
+        rootIconSize: Optional[int] = None,
+        childIconSize: Optional[int] = None,
+        rootFontPt: Optional[int] = None,
+        childFontPt: Optional[int] = None,
         itemMargins: Optional[Tuple[int, int, int, int]] = None,
         childIndent: Optional[int] = None,
         collapsedWidth: Optional[int] = None,
     ) -> None:
-        if iconSize is not None:
-            self._iconSize = int(iconSize)
-            if self._iconWidget is not None:
-                self._iconWidget.setFixedSize(QSize(self._iconSize, self._iconSize))
+        if rootIconSize is not None:
+            self._rootIconSize = int(rootIconSize)
+        if childIconSize is not None:
+            self._childIconSize = int(childIconSize)
+        if rootFontPt is not None:
+            self._rootFontPt = int(rootFontPt)
+        if childFontPt is not None:
+            self._childFontPt = int(childFontPt)
         if itemMargins is not None:
             self._itemMargins = tuple(itemMargins)  # type: ignore
         if childIndent is not None:
             self._childIndent = int(childIndent)
         if collapsedWidth is not None:
             self._collapsedWidth = int(collapsedWidth)
+
+        self._applyHierarchyVisuals()
         if self._chromeCollapsed:
             self._applyCollapsedChrome()
         else:
@@ -199,6 +254,8 @@ class SideBarMenuItem(SideBarItem):
         self._role = role
         label = "header" if role is eSideBarMenuRole.Header else "leaf"
         self.setProperty("role", label)
+        depth = "child" if self._isChild() else "root"
+        self.setProperty("depth", depth)
         self.style().unpolish(self)
         self.style().polish(self)
 
@@ -214,6 +271,7 @@ class SideBarMenuItem(SideBarItem):
                 if (
                     self._role is eSideBarMenuRole.Header
                     and len(self._children) > 0
+                    and not self._chromeCollapsed
                 ):
                     self.Expanded = not self._expanded
                 self.selectionRequested.emit(self)
@@ -233,40 +291,41 @@ class SideBarMenuItem(SideBarItem):
         if self._role is not eSideBarMenuRole.Header:
             raise TypeError("Only header (parent) menu items may own children")
 
+        metrics = dict(
+            rootIconSize=self._rootIconSize,
+            childIconSize=self._childIconSize,
+            rootFontPt=self._rootFontPt,
+            childFontPt=self._childFontPt,
+            itemMargins=self._itemMargins,
+            childIndent=self._childIndent,
+            collapsedWidth=self._collapsedWidth,
+        )
+
         if isinstance(item, str):
             child = SideBarMenuItem(
                 caption=item,
                 icon=icon,
                 role=eSideBarMenuRole.Leaf,
-                iconSize=self._iconSize,
-                itemMargins=self._itemMargins,
-                childIndent=self._childIndent,
-                collapsedWidth=self._collapsedWidth,
+                **metrics,
             )
         else:
             child = item
             if child.Role is not eSideBarMenuRole.Leaf:
                 raise ValueError("Child menu items must have role Leaf (one level only)")
-            child.applyMetrics(
-                iconSize=self._iconSize,
-                itemMargins=self._itemMargins,
-                childIndent=self._childIndent,
-                collapsedWidth=self._collapsedWidth,
-            )
+            child.applyMetrics(**metrics)
 
         if self._body is None or self._bodyLayout is None:
             raise RuntimeError("SideBarMenuItem UI not initialized")
 
         child._parentItem = self
-        # Hierarchy indent applies once parent is known.
-        child.applyMetrics()
+        child._setRoleProperty(child._role)
+        child.applyMetrics(**metrics)
         if self._chromeCollapsed:
             child.setChromeCollapsed(True)
 
         self._children.append(child)
         self._bodyLayout.addWidget(child)
-        if self._expanded and not self._chromeCollapsed:
-            self._body.show()
+        self._syncBodyVisibility()
         child.selectionRequested.connect(self.selectionRequested.emit)
         child.clicked.connect(self.clicked.emit)
         return child
@@ -326,9 +385,7 @@ class SideBarMenuItem(SideBarItem):
         if value == self._expanded:
             return
         self._expanded = value
-        if self._body is not None:
-            visible = value and len(self._children) > 0 and not self._chromeCollapsed
-            self._body.setVisible(visible)
+        self._syncBodyVisibility()
         self.toggled.emit(self, value)
 
     @property
