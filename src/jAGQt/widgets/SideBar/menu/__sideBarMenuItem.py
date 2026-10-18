@@ -7,7 +7,7 @@ from typing import List, Optional, Tuple, Union
 
 # ==================================================================================
 from PySide6.QtCore import QSize, Qt, Signal
-from PySide6.QtGui import QFont, QIcon, QMouseEvent, QPixmap
+from PySide6.QtGui import QFont, QFontMetrics, QIcon, QMouseEvent, QPixmap, QShowEvent
 from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 
 # ==================================================================================
@@ -147,6 +147,14 @@ class SideBarMenuItem(SideBarItem):
             error(f"[SideBarMenuItem] traceback:\n{format_exc()}")
             raise
 
+    def showEvent(self, event: QShowEvent) -> None:
+        super().showEvent(event)
+        # First real layout pass — re-apply chrome so captions are not stuck hidden.
+        if self._chromeCollapsed:
+            self._applyCollapsedChrome()
+        else:
+            self._applyExpandedChrome()
+
     def _applyHierarchyVisuals(self) -> None:
         """Icon size + caption weight/size from hierarchy depth."""
         iconSize = self._effectiveIconSize()
@@ -174,18 +182,26 @@ class SideBarMenuItem(SideBarItem):
             return
         self._layout.setContentsMargins(*self._hierarchyMargins())
         if self._titleWidget is not None:
+            caption = self._titleWidget.Text or ""
+            fm = QFontMetrics(self._titleWidget.font())
+            # Ensure the label claims horizontal space even before first resize.
+            self._titleWidget.setMinimumWidth(max(1, fm.horizontalAdvance(caption)))
+            self._titleWidget.setVisible(True)
             self._titleWidget.show()
         if self._textColumn is not None:
             for i in range(self._textColumn.count()):
                 w = self._textColumn.itemAt(i).widget()
                 if w is not None:
+                    w.setVisible(True)
                     w.show()
+        self.updateGeometry()
 
     def _applyCollapsedChrome(self) -> None:
         """Icon-only: hide caption, center icon; children remain visible."""
         if self._layout is None or self._iconWidget is None:
             return
         if self._titleWidget is not None:
+            self._titleWidget.setMinimumWidth(0)
             self._titleWidget.hide()
         if self._textColumn is not None:
             for i in range(self._textColumn.count()):
@@ -197,6 +213,7 @@ class SideBarMenuItem(SideBarItem):
         top = self._itemMargins[1]
         bottom = self._itemMargins[3]
         self._layout.setContentsMargins(hPad, top, hPad, bottom)
+        self.updateGeometry()
 
     def _syncBodyVisibility(self) -> None:
         if self._body is None:
@@ -204,7 +221,6 @@ class SideBarMenuItem(SideBarItem):
         if not self._children:
             self._body.hide()
             return
-        # Collapsed rail: keep children visible (smaller icons).
         if self._chromeCollapsed:
             self._body.show()
             return
