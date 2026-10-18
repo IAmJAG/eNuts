@@ -16,6 +16,7 @@ from jAGFx.logging import (
     removeFileHandler,
     setNamespaceLevel,
     setupLogging,
+    trace,
     verbose,
     warning,
 )
@@ -84,6 +85,7 @@ setattr(builtins, "addFileHandler", addFileHandler)
 setattr(builtins, "removeFileHandler", removeFileHandler)
 
 setattr(builtins, "verbose", verbose)
+setattr(builtins, "trace", trace)
 setattr(builtins, "debug", debug)
 setattr(builtins, "error", error)
 setattr(builtins, "info", info)

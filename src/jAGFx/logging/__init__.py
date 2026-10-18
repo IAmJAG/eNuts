@@ -1,5 +1,16 @@
 # ==================================================================================
-from .__logging import VERBOSE, critical, debug, error, fatal, info, verbose, warning
+from .__logging import (
+    TRACE,
+    VERBOSE,
+    critical,
+    debug,
+    error,
+    fatal,
+    info,
+    trace,
+    verbose,
+    warning,
+)
 from .__utilities import (
     addFileHandler,
     removeFileHandler,
@@ -17,6 +28,8 @@ __all__ = [
     "addFileHandler",
     "VERBOSE",
     "verbose",
+    "TRACE",
+    "trace",
     "debug",
     "info",
     "warning",

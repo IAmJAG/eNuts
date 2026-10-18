@@ -15,7 +15,9 @@ from sys import exit as _exit
 from .__log import log
 
 # ==================================================================================
-VERBOSE: int = 5
+TRACE: int = 5
+VERBOSE: int = 0
+addLevelName(TRACE, "TRACE")
 addLevelName(VERBOSE, "VERBOSE")
 EXITONERROR: bool = True
 # ==================================================================================
@@ -29,6 +31,10 @@ def _resolveErr(err: Exception | None) -> Exception | None:
     if isinstance(lActive, BaseException):
         return lActive
     return None
+
+# ==================================================================================
+def trace(message: str | tuple | list | dict, err: Exception = None):
+    log(messages=message, level=TRACE, err=err)
 
 # ==================================================================================
 def verbose(message: str | tuple | list | dict, err: Exception = None):

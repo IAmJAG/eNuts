@@ -8,11 +8,11 @@ from typing import List
 import __monkeyPatch
 
 # ==================================================================================================
-from jAGFx.logging import VERBOSE, suppressedLogger
+from jAGFx.logging import TRACE, VERBOSE, suppressedLogger
 from utilities import launchModule
 
 # ==================================================================================================
-LOG_LEVEL: int = VERBOSE
+LOG_LEVEL: int = TRACE
 THIRD_PARTY_LOG_LEVEL: int = WARNING
 THIRD_PARTY_LOGGERS: List[str] = [
     "asyncio",
