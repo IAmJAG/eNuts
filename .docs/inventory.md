@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-18 01:52:18 UTC*
+*Auto-generated on: 2026-10-18 05:09:57 UTC*
 
 ## Current Directory Structure
 
@@ -1038,8 +1038,11 @@ src/jAGQt/options:
 			C_DEFAULT_COLLAPSED_WIDTH -> : c_default_collapsed_width
 			C_DEFAULT_NAME -> : c_default_name
 			C_DEFAULT_MENU_ICON_SIZE -> : c_default_menu_icon_size
-			C_DEFAULT_MENU_HEADER_MARGIN -> : c_default_menu_header_margin
-			C_DEFAULT_MENU_LEAF_MARGIN -> : c_default_menu_leaf_margin
+			C_DEFAULT_MENU_CHILD_ICON_SIZE -> : c_default_menu_child_icon_size
+			C_DEFAULT_MENU_FONT_PT -> : c_default_menu_font_pt
+			C_DEFAULT_MENU_CHILD_FONT_PT -> : c_default_menu_child_font_pt
+			C_DEFAULT_MENU_ITEM_MARGIN -> : c_default_menu_item_margin
+			C_DEFAULT_MENU_CHILD_INDENT -> : c_default_menu_child_indent
 
 src/jAGQt/types/interface/animations:
 	__animation.py - 
@@ -1184,6 +1187,7 @@ src/jAGQt/widgets/sideBar:
 			C_EXPANDED_WIDTH -> : c_expanded_width
 			C_COLLAPSED_WIDTH -> : c_collapsed_width
 			C_STATE_ANIM_MS -> : c_state_anim_ms
+			C_WIDTH_TOLERANCE -> : c_width_tolerance
 			QSPolicy -> : qspolicy
 
 src/jAGQt/widgets/sideBar/components:
@@ -1192,6 +1196,7 @@ src/jAGQt/widgets/sideBar/components:
 			SideBarHeader -> : sidebarheader
 		CONSTANTS(S)/GLOBAL(S)
 			C_ICON_SIZE -> : c_icon_size
+			C_COLLAPSED_WIDTH -> : c_collapsed_width
 			QSPolicy -> : qspolicy
 	__sideBarItem.py - 
 		CLASSE(S):
@@ -1216,9 +1221,13 @@ src/jAGQt/widgets/sideBar/menu:
 		FUNCTION(S):
 			_defaultIconPath -> : _defaulticonpath
 		CONSTANTS(S)/GLOBAL(S)
-			C_ICON_SIZE -> : c_icon_size
-			C_HEADER_MARGIN -> : c_header_margin
-			C_LEAF_MARGIN -> : c_leaf_margin
+			C_ROOT_ICON_SIZE -> : c_root_icon_size
+			C_CHILD_ICON_SIZE -> : c_child_icon_size
+			C_ROOT_FONT_PT -> : c_root_font_pt
+			C_CHILD_FONT_PT -> : c_child_font_pt
+			C_ITEM_MARGIN -> : c_item_margin
+			C_CHILD_INDENT -> : c_child_indent
+			C_COLLAPSED_WIDTH -> : c_collapsed_width
 			C_DEFAULT_ICON -> : c_default_icon
 			QSPolicy -> : qspolicy
 
@@ -1232,6 +1241,7 @@ src/jAGQt/widgets/text:
 		CLASSE(S):
 			Text -> : text
 		CONSTANTS(S)/GLOBAL(S)
+			C_MIN_ELIDE_WIDTH -> : c_min_elide_width
 			EMode -> : emode
 			QPolicy -> : qpolicy
 	__title.py - 
@@ -1308,57 +1318,49 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-e015dd4:
-	feat(commandBar): implement CommandBar and CommandBarGroup with button management feat(header): add Header widget with customizable title, description, and icon feat(iconPosition): introduce IconPosition enum for header icon placement
-		src/eNuts/UI/navigation/__sideBarMenuBuilder.py
-		src/eNuts/application/workspace/__workSpace.py
+4309fd9:
+	fix(SideBar): deferred post-show chrome reflow so menu captions paint on first frame
+		src/jAGQt/widgets/SideBar/__sideBar.py
 		src/jAGQt/widgets/SideBar/menu/__sideBarMenuItem.py
-		src/jAGQt/widgets/commandBar/__base.py
-		src/jAGQt/widgets/commandBar/__commandBar.py
-		src/jAGQt/widgets/commandBar/__commandBarGroup.py
-		src/jAGQt/widgets/commandBar/commandBarButton/__commandBarButton.py
-		src/jAGQt/widgets/header/__header.py
-		src/jAGQt/widgets/header/__iconPosition.py
-		src/jAGQt/widgets/icon/__stateFullIcon.py
-		src/jAGQt/widgets/page/__page.py
 
-3ed2707:
-	feat(page): add Page class for UI initialization and layout management
-		src/jAGQt/widgets/page/__page.py
-
-2f54a24:
-	chore(inventory): update auto-generated timestamp and enhance directory structure
-		.docs/inventory.md
-
-2a884a9:
-	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
-
-9263ffe:
-	fix(SideBar): shorten "Key & Gesture Recorder" to "K&G Recorder"
-		src/eNuts/UI/navigation/__sideBarMenuBuilder.py
-
-b1ce6a2:
-	feat(SideBar): store/push menu metrics from SideBarOptions to menu and footer
+04d140d:
+	fix(SideBar): rename _applyStateFully -> _syncStateFully (avoid workflow _a* discovery)
 		src/jAGQt/widgets/SideBar/__sideBar.py
 
-6a74e25:
-	feat(SideBar): apply menu metrics from options to menu items
+161a110:
+	fix(SideBar): _applyStateFully â€” width and chrome always from same state
+		src/jAGQt/widgets/SideBar/__sideBar.py
+
+4e37738:
+	fix(SideBar): strict state/width/chrome apply; correct header icon affordance
+		src/eNuts/application/workspace/__workSpace.py
+		src/jAGQt/animations/__sizeAnimationBase.py
+		src/jAGQt/animations/rubberband/__rubberBand.py
+
+ef0be5a:
+	fix(SideBar/Text): fill menu column width; do not elide captions into emptiness
 		src/jAGQt/widgets/SideBar/menu/__sideBarMenu.py
-		src/jAGQt/widgets/SideBar/menu/__sideBarMenuItem.py
+		src/jAGQt/widgets/text/__text.py
 
-28f636d:
-	feat(SideBarOptions): menu header/leaf size metrics applied in code
-		src/jAGQt/options/__sideBarOptions.py
-
-db1613f:
-	fix(SideBar): leaf indent in code, default logo icon, Settings as footer
-		src/eNuts/UI/navigation/__sideBarMenuBuilder.py
-		src/eNuts/application/workspace/__workSpace.py
+3996575:
+	fix(SideBar): showEvent re-applies expanded width and captions
 		src/jAGQt/widgets/SideBar/__sideBar.py
+
+85fbdec:
+	fix(SideBar): force expanded chrome on showEvent; title min width from metrics
 		src/jAGQt/widgets/SideBar/menu/__sideBarMenuItem.py
 
-c8309b3:
-	fix(theme): indent SideBar leaf items with margin-left (padding ignored by layout)
-		config/themes/dark/main.css
+c2f38d2:
+	fix(SideBar): chrome follows width; Expanded always shows captions
+		src/jAGQt/widgets/SideBar/__sideBar.py
+
+6400eab:
+	fix(SideBar): keep state, width, and chrome in lockstep
+		src/jAGQt/widgets/SideBar/__sideBar.py
+
+b9353da:
+	fix(SideBar): atomic state/width/chrome sync; Text elision no longer hides labels
+		src/jAGQt/widgets/SideBar/components/__sideBarItem.py
+		src/jAGQt/widgets/text/__text.py
 
 ```
