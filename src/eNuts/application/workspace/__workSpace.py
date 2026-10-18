@@ -3,7 +3,7 @@ from __future__ import annotations
 
 # ==================================================================================
 from traceback import format_exc
-from typing import Dict, List, Optional, Set
+from typing import Callable, Dict, List, Optional, Set
 
 # ==================================================================================
 from PySide6.QtCore import Qt, Signal, SignalInstance
@@ -31,6 +31,7 @@ from ...UI.pages import (
     buildNavigationPages,
     devicePageKeyFromId,
 )
+from ...UI.pages.__devicePage import DeviceFrameBridge
 from ...UI.pages.__pageKeys import serialFromPageKey
 from ..device import (
     DEVICE_ADDED_EVENT,
@@ -72,7 +73,9 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             self._deviceManager: Optional[deviceManager] = deviceMgr
             self._devicePageKeys: Set[str] = set()
             self._activeStreamSerial: Optional[str] = None
-            self._frameHandlerBySerial: Dict[str, object] = {}
+            self._frameHandlerBySerial: Dict[str, Callable] = {}
+            # Long-lived bridges (survive page teardown order issues).
+            self._bridges: Dict[str, DeviceFrameBridge] = {}
 
         except Exception as ex:
             error("[WorkSpace] __init__ FAIL", ex)
@@ -184,7 +187,38 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
         serial = serialFromPageKey(key)
         if serial is not None:
             createTask(self._attachDeviceStream, serial, page)
+        else:
+            # Leaving device pages: keep emitters running (global), only detach UI.
+            pass
         return True
+
+    def detachAllStreams(self) -> None:
+        """Unsubscribe all ON_FRAME UI handlers (call before widget teardown)."""
+        mgr = self._deviceManager
+        for serial, handler in list(self._frameHandlerBySerial.items()):
+            emitter = mgr.getEmitter(serial) if mgr is not None else None
+            if emitter is not None:
+                try:
+                    emitter.unsubscribe(C_ON_FRAME, handler)
+                except Exception:
+                    pass
+        self._frameHandlerBySerial.clear()
+        self._activeStreamSerial = None
+        verbose("[WorkSpace] detachAllStreams done")
+
+    def _detachStream(self, serial: str) -> None:
+        handler = self._frameHandlerBySerial.pop(serial, None)
+        mgr = self._deviceManager
+        if handler is None or mgr is None:
+            return
+        emitter = mgr.getEmitter(serial)
+        if emitter is not None:
+            try:
+                emitter.unsubscribe(C_ON_FRAME, handler)
+            except Exception:
+                pass
+        if self._activeStreamSerial == serial:
+            self._activeStreamSerial = None
 
     async def _attachDeviceStream(self, serial: str, page: Optional[Page]) -> None:
         mgr = self._deviceManager
@@ -197,29 +231,63 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             error(f"[WorkSpace] traceback:\n{format_exc()}")
             return
 
-        bridge = getattr(page, "_frameBridge", None)
-        if bridge is None:
-            warning(f"[WorkSpace] no frame bridge on page serial={serial!r}")
+        view = getattr(page, "_streamView", None)
+        if view is None:
+            warning(f"[WorkSpace] no stream view on page serial={serial!r}")
             return
 
-        # One UI subscriber per serial; replace if re-entering page.
-        old = self._frameHandlerBySerial.pop(serial, None)
-        if old is not None:
+        bridge = self._bridges.get(serial)
+        if bridge is None:
+            bridge = DeviceFrameBridge(self)
+            bridge.frameReady.connect(
+                lambda img, v=view: self._applyFrameSafe(v, img)
+            )
+            self._bridges[serial] = bridge
+        else:
+            # Rebind to current view in case page was rebuilt.
             try:
-                emitter.unsubscribe(C_ON_FRAME, old)
+                bridge.frameReady.disconnect()
             except Exception:
                 pass
+            bridge.frameReady.connect(
+                lambda img, v=view: self._applyFrameSafe(v, img)
+            )
+
+        self._detachStream(serial)
 
         def _onFrame(frame: object) -> None:
-            qimg = self._frameToQImage(frame, emitter)
-            if qimg is not None:
-                bridge.frameReady.emit(qimg)
+            try:
+                if getattr(frame, "isConfig", False):
+                    # Still feed decoder extradata via decode(); no UI update.
+                    self._frameToQImage(frame, emitter)
+                    return
+                qimg = self._frameToQImage(frame, emitter)
+                if qimg is None:
+                    return
+                # Bridge may be gone during shutdown.
+                try:
+                    bridge.frameReady.emit(qimg)
+                except RuntimeError:
+                    pass
+            except Exception:
+                # Never let callback exceptions kill the emitter service loop.
+                pass
 
         emitter.subscribe(C_ON_FRAME, _onFrame)
         self._frameHandlerBySerial[serial] = _onFrame
         self._activeStreamSerial = serial
         page._streamAttached = True  # type: ignore[attr-defined]
         verbose(f"[WorkSpace] stream attached serial={serial!r}")
+
+    @staticmethod
+    def _applyFrameSafe(view: object, img: object) -> None:
+        try:
+            if isinstance(img, QImage):
+                view.image = img  # type: ignore[attr-defined]
+        except RuntimeError:
+            pass
+        except Exception as ex:
+            warning(f"[WorkSpace] applyFrame failed: {ex}")
 
     @staticmethod
     def _frameToQImage(frame: object, emitter: SCRCPYEmitter) -> Optional[QImage]:
@@ -233,7 +301,6 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             vf = decode(codec, toGPU=False)
             if vf is None:
                 return None
-            # PyAV VideoFrame -> QImage (RGB)
             if hasattr(vf, "to_ndarray"):
                 import numpy as np
 
@@ -251,8 +318,8 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
                 w, h = pil.size
                 qimg = QImage(data, w, h, 3 * w, QImage.Format.Format_RGB888)
                 return qimg.copy()
-        except Exception as ex:
-            warning(f"[WorkSpace] frame decode failed: {ex}")
+        except Exception:
+            return None
         return None
 
     def _bindDeviceManager(self, mgr: Optional[deviceManager]) -> None:
@@ -300,9 +367,8 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             serial = str(device.id)
             key = devicePageKeyFromId(serial)
             verbose(f"[WorkSpace] device removed id={serial!r} key={key!r}")
-            self._frameHandlerBySerial.pop(serial, None)
-            if self._activeStreamSerial == serial:
-                self._activeStreamSerial = None
+            self._detachStream(serial)
+            self._bridges.pop(serial, None)
             self._unregisterDevicePage(key)
             self._rebuildDevicesMenuLeaves()
         except Exception as ex:

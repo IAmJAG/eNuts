@@ -42,7 +42,6 @@ class Shell(ApplicationInformation):
         finally:
             verbose("[Shell] _wInitializeUI EXIT")
 
-    # ==================================================================================
     def _wInitializeSettings(self) -> None:
         company = self.company or "jAGQt"
         appId = self.applicationId or "modernWindow"
@@ -85,4 +84,17 @@ class Shell(ApplicationInformation):
     def closeEvent(self, event) -> None:
         self.saveWindowState()
         self._shutdownEvent.set()
+        # Detach UI frame handlers before widgets are destroyed.
+        ws = getattr(self, "_workSpace", None)
+        if ws is not None and hasattr(ws, "detachAllStreams"):
+            try:
+                ws.detachAllStreams()
+            except Exception as ex:
+                warning(f"[Shell] detachAllStreams failed: {ex}")
+        mgr = getattr(self, "_deviceManager", None)
+        if mgr is not None:
+            try:
+                mgr.stopAll()
+            except Exception as ex:
+                warning(f"[Shell] stopAll failed: {ex}")
         super().closeEvent(event)
