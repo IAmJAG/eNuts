@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-17 08:47:36 UTC*
+*Auto-generated on: 2026-10-18 01:52:18 UTC*
 
 ## Current Directory Structure
 
@@ -299,17 +299,26 @@ eNuts/
 │   │   │   ├── __layout.py
 │   │   │   └── __pushButton.py
 │   │   ├── widgets/
+│   │   │   ├── commandBar/
+│   │   │   │   ├── __base.py
+│   │   │   │   ├── __commandBar.py
+│   │   │   │   ├── __commandBarGroup.py
+│   │   │   │   └── commandBarButton/
+│   │   │   │       └── __commandBarButton.py
 │   │   │   ├── components/
 │   │   │   │   ├── __componentBase.py
 │   │   │   │   └── __objectName.py
 │   │   │   ├── dashboard/
 │   │   │   ├── header/
+│   │   │   │   ├── __header.py
+│   │   │   │   └── __iconPosition.py
 │   │   │   ├── icon/
 │   │   │   │   ├── __icon.py
 │   │   │   │   └── __stateFullIcon.py
 │   │   │   ├── image/
 │   │   │   │   └── __image.py
 │   │   │   ├── page/
+│   │   │   │   └── __page.py
 │   │   │   ├── sideBar/
 │   │   │   │   ├── __eSideBarState.py
 │   │   │   │   ├── __sideBar.py
@@ -1099,6 +1108,26 @@ src/jAGQt/utilities:
 		FUNCTION(S):
 			createButton -> : createbutton
 
+src/jAGQt/widgets/commandBar:
+	__base.py - 
+		CLASSE(S):
+			_commandBarBase -> : _commandbarbase
+		CONSTANTS(S)/GLOBAL(S)
+			QtPolicy -> : qtpolicy
+	__commandBar.py - 
+		CLASSE(S):
+			CommandBar -> : commandbar
+		CONSTANTS(S)/GLOBAL(S)
+			QtPolicy -> : qtpolicy
+	__commandBarGroup.py - 
+		CLASSE(S):
+			CommandBarGroup -> : commandbargroup
+
+src/jAGQt/widgets/commandBar/commandBarButton:
+	__commandBarButton.py - 
+		CLASSE(S):
+			CommandBarButton -> : commandbarbutton
+
 src/jAGQt/widgets/components:
 	__componentBase.py - 
 		CLASSE(S):
@@ -1109,6 +1138,17 @@ src/jAGQt/widgets/components:
 		CONSTANTS(S)/GLOBAL(S)
 			QSPolicy -> : qspolicy
 			StyleBackground -> : stylebackground
+
+src/jAGQt/widgets/header:
+	__header.py - 
+		CLASSE(S):
+			Header -> : header
+		CONSTANTS(S)/GLOBAL(S)
+			QBoxDirection -> : qboxdirection
+			QPolicy -> : qpolicy
+	__iconPosition.py - 
+		CLASSE(S):
+			IconPosition -> : iconposition
 
 src/jAGQt/widgets/icon:
 	__icon.py - 
@@ -1127,6 +1167,11 @@ src/jAGQt/widgets/image:
 			_GLView -> : _glview
 		CONSTANTS(S)/GLOBAL(S)
 			Backend -> : backend
+
+src/jAGQt/widgets/page:
+	__page.py - 
+		CLASSE(S):
+			Page -> : page
 
 src/jAGQt/widgets/sideBar:
 	__eSideBarState.py - 
@@ -1263,6 +1308,28 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+e015dd4:
+	feat(commandBar): implement CommandBar and CommandBarGroup with button management feat(header): add Header widget with customizable title, description, and icon feat(iconPosition): introduce IconPosition enum for header icon placement
+		src/eNuts/UI/navigation/__sideBarMenuBuilder.py
+		src/eNuts/application/workspace/__workSpace.py
+		src/jAGQt/widgets/SideBar/menu/__sideBarMenuItem.py
+		src/jAGQt/widgets/commandBar/__base.py
+		src/jAGQt/widgets/commandBar/__commandBar.py
+		src/jAGQt/widgets/commandBar/__commandBarGroup.py
+		src/jAGQt/widgets/commandBar/commandBarButton/__commandBarButton.py
+		src/jAGQt/widgets/header/__header.py
+		src/jAGQt/widgets/header/__iconPosition.py
+		src/jAGQt/widgets/icon/__stateFullIcon.py
+		src/jAGQt/widgets/page/__page.py
+
+3ed2707:
+	feat(page): add Page class for UI initialization and layout management
+		src/jAGQt/widgets/page/__page.py
+
+2f54a24:
+	chore(inventory): update auto-generated timestamp and enhance directory structure
+		.docs/inventory.md
+
 2a884a9:
 	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
 
@@ -1293,16 +1360,5 @@ db1613f:
 c8309b3:
 	fix(theme): indent SideBar leaf items with margin-left (padding ignored by layout)
 		config/themes/dark/main.css
-
-8665bb3:
-	debug(theme): loud SideBar menu backgrounds to verify QSS role selectors
-		config/themes/dark/main.css
-
-f5482bb:
-	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
-
-2d63fd0:
-	fix: correct import case for SideBar module
-		src/eNuts/UI/navigation/__sideBarMenuBuilder.py
 
 ```
