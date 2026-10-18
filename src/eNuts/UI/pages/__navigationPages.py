@@ -19,7 +19,7 @@ from .__pageKeys import (
 def buildBlankPage(key: str, title: str, description: str = "") -> Page:
     """Basic Page: header only (title/description). No content widgets."""
     page = Page(title=title, description=description, id=key)
-    debug(f"[pages] blank page key={key!r} title={title!r}")
+    verbose(f"[pages] blank page key={key!r} title={title!r}")
     return page
 
 
