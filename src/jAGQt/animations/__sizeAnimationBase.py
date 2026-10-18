@@ -39,6 +39,8 @@ class SizeAnimationBase(AnimationBase):
         self._startGeo: QRect = QRect()
         self._anchorRight: bool = False
         self._anchorBottom: bool = False
+        self._animateWidth: bool = True
+        self._animateHeight: bool = True
 
     @property
     def target(self) -> QWidget:
@@ -67,9 +69,12 @@ class SizeAnimationBase(AnimationBase):
         geo.setWidth(w)
         geo.setHeight(h)
 
-        # Prefer fixed size when the widget is on a fixed-size policy path
-        # (e.g. SideBar); still update geometry for anchored edges.
-        self._target.setFixedSize(w, h)
+        # Only lock the dimension(s) that are actually animating so a width-only
+        # rail (SideBar) is not given a fixed height from a 0-height start frame.
+        if self._animateWidth:
+            self._target.setFixedWidth(w)
+        if self._animateHeight:
+            self._target.setFixedHeight(h)
         if self._anchorRight or self._anchorBottom:
             self._target.setGeometry(geo)
         self._target.updateGeometry()

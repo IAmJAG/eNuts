@@ -35,10 +35,6 @@ class RubberBand(SizeAnimationBase):
 
     ``start(endWidth=..., endHeight=..., startWidth=optional, startHeight=optional,
             overshoot=1.0)``
-
-    At least one of endWidth / endHeight must differ from the start size.
-    Default easing on the driver is still used for time; the size curve applies
-    an additional elastic map so the widget overshoots then settles on the end size.
     """
 
     def __init__(
@@ -47,7 +43,6 @@ class RubberBand(SizeAnimationBase):
         *args,
         **kwargs,
     ) -> None:
-        # Prefer OutCubic on the driver; elastic is applied in _sizeAt
         kwargs.setdefault("easing", QEasingCurve.Type.Linear)
         super().__init__(target, *args, **kwargs)
         self._overshoot: float = 1.0
@@ -57,7 +52,6 @@ class RubberBand(SizeAnimationBase):
         endWidth = kwargs.get("endWidth")
         endHeight = kwargs.get("endHeight")
         if endWidth is None and endHeight is None and args:
-            # allow start(endWidth) or start(endWidth, endHeight)
             endWidth = args[0]
             if len(args) >= 2:
                 endHeight = args[1]
@@ -73,6 +67,10 @@ class RubberBand(SizeAnimationBase):
         h = int(endHeight) if endHeight is not None else self._startSize.height()
         self._endSize = QSize(max(0, w), max(0, h))
 
+        # Width-only (SideBar): do not lock height.
+        self._animateWidth = self._startSize.width() != self._endSize.width()
+        self._animateHeight = self._startSize.height() != self._endSize.height()
+
         if self._startSize == self._endSize:
             raise AnimationError("RubberBand start and end sizes must differ")
 
@@ -82,7 +80,6 @@ class RubberBand(SizeAnimationBase):
     def _sizeAt(self, progress: float) -> QSize:
         progress = max(0.0, min(1.0, progress))
         t = _elastic01(progress, amplitude=max(1.0, self._overshoot))
-        # Clamp visual size to non-negative; slight overshoot past end is intentional
         sw, sh = self._startSize.width(), self._startSize.height()
         ew, eh = self._endSize.width(), self._endSize.height()
         w = int(round(sw + (ew - sw) * t))

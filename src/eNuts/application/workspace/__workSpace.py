@@ -39,14 +39,13 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             error("[WorkSpace] __init__ FAIL", ex)
             error(f"[WorkSpace] __init__ traceback:\n{format_exc()}")
             raise
-        
+
         verbose(f"[WorkSpace] __init__ EXIT objectName={self.objectName()!r}")
 
     def _wInitializeUI(self: QWidget) -> None:
         verbose("[WorkSpace] _wInitializeUI ENTER")
         try:
             self.setAttribute(StyleBackground, True)
-            # DEV visibility: distinct background so the workspace area is obvious
             self.setStyleSheet("background-color: #1e1e1e;")
 
             expandPath: str = getICONPath("expand.png")
@@ -63,18 +62,21 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
                 durationMs=C_SIDEBAR_ANIMATION_MS,
             )
 
+            # Icon = action to take in that state (not a picture of the state).
+            # Expanded rail -> show collapse control; collapsed rail -> show expand.
             sideBar: SideBar = SideBar(
                 icons={
-                    eSideBarState.Expanded: expandPath,
-                    eSideBarState.Collapsed: collapsePath,
+                    eSideBarState.Expanded: collapsePath,
+                    eSideBarState.Collapsed: expandPath,
                 },
                 title="eNuts",
+                initialState=eSideBarState.Expanded,
                 options=sideBarOptions,
                 animationOptions=animationOptions,
             )
             verbose(
                 f"[WorkSpace] SideBar created objectName={sideBar.objectName()!r} "
-                f"state={sideBar.State!r} "
+                f"state={sideBar.State!r} width={sideBar.width()} "
                 f"animation={type(sideBar.Animation).__name__ if sideBar.Animation else None}"
             )
 
@@ -84,7 +86,6 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
 
             stack: QStackedWidget = QStackedWidget()
             stack.setObjectName("W_WORKSPACE_STACK")
-            # DEV visibility: contrasting stack area
             stack.setStyleSheet("background-color: #252526;")
             stack.setSizePolicy(QSPolicy.Expanding, QSPolicy.Expanding)
 
@@ -102,6 +103,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             self.setLayout(layout)
             verbose(
                 f"[WorkSpace] _wInitializeUI EXIT "
+                f"sideBar.width={sideBar.width()} "
                 f"sideBar.sizeHint={sideBar.sizeHint()} "
                 f"layoutCount={layout.count()}"
             )
