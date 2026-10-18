@@ -7,7 +7,7 @@ from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import QSizePolicy
 
 # ==================================================================================
-from jAGQt.widgets.image import Image
+from jAGQt.widgets.Image import Image
 from jAGQt.widgets.page import Page
 
 # ==================================================================================
@@ -45,7 +45,7 @@ def buildDevicePage(key: str, title: str, serial: str) -> Page:
     page._frameBridge = bridge  # type: ignore[attr-defined]
     page._streamAttached = False  # type: ignore[attr-defined]
 
-    verbose(f"[pages] device page key={key!r} serial={serial!r}")
+    debug(f"[pages] device page key={key!r} serial={serial!r}")
     return page
 
 
