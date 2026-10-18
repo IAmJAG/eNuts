@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-18 07:20:01 UTC*
+*Auto-generated on: 2026-10-18 08:29:05 UTC*
 
 ## Current Directory Structure
 
@@ -1349,6 +1349,34 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+685c990:
+	fix(WorkSpace): do not create (no devices) menu leaf when list is empty
+		src/eNuts/application/workspace/__workSpace.py
+
+3bbb3a3:
+	fix(nav): never create (no devices) leaf â€” empty Devices header until discovery
+		src/eNuts/UI/navigation/__sideBarMenuBuilder.py
+		src/eNuts/UI/pages/__navigationPages.py
+		src/jAGQt/widgets/SideBar/menu/__sideBarMenuItem.py
+
+830616b:
+	fix(WorkSpace): replace unicode arrow in logs with ASCII -> (cp1252 safe)
+		src/eNuts/application/workspace/__workSpace.py
+
+89ee386:
+	refactor(deviceManager): simplify device management and improve discovery logic refactor(workspace): enhance device synchronization and streamline UI updates
+
+28889d3:
+	fix(workspace): update signal definitions and clean up constructor fix(inventory): update auto-generated timestamp
+		.docs/inventory.md
+		src/eNuts/UI/navigation/__sideBarMenuBuilder.py
+		src/eNuts/application/workspace/__workSpace.py
+
+4a5ef21:
+	fix(deviceManager/WorkSpace): reliable device store + force-clear (no devices) leaf
+		src/eNuts/application/device/__deviceManager.py
+		src/eNuts/application/workspace/__workSpace.py
+
 8061fd3:
 	feat(Phase4): wire deviceManager discovery to WorkSpace menu + pages
 		src/eNuts/UI/navigation/__sideBarMenuBuilder.py
@@ -1372,34 +1400,5 @@ f5bb669:
 f2a7da2:
 	fix(inventory): update auto-generated timestamp and enhance directory structure
 		.docs/inventory.md
-
-fc82772:
-	fix(newLayout): only pass Direction to QBoxLayout, not QVBox/QHBox
-		src/jAGQt/utilities/__layout.py
-
-9984f27:
-	fix(Header): use QBoxLayout only; expose Title/Description for Page
-		src/jAGQt/widgets/header/__header.py
-
-861a0ea:
-	chore(pages): retire __smokePages; re-export from navigation pages
-		src/eNuts/UI/pages/__smokePages.py
-
-bcf5cf7:
-	feat(nav): Phase 0-3 â€” blank Page per menu node (headers + leaves)
-		src/eNuts/UI/navigation/__sideBarMenuBuilder.py
-		src/eNuts/UI/pages/__navigationPages.py
-		src/eNuts/UI/pages/__pageKeys.py
-		src/eNuts/application/workspace/__workSpace.py
-
-570c13d:
-	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
-
-09b31b1:
-	feat(device): implement deviceManager for handling device events and discovery
-		.docs/inventory.md
-		src/eNuts/UI/widgets/pages/recorder/__recorderPage.py
-		src/eNuts/UI/widgets/pages/settings/__settingsPage.py
-		src/eNuts/application/device/__deviceManager.py
 
 ```
