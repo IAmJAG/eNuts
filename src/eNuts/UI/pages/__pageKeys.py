@@ -2,8 +2,6 @@
 from __future__ import annotations
 
 # ==================================================================================
-# Stable navigation keys. Device leaves use devicePageKeyFromId(serial).
-
 PAGE_DASHBOARD = "dashboard"
 PAGE_DEVICES = "devices"
 PAGE_TOOLS = "tools"
@@ -26,8 +24,18 @@ def devicePageKeyFromId(deviceId: str) -> str:
 
 # ==================================================================================
 def devicePageKey(nameOrId: str) -> str:
-    """Legacy helper: treat empty / '(no devices)' as none; else device:<value>."""
     cleaned = (nameOrId or "").strip()
     if not cleaned or cleaned == "(no devices)":
         return C_DEVICE_NONE
     return f"{C_DEVICE_KEY_PREFIX}{cleaned}"
+
+
+# ==================================================================================
+def serialFromPageKey(key: str) -> str | None:
+    """Extract serial from device:<serial> page key."""
+    if not key or not key.startswith(C_DEVICE_KEY_PREFIX):
+        return None
+    serial = key[len(C_DEVICE_KEY_PREFIX) :].strip()
+    if not serial or serial == "none":
+        return None
+    return serial

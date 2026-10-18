@@ -7,9 +7,9 @@ from adbutils import AdbDevice, adb
 from adbutils.errors import AdbError
 
 # ==================================================================================================
-from fluxCore.devices import SCRCPY
+from fluxCore.emitters.scrcpy import SCRCPYEmitter
 from fluxCore.types.interface.device import iDevice
-from fluxCore.types.interface.devices import iSCRCPY
+from fluxCore.types.interface.emitters import iSCRCPYEmitter
 
 
 # ==================================================================================================
@@ -31,7 +31,12 @@ async def ADBShell(device: AdbDevice, cmd: str) -> str:
         raise ex
 
 
-async def SCRCPYDevices() -> Dict[str, iSCRCPY]:
+async def SCRCPYDevices() -> Dict[str, iSCRCPYEmitter]:
+    """Discover ADB devices and return **uninitialized** global emitters.
+
+    Construct only — do not call ``initialize()`` / ``start()`` here. Ownership
+    and lifecycle live in ``deviceManager`` (reuse on poll; stop on remove).
+    """
     adbDevices: Dict[str, AdbDevice] = await ADBDevices()
     scrcpyDevices: Dict[str, iDevice] = {}
     for d in adbDevices.values():
@@ -42,9 +47,9 @@ async def SCRCPYDevices() -> Dict[str, iSCRCPY]:
         except AdbError:
             continue
 
-        # SCRCPY(serial, name) — prefer model, then manufacturer, then serial.
         display = (model or "").strip() or (manufacturer or "").strip() or serial
-        scrcpy: iSCRCPY = SCRCPY(serial, display)
-        scrcpyDevices[serial] = scrcpy
+        # Global emitter handle for this serial (not started yet).
+        emitter: iSCRCPYEmitter = SCRCPYEmitter(serial, display)
+        scrcpyDevices[serial] = emitter
 
     return scrcpyDevices

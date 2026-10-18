@@ -1,10 +1,12 @@
 # ==================================================================================
 from asyncio import Event
 from asyncio import sleep as asyncSleep
-from typing import Dict, Iterable, Iterator, List, Optional
+from typing import Dict, Iterable, Iterator, Optional
 
 # ==================================================================================
+from fluxCore.emitters.scrcpy import SCRCPYEmitter
 from fluxCore.types.interface.device import iDevice
+from fluxCore.types.interface.emitters import iSCRCPYEmitter
 from jAGFx.services import AsyncSubscription
 
 # ==================================================================================
@@ -20,18 +22,18 @@ POLL_INTERVAL: float = 2.0
 
 # ==================================================================================
 class deviceManager(AsyncSubscription):
-    """Discovers ADB/SCRCPY devices and raises add/remove/init events.
+    """App-wide device + SCRCPYEmitter registry.
 
-    Stores devices in an explicit dict (not ``dict`` subclass) so ``values()`` /
-    ``keys()`` are always reliable for UI sync.
+    Discovery stores one ``SCRCPYEmitter`` per serial (global). Callers use
+    ``get`` / ``ensureRunning``; do not construct a second emitter per serial.
     """
 
     def __init__(self, shutdownEvent: Event, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._shutdownEvent = shutdownEvent
         self._devices: Dict[str, iDevice] = {}
+        self._streamReady: Dict[str, bool] = {}
 
-    # ------------------------------------------------------------------ mapping API
     def __len__(self) -> int:
         return len(self._devices)
 
@@ -53,7 +55,41 @@ class deviceManager(AsyncSubscription):
     def get(self, deviceId: str, default: Optional[iDevice] = None) -> Optional[iDevice]:
         return self._devices.get(deviceId, default)
 
-    # ------------------------------------------------------------------ discovery
+    def getEmitter(self, deviceId: str) -> Optional[SCRCPYEmitter]:
+        device = self._devices.get(deviceId)
+        if isinstance(device, SCRCPYEmitter):
+            return device
+        return None
+
+    async def ensureRunning(self, deviceId: str) -> SCRCPYEmitter:
+        """Lazy-start global emitter for ``deviceId`` (idempotent)."""
+        emitter = self.getEmitter(deviceId)
+        if emitter is None:
+            raise KeyError(f"No SCRCPYEmitter registered for id={deviceId!r}")
+
+        if not self._streamReady.get(deviceId, False):
+            verbose(f"[deviceManager] ensureRunning initialize id={deviceId!r}")
+            await emitter.initialize()
+            self._streamReady[deviceId] = True
+
+        if not emitter.isRunning:
+            verbose(f"[deviceManager] ensureRunning start id={deviceId!r}")
+            emitter.start()
+
+        return emitter
+
+    def _stopEmitter(self, device: iDevice) -> None:
+        if not isinstance(device, SCRCPYEmitter):
+            return
+        deviceId = str(device.id)
+        try:
+            if device.isRunning:
+                device.stop()
+                verbose(f"[deviceManager] stopped emitter id={deviceId!r}")
+        except Exception as ex:
+            warning(f"[deviceManager] stop emitter id={deviceId!r} failed: {ex}")
+        self._streamReady.pop(deviceId, None)
+
     async def _discovery(self) -> None:
         isShuttingDown = self._shutdownEvent.is_set
 
@@ -63,7 +99,10 @@ class deviceManager(AsyncSubscription):
             return found
 
         devices: Dict[str, iDevice] = await _getDevices()
-        verbose(f"[deviceManager] initial discovery count={len(devices)} ids={list(devices.keys())}")
+        verbose(
+            f"[deviceManager] initial discovery count={len(devices)} "
+            f"ids={list(devices.keys())}"
+        )
 
         self.setSuppressEvent(True)
         try:
@@ -112,8 +151,15 @@ class deviceManager(AsyncSubscription):
         if device is None:
             return None
         deviceId: str = str(device.id)
+        # Keep existing global emitter if serial already registered.
+        if deviceId in self._devices:
+            return self._devices[deviceId]
         self._devices[deviceId] = device
-        verbose(f"[deviceManager] addDevice id={deviceId!r} name={getattr(device, 'name', None)!r}")
+        verbose(
+            f"[deviceManager] addDevice id={deviceId!r} "
+            f"name={getattr(device, 'name', None)!r} "
+            f"type={type(device).__name__}"
+        )
         self.raiseEvent(DEVICE_ADDED_EVENT, device)
         return device
 
@@ -123,6 +169,7 @@ class deviceManager(AsyncSubscription):
         deviceId: str = device if isinstance(device, str) else str(device.id)
         removed: Optional[iDevice] = self._devices.pop(deviceId, None)
         if removed is not None:
+            self._stopEmitter(removed)
             verbose(f"[deviceManager] removeDevice id={deviceId!r}")
             self.raiseEvent(DEVICE_REMOVED_EVENT, removed)
             return removed
