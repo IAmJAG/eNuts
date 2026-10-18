@@ -15,7 +15,10 @@ from jAGFx.workflow import workflow
 from jAGQt.animations import SizeAnimationBase
 from jAGQt.options import AnimationOptions, SideBarOptions
 from jAGQt.options.__sideBarOptions import (
+    C_DEFAULT_MENU_CHILD_FONT_PT,
+    C_DEFAULT_MENU_CHILD_ICON_SIZE,
     C_DEFAULT_MENU_CHILD_INDENT,
+    C_DEFAULT_MENU_FONT_PT,
     C_DEFAULT_MENU_ICON_SIZE,
     C_DEFAULT_MENU_ITEM_MARGIN,
 )
@@ -74,6 +77,9 @@ class SideBar(ComponentBase, ObjectName, QWidget):
             self._collapsedWidth: int = C_COLLAPSED_WIDTH
             self._animation: Optional[iAnimation] = None
             self._menuIconSize: int = C_DEFAULT_MENU_ICON_SIZE
+            self._menuChildIconSize: int = C_DEFAULT_MENU_CHILD_ICON_SIZE
+            self._menuFontPt: int = C_DEFAULT_MENU_FONT_PT
+            self._menuChildFontPt: int = C_DEFAULT_MENU_CHILD_FONT_PT
             self._menuItemMargins: Tuple[int, int, int, int] = C_DEFAULT_MENU_ITEM_MARGIN
             self._menuChildIndent: int = C_DEFAULT_MENU_CHILD_INDENT
             self._sidebarState: eSideBarState = initialState
@@ -190,6 +196,9 @@ class SideBar(ComponentBase, ObjectName, QWidget):
             self._expandedWidth = C_EXPANDED_WIDTH
             self._collapsedWidth = C_COLLAPSED_WIDTH
             self._menuIconSize = C_DEFAULT_MENU_ICON_SIZE
+            self._menuChildIconSize = C_DEFAULT_MENU_CHILD_ICON_SIZE
+            self._menuFontPt = C_DEFAULT_MENU_FONT_PT
+            self._menuChildFontPt = C_DEFAULT_MENU_CHILD_FONT_PT
             self._menuItemMargins = C_DEFAULT_MENU_ITEM_MARGIN
             self._menuChildIndent = C_DEFAULT_MENU_CHILD_INDENT
             className: Optional[str] = None
@@ -197,6 +206,9 @@ class SideBar(ComponentBase, ObjectName, QWidget):
             self._expandedWidth = int(options.expandedWidth)
             self._collapsedWidth = int(options.collapsedWidth)
             self._menuIconSize = int(options.menuIconSize)
+            self._menuChildIconSize = int(options.menuChildIconSize)
+            self._menuFontPt = int(options.menuFontPt)
+            self._menuChildFontPt = int(options.menuChildFontPt)
             self._menuItemMargins = options.menuItemMargins()
             self._menuChildIndent = int(options.menuChildIndent)
             className = options.animation
@@ -207,7 +219,10 @@ class SideBar(ComponentBase, ObjectName, QWidget):
         if widget is None:
             return
         kwargs = dict(
-            iconSize=self._menuIconSize,
+            rootIconSize=self._menuIconSize,
+            childIconSize=self._menuChildIconSize,
+            rootFontPt=self._menuFontPt,
+            childFontPt=self._menuChildFontPt,
             itemMargins=self._menuItemMargins,
             childIndent=self._menuChildIndent,
             collapsedWidth=self._collapsedWidth,
@@ -274,6 +289,9 @@ class SideBar(ComponentBase, ObjectName, QWidget):
         o.expandedWidth = self._expandedWidth
         o.collapsedWidth = self._collapsedWidth
         o.menuIconSize = self._menuIconSize
+        o.menuChildIconSize = self._menuChildIconSize
+        o.menuFontPt = self._menuFontPt
+        o.menuChildFontPt = self._menuChildFontPt
         o.menuItemMarginLeft = self._menuItemMargins[0]
         o.menuItemMarginTop = self._menuItemMargins[1]
         o.menuItemMarginRight = self._menuItemMargins[2]
@@ -444,6 +462,10 @@ class SideBar(ComponentBase, ObjectName, QWidget):
     @property
     def MenuIconSize(self) -> int:
         return self._menuIconSize
+
+    @property
+    def MenuChildIconSize(self) -> int:
+        return self._menuChildIconSize
 
     @property
     def MenuItemMargins(self) -> Tuple[int, int, int, int]:
