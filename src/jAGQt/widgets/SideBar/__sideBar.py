@@ -6,7 +6,7 @@ from traceback import format_exc
 from typing import Dict, Optional, Tuple, Type, Union
 
 # ==================================================================================
-from PySide6.QtGui import QIcon, QPixmap, QResizeEvent
+from PySide6.QtGui import QIcon, QPixmap, QResizeEvent, QShowEvent
 from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QWidget
 
 # ==================================================================================
@@ -176,13 +176,11 @@ class SideBar(ComponentBase, ObjectName, QWidget):
 
             header.stateChanged.connect(self._onHeaderStateChanged)
 
-            # Force header icon + rail into the same initial state (no animation).
             if header.State is not initialState:
                 header.State = initialState
             self._sidebarState = initialState
             endWidth = self._targetWidthForState(initialState)
             self.setFixedWidth(endWidth)
-            # Expanded => captions on; never leave items icon-only while wide.
             self._pushChromeCollapsed(initialState is eSideBarState.Collapsed)
             self.updateGeometry()
             self._layoutReady = True
@@ -199,9 +197,23 @@ class SideBar(ComponentBase, ObjectName, QWidget):
             error(f"[SideBar] _wInitializeUI traceback:\n{format_exc()}")
             raise
 
+    def showEvent(self, event: QShowEvent) -> None:
+        super().showEvent(event)
+        # First painted frame: width is real — lock target width and captions.
+        endWidth = self._targetWidthForState(self._sidebarState)
+        self.setFixedWidth(endWidth)
+        if self._sidebarState is eSideBarState.Expanded:
+            self._pushChromeCollapsed(False)
+        else:
+            self._syncChromeFromWidth()
+        verbose(
+            f"[SideBar] showEvent state={self._sidebarState!r} "
+            f"width={self.width()} chromeCollapsed="
+            f"{self._sidebarState is eSideBarState.Collapsed}"
+        )
+
     def resizeEvent(self, event: QResizeEvent) -> None:
         super().resizeEvent(event)
-        # Keep captions aligned with the *actual* rail width.
         if self._layoutReady:
             self._syncChromeFromWidth()
 
@@ -261,7 +273,6 @@ class SideBar(ComponentBase, ObjectName, QWidget):
         self._header.setChromeCollapsed(collapsed)
 
     def _shouldCollapseChrome(self) -> bool:
-        """Captions hide only when the rail is actually narrow (or state says so at w=0)."""
         if self._sidebarState is eSideBarState.Expanded:
             return False
         w = self.width()
@@ -353,11 +364,9 @@ class SideBar(ComponentBase, ObjectName, QWidget):
         *,
         animate: bool = True,
     ) -> None:
-        """State drives target width; chrome follows width (and Expanded always shows)."""
         self._sidebarState = state
         endWidth = self._targetWidthForState(state)
 
-        # Show captions as soon as we are expanding — do not wait for anim end.
         if state is eSideBarState.Expanded:
             self._pushChromeCollapsed(False)
 
@@ -413,7 +422,11 @@ class SideBar(ComponentBase, ObjectName, QWidget):
         if widget is not None:
             self._pushMenuMetrics(widget)
             layout.addWidget(widget, stretch=1)
-            self._syncChromeFromWidth()
+            # Prefer explicit expanded chrome when state is Expanded.
+            if self._sidebarState is eSideBarState.Expanded:
+                self._pushChromeCollapsed(False)
+            else:
+                self._syncChromeFromWidth()
 
     def setFooter(self, widget: Optional[QWidget]) -> None:
         host = self._footerHost
@@ -431,7 +444,10 @@ class SideBar(ComponentBase, ObjectName, QWidget):
         if widget is not None:
             self._pushMenuMetrics(widget)
             layout.addWidget(widget, stretch=0)
-            self._syncChromeFromWidth()
+            if self._sidebarState is eSideBarState.Expanded:
+                self._pushChromeCollapsed(False)
+            else:
+                self._syncChromeFromWidth()
 
     @property
     def Header(self) -> SideBarHeader:
@@ -547,6 +563,9 @@ class SideBar(ComponentBase, ObjectName, QWidget):
                 )
         if value == self._sidebarState and self._header.State == value:
             self.setFixedWidth(self._targetWidthForState(value))
-            self._syncChromeFromWidth()
+            if value is eSideBarState.Expanded:
+                self._pushChromeCollapsed(False)
+            else:
+                self._syncChromeFromWidth()
             return
         self._header.State = value
