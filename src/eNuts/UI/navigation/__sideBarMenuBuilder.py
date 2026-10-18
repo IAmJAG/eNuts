@@ -11,6 +11,8 @@ from ..pages import (
     PAGE_DEVICES,
     PAGE_KG_RECORDER,
     PAGE_SETTINGS,
+    PAGE_TOOLS,
+    devicePageKey,
 )
 
 # ==================================================================================
@@ -38,23 +40,22 @@ def pageKeyOf(item: object) -> str | None:
 def buildSmokeTestSideBarMenu(
     deviceNames: list[str] | None = None,
 ) -> tuple[SideBarMenu, SideBarMenuItem]:
-    """Build smoke-test nav menu + pinned Settings footer item.
+    """Build nav menu + Settings footer; every node has a pageKey.
 
     Structure::
 
         [scroll menu]
-          Dashboard          → pageKey=dashboard
-          Devices            (header expand only)
-              <devices…>     → pageKey=devices
-          Tools              (header expand only)
-              Annotator      → pageKey=annotator
-              K&G Recorder   → pageKey=kg-recorder
+          Dashboard              → dashboard
+          Devices                → devices   (section summary; still expands)
+              <device|none>      → device:<name> | device:none
+          Tools                  → tools     (section summary; still expands)
+              Annotator          → annotator
+              K&G Recorder       → kg-recorder
 
         [footer]
-          Settings           → pageKey=settings
+          Settings               → settings
 
-    Returns ``(menu, settingsItem)``. Navigation is owned by WorkSpace via
-    ``pageKeyOf`` + ``itemClicked``.
+    Returns ``(menu, settingsItem)``. WorkSpace owns navigation via pageKeyOf.
     """
     menu = SideBarMenu()
 
@@ -62,17 +63,18 @@ def buildSmokeTestSideBarMenu(
     _setPageKey(dashboard, PAGE_DASHBOARD)
 
     devices = menu.addItem("Devices", role=eSideBarMenuRole.Header)
-    # Header itself is expand/collapse only; children navigate.
+    _setPageKey(devices, PAGE_DEVICES)
     names = list(deviceNames) if deviceNames else []
     if names:
         for name in names:
             child = devices.addChild(name)
-            _setPageKey(child, PAGE_DEVICES)
+            _setPageKey(child, devicePageKey(name))
     else:
         empty = devices.addChild("(no devices)")
-        _setPageKey(empty, PAGE_DEVICES)
+        _setPageKey(empty, devicePageKey("(no devices)"))
 
     tools = menu.addItem("Tools", role=eSideBarMenuRole.Header)
+    _setPageKey(tools, PAGE_TOOLS)
     annotator = tools.addChild("Annotator")
     _setPageKey(annotator, PAGE_ANNOTATOR)
     recorder = tools.addChild("K&G Recorder")

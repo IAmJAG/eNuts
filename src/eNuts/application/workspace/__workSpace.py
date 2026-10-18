@@ -19,8 +19,7 @@ from utilities.io import getICONPath
 
 # ==================================================================================
 from ...UI.navigation import buildSmokeTestSideBarMenu, pageKeyOf
-from ...UI.pages import PAGE_KEYS, buildSmokeTestPages
-from ...UI.pages.__smokePages import PAGE_DASHBOARD
+from ...UI.pages import PAGE_DASHBOARD, buildNavigationPages
 
 # ==================================================================================
 QSPolicy = QSizePolicy.Policy
@@ -81,7 +80,9 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
                 animationOptions=animationOptions,
             )
 
-            menu, settings = buildSmokeTestSideBarMenu()
+            # Same device list for menu + pages (keep in sync).
+            deviceNames: list[str] | None = None
+            menu, settings = buildSmokeTestSideBarMenu(deviceNames)
             sideBar.Content = menu
             sideBar.Footer = settings
 
@@ -90,15 +91,16 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             stack.setStyleSheet("background-color: #252526;")
             stack.setSizePolicy(QSPolicy.Expanding, QSPolicy.Expanding)
 
-            pages = buildSmokeTestPages()
+            pages = buildNavigationPages(deviceNames)
             pageIndex: Dict[str, int] = {}
-            for key in PAGE_KEYS:
-                page = pages[key]
+            for key, page in pages.items():
                 idx = stack.addWidget(page)
                 pageIndex[key] = idx
-                verbose(f"[WorkSpace] stack add page key={key!r} index={idx}")
+                verbose(
+                    f"[WorkSpace] stack add page key={key!r} "
+                    f"title={page.Title!r} index={idx}"
+                )
 
-            # Default landing page
             if PAGE_DASHBOARD in pageIndex:
                 stack.setCurrentIndex(pageIndex[PAGE_DASHBOARD])
 
@@ -133,7 +135,6 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
     def _onNavItemClicked(self, item: object) -> None:
         key = pageKeyOf(item)
         if key is None:
-            # Headers without a pageKey (Devices, Tools) only expand/collapse.
             if isinstance(item, SideBarMenuItem):
                 verbose(
                     f"[WorkSpace] nav skip caption={item.Caption!r} (no pageKey)"
