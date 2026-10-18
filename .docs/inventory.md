@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-18 05:50:54 UTC*
+*Auto-generated on: 2026-10-18 07:20:01 UTC*
 
 ## Current Directory Structure
 
@@ -472,7 +472,7 @@ src/eNuts/types/interface/UI/windows:
 src/eNuts/UI/navigation:
 	__sideBarMenuBuilder.py - 
 		FUNCTION(S):
-			_setPageKey -> : _setpagekey
+			setPageKey -> : setpagekey
 			pageKeyOf -> : pagekeyof
 			buildSmokeTestSideBarMenu -> : buildsmoketestsidebarmenu
 		CONSTANTS(S)/GLOBAL(S)
@@ -485,6 +485,7 @@ src/eNuts/UI/pages:
 			buildNavigationPages -> : buildnavigationpages
 	__pageKeys.py - 
 		FUNCTION(S):
+			devicePageKeyFromId -> : devicepagekeyfromid
 			devicePageKey -> : devicepagekey
 		CONSTANTS(S)/GLOBAL(S)
 			PAGE_DASHBOARD -> : page_dashboard
@@ -1348,6 +1349,23 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+8061fd3:
+	feat(Phase4): wire deviceManager discovery to WorkSpace menu + pages
+		src/eNuts/UI/navigation/__sideBarMenuBuilder.py
+		src/eNuts/UI/pages/__navigationPages.py
+		src/eNuts/UI/pages/__pageKeys.py
+		src/eNuts/application/__shell.py
+		src/eNuts/application/workspace/__workSpace.py
+		src/eNuts/utilities/asyncADB/__asyncADB.py
+
+f5bb669:
+	feat(asyncADB): implement ADB device management functions and suppress event handling
+		.docs/inventory.md
+		src/eNuts/application/device/__deviceManager.py
+		src/eNuts/utilities/asyncADB/__asyncADB.py
+		src/jAGFx/services/__subscription.py
+		src/jAGFx/types/interface/services/__subscription.py
+
 4df7ace:
 	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
 
@@ -1383,15 +1401,5 @@ bcf5cf7:
 		src/eNuts/UI/widgets/pages/recorder/__recorderPage.py
 		src/eNuts/UI/widgets/pages/settings/__settingsPage.py
 		src/eNuts/application/device/__deviceManager.py
-
-a969ca7:
-	feat(WorkSpace): wire SideBar menu selection to stacked Pages
-		src/eNuts/UI/navigation/__sideBarMenuBuilder.py
-		src/eNuts/UI/pages/__smokePages.py
-		src/eNuts/application/workspace/__workSpace.py
-
-7f6683f:
-	fix(inventory): update auto-generated timestamp and enhance directory structure
-		.docs/inventory.md
 
 ```

@@ -6,7 +6,7 @@ from traceback import format_exc
 from typing import Dict, Optional, Set
 
 # ==================================================================================
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, SignalInstance
 from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QStackedWidget, QWidget
 
 # ==================================================================================
@@ -49,15 +49,13 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
     OBJECT_NAME = "W_WORKSPACE"
 
     # Cross-thread safe bridge from deviceManager → Qt main thread.
-    _sigDevicesReady = Signal(object)
-    _sigDeviceAdded = Signal(object)
-    _sigDeviceRemoved = Signal(object)
+    _sigDevicesReady: SignalInstance = Signal(object)
+    _sigDeviceAdded: SignalInstance = Signal(object)
+    _sigDeviceRemoved: SignalInstance = Signal(object)
 
     def __init__(
-        self,
-        deviceMgr: Optional[deviceManager] = None,
-        *args,
-        **kwargs,
+        self, deviceMgr: Optional[deviceManager] = None,
+        *args, **kwargs,
     ) -> None:
         verbose("[WorkSpace] __init__ ENTER")
         try:
@@ -69,6 +67,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             self._devicesHeader: Optional[SideBarMenuItem] = None
             self._deviceManager: Optional[deviceManager] = deviceMgr
             self._devicePageKeys: Set[str] = set()
+
         except Exception as ex:
             error("[WorkSpace] __init__ FAIL", ex)
             error(f"[WorkSpace] __init__ traceback:\n{format_exc()}")
@@ -111,7 +110,6 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
 
             stack: QStackedWidget = QStackedWidget()
             stack.setObjectName("W_WORKSPACE_STACK")
-            stack.setStyleSheet("background-color: #252526;")
             stack.setSizePolicy(QSPolicy.Expanding, QSPolicy.Expanding)
 
             pages = buildNavigationPages()
@@ -268,9 +266,11 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             page = self._pages[key]
             try:
                 page.Title = title
+
             except Exception:
                 pass
             return
+        
         page = buildBlankPage(key, title, "Device")
         idx = stack.addWidget(page)
         self._pages[key] = page

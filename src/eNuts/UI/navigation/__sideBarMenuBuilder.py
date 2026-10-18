@@ -50,9 +50,7 @@ def buildSmokeTestSideBarMenu() -> tuple[SideBarMenu, SideBarMenuItem, SideBarMe
 
     devices = menu.addItem("Devices", role=eSideBarMenuRole.Header)
     setPageKey(devices, PAGE_DEVICES)
-    noneLeaf = devices.addChild("(no devices)")
-    setPageKey(noneLeaf, C_DEVICE_NONE)
-
+    
     tools = menu.addItem("Tools", role=eSideBarMenuRole.Header)
     setPageKey(tools, PAGE_TOOLS)
     annotator = tools.addChild("Annotator")
