@@ -62,7 +62,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
         self, deviceMgr: Optional[deviceManager] = None,
         *args, **kwargs,
     ) -> None:
-        debug("[WorkSpace] __init__ ENTER")
+        verbose("[WorkSpace] __init__ ENTER")
         try:
             super().__init__(*args, **kwargs)
             self._sideBar: Optional[SideBar] = None
@@ -74,6 +74,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             self._devicePageKeys: Set[str] = set()
             self._activeStreamSerial: Optional[str] = None
             self._frameHandlerBySerial: Dict[str, Callable] = {}
+            # Long-lived bridges (survive page teardown order issues).
             self._bridges: Dict[str, DeviceFrameBridge] = {}
 
         except Exception as ex:
@@ -81,10 +82,10 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             error(f"[WorkSpace] __init__ traceback:\n{format_exc()}")
             raise
 
-        debug(f"[WorkSpace] __init__ EXIT objectName={self.objectName()!r}")
+        verbose(f"[WorkSpace] __init__ EXIT objectName={self.objectName()!r}")
 
     def _wInitializeUI(self) -> None:
-        debug("[WorkSpace] _wInitializeUI ENTER")
+        verbose("[WorkSpace] _wInitializeUI ENTER")
         try:
             self.setAttribute(StyleBackground, True)
             self.setStyleSheet("background-color: #1e1e1e;")
@@ -153,7 +154,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             self._sigDeviceRemoved.connect(self._onDeviceRemovedUi)
             self._bindDeviceManager(self._deviceManager)
 
-            debug(
+            verbose(
                 f"[WorkSpace] _wInitializeUI EXIT "
                 f"deviceMgr={'yes' if self._deviceManager else 'no'}"
             )
@@ -166,7 +167,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
         key = pageKeyOf(item)
         if key is None:
             if isinstance(item, SideBarMenuItem):
-                debug(
+                verbose(
                     f"[WorkSpace] nav skip caption={item.Caption!r} (no pageKey)"
                 )
             return
@@ -181,11 +182,14 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
         stack.setCurrentIndex(index)
         page = self._pages.get(key)
         title = page.Title if page is not None else key
-        debug(f"[WorkSpace] showPage key={key!r} title={title!r} index={index}")
+        verbose(f"[WorkSpace] showPage key={key!r} title={title!r} index={index}")
 
         serial = serialFromPageKey(key)
         if serial is not None:
             createTask(self._attachDeviceStream, serial, page)
+        else:
+            # Leaving device pages: keep emitters running (global), only detach UI.
+            pass
         return True
 
     def detachAllStreams(self) -> None:
@@ -200,7 +204,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
                     pass
         self._frameHandlerBySerial.clear()
         self._activeStreamSerial = None
-        debug("[WorkSpace] detachAllStreams done")
+        verbose("[WorkSpace] detachAllStreams done")
 
     def _detachStream(self, serial: str) -> None:
         handler = self._frameHandlerBySerial.pop(serial, None)
@@ -240,6 +244,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             )
             self._bridges[serial] = bridge
         else:
+            # Rebind to current view in case page was rebuilt.
             try:
                 bridge.frameReady.disconnect()
             except Exception:
@@ -253,23 +258,26 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
         def _onFrame(frame: object) -> None:
             try:
                 if getattr(frame, "isConfig", False):
+                    # Still feed decoder extradata via decode(); no UI update.
                     self._frameToQImage(frame, emitter)
                     return
                 qimg = self._frameToQImage(frame, emitter)
                 if qimg is None:
                     return
+                # Bridge may be gone during shutdown.
                 try:
                     bridge.frameReady.emit(qimg)
                 except RuntimeError:
                     pass
             except Exception:
+                # Never let callback exceptions kill the emitter service loop.
                 pass
 
         emitter.subscribe(C_ON_FRAME, _onFrame)
         self._frameHandlerBySerial[serial] = _onFrame
         self._activeStreamSerial = serial
         page._streamAttached = True  # type: ignore[attr-defined]
-        debug(f"[WorkSpace] stream attached serial={serial!r}")
+        verbose(f"[WorkSpace] stream attached serial={serial!r}")
 
     @staticmethod
     def _applyFrameSafe(view: object, img: object) -> None:
@@ -321,7 +329,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
         mgr.subscribe(DEVICE_INITIALIZED_EVENT, self._onDevicesReadyEvent)
         mgr.subscribe(DEVICE_ADDED_EVENT, self._onDeviceAddedEvent)
         mgr.subscribe(DEVICE_REMOVED_EVENT, self._onDeviceRemovedEvent)
-        debug("[WorkSpace] subscribed to deviceManager events")
+        verbose("[WorkSpace] subscribed to deviceManager events")
 
     def _onDevicesReadyEvent(self, mgr: object) -> None:
         self._sigDevicesReady.emit(mgr)
@@ -335,7 +343,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
     def _onDevicesReadyUi(self, mgr: object) -> None:
         try:
             devices = self._listDevices(mgr)
-            debug(f"[WorkSpace] devices ready count={len(devices)}")
+            verbose(f"[WorkSpace] devices ready count={len(devices)}")
             self._syncDevicesList(devices)
         except Exception as ex:
             error("[WorkSpace] _onDevicesReadyUi FAIL", ex)
@@ -345,7 +353,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
         try:
             if not self._isDevice(device):
                 return
-            debug(f"[WorkSpace] device added id={device.id!r} name={device.name!r}")
+            verbose(f"[WorkSpace] device added id={device.id!r} name={device.name!r}")
             self._registerDevice(device)
             self._rebuildDevicesMenuLeaves()
         except Exception as ex:
@@ -358,7 +366,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
                 return
             serial = str(device.id)
             key = devicePageKeyFromId(serial)
-            debug(f"[WorkSpace] device removed id={serial!r} key={key!r}")
+            verbose(f"[WorkSpace] device removed id={serial!r} key={key!r}")
             self._detachStream(serial)
             self._bridges.pop(serial, None)
             self._unregisterDevicePage(key)
@@ -426,7 +434,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
         idx = stack.addWidget(page)
         self._pages[key] = page
         self._pageIndex[key] = idx
-        debug(f"[WorkSpace] registered device page key={key!r} index={idx}")
+        verbose(f"[WorkSpace] registered device page key={key!r} index={idx}")
 
     def _unregisterDevicePage(self, key: str) -> None:
         if key == C_DEVICE_NONE or key not in self._pages:
@@ -452,7 +460,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             stack.removeWidget(page)
             page.deleteLater()
         self._rebuildPageIndex()
-        debug(f"[WorkSpace] unregistered device page key={key!r}")
+        verbose(f"[WorkSpace] unregistered device page key={key!r}")
 
     def _rebuildPageIndex(self) -> None:
         stack = self._stack
@@ -470,7 +478,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             return
 
         devices = self._listDevices(self._deviceManager)
-        debug(
+        verbose(
             f"[WorkSpace] rebuild devices menu "
             f"mgr_count={len(devices)} prior_children={len(header.Children)}"
         )
@@ -478,7 +486,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
         header.clearChildren()
 
         if not devices:
-            debug("[WorkSpace] devices menu -> empty (header only)")
+            verbose("[WorkSpace] devices menu -> empty (header only)")
             return
 
         for device in devices:
@@ -492,7 +500,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
 
         header.Expanded = True
         captions = [c.Caption for c in header.Children]
-        debug(
+        verbose(
             f"[WorkSpace] devices menu -> {len(header.Children)} leaf(s) "
             f"captions={captions!r}"
         )
