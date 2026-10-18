@@ -48,7 +48,7 @@ C_SIDEBAR_ANIMATION_MS: int = 280
 class WorkSpace(ComponentBase, ObjectName, QWidget):
     OBJECT_NAME = "W_WORKSPACE"
 
-    # Cross-thread safe bridge from deviceManager → Qt main thread.
+    # Cross-thread safe bridge from deviceManager -> Qt main thread.
     _sigDevicesReady: SignalInstance = Signal(object)
     _sigDeviceAdded: SignalInstance = Signal(object)
     _sigDeviceRemoved: SignalInstance = Signal(object)
@@ -270,7 +270,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             except Exception:
                 pass
             return
-        
+
         page = buildBlankPage(key, title, "Device")
         idx = stack.addWidget(page)
         self._pages[key] = page
@@ -332,7 +332,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             setPageKey(leaf, C_DEVICE_NONE)
             self._ensureDevicePage(C_DEVICE_NONE, "(no devices)")
             header.Expanded = True
-            verbose("[WorkSpace] devices menu → (no devices)")
+            verbose("[WorkSpace] devices menu -> (no devices)")
             return
 
         for device in devices:
@@ -347,7 +347,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
         header.Expanded = True
         captions = [c.Caption for c in header.Children]
         verbose(
-            f"[WorkSpace] devices menu → {len(header.Children)} leaf(s) "
+            f"[WorkSpace] devices menu -> {len(header.Children)} leaf(s) "
             f"captions={captions!r}"
         )
 
