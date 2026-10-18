@@ -23,9 +23,10 @@ from ....utilities import newLayout
 from ...components import ComponentBase, ObjectName
 from .__eSideBarMenuRole import eSideBarMenuRole
 from .__sideBarMenuItem import (
-    C_HEADER_MARGIN,
+    C_CHILD_INDENT,
+    C_COLLAPSED_WIDTH,
     C_ICON_SIZE,
-    C_LEAF_MARGIN,
+    C_ITEM_MARGIN,
     SideBarMenuItem,
 )
 
@@ -40,8 +41,8 @@ StyleBackground = Qt.WidgetAttribute.WA_StyledBackground
 class SideBarMenu(ComponentBase, ObjectName, QScrollArea):
     """Scrollable list of top-level SideBarMenuItems.
 
-    Row metrics (icon size, header/leaf margins) come from SideBarOptions via
-    :meth:`applyMetrics` / SideBar content wiring.
+    Metrics (icon size, base margins, child indent, collapsed width) come from
+    SideBarOptions via :meth:`applyMetrics`.
     """
 
     OBJECT_NAME = "W_SIDEBAR_MENU"
@@ -57,8 +58,10 @@ class SideBarMenu(ComponentBase, ObjectName, QScrollArea):
         self._column: Optional[QWidget] = None
         self._columnLayout: Optional[QBoxLayout] = None
         self._iconSize: int = C_ICON_SIZE
-        self._headerMargins: Tuple[int, int, int, int] = C_HEADER_MARGIN
-        self._leafMargins: Tuple[int, int, int, int] = C_LEAF_MARGIN
+        self._itemMargins: Tuple[int, int, int, int] = C_ITEM_MARGIN
+        self._childIndent: int = C_CHILD_INDENT
+        self._collapsedWidth: int = C_COLLAPSED_WIDTH
+        self._chromeCollapsed: bool = False
 
     def _wInitializeUI(self) -> None:
         verbose("[SideBarMenu] _wInitializeUI ENTER")
@@ -93,25 +96,41 @@ class SideBarMenu(ComponentBase, ObjectName, QScrollArea):
         self,
         *,
         iconSize: int,
-        headerMargins: Tuple[int, int, int, int],
-        leafMargins: Tuple[int, int, int, int],
+        itemMargins: Tuple[int, int, int, int],
+        childIndent: int,
+        collapsedWidth: int,
     ) -> None:
-        """Store metrics and push to existing rows (and future addItem/addChild)."""
         self._iconSize = int(iconSize)
-        self._headerMargins = tuple(headerMargins)  # type: ignore
-        self._leafMargins = tuple(leafMargins)  # type: ignore
+        self._itemMargins = tuple(itemMargins)  # type: ignore
+        self._childIndent = int(childIndent)
+        self._collapsedWidth = int(collapsedWidth)
         for top in self._items:
             top.applyMetrics(
                 iconSize=self._iconSize,
-                headerMargins=self._headerMargins,
-                leafMargins=self._leafMargins,
+                itemMargins=self._itemMargins,
+                childIndent=self._childIndent,
+                collapsedWidth=self._collapsedWidth,
             )
             for child in top.Children:
                 child.applyMetrics(
                     iconSize=self._iconSize,
-                    headerMargins=self._headerMargins,
-                    leafMargins=self._leafMargins,
+                    itemMargins=self._itemMargins,
+                    childIndent=self._childIndent,
+                    collapsedWidth=self._collapsedWidth,
                 )
+
+    def setChromeCollapsed(self, collapsed: bool) -> None:
+        self._chromeCollapsed = bool(collapsed)
+        for top in self._items:
+            top.setChromeCollapsed(self._chromeCollapsed)
+            for child in top.Children:
+                child.setChromeCollapsed(self._chromeCollapsed)
+            # Hide nested bodies while the rail is collapsed.
+            if top._body is not None:
+                if self._chromeCollapsed:
+                    top._body.hide()
+                elif top.Expanded and len(top.Children) > 0:
+                    top._body.show()
 
     def _insertBeforeStretch(self, widget: QWidget) -> None:
         layout = self._columnLayout
@@ -131,15 +150,17 @@ class SideBarMenu(ComponentBase, ObjectName, QScrollArea):
                 icon=icon,
                 role=role,
                 iconSize=self._iconSize,
-                headerMargins=self._headerMargins,
-                leafMargins=self._leafMargins,
+                itemMargins=self._itemMargins,
+                childIndent=self._childIndent,
+                collapsedWidth=self._collapsedWidth,
             )
         else:
             row = item
             row.applyMetrics(
                 iconSize=self._iconSize,
-                headerMargins=self._headerMargins,
-                leafMargins=self._leafMargins,
+                itemMargins=self._itemMargins,
+                childIndent=self._childIndent,
+                collapsedWidth=self._collapsedWidth,
             )
 
         self._items.append(row)
@@ -155,6 +176,9 @@ class SideBarMenu(ComponentBase, ObjectName, QScrollArea):
                     break
             if rowIndex >= 0:
                 layout.insertWidget(rowIndex + 1, row._body, stretch=0)
+
+        if self._chromeCollapsed:
+            row.setChromeCollapsed(True)
 
         row.selectionRequested.connect(self._onSelectionRequested)
         row.clicked.connect(self._onItemClicked)

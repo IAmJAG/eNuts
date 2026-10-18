@@ -12,17 +12,21 @@ C_DEFAULT_EXPANDED_WIDTH: int = 200
 C_DEFAULT_COLLAPSED_WIDTH: int = 48
 C_DEFAULT_NAME: str = "SideBar"
 C_DEFAULT_MENU_ICON_SIZE: int = 20
-C_DEFAULT_MENU_HEADER_MARGIN: Tuple[int, int, int, int] = (8, 8, 8, 8)
-C_DEFAULT_MENU_LEAF_MARGIN: Tuple[int, int, int, int] = (28, 6, 8, 6)
+C_DEFAULT_MENU_ITEM_MARGIN: Tuple[int, int, int, int] = (8, 8, 8, 8)
+C_DEFAULT_MENU_CHILD_INDENT: int = 20
 # ==================================================================================
 
 
 # ==================================================================================
 class SideBarOptions(OptionsBase):
-    """Configuration settings for :class:`~jAGQt.widgets.SideBar.SideBar`.
+    """Configuration for :class:`~jAGQt.widgets.SideBar.SideBar`.
 
-    Chrome widths + optional animation class name, plus **menu row metrics**
-    (header/leaf margins and icon size) applied in code — not via QSS sizing.
+    Chrome widths, optional animation class name, and **menu row metrics**
+    applied in code (not QSS sizing).
+
+    Indentation is **hierarchical**: root rows use ``menuItemMargin*``;
+    any row with a parent gets ``menuChildIndent`` added to the left margin.
+    Role (header/leaf) does not drive indent.
     """
 
     def __init__(
@@ -34,42 +38,33 @@ class SideBarOptions(OptionsBase):
         collapsedWidth: int = C_DEFAULT_COLLAPSED_WIDTH,
         animation: Optional[str] = None,
         menuIconSize: int = C_DEFAULT_MENU_ICON_SIZE,
-        menuHeaderMarginLeft: int = C_DEFAULT_MENU_HEADER_MARGIN[0],
-        menuHeaderMarginTop: int = C_DEFAULT_MENU_HEADER_MARGIN[1],
-        menuHeaderMarginRight: int = C_DEFAULT_MENU_HEADER_MARGIN[2],
-        menuHeaderMarginBottom: int = C_DEFAULT_MENU_HEADER_MARGIN[3],
-        menuLeafMarginLeft: int = C_DEFAULT_MENU_LEAF_MARGIN[0],
-        menuLeafMarginTop: int = C_DEFAULT_MENU_LEAF_MARGIN[1],
-        menuLeafMarginRight: int = C_DEFAULT_MENU_LEAF_MARGIN[2],
-        menuLeafMarginBottom: int = C_DEFAULT_MENU_LEAF_MARGIN[3],
+        menuItemMarginLeft: int = C_DEFAULT_MENU_ITEM_MARGIN[0],
+        menuItemMarginTop: int = C_DEFAULT_MENU_ITEM_MARGIN[1],
+        menuItemMarginRight: int = C_DEFAULT_MENU_ITEM_MARGIN[2],
+        menuItemMarginBottom: int = C_DEFAULT_MENU_ITEM_MARGIN[3],
+        menuChildIndent: int = C_DEFAULT_MENU_CHILD_INDENT,
     ) -> None:
         super().__init__(name=name or C_DEFAULT_NAME, version=version, description=description)
         self._expandedWidth: int = int(expandedWidth)
         self._collapsedWidth: int = int(collapsedWidth)
         self._animation: Optional[str] = animation if animation else None
         self._menuIconSize: int = int(menuIconSize)
-        self._menuHeaderMarginLeft: int = int(menuHeaderMarginLeft)
-        self._menuHeaderMarginTop: int = int(menuHeaderMarginTop)
-        self._menuHeaderMarginRight: int = int(menuHeaderMarginRight)
-        self._menuHeaderMarginBottom: int = int(menuHeaderMarginBottom)
-        self._menuLeafMarginLeft: int = int(menuLeafMarginLeft)
-        self._menuLeafMarginTop: int = int(menuLeafMarginTop)
-        self._menuLeafMarginRight: int = int(menuLeafMarginRight)
-        self._menuLeafMarginBottom: int = int(menuLeafMarginBottom)
+        self._menuItemMarginLeft: int = int(menuItemMarginLeft)
+        self._menuItemMarginTop: int = int(menuItemMarginTop)
+        self._menuItemMarginRight: int = int(menuItemMarginRight)
+        self._menuItemMarginBottom: int = int(menuItemMarginBottom)
+        self._menuChildIndent: int = int(menuChildIndent)
         self.Properties.extend(
             [
                 "expandedWidth",
                 "collapsedWidth",
                 "animation",
                 "menuIconSize",
-                "menuHeaderMarginLeft",
-                "menuHeaderMarginTop",
-                "menuHeaderMarginRight",
-                "menuHeaderMarginBottom",
-                "menuLeafMarginLeft",
-                "menuLeafMarginTop",
-                "menuLeafMarginRight",
-                "menuLeafMarginBottom",
+                "menuItemMarginLeft",
+                "menuItemMarginTop",
+                "menuItemMarginRight",
+                "menuItemMarginBottom",
+                "menuChildIndent",
             ]
         )
         self._validateWidths()
@@ -84,6 +79,8 @@ class SideBarOptions(OptionsBase):
     def _validateMenuMetrics(self) -> None:
         if self._menuIconSize <= 0:
             raise ValueError(f"menuIconSize must be > 0, got {self._menuIconSize}")
+        if self._menuChildIndent < 0:
+            raise ValueError(f"menuChildIndent must be >= 0, got {self._menuChildIndent}")
 
     # ==================================================================================
     @property
@@ -125,81 +122,50 @@ class SideBarOptions(OptionsBase):
         self._validateMenuMetrics()
 
     @property
-    def menuHeaderMarginLeft(self) -> int:
-        return self._menuHeaderMarginLeft
+    def menuItemMarginLeft(self) -> int:
+        return self._menuItemMarginLeft
 
-    @menuHeaderMarginLeft.setter
-    def menuHeaderMarginLeft(self, value: int) -> None:
-        self._menuHeaderMarginLeft = int(value)
-
-    @property
-    def menuHeaderMarginTop(self) -> int:
-        return self._menuHeaderMarginTop
-
-    @menuHeaderMarginTop.setter
-    def menuHeaderMarginTop(self, value: int) -> None:
-        self._menuHeaderMarginTop = int(value)
+    @menuItemMarginLeft.setter
+    def menuItemMarginLeft(self, value: int) -> None:
+        self._menuItemMarginLeft = int(value)
 
     @property
-    def menuHeaderMarginRight(self) -> int:
-        return self._menuHeaderMarginRight
+    def menuItemMarginTop(self) -> int:
+        return self._menuItemMarginTop
 
-    @menuHeaderMarginRight.setter
-    def menuHeaderMarginRight(self, value: int) -> None:
-        self._menuHeaderMarginRight = int(value)
-
-    @property
-    def menuHeaderMarginBottom(self) -> int:
-        return self._menuHeaderMarginBottom
-
-    @menuHeaderMarginBottom.setter
-    def menuHeaderMarginBottom(self, value: int) -> None:
-        self._menuHeaderMarginBottom = int(value)
+    @menuItemMarginTop.setter
+    def menuItemMarginTop(self, value: int) -> None:
+        self._menuItemMarginTop = int(value)
 
     @property
-    def menuLeafMarginLeft(self) -> int:
-        return self._menuLeafMarginLeft
+    def menuItemMarginRight(self) -> int:
+        return self._menuItemMarginRight
 
-    @menuLeafMarginLeft.setter
-    def menuLeafMarginLeft(self, value: int) -> None:
-        self._menuLeafMarginLeft = int(value)
-
-    @property
-    def menuLeafMarginTop(self) -> int:
-        return self._menuLeafMarginTop
-
-    @menuLeafMarginTop.setter
-    def menuLeafMarginTop(self, value: int) -> None:
-        self._menuLeafMarginTop = int(value)
+    @menuItemMarginRight.setter
+    def menuItemMarginRight(self, value: int) -> None:
+        self._menuItemMarginRight = int(value)
 
     @property
-    def menuLeafMarginRight(self) -> int:
-        return self._menuLeafMarginRight
+    def menuItemMarginBottom(self) -> int:
+        return self._menuItemMarginBottom
 
-    @menuLeafMarginRight.setter
-    def menuLeafMarginRight(self, value: int) -> None:
-        self._menuLeafMarginRight = int(value)
+    @menuItemMarginBottom.setter
+    def menuItemMarginBottom(self, value: int) -> None:
+        self._menuItemMarginBottom = int(value)
 
     @property
-    def menuLeafMarginBottom(self) -> int:
-        return self._menuLeafMarginBottom
+    def menuChildIndent(self) -> int:
+        return self._menuChildIndent
 
-    @menuLeafMarginBottom.setter
-    def menuLeafMarginBottom(self, value: int) -> None:
-        self._menuLeafMarginBottom = int(value)
+    @menuChildIndent.setter
+    def menuChildIndent(self, value: int) -> None:
+        self._menuChildIndent = int(value)
+        self._validateMenuMetrics()
 
-    def menuHeaderMargins(self) -> Tuple[int, int, int, int]:
+    def menuItemMargins(self) -> Tuple[int, int, int, int]:
         return (
-            self._menuHeaderMarginLeft,
-            self._menuHeaderMarginTop,
-            self._menuHeaderMarginRight,
-            self._menuHeaderMarginBottom,
-        )
-
-    def menuLeafMargins(self) -> Tuple[int, int, int, int]:
-        return (
-            self._menuLeafMarginLeft,
-            self._menuLeafMarginTop,
-            self._menuLeafMarginRight,
-            self._menuLeafMarginBottom,
+            self._menuItemMarginLeft,
+            self._menuItemMarginTop,
+            self._menuItemMarginRight,
+            self._menuItemMarginBottom,
         )
