@@ -1,10 +1,11 @@
 ## Overview & Design Context
 
-This directory documents the policy (model) component of eNuts.
+Minimal policy for eNuts.
 
-The policy accepts a current intent key, visual input (ndarray/tensor), and a history of previous actions with their arguments, then produces the next discrete action key together with a variant argument payload.
+**Input:** one image (`ndarray` or `Tensor`)  
+**Output:** next discrete action key (`down` | `up` | `move` | `inject`)
 
-* **Design Decision / Deviation Notes:** This is a redesign. The earlier architecture sketch lives at `.docs/hybrid_discrete_continuous_policy.md` and is retained only for historical reference. All current requirements are defined in `requirement.md` within this directory. Spatial arguments are normalized; the Policy Wrapper owns buffering, denormalization and execution.
+All advanced features (intent, history, continuous arguments, temporal stack, etc.) are deferred. See `requirement.md`.
 
 ---
 
