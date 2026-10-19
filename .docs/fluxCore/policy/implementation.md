@@ -3,22 +3,23 @@
 ## 1. Architecture Overview
 
 ```text
-image [B,C,H,W] or [C,H,W]
+image [B,C,H,W] or [C,H,W]   (any spatial size)
         |
         v
-  _preprocess  (resize -> 24x24, float32, [0,1], 3-channel)
+  _preprocess  (float32, 3-channel, optional /255)
         |
         v
-  tiny CNN backbone
-    Conv 3->16 -> ReLU -> MaxPool
-    Conv 16->32 -> ReLU -> MaxPool
-    Conv 32->64 -> ReLU -> AdaptiveAvgPool(1x1) -> Flatten
+  backbone (CNN)
+    Conv stride-2 blocks + 1x1 projection
+    AdaptiveAvgPool2d -> [B, 3, 24, 24]     <--- CNN result
         |
         v
-  Linear(64 -> 4) logits
+  head
+    Flatten (1728) -> Linear 128 -> ReLU -> Linear 4
         |
-        +-- forward()  -> logits
-        +-- predict()  -> argmax -> action key string
+        +-- extractFeatures() -> [B, 3, 24, 24]
+        +-- forward()         -> logits [B, 4]
+        +-- predict()         -> action key string
 ```
 
 The model is intentionally stateless. `reset()` exists only to satisfy the `iPolicy` protocol.
@@ -34,8 +35,8 @@ The model is intentionally stateless. `reset()` exists only to satisfy the `iPol
 ## 3. Core Workflows & Data Flow
 
 **Inference**
-1. Caller supplies an image tensor.
-2. `predict(image)` runs pre-process + forward + argmax.
+1. Caller supplies an image tensor (any spatial size).
+2. `predict(image)` runs pre-process → backbone (→ 24×24×3) → head → argmax.
 3. Returns one of `"down"`, `"up"`, `"move"`, `"inject"`.
 
 **Training**

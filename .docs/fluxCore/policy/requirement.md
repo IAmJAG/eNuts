@@ -10,10 +10,10 @@ Project-level requirements (including the deferred advanced features) live at `.
 
 ## 2. Functional Requirements
 
-- **FR-1:** Accept a single image as `torch.Tensor` with shape `[C,H,W]` or `[B,C,H,W]`.
+- **FR-1:** Accept a single image as `torch.Tensor` with shape `[C,H,W]` or `[B,C,H,W]` (any spatial size).
 - **FR-2:** Produce one of the four action keys: `down`, `up`, `move`, `inject`.
-- **FR-3:** Pre-process the image to a stable internal shape of 24×24×3 (resize, channel handling, simple [0,1] scaling).
-- **FR-4:** Expose both a training-friendly `forward` (logits) and an inference helper `predict` (action key string).
+- **FR-3:** The backbone must produce a fixed **24 × 24 × 3** feature map (the CNN result). This is not the input resolution.
+- **FR-4:** Expose both a training-friendly `forward` (logits) and an inference helper `predict` (action key string). Also expose `extractFeatures` for the raw CNN result.
 
 ## 3. Non-Functional Requirements
 
@@ -22,9 +22,9 @@ Project-level requirements (including the deferred advanced features) live at `.
 
 ## 4. Design Decisions & Standards Deviations
 
-### Issue / Item 1: Tiny CNN instead of MobileNetV3
+### Issue / Item 1: 24×24×3 is the CNN result, not the input size
 - **Affected Modules:** `src/fluxCore/policy/__policy.py`
-- **Description of Standard / Best Practice:** Many vision policies start from a pre-trained MobileNet or similar ImageNet backbone.
-- **Divergence:** A three-layer CNN ending in adaptive average pooling is used.
-- **Design Decision & Justification:** The locked internal resolution is 24×24. MobileNetV3-Small is designed for ~224×224; at 24×24 it loses almost all spatial signal. A purpose-built tiny network is more appropriate for the current minimal scope.
+- **Description of Standard / Best Practice:** Many pipelines resize the input image to a fixed size before the backbone.
+- **Divergence:** Input spatial size is left free. The backbone itself (via strided convolutions + AdaptiveAvgPool) is responsible for emitting a 24×24×3 feature map.
+- **Design Decision & Justification:** Matches the clarified requirement that 24×24×3 describes the CNN output, not the input.
 - **Code Doc Cross-Reference:** Reflected in `policy.md` and `implementation.md`.

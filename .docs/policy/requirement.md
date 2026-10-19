@@ -12,7 +12,7 @@ All previously discussed advanced features (intent, action history, continuous/v
 
 ## 2. Functional Requirements
 
-- **FR-1 (Input):** The policy accepts a single image as `ndarray` or `torch.Tensor`.
+- **FR-1 (Input):** The policy accepts a single image as `torch.Tensor` (any spatial size).
 - **FR-2 (Output):** The policy produces the next discrete action key.
 - **FR-3 (Action vocabulary):** The first version uses the following fixed registry:
 
@@ -25,7 +25,7 @@ All previously discussed advanced features (intent, action history, continuous/v
 ]
 ```
 
-- **FR-4 (Pre-processing):** The policy must resize / normalize the incoming image to a stable internal representation (24×24×3) before the backbone runs.
+- **FR-4 (CNN result):** The backbone produces a fixed **24 × 24 × 3** feature map. This describes the CNN output, **not** the input resolution.
 
 ## 3. Non-Functional Requirements
 
@@ -36,10 +36,10 @@ All previously discussed advanced features (intent, action history, continuous/v
 
 | Item | Decision |
 |------|----------|
-| Input | Single image (`Tensor`) |
+| Input | Single image (`Tensor`), any spatial size |
 | Output | Discrete action key (`"down"` \| `"up"` \| `"move"` \| `"inject"`) |
-| Internal image shape | 24 × 24 × 3 |
-| Backbone | Tiny CNN (3 conv blocks) sized for 24×24 |
+| CNN result (feature map) | **24 × 24 × 3** |
+| Backbone | Small CNN that ends with AdaptiveAvgPool → 24×24×3 |
 | Package path | `src/fluxCore/policy/` |
 | Interface | `iPolicy` under `src/fluxCore/types/interface/policy/` |
 
