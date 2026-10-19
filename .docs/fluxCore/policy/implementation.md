@@ -3,45 +3,53 @@
 ## 1. Architecture Overview
 
 ```text
-image [B,C,H,W] or [C,H,W]   (any spatial size)
+imageArray [T, 3, H, W]  or  [B, T, 3, H, W]
+        |
+        |  reshape to [B*T, 3, H, W]
+        v
+  MobileNetV3-Small backbone (ImageNet weights)
+  AdaptiveAvgPool + Flatten → [B*T, 576]
         |
         v
-  _preprocess  (float32, 3-channel, optional /255)
+  Linear 576 → featureDim
+        |
+        |  reshape to [B, T, featureDim]
+        v
+  Fuse over T (mean) → [B, featureDim]
         |
         v
-  backbone (CNN)
-    Conv stride-2 blocks + 1x1 projection
-    AdaptiveAvgPool2d -> [B, 3, 24, 24]     <--- CNN result
+  Own head → embedDim, L2-normalize
         |
-        v
-  head
-    Flatten (1728) -> Linear 128 -> ReLU -> Linear 4
-        |
-        +-- extractFeatures() -> [B, 3, 24, 24]
-        +-- forward()         -> logits [B, 4]
-        +-- predict()         -> action key string
+        +-- forward()  → embedding [B, embedDim]
+        +-- score()    → cosine vs registry [B, numActions]
+        +-- predict()  → action key string
 ```
 
-The model is intentionally stateless. `reset()` exists only to satisfy the `iPolicy` protocol.
+The model is stateless. `reset()` exists only for `iPolicy` compatibility.
 
 ## 2. Directory & Module Mapping
 
 | Source Path | Documentation Path | Primary Responsibility |
 | :--- | :--- | :--- |
-| `src/fluxCore/policy/__policy.py` | `.docs/fluxCore/policy/policy.md` | Minimal Policy class |
+| `src/fluxCore/policy/__policy.py` | `.docs/fluxCore/policy/policy.md` | Policy class |
 | `src/fluxCore/policy/__init__.py` | — | Public exports |
 | `src/fluxCore/types/interface/policy/__policy.py` | — | `iPolicy` protocol |
 
 ## 3. Core Workflows & Data Flow
 
-**Inference**
-1. Caller supplies an image tensor (any spatial size).
-2. `predict(image)` runs pre-process → backbone (→ 24×24×3) → head → argmax.
-3. Returns one of `"down"`, `"up"`, `"move"`, `"inject"`.
+**Preparing one process (array of images)**
+1. Load T raw frames (any realistic resolution).
+2. Resize each to the backbone’s preferred size (typically 224×224).
+3. Convert to float tensors, apply ImageNet normalization if desired.
+4. Stack to `[T, 3, H, W]`.
+5. Call `policy.predict(imageArray)` → one action key.
 
-**Training**
-1. Caller supplies image batch and target action indices.
-2. `forward(image)` returns logits.
-3. Standard cross-entropy can be applied against the four-class target.
+**Inference inside the model**
+1. Ensure batch dimension → `[B, T, 3, H, W]`.
+2. Flatten T into the batch, run backbone, project.
+3. Restore `[B, T, featureDim]`, mean-pool over T.
+4. Project into registry space, L2-normalize.
+5. Cosine similarity against the registered action embeddings; argmax → key.
 
-No training loop is provided in this package yet.
+**Training (not yet packaged)**
+- `forward` returns embeddings; `score` returns logits suitable for cross-entropy against action indices, or a contrastive loss against registry rows.
