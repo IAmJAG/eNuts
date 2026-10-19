@@ -1,17 +1,7 @@
 # ==================================================================================
 # src/fluxCore/policy/__init__.py
 # ==================================================================================
-from .__policy import (
-    C_DEFAULT_FEATURE_DIM,
-    C_DEFAULT_IMAGE_SIZE,
-    C_SEED_ACTION_KEYS,
-    Policy,
-)
+from .__policy import C_DEFAULT_FEATURE_DIM, C_SEED_ACTION_KEYS, Policy
 
 # ==================================================================================
-__all__ = [
-    "Policy",
-    "C_SEED_ACTION_KEYS",
-    "C_DEFAULT_FEATURE_DIM",
-    "C_DEFAULT_IMAGE_SIZE",
-]
+__all__ = ["Policy", "C_SEED_ACTION_KEYS", "C_DEFAULT_FEATURE_DIM"]
