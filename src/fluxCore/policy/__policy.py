@@ -23,20 +23,12 @@ C_DEFAULT_IMAGE_SIZE: int = 224
 
 # ==================================================================================
 class Policy(nn.Module, iPolicy):
-    """Policy that treats an array of images as one process and predicts one action.
-
-    - Input: array of images  [T, 3, H, W]  (or batch of arrays [B, T, 3, H, W])
-    - Backbone: MobileNetV3-Small with proven ImageNet weights
-    - Head: owned by this class, projects into an embedded outcome registry
-    - Output: one action key per array (cosine similarity against the registry)
-    """
-
     def __init__(
         self,
         actionRegistryEmbeddings: Tensor,
         featureDim: int = C_DEFAULT_FEATURE_DIM,
         freezeBackbone: bool = True,
-        device: str | torch.device = "cpu",
+        device: str | torch.device = "cuda",
     ) -> None:
         super().__init__()
 
