@@ -15,21 +15,22 @@ from torchvision.models import MobileNet_V3_Small_Weights
 from ..types.interface.policy import iPolicy
 
 # ==================================================================================
-# Seed vocabulary only — not enforced as a fixed size. The live registry is authoritative.
 C_SEED_ACTION_KEYS: tuple[str, ...] = ("down", "up", "move", "inject")
 C_DEFAULT_FEATURE_DIM: int = 512
-C_DEFAULT_IMAGE_SIZE: int = 224
 
 
 # ==================================================================================
 class Policy(nn.Module, iPolicy):
-    """Policy: array of images (one process) → one action via embedded registry.
+    """Array of images (one process) → one action via embedded registry.
 
-    The action vocabulary is **volatile**. The registry size is not fixed at
-    construction beyond matching the provided embeddings and keys. New actions
-    can be introduced by extending the registry (and optionally fine-tuning
-    only what changed). Old training samples do not need re-annotation solely
-    because the vocabulary grew.
+    Public surface:
+      - forward(imageArray)
+      - predict(imageArray)
+      - setRegistry(embeddings, actionKeys)
+      - actionKeys
+      - reset()
+
+    Vocabulary is volatile: extend via setRegistry without rebuilding the backbone.
     """
 
     def __init__(
@@ -71,15 +72,11 @@ class Policy(nn.Module, iPolicy):
 
         if len(actionKeys) != numActions:
             raise ValueError(
-                f"len(actionKeys)={len(actionKeys)} must equal "
-                f"registry rows={numActions}"
+                f"len(actionKeys)={len(actionKeys)} must equal registry rows={numActions}"
             )
 
         self._actionKeys: tuple[str, ...] = tuple(actionKeys)
 
-        # ------------------------------------------------------------------
-        # Proven backbone (MobileNetV3-Small weights)
-        # ------------------------------------------------------------------
         mobileNet = models.mobilenet_v3_small(
             weights=MobileNet_V3_Small_Weights.DEFAULT
         )
@@ -96,12 +93,11 @@ class Policy(nn.Module, iPolicy):
 
         self._proj = nn.Linear(576, featureDim)
 
-        embedDim = int(actionRegistryEmbeddings.size(1))
-        self._embedDim = embedDim
+        self._embedDim = int(actionRegistryEmbeddings.size(1))
         self._head = nn.Sequential(
             nn.Linear(featureDim, featureDim),
             nn.ReLU(inplace=True),
-            nn.Linear(featureDim, embedDim),
+            nn.Linear(featureDim, self._embedDim),
         )
 
         self.register_buffer(
@@ -112,41 +108,18 @@ class Policy(nn.Module, iPolicy):
         self.to(self._device)
 
     # ------------------------------------------------------------------
-    @property
-    def device(self) -> torch.device:
-        return self._device
-
+    # Public API
+    # ------------------------------------------------------------------
     @property
     def actionKeys(self) -> tuple[str, ...]:
-        """Current vocabulary; length always matches the registry."""
         return self._actionKeys
 
-    @property
-    def numActions(self) -> int:
-        return int(self._registry.size(0))
-
-    def train(self, mode: bool = True) -> "Policy":
-        super().train(mode)
-        if self._freezeBackbone:
-            self._backbone.eval()
-        return self
-
-    # ------------------------------------------------------------------
     def setRegistry(
         self,
         actionRegistryEmbeddings: Tensor,
         actionKeys: Sequence[str],
     ) -> None:
-        """Replace or extend the outcome registry without rebuilding the backbone.
-
-        Typical use when vocabulary grows:
-        - append new rows to the embedding table
-        - pass the full updated key list
-        - optionally fine-tune only the head (and new rows), not the whole net
-
-        Old samples keep their original labels; they do not need re-annotation
-        merely because new actions were added elsewhere in the vocabulary.
-        """
+        """Update vocabulary. Same embedDim required; backbone/head shapes unchanged."""
         if actionRegistryEmbeddings.dim() != 2:
             raise ValueError(
                 "actionRegistryEmbeddings must have shape [numActions, embedDim]"
@@ -163,20 +136,10 @@ class Policy(nn.Module, iPolicy):
         self._actionKeys = keys
         self._registry = actionRegistryEmbeddings.detach().to(self._device).clone()
 
-    # ------------------------------------------------------------------
     def forward(self, imageArray: Tensor) -> Tensor:
-        """Fuse an array of images into one embedding in registry space.
-
-        imageArray shapes:
-            [T, 3, H, W]     – one process
-            [B, T, 3, H, W]  – batch of processes
-
-        Returns:
-            Normalized embedding [B, embedDim]
-        """
+        """imageArray: [T,3,H,W] or [B,T,3,H,W] → embedding [B, embedDim]."""
         if imageArray.dim() == 4:
             imageArray = imageArray.unsqueeze(0)
-
         if imageArray.dim() != 5:
             raise ValueError(
                 "Expected [T, 3, H, W] or [B, T, 3, H, W], "
@@ -184,7 +147,6 @@ class Policy(nn.Module, iPolicy):
             )
 
         imageArray = imageArray.to(device=self._device, dtype=torch.float32)
-
         batchSize, sequenceLength, channels, height, width = imageArray.shape
         if channels != 3:
             raise ValueError(f"Expected 3 channels, got {channels}")
@@ -197,27 +159,19 @@ class Policy(nn.Module, iPolicy):
         else:
             features = self._backbone(flat)
 
-        features = self._proj(features)
-        features = features.view(batchSize, sequenceLength, -1)
+        features = self._proj(features).view(batchSize, sequenceLength, -1)
         fused = features.mean(dim=1)
-
-        embedding = self._head(fused)
-        embedding = F.normalize(embedding, p=2, dim=-1)
+        embedding = F.normalize(self._head(fused), p=2, dim=-1)
         return embedding
-
-    def score(self, embedding: Tensor) -> Tensor:
-        """Cosine similarity against the current embedded outcome registry."""
-        registry = F.normalize(self._registry, p=2, dim=-1)
-        return torch.matmul(embedding, registry.T)
 
     @torch.no_grad()
     def predict(self, imageArray: Tensor) -> str:
-        """Return the action key for one image array (one process → one result)."""
+        """One process → one action key from the current registry."""
         wasTraining = self.training
         try:
             self.eval()
             embedding = self.forward(imageArray)
-            scores = self.score(embedding)
+            scores = self._score(embedding)
             index = int(torch.argmax(scores, dim=-1).reshape(-1)[0].item())
             return self._actionKeys[index]
         finally:
@@ -225,5 +179,17 @@ class Policy(nn.Module, iPolicy):
                 self.train()
 
     def reset(self) -> None:
-        """No internal state; kept for interface stability."""
         pass
+
+    # ------------------------------------------------------------------
+    # Internal
+    # ------------------------------------------------------------------
+    def train(self, mode: bool = True) -> "Policy":
+        super().train(mode)
+        if self._freezeBackbone:
+            self._backbone.eval()
+        return self
+
+    def _score(self, embedding: Tensor) -> Tensor:
+        registry = F.normalize(self._registry, p=2, dim=-1)
+        return torch.matmul(embedding, registry.T)
