@@ -8,6 +8,8 @@ The policy accepts a single image and produces the next discrete action.
 
 All previously discussed advanced features (intent, action history, continuous/variant arguments, temporal carousel, stride, dual heads, etc.) are deferred. They may be re-introduced later once the basic loop is working.
 
+**Implementation location:** `src/fluxCore/policy/`
+
 ## 2. Functional Requirements
 
 - **FR-1 (Input):** The policy accepts a single image as `ndarray` or `torch.Tensor`.
@@ -23,7 +25,7 @@ All previously discussed advanced features (intent, action history, continuous/v
 ]
 ```
 
-- **FR-4 (Pre-processing):** The policy (or a thin helper) must resize / normalize the incoming image to a stable internal representation before the backbone runs.
+- **FR-4 (Pre-processing):** The policy must resize / normalize the incoming image to a stable internal representation (24×24×3) before the backbone runs.
 
 ## 3. Non-Functional Requirements
 
@@ -34,11 +36,12 @@ All previously discussed advanced features (intent, action history, continuous/v
 
 | Item | Decision |
 |------|----------|
-| Input | Single image (`ndarray` \| `Tensor`) |
+| Input | Single image (`Tensor`) |
 | Output | Discrete action key (`"down"` \| `"up"` \| `"move"` \| `"inject"`) |
-| Internal image shape | 24 × 24 × 3 (subject to change if the backbone needs more resolution) |
-| Action registry | The four keys listed in FR-3 |
-| Runtime owner | A simple Policy Wrapper that feeds one frame and receives one action key |
+| Internal image shape | 24 × 24 × 3 |
+| Backbone | Tiny CNN (3 conv blocks) sized for 24×24 |
+| Package path | `src/fluxCore/policy/` |
+| Interface | `iPolicy` under `src/fluxCore/types/interface/policy/` |
 
 ## 5. Explicitly Deferred
 
@@ -50,14 +53,10 @@ The following are **out of scope** for the current minimal policy:
 - Temporal stack / carousel / stride
 - Dual-head (action + parameter) prediction
 - Humanization / micro-jitter
-- Training data format details beyond “image → action” pairs
-
-These may be added in later iterations once the basic image → action loop is proven.
+- Full training data pipeline and recorded-log format
 
 ## 6. Remaining Open Items (Minimal Scope)
 
-- Exact pre-processing details (dtype, value range, normalization constants).
-- Backbone choice (tiny CNN vs adapted MobileNetV3-Small at 24×24, etc.).
-- How the discrete action is produced (classification head over the four keys).
-- Package location under `src/` and corresponding documentation path.
-- Training loop and data format for the minimal “image → action” case.
+- Exact normalization constants beyond the simple [0,1] scaling currently implemented.
+- Training loop and dataset for the minimal “image → action” case.
+- Checkpoint save/load helpers (can be added when training starts).
