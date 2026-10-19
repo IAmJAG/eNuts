@@ -1,6 +1,4 @@
 # ==================================================================================
-# src/fluxCore/policy/__policy.py
-# ==================================================================================
 from typing import Any
 
 # ==================================================================================
@@ -23,7 +21,7 @@ C_INPUT_CHANNELS: int = 3
 class Policy(nn.Module, iPolicy):
     """Minimal policy: one image -> one discrete action key."""
 
-    def __init__(self, device: str | torch.device = "cpu") -> None:
+    def __init__(self, device: str | torch.device = "cuda") -> None:
         super().__init__()
 
         if isinstance(device, str):
