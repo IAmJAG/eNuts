@@ -1,10 +1,15 @@
 # ==================================================================================
+# src/fluxCore/policy/__policy.py
+# ==================================================================================
 from typing import Any
 
 # ==================================================================================
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch import Tensor
+from torchvision import models
+from torchvision.models import MobileNet_V3_Small_Weights
 
 # ==================================================================================
 from ..types.interface.policy import iPolicy
@@ -12,25 +17,27 @@ from ..types.interface.policy import iPolicy
 # ==================================================================================
 C_ACTION_KEYS: tuple[str, ...] = ("down", "up", "move", "inject")
 C_NUM_ACTIONS: int = len(C_ACTION_KEYS)
-
-# CNN result (feature map) shape — not the input resolution
-C_FEATURE_HEIGHT: int = 24
-C_FEATURE_WIDTH: int = 24
-C_FEATURE_CHANNELS: int = 3
-C_FEATURE_DIM: int = C_FEATURE_HEIGHT * C_FEATURE_WIDTH * C_FEATURE_CHANNELS  # 1728
+C_DEFAULT_FEATURE_DIM: int = 512
+C_DEFAULT_IMAGE_SIZE: int = 224
 
 
 # ==================================================================================
 class Policy(nn.Module, iPolicy):
-    """Minimal policy: one image -> one discrete action key.
+    """Policy that treats an array of images as one process and predicts one action.
 
-    The backbone produces a fixed 24x24x3 feature map (the CNN result).
-    Input images may be any spatial size; they are only lightly normalized
-    and then processed by the network which is responsible for reaching
-    the 24x24x3 representation.
+    - Input: array of images  [T, 3, H, W]  (or batch of arrays [B, T, 3, H, W])
+    - Backbone: MobileNetV3-Small with proven ImageNet weights
+    - Head: owned by this class, projects into an embedded outcome registry
+    - Output: one action key per array (cosine similarity against the registry)
     """
 
-    def __init__(self, device: str | torch.device = "cuda") -> None:
+    def __init__(
+        self,
+        actionRegistryEmbeddings: Tensor,
+        featureDim: int = C_DEFAULT_FEATURE_DIM,
+        freezeBackbone: bool = True,
+        device: str | torch.device = "cpu",
+    ) -> None:
         super().__init__()
 
         if isinstance(device, str):
@@ -40,24 +47,48 @@ class Policy(nn.Module, iPolicy):
         else:
             self._device = device
 
-        # Backbone ends with a 24x24x3 feature map (AdaptiveAvgPool guarantees spatial size)
+        if actionRegistryEmbeddings.dim() != 2:
+            raise ValueError(
+                "actionRegistryEmbeddings must have shape [numActions, embedDim]"
+            )
+        if actionRegistryEmbeddings.size(0) != C_NUM_ACTIONS:
+            raise ValueError(
+                f"Registry must contain exactly {C_NUM_ACTIONS} entries "
+                f"(got {actionRegistryEmbeddings.size(0)})"
+            )
+
+        # ------------------------------------------------------------------
+        # Proven backbone (MobileNetV3-Small weights)
+        # ------------------------------------------------------------------
+        mobileNet = models.mobilenet_v3_small(
+            weights=MobileNet_V3_Small_Weights.DEFAULT
+        )
         self._backbone = nn.Sequential(
-            nn.Conv2d(3, 32, kernel_size=3, stride=2, padding=1),  # /2
-            nn.ReLU(inplace=True),
-            nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),  # /4
-            nn.ReLU(inplace=True),
-            nn.Conv2d(64, 32, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(32, C_FEATURE_CHANNELS, kernel_size=1, stride=1, padding=0),
-            nn.ReLU(inplace=True),
-            nn.AdaptiveAvgPool2d((C_FEATURE_HEIGHT, C_FEATURE_WIDTH)),  # -> [B, 3, 24, 24]
+            mobileNet.features,
+            nn.AdaptiveAvgPool2d(1),
+            nn.Flatten(),
         )
 
+        self._freezeBackbone = freezeBackbone
+        if freezeBackbone:
+            for parameter in self._backbone.parameters():
+                parameter.requires_grad = False
+
+        # 576 is the channel count of MobileNetV3-Small final feature map
+        self._proj = nn.Linear(576, featureDim)
+
+        # Own head → registry embedding space
+        embedDim = actionRegistryEmbeddings.size(1)
         self._head = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(C_FEATURE_DIM, 128),
+            nn.Linear(featureDim, featureDim),
             nn.ReLU(inplace=True),
-            nn.Linear(128, C_NUM_ACTIONS),
+            nn.Linear(featureDim, embedDim),
+        )
+
+        # Immutable embedded outcome registry
+        self.register_buffer(
+            "_registry",
+            actionRegistryEmbeddings.detach().to(self._device).clone(),
         )
 
         self.to(self._device)
@@ -71,55 +102,76 @@ class Policy(nn.Module, iPolicy):
     def actionKeys(self) -> tuple[str, ...]:
         return C_ACTION_KEYS
 
+    def train(self, mode: bool = True) -> "Policy":
+        super().train(mode)
+        if self._freezeBackbone:
+            self._backbone.eval()
+        return self
+
     # ------------------------------------------------------------------
-    def _preprocess(self, image: Tensor) -> Tensor:
-        """Accept [C,H,W] or [B,C,H,W]; return float32 batch on model device.
+    def forward(self, imageArray: Tensor) -> Tensor:
+        """Fuse an array of images into one embedding in registry space.
 
-        Does **not** force a fixed spatial size — the backbone is responsible
-        for producing the 24x24x3 CNN result.
+        imageArray shapes accepted:
+            [T, 3, H, W]     – one process
+            [B, T, 3, H, W]  – batch of processes
+
+        Returns:
+            Normalized embedding of shape [B, embedDim]
         """
-        if image.dim() == 3:
-            image = image.unsqueeze(0)
-        if image.dim() != 4:
-            raise ValueError("image must have shape [C,H,W] or [B,C,H,W]")
+        if imageArray.dim() == 4:
+            imageArray = imageArray.unsqueeze(0)
 
-        image = image.to(device=self._device, dtype=torch.float32)
+        if imageArray.dim() != 5:
+            raise ValueError(
+                "Expected [T, 3, H, W] or [B, T, 3, H, W], "
+                f"got shape {tuple(imageArray.shape)}"
+            )
 
-        if image.shape[1] == 1:
-            image = image.repeat(1, 3, 1, 1)
-        elif image.shape[1] != 3:
-            raise ValueError("Expected 1 or 3 channel image")
+        imageArray = imageArray.to(device=self._device, dtype=torch.float32)
 
-        # Simple [0, 1] scale when values look like 0-255
-        if image.max() > 1.5:
-            image = image / 255.0
+        batchSize, sequenceLength, channels, height, width = imageArray.shape
+        if channels != 3:
+            raise ValueError(f"Expected 3 channels, got {channels}")
 
-        return image
+        # Run every frame through the backbone
+        flat = imageArray.reshape(batchSize * sequenceLength, channels, height, width)
 
-    def extractFeatures(self, image: Tensor) -> Tensor:
-        """Return the CNN result feature map of shape [B, 3, 24, 24]."""
-        x = self._preprocess(image)
-        return self._backbone(x)
+        if self._freezeBackbone:
+            with torch.no_grad():
+                features = self._backbone(flat)
+        else:
+            features = self._backbone(flat)
 
-    def forward(self, image: Tensor) -> Tensor:
-        """Return raw logits of shape [B, num_actions]."""
-        features = self.extractFeatures(image)  # [B, 3, 24, 24]
-        logits = self._head(features)
-        return logits
+        features = self._proj(features)
+        features = features.view(batchSize, sequenceLength, -1)
+
+        # Fuse the T frames of each process into one vector
+        fused = features.mean(dim=1)
+
+        embedding = self._head(fused)
+        embedding = F.normalize(embedding, p=2, dim=-1)
+        return embedding
+
+    def score(self, embedding: Tensor) -> Tensor:
+        """Cosine similarity against the embedded outcome registry."""
+        registry = F.normalize(self._registry, p=2, dim=-1)
+        return torch.matmul(embedding, registry.T)
 
     @torch.no_grad()
-    def predict(self, image: Tensor) -> str:
-        """Return the action key with highest logit."""
+    def predict(self, imageArray: Tensor) -> str:
+        """Return the action key for one image array (one process → one result)."""
         wasTraining = self.training
         try:
             self.eval()
-            logits = self.forward(image)
-            index = int(torch.argmax(logits[0]).item())
+            embedding = self.forward(imageArray)
+            scores = self.score(embedding)
+            index = int(torch.argmax(scores, dim=-1).reshape(-1)[0].item())
             return C_ACTION_KEYS[index]
         finally:
             if wasTraining:
                 self.train()
 
     def reset(self) -> None:
-        """No internal state in the minimal policy; provided for interface stability."""
+        """No internal state; kept for interface stability."""
         pass
