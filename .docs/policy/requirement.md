@@ -2,61 +2,41 @@
 
 ## 1. Project Overview
 
-This document defines the **minimal** policy for eNuts.
+Minimal policy for eNuts.
 
-The policy accepts a single image and produces the next discrete action.
+The policy accepts an **array of images as one process** and produces **one** discrete action by scoring against an embedded outcome registry.
 
-All previously discussed advanced features (intent, action history, continuous/variant arguments, temporal carousel, stride, dual heads, etc.) are deferred. They may be re-introduced later once the basic loop is working.
-
-**Implementation location:** `src/fluxCore/policy/`
+**Implementation:** `src/fluxCore/policy/`
 
 ## 2. Functional Requirements
 
-- **FR-1 (Input):** The policy accepts a single image as `torch.Tensor` (any spatial size).
-- **FR-2 (Output):** The policy produces the next discrete action key.
-- **FR-3 (Action vocabulary):** The first version uses the following fixed registry:
+- **FR-1 (Input):** Array of images `[T, 3, H, W]` (one process) or `[B, T, 3, H, W]` (batch of processes).
+- **FR-2 (Output):** One discrete action key per array: `down` | `up` | `move` | `inject`.
+- **FR-3 (Backbone):** Proven pretrained model (MobileNetV3-Small) with optional freeze.
+- **FR-4 (Head + registry):** Custom head projects into an embedded outcome registry; prediction is cosine nearest neighbour.
 
-```text
-[
-  { key: "down",   description: "finger/right mouse button down" },
-  { key: "up",     description: "finger/right mouse button up" },
-  { key: "move",   description: "finger/mouse move" },
-  { key: "inject", description: "send key" }
-]
-```
-
-- **FR-4 (CNN result):** The backbone produces a fixed **24 × 24 × 3** feature map. This describes the CNN output, **not** the input resolution.
-
-## 3. Non-Functional Requirements
-
-- **NFR-1:** Interfaces must be stable so the same model can be trained offline and loaded at runtime.
-- **NFR-2:** Documentation must follow the path-mirroring and triad rules in `.kilocode/rules/Documentation.md`.
-
-## 4. Locked Design Decisions (Minimal Version)
+## 3. Locked Design Decisions
 
 | Item | Decision |
 |------|----------|
-| Input | Single image (`Tensor`), any spatial size |
-| Output | Discrete action key (`"down"` \| `"up"` \| `"move"` \| `"inject"`) |
-| CNN result (feature map) | **24 × 24 × 3** |
-| Backbone | Small CNN that ends with AdaptiveAvgPool → 24×24×3 |
-| Package path | `src/fluxCore/policy/` |
-| Interface | `iPolicy` under `src/fluxCore/types/interface/policy/` |
+| Input semantics | Array of images = one process → one result |
+| Backbone | MobileNetV3-Small (ImageNet weights) |
+| Prediction | Cosine similarity vs embedded action registry |
+| Action vocabulary | `down`, `up`, `move`, `inject` |
+| Package | `src/fluxCore/policy/` |
+| Interface | `iPolicy` |
 
-## 5. Explicitly Deferred
+## 4. Explicitly Deferred
 
-The following are **out of scope** for the current minimal policy:
+- Intent conditioning
+- Explicit action/argument history input
+- Continuous / variant argument heads
+- Learned temporal fusion beyond mean pool (LSTM/attention)
+- Training loop and dataset packaging
+- Checkpoint helpers
 
-- Intent
-- Action / argument history
-- Variant continuous arguments (box, coordinate, key, text)
-- Temporal stack / carousel / stride
-- Dual-head (action + parameter) prediction
-- Humanization / micro-jitter
-- Full training data pipeline and recorded-log format
+## 5. Remaining Open Items
 
-## 6. Remaining Open Items (Minimal Scope)
-
-- Exact normalization constants beyond the simple [0,1] scaling currently implemented.
-- Training loop and dataset for the minimal “image → action” case.
-- Checkpoint save/load helpers (can be added when training starts).
+- How action registry embeddings are constructed and versioned
+- Preferred frame count `T` and preprocessing (exact normalize constants)
+- Training procedure and loss

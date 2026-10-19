@@ -1,24 +1,24 @@
 ## Overview & Design Context
 
-Minimal policy implementation located at `src/fluxCore/policy/__policy.py`.
+Policy implementation at `src/fluxCore/policy/__policy.py`.
 
-Accepts a single image (any reasonable spatial size) and returns one discrete action key from the fixed vocabulary: `down`, `up`, `move`, `inject`.
+An **array of images** is treated as **one process** and produces **one** action prediction. The model uses a proven MobileNetV3-Small backbone (ImageNet weights) and a custom head that scores against an embedded outcome registry via cosine similarity.
 
-* **Design Decision / Deviation Notes:** The backbone produces a fixed **24 × 24 × 3 feature map** (the CNN result). This is *not* the input resolution. Input images are only lightly normalized; the network itself is responsible for reaching the 24×24×3 representation. Advanced features (intent, history, continuous arguments, temporal stack) remain deferred.
+* **Design Decision / Deviation Notes:** Input is not a batch of independent images. It is a temporal/spatial array belonging to a single decision. See `requirement.md`.
 
 ---
 
 ## Classes
 
 ### `Policy`
-- **Purpose:** Minimal image-to-action model. Implements `iPolicy`.
+- **Purpose:** Image-array → single discrete action key, via embedded registry scoring. Implements `iPolicy`.
 - **Methods:**
-  - `extractFeatures(image)` -> CNN result tensor of shape `[B, 3, 24, 24]`.
-  - `forward(image)` -> Tensor of logits `[B, 4]`.
-  - `predict(image)` -> action key string (`"down"` | `"up"` | `"move"` | `"inject"`).
-  - `reset()` -> no-op (kept for interface stability; the minimal policy is stateless).
-  - `device` (property) -> current torch device.
-  - `actionKeys` (property) -> the fixed action vocabulary tuple.
+  - `forward(imageArray)` → normalized embedding in registry space `[B, embedDim]`.
+  - `score(embedding)` → cosine similarity scores against the registry `[B, numActions]`.
+  - `predict(imageArray)` → action key string for one process.
+  - `reset()` → no-op (stateless; kept for interface stability).
+  - `device` (property) → current torch device.
+  - `actionKeys` (property) → fixed vocabulary `("down", "up", "move", "inject")`.
 
 ---
 
@@ -32,30 +32,34 @@ Accepts a single image (any reasonable spatial size) and returns one discrete ac
 
 ### `C_ACTION_KEYS`
 - **Type:** `tuple[str, ...]`
-- **Value / Description:** `("down", "up", "move", "inject")` — fixed discrete action vocabulary.
+- **Value / Description:** `("down", "up", "move", "inject")`
 
 ### `C_NUM_ACTIONS`
 - **Type:** `int`
 - **Value / Description:** `4`
 
-### `C_FEATURE_HEIGHT` / `C_FEATURE_WIDTH` / `C_FEATURE_CHANNELS`
+### `C_DEFAULT_FEATURE_DIM`
 - **Type:** `int`
-- **Value / Description:** `24`, `24`, `3` — shape of the CNN result feature map.
+- **Value / Description:** `512` — intermediate feature size after the backbone projection.
 
-### `C_FEATURE_DIM`
+### `C_DEFAULT_IMAGE_SIZE`
 - **Type:** `int`
-- **Value / Description:** `1728` (`24 * 24 * 3`) — flattened size of the CNN result before the classification head.
+- **Value / Description:** `224` — recommended spatial size when preparing frames for the pretrained backbone.
 
 ## Sample Usage
 
 ```python
-from fluxCore.policy import Policy
+from fluxCore.policy import Policy, C_ACTION_KEYS
 import torch
 
-policy = Policy(device="cpu")
-image = torch.rand(3, 480, 270)          # any spatial size
+# Registry: one embedding per action key
+registry = torch.randn(len(C_ACTION_KEYS), 128)
+policy = Policy(actionRegistryEmbeddings=registry, device="cpu")
 
-features = policy.extractFeatures(image) # [1, 3, 24, 24]  <-- CNN result
-actionKey = policy.predict(image)        # e.g. "down"
-logits = policy.forward(image)           # [1, 4]
+# One process = array of T images, shape [T, 3, H, W]
+imageArray = torch.rand(8, 3, 224, 224)
+
+actionKey = policy.predict(imageArray)   # e.g. "down"
+embedding = policy.forward(imageArray)   # [1, 128]
+scores = policy.score(embedding)         # [1, 4]
 ```
