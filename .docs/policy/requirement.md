@@ -48,13 +48,16 @@ Intent = {
 |--------|----------|
 | Accepted input | `ndarray` or `torch.Tensor` (single image or already-stacked) |
 | Source | Out of scope for the policy design. Upstream will supply H.264-decoded frames converted to ndarray/tensor. |
-| Pre-processing | Mandatory inside the policy path: resize, normalize, colour conversion, etc. so the model always sees a stable internal representation. |
-| Temporal storage | Carousel (ring buffer) of the last *N* pre-processed frames. |
-| Stack size *N* | Hyper-parameter. Candidate range **16–64**. |
-| Stride | Hyper-parameter with a default. Controls temporal density vs. memory/compute. |
-| Preferred flow | Accept single image → pre-process → push into carousel → produce stacked tensor for the decision head (steps can be fused). |
+| Pre-processing | Mandatory: resize, normalize, colour conversion, etc. so the model always sees a stable internal representation. |
+| Temporal storage | Carousel (ring buffer) of the last *N* pre-processed frames. Owned by the Policy Wrapper (see FR-3). |
+| Stack size *N* | **Default 16** (hyper-parameter, previously considered range 16–64). |
+| Stride | Hyper-parameter. Guidance by source FPS so that the 16-frame window covers a comparable real-time duration:<br>• 30 fps → stride 1 (every frame)<br>• 60 fps → stride 3–4 |
+| Internal tensor shape after pre-processing | **24 × 24 × 3** (H×W×C). Dtype and value range still open. |
+| Preferred flow | Accept single image → pre-process → push into carousel → produce stacked tensor for the decision head. |
 
 Purpose of the stack: give the model a sense of direction / temporal context.
+
+**Note on 24×24×3:** This is a deliberate low-resolution choice. It reduces compute and memory but discards most fine spatial detail. Compatibility with a MobileNetV3-Small backbone (normally trained at 224×224) must be validated; a lighter custom CNN or a heavily adapted backbone may be required.
 
 ### 4.3 Discrete Action Registry (first version)
 
@@ -121,15 +124,24 @@ Responsibilities:
 
 **Emitter compatibility:** The wrapper subscribes to the existing `SCRCPYEmitter` `ON_FRAME` event. `Frame.decode` already yields tensors. No modification of the emitter is required for the policy contract.
 
+### 4.8 Architecture Candidate
+
+A previous `SemanticPredictorPolicy` implementation (MobileNetV3-Small backbone + LSTM temporal fusion + dual projection heads scored against registry embeddings) is under consideration as a starting point.
+
+It must be adapted to the locked contract before use:
+- Buffering (`_frameFeatures` deque, `addFrame`) must move out of the model into the Policy Wrapper (FR-3).
+- The second head currently assumes a discrete parameter registry; the locked design requires a **variant argument** (box / coordinate / key / text), which implies regression or a typed structured head rather than pure cosine-similarity over a parameter embedding table.
+- Input resolution 24×24×3 is far below the 224×224 regime MobileNetV3-Small was trained on; backbone choice or adaptation needs explicit validation.
+- Intent and action keys must be turned into embeddings by a defined encoding strategy (still open).
+
 ## 5. Remaining Open Items
 
 The following items are still undecided and must be resolved before implementation can begin:
 
-- Exact default values and search ranges for the image-stack hyper-parameters (*N* and stride).
-- Concrete internal tensor shape after pre-processing (height, width, channels, dtype, value range).
+- Concrete dtype and value range of the 24×24×3 internal tensor (e.g. float32 in [0, 1] or ImageNet-normalized).
 - Exact embedding / encoding strategy for the intent key and for the discrete action keys.
 - Concrete value of history length *M* and the padding/masking convention.
-- Full formal schema (including type tags) for the variant argument object that the model will emit.
+- Full formal schema (including type tags) for the variant argument object that the model will emit, and how the second head will produce it (regression vs. discrete parameter registry vs. hybrid).
 - Detailed recorded-data file format (how video and the timestamped action log are stored and aligned).
-- Network architecture (backbone, temporal fusion method, heads) and training hyper-parameters.
+- Final decision on network architecture (adapt the candidate `SemanticPredictorPolicy` or design a new one) and training hyper-parameters.
 - Package location under `src/` and the corresponding documentation mirroring path.
