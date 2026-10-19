@@ -2,18 +2,17 @@
 
 ## 1. Project Overview
 
-Minimal policy for eNuts.
-
-The policy accepts an **array of images as one process** and produces **one** discrete action by scoring against an embedded outcome registry.
+Policy for eNuts: an **array of images** is one process and yields **one** discrete action via an embedded outcome registry.
 
 **Implementation:** `src/fluxCore/policy/`
 
 ## 2. Functional Requirements
 
-- **FR-1 (Input):** Array of images `[T, 3, H, W]` (one process) or `[B, T, 3, H, W]` (batch of processes).
-- **FR-2 (Output):** One discrete action key per array: `down` | `up` | `move` | `inject`.
-- **FR-3 (Backbone):** Proven pretrained model (MobileNetV3-Small) with optional freeze.
-- **FR-4 (Head + registry):** Custom head projects into an embedded outcome registry; prediction is cosine nearest neighbour.
+- **FR-1:** Input `[T, 3, H, W]` or `[B, T, 3, H, W]`.
+- **FR-2:** One prediction per array (fused frames).
+- **FR-3:** Proven backbone (MobileNetV3-Small), optional freeze.
+- **FR-4:** Custom head + cosine score against a **dynamic** registry.
+- **FR-5 (Volatile vocabulary):** Action set may grow. Extending the registry must not force full retrain or re-annotation of older data. Scoped fine-tuning for the change is expected.
 
 ## 3. Locked Design Decisions
 
@@ -21,22 +20,19 @@ The policy accepts an **array of images as one process** and produces **one** di
 |------|----------|
 | Input semantics | Array of images = one process → one result |
 | Backbone | MobileNetV3-Small (ImageNet weights) |
-| Prediction | Cosine similarity vs embedded action registry |
-| Action vocabulary | `down`, `up`, `move`, `inject` |
+| Prediction | Cosine similarity vs registry |
+| Action count | **Not fixed** — registry + `actionKeys` are authoritative |
+| Vocabulary updates | `setRegistry`; backbone not rebuilt |
 | Package | `src/fluxCore/policy/` |
-| Interface | `iPolicy` |
 
-## 4. Explicitly Deferred
+## 4. Deferred
 
-- Intent conditioning
-- Explicit action/argument history input
-- Continuous / variant argument heads
-- Learned temporal fusion beyond mean pool (LSTM/attention)
-- Training loop and dataset packaging
-- Checkpoint helpers
+- Intent, history, continuous argument heads
+- Learned temporal fusion beyond mean pool
+- Training loop / checkpoint packaging
 
-## 5. Remaining Open Items
+## 5. Open
 
-- How action registry embeddings are constructed and versioned
-- Preferred frame count `T` and preprocessing (exact normalize constants)
-- Training procedure and loss
+- How new registry rows are initialized when an action is added
+- Fine-tune recipe when vocabulary grows
+- Preferred `T` and exact image normalization
