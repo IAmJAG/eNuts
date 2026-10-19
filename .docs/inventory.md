@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-18 09:08:30 UTC*
+*Auto-generated on: 2026-10-19 01:18:22 UTC*
 
 ## Current Directory Structure
 
@@ -70,7 +70,6 @@ eNuts/
 │   │   │   │   ├── __pageKeys.py
 │   │   │   │   └── __smokePages.py
 │   │   │   ├── widgets/
-│   │   │   │   ├── pages/
 │   │   │   │   ├── spinners/
 │   │   │   │   │   ├── __evolvingNeuralBrain.py
 │   │   │   │   │   ├── __evolvingNeuralOrb.py
@@ -784,6 +783,7 @@ src/jAGFx/logging:
 	__logging.py - 
 		FUNCTION(S):
 			_resolveErr -> : _resolveerr
+			trace -> : trace
 			verbose -> : verbose
 			debug -> : debug
 			info -> : info
@@ -793,6 +793,7 @@ src/jAGFx/logging:
 			fatal -> : fatal
 			_exitOnError -> : _exitonerror
 		CONSTANTS(S)/GLOBAL(S)
+			TRACE -> : trace
 			VERBOSE -> : verbose
 			EXITONERROR -> : exitonerror
 	__utilities.py - 
@@ -1358,52 +1359,50 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-a0930b5:
-	feat(WorkSpace): device pages use Image; lazy ensureRunning + ON_FRAME bridge
+3d909d9:
+	fix(logging): update VERBOSE log level from 0 to 1
+		src/jAGFx/logging/__logging.py
+
+a2e7939:
+	fix(logging): add 'asyncio.windows_events' to THIRD_PARTY_LOGGERS
+		src/main.py
+
+ef33ac9:
+	fix(WorkSpace): rename _a* methods so @workflow does not auto-invoke them
 		src/eNuts/application/workspace/__workSpace.py
 
-62005e6:
-	feat(Phase4.x-7): global SCRCPYEmitter from discovery, device Image pages, lazy stream
+3116911:
+	feat: add TRACE logging level and update log level to TRACE
+		src/__monkeyPatch.py
+		src/jAGFx/logging/__logging.py
+		src/main.py
+
+039172c:
+	Revert "chore: demote device/stream/WorkSpace verbose logs to debug"
 		src/eNuts/UI/pages/__devicePage.py
-		src/eNuts/UI/pages/__pageKeys.py
-		src/eNuts/application/device/__deviceManager.py
-		src/eNuts/utilities/asyncADB/__asyncADB.py
-
-f79e650:
-	docs: update known_issues â€” ghost device leaf, logging, SCRCPY/Image notes
-		.docs/known_issues.md
-
-475ef14:
-	docs(issues): add known issues documentation for component and UI problems
-		.docs/inventory.md
-		.docs/known_issues.md
-
-685c990:
-	fix(WorkSpace): do not create (no devices) menu leaf when list is empty
-		src/eNuts/application/workspace/__workSpace.py
-
-3bbb3a3:
-	fix(nav): never create (no devices) leaf â€” empty Devices header until discovery
-		src/eNuts/UI/navigation/__sideBarMenuBuilder.py
 		src/eNuts/UI/pages/__navigationPages.py
-		src/jAGQt/widgets/SideBar/menu/__sideBarMenuItem.py
 
-830616b:
-	fix(WorkSpace): replace unicode arrow in logs with ASCII -> (cp1252 safe)
-		src/eNuts/application/workspace/__workSpace.py
-
-89ee386:
-	refactor(deviceManager): simplify device management and improve discovery logic refactor(workspace): enhance device synchronization and streamline UI updates
-
-28889d3:
-	fix(workspace): update signal definitions and clean up constructor fix(inventory): update auto-generated timestamp
-		.docs/inventory.md
-		src/eNuts/UI/navigation/__sideBarMenuBuilder.py
-		src/eNuts/application/workspace/__workSpace.py
-
-4a5ef21:
-	fix(deviceManager/WorkSpace): reliable device store + force-clear (no devices) leaf
+f17b5aa:
+	Revert "chore: demote Shell/deviceManager/WorkSpace verbose to debug"
+		src/eNuts/application/__shell.py
 		src/eNuts/application/device/__deviceManager.py
+
+1cf4d53:
+	Revert "chore: demote WorkSpace verbose logs to debug"
 		src/eNuts/application/workspace/__workSpace.py
+
+aa8e27c:
+	chore: demote WorkSpace verbose logs to debug
+		src/eNuts/application/workspace/__workSpace.py
+
+063cd7f:
+	chore: demote Shell/deviceManager/WorkSpace verbose to debug
+		src/eNuts/application/__shell.py
+		src/eNuts/application/device/__deviceManager.py
+
+08fd215:
+	chore: demote device/stream/WorkSpace verbose logs to debug
+		src/eNuts/UI/pages/__devicePage.py
+		src/eNuts/UI/pages/__navigationPages.py
 
 ```
