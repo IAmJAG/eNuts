@@ -16,7 +16,7 @@ from .__log import log
 
 # ==================================================================================
 TRACE: int = 5
-VERBOSE: int = 0
+VERBOSE: int = 1
 addLevelName(TRACE, "TRACE")
 addLevelName(VERBOSE, "VERBOSE")
 EXITONERROR: bool = True
