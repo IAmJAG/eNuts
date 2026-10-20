@@ -1,27 +1,20 @@
 # Implementation Details
 
-## 1. Flow
+## 1. Vocabulary layer
 
 ```text
-fused features
-  ├─ actionHead  → score vs action registry → action key
-  ├─ argKindHead → coordinate | box | key | text
-  ├─ spatialHead → [x/left, y/top, w, h] in [0,1]
-  ├─ keyHead     → score vs key registry → code
-  └─ textHead    → score vs text registry → value
+VocabularyItem  → toEmbedding()     [embedDim]
+Vocabulary      → toEmbeddings()    [N, embedDim]
+PolicyOptions   → actions, argumentKinds (+ settings)
+Policy          → scores against action / kind embedding tables
+                → spatial head for continuous payload
 ```
 
-## 2. Public API
+## 2. Predict packing
 
-`forward`, `predict`, `actionKeys` only.
-
-## 3. Argument packing (`predict`)
-
-| kind | dict |
-|------|------|
+| kind | argument dict |
+|------|----------------|
 | coordinate | `{kind, x, y}` |
 | box | `{kind, left, top, width, height}` |
-| key | `{kind, code}` |
-| text | `{kind, value}` |
-
-Empty key/text registries yield empty `code` / `value` if that kind is still selected.
+| key | `{kind, code}` — value open (empty until value path exists) |
+| text | `{kind, value}` — value open (empty until value path exists) |
