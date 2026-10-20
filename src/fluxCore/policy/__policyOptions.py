@@ -2,45 +2,54 @@
 from __future__ import annotations
 
 # ==================================================================================
-from typing import Optional
-
-# ==================================================================================
 from torch import Tensor
 
 # ==================================================================================
 from jAGFx.serializer import Serializable
 
 # ==================================================================================
-from .__vocabulary import C_DEFAULT_EMBED_DIM, Vocabulary, VocabularyItem
+from .vocabulary import C_DEFAULT_EMBED_DIM, Vocabulary
 
 # ==================================================================================
-C_SEED_ACTION_KEYS: tuple[str, ...] = ("down", "up", "move", "inject")
-C_SEED_ACTION_DESCRIPTIONS: tuple[str, ...] = (
-    "finger/right mouse button down",
-    "finger/right mouse button up",
-    "finger/mouse move",
-    "send key or text",
-)
-C_SEED_ARGUMENT_KINDS: tuple[str, ...] = ("coordinate", "box", "key", "text")
-C_SEED_ARGUMENT_KIND_DESCRIPTIONS: tuple[str, ...] = (
-    "normalized point (x, y)",
-    "normalized box (left, top, width, height)",
-    "keyboard key code (open-ended value)",
-    "text string (open-ended value)",
-)
+C_SEED_ACTIONS: dict[str, str] = {
+    "down": "finger/right mouse button down",
+    "up": "finger/right mouse button up",
+    "move": "finger/mouse move",
+    "inject": "send key or text",
+}
+C_SEED_ARGUMENT_KINDS: dict[str, str] = {
+    "coordinate": "normalized point (x, y)",
+    "box": "normalized box (left, top, width, height)",
+    "key": "keyboard key code (open-ended value)",
+    "text": "text string (open-ended value)",
+}
 C_DEFAULT_FEATURE_DIM: int = 512
 
 
 # ==================================================================================
 class PolicyOptions(Serializable):
+    """Serializable policy options.
+
+    Discrete vocabularies only:
+      - actions
+      - argumentKinds
+
+    Argument values (coords, key codes, free text) are not vocabularies.
+    """
+
     def __init__(
-        self, actions: Optional[Vocabulary], argument: Optional[Vocabulary],
-        featureDim: int = C_DEFAULT_FEATURE_DIM, freezeBackbone: bool = True,
-        embedDim: int = C_DEFAULT_EMBED_DIM, device: str = "cuda"
+        self,
+        actions: Vocabulary | None = None,
+        argumentKinds: Vocabulary | None = None,
+        featureDim: int = C_DEFAULT_FEATURE_DIM,
+        freezeBackbone: bool = True,
+        device: str = "cuda",
+        embedDim: int = C_DEFAULT_EMBED_DIM,
     ) -> None:
         super().__init__()
-        self._actions: Optional[Vocabulary] = actions
-        self._argumentKinds: Optional[Vocabulary] = argument
+
+        self._actions: Vocabulary | None = actions
+        self._argumentKinds: Vocabulary | None = argumentKinds
         self._featureDim: int = int(featureDim)
         self._freezeBackbone: bool = bool(freezeBackbone)
         self._device: str = device if device is not None else "cuda"
@@ -66,13 +75,13 @@ class PolicyOptions(Serializable):
 
         if self._actions is not None:
             self._actions.embedDim = self._embedDim
-            if self._actions.size < 1:
-                raise ValueError("actions vocabulary must contain at least one item")
+            if self._actions.dimension < 1:
+                raise ValueError("actions vocabulary must be non-empty")
 
         if self._argumentKinds is not None:
             self._argumentKinds.embedDim = self._embedDim
-            if self._argumentKinds.size < 1:
-                raise ValueError("argumentKinds vocabulary must contain at least one item")
+            if self._argumentKinds.dimension < 1:
+                raise ValueError("argumentKinds vocabulary must be non-empty")
 
     # ------------------------------------------------------------------
     @property
@@ -129,20 +138,20 @@ class PolicyOptions(Serializable):
 
     # ------------------------------------------------------------------
     def requireActions(self) -> Vocabulary:
-        if self._actions is None or self._actions.size < 1:
+        if self._actions is None or self._actions.dimension < 1:
             raise ValueError("PolicyOptions.actions is required")
         return self._actions
 
     def requireArgumentKinds(self) -> Vocabulary:
-        if self._argumentKinds is None or self._argumentKinds.size < 1:
+        if self._argumentKinds is None or self._argumentKinds.dimension < 1:
             raise ValueError("PolicyOptions.argumentKinds is required")
         return self._argumentKinds
 
     def actionEmbeddings(self) -> Tensor:
-        return self.requireActions().toEmbeddings()
+        return self.requireActions().toTensor()
 
     def argumentKindEmbeddings(self) -> Tensor:
-        return self.requireArgumentKinds().toEmbeddings()
+        return self.requireArgumentKinds().toTensor()
 
     @classmethod
     def withDefaults(
@@ -152,20 +161,9 @@ class PolicyOptions(Serializable):
         device: str = "cuda",
         embedDim: int = C_DEFAULT_EMBED_DIM,
     ) -> PolicyOptions:
-        """Build options with seed action and argument-kind vocabularies."""
-        actions = Vocabulary.fromLabels(
-            C_SEED_ACTION_KEYS,
-            C_SEED_ACTION_DESCRIPTIONS,
-            embedDim=embedDim,
-        )
-        argumentKinds = Vocabulary.fromLabels(
-            C_SEED_ARGUMENT_KINDS,
-            C_SEED_ARGUMENT_KIND_DESCRIPTIONS,
-            embedDim=embedDim,
-        )
         return cls(
-            actions=actions,
-            argumentKinds=argumentKinds,
+            actions=Vocabulary(C_SEED_ACTIONS, embedDim=embedDim),
+            argumentKinds=Vocabulary(C_SEED_ARGUMENT_KINDS, embedDim=embedDim),
             featureDim=featureDim,
             freezeBackbone=freezeBackbone,
             device=device,
