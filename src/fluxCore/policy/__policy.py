@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 # ==================================================================================
-from typing import Any, Sequence
+from typing import Any
 
 # ==================================================================================
 import torch
@@ -15,79 +15,50 @@ from torchvision.models import MobileNet_V3_Small_Weights
 # ==================================================================================
 from ..types.interface.policy import iPolicy
 from ..utilities import getTorchDevice
-
-# ==================================================================================
-C_SEED_ACTION_KEYS: tuple[str, ...] = ("down", "up", "move", "inject")
-C_DEFAULT_FEATURE_DIM: int = 512
-C_ARG_KINDS: tuple[str, ...] = ("coordinate", "box", "key", "text")
+from .__policyOptions import PolicyOptions
 
 
 # ==================================================================================
 class Policy(nn.Module, iPolicy):
     """Array of images (one process) → action key + variant argument.
 
-    Registries (actions, optional keys, optional texts) are fixed at construction.
-    Vocabulary changes are a planning/training concern: build a new Policy (or
-    load a checkpoint trained for that vocabulary). No runtime setRegistry.
-
-    Argument kinds:
-      coordinate → {kind, x, y}           normalized [0, 1]
-      box        → {kind, top, left, width, height}
-      key        → {kind, code}           from key registry supplied at init
-      text       → {kind, value}          from text registry supplied at init
+    All registries and hyper-parameters come from PolicyOptions (fixed at init).
     """
 
-    def __init__(
-        self,
-        actRegEmbeddings: Tensor,
-        actKeys: Sequence[str] | None = None,
-        keyRegEmbeddings: Tensor | None = None,
-        keyCodes: Sequence[str] | None = None,
-        textRegEmbeddings: Tensor | None = None,
-        textValues: Sequence[str] | None = None,
-        featDim: int = C_DEFAULT_FEATURE_DIM,
-        freeze: bool = True,
-        device: str | torch.device = "cuda",
-    ) -> None:
+    def __init__(self, options: PolicyOptions) -> None:
         super().__init__()
-        self._device = getTorchDevice(device)
 
-        self._actionKeys = self._bindRegistry(
-            actRegEmbeddings, actKeys, C_SEED_ACTION_KEYS, "action"
-        )
+        self._device = getTorchDevice(options.device)
+        self._argKinds = options.argKinds
+        self._actionKeys = options.action.labels
+        self._keyCodes = options.key.labels if options.key is not None else ()
+        self._textValues = options.text.labels if options.text is not None else ()
+        self._embedDim = options.embedDim
+        self._freezeBackbone = options.freezeBackbone
+
         self.register_buffer(
             "_actionRegistry",
-            actRegEmbeddings.detach().to(self._device).clone(),
+            options.action.embeddings.detach().to(self._device).clone(),
         )
-        self._embedDim = int(actRegEmbeddings.size(1))
-
-        self._keyCodes: tuple[str, ...] = ()
-        if keyRegEmbeddings is not None:
-            self._keyCodes = self._bindRegistry(
-                keyRegEmbeddings, keyCodes, (), "key"
-            )
-            if keyRegEmbeddings.size(1) != self._embedDim:
-                raise ValueError("key registry embedDim must match action embedDim")
+        if options.key is not None:
             self.register_buffer(
                 "_keyRegistry",
-                keyRegEmbeddings.detach().to(self._device).clone(),
+                options.key.embeddings.detach().to(self._device).clone(),
             )
         else:
-            self.register_buffer("_keyRegistry", torch.empty(0, self._embedDim))
-
-        self._textValues: tuple[str, ...] = ()
-        if textRegEmbeddings is not None:
-            self._textValues = self._bindRegistry(
-                textRegEmbeddings, textValues, (), "text"
+            self.register_buffer(
+                "_keyRegistry", torch.empty(0, self._embedDim, device=self._device)
             )
-            if textRegEmbeddings.size(1) != self._embedDim:
-                raise ValueError("text registry embedDim must match action embedDim")
+
+        if options.text is not None:
             self.register_buffer(
                 "_textRegistry",
-                textRegEmbeddings.detach().to(self._device).clone(),
+                options.text.embeddings.detach().to(self._device).clone(),
             )
         else:
-            self.register_buffer("_textRegistry", torch.empty(0, self._embedDim))
+            self.register_buffer(
+                "_textRegistry", torch.empty(0, self._embedDim, device=self._device)
+            )
 
         mobileNet = models.mobilenet_v3_small(
             weights=MobileNet_V3_Small_Weights.DEFAULT
@@ -97,11 +68,11 @@ class Policy(nn.Module, iPolicy):
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
         )
-        self._freezeBackbone = freeze
-        if freeze:
+        if self._freezeBackbone:
             for parameter in self._backbone.parameters():
                 parameter.requires_grad = False
 
+        featDim = options.featureDim
         self._projection = nn.Linear(576, featDim)
 
         self._actionHead = nn.Sequential(
@@ -112,7 +83,7 @@ class Policy(nn.Module, iPolicy):
         self._argKindHead = nn.Sequential(
             nn.Linear(featDim, featDim),
             nn.ReLU(inplace=True),
-            nn.Linear(featDim, len(C_ARG_KINDS)),
+            nn.Linear(featDim, len(self._argKinds)),
         )
         self._spatialHead = nn.Sequential(
             nn.Linear(featDim, featDim),
@@ -139,7 +110,6 @@ class Policy(nn.Module, iPolicy):
         return self._actionKeys
 
     def forward(self, imageArray: Tensor) -> dict[str, Tensor]:
-        """Training forward. All tensors batched on the model device."""
         fused = self._fuse(imageArray)
         return {
             "actionEmbedding": F.normalize(self._actionHead(fused), p=2, dim=-1),
@@ -151,29 +121,23 @@ class Policy(nn.Module, iPolicy):
 
     @torch.no_grad()
     def predict(self, imageArray: Tensor) -> tuple[str, dict[str, Any]]:
-        """One process → (actionKey, argument dict)."""
         wasTraining = self.training
         try:
             self.eval()
             out = self.forward(imageArray)
 
-            actionScores = self._cosine(
-                out["actionEmbedding"], self._actionRegistry
-            )
+            actionScores = self._cosine(out["actionEmbedding"], self._actionRegistry)
             actionIndex = int(torch.argmax(actionScores, dim=-1).reshape(-1)[0].item())
             actionKey = self._actionKeys[actionIndex]
 
             kindIndex = int(
                 torch.argmax(out["argKindLogits"], dim=-1).reshape(-1)[0].item()
             )
-            kind = C_ARG_KINDS[kindIndex]
+            kind = self._argKinds[kindIndex]
             spatial = out["spatial"].reshape(-1, 4)[0].detach().cpu()
 
             argument = self._buildArgument(
-                kind,
-                spatial,
-                out["keyEmbedding"],
-                out["textEmbedding"],
+                kind, spatial, out["keyEmbedding"], out["textEmbedding"]
             )
             return actionKey, argument
         finally:
@@ -187,31 +151,6 @@ class Policy(nn.Module, iPolicy):
         return self
 
     # ------------------------------------------------------------------
-    @staticmethod
-    def _bindRegistry(
-        embeddings: Tensor,
-        labels: Sequence[str] | None,
-        seed: Sequence[str],
-        name: str,
-    ) -> tuple[str, ...]:
-        if embeddings.dim() != 2:
-            raise ValueError(f"{name} registry must have shape [N, embedDim]")
-        n = int(embeddings.size(0))
-        if n < 1:
-            raise ValueError(f"{name} registry must contain at least one entry")
-
-        if labels is None:
-            if seed and n <= len(seed):
-                labels = tuple(seed[:n])
-            else:
-                raise ValueError(f"{name} labels must be provided for this registry size")
-        else:
-            labels = tuple(labels)
-
-        if len(labels) != n:
-            raise ValueError(f"{name} labels length must match registry rows")
-        return labels
-
     def _fuse(self, imageArray: Tensor) -> Tensor:
         if imageArray.dim() == 4:
             imageArray = imageArray.unsqueeze(0)
@@ -252,11 +191,7 @@ class Policy(nn.Module, iPolicy):
         textEmbedding: Tensor,
     ) -> dict[str, Any]:
         if kind == "coordinate":
-            return {
-                "kind": "coordinate",
-                "x": float(spatial[0]),
-                "y": float(spatial[1]),
-            }
+            return {"kind": "coordinate", "x": float(spatial[0]), "y": float(spatial[1])}
         if kind == "box":
             return {
                 "kind": "box",
