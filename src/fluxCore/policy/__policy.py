@@ -24,9 +24,11 @@ class Policy(nn.Module, iPolicy):
     def __init__(self, options: PolicyOptions) -> None:
         super().__init__()
 
+        action = options.requireAction()
+
         self._device: TorchDevice = getTorchDevice(options.device)
         self._argKinds = options.argKinds
-        self._actionKeys = options.action.labels
+        self._actionKeys = action.labels
         self._keyCodes = options.key.labels if options.key is not None else ()
         self._textValues = options.text.labels if options.text is not None else ()
         self._embedDim = options.embedDim
@@ -34,24 +36,23 @@ class Policy(nn.Module, iPolicy):
 
         self.register_buffer(
             "_actionRegistry",
-            options.action.embeddings.detach().to(self._device).clone(),
+            options.actionEmbeddings().detach().to(self._device).clone(),
         )
 
-        if options.key is not None:
+        keyEmb = options.keyEmbeddings()
+        if keyEmb is not None:
             self.register_buffer(
-                "_keyRegistry",
-                options.key.embeddings.detach().to(self._device).clone(),
+                "_keyRegistry", keyEmb.detach().to(self._device).clone()
             )
-
         else:
             self.register_buffer(
                 "_keyRegistry", torch.empty(0, self._embedDim, device=self._device)
             )
 
-        if options.text is not None:
+        textEmb = options.textEmbeddings()
+        if textEmb is not None:
             self.register_buffer(
-                "_textRegistry",
-                options.text.embeddings.detach().to(self._device).clone(),
+                "_textRegistry", textEmb.detach().to(self._device).clone()
             )
         else:
             self.register_buffer(
@@ -140,11 +141,13 @@ class Policy(nn.Module, iPolicy):
             return actionKey, argument
 
         finally:
-            if wasTraining: self.train()
+            if wasTraining:
+                self.train()
 
     def train(self, mode: bool = True) -> Policy:
         super().train(mode)
-        if self._freezeBackbone: self._backbone.eval()
+        if self._freezeBackbone:
+            self._backbone.eval()
         return self
 
     # ------------------------------------------------------------------
@@ -181,8 +184,11 @@ class Policy(nn.Module, iPolicy):
         return torch.matmul(emb, reg.T)
 
     def _buildArgument(
-        self, kind: str, spatial: Tensor,
-        keyEmbedding: Tensor, textEmbedding: Tensor,
+        self,
+        kind: str,
+        spatial: Tensor,
+        keyEmbedding: Tensor,
+        textEmbedding: Tensor,
     ) -> dict[str, Any]:
         if kind == "coordinate":
             return {"kind": "coordinate", "x": float(spatial[0]), "y": float(spatial[1])}
@@ -202,7 +208,7 @@ class Policy(nn.Module, iPolicy):
             scores = self._cosine(keyEmbedding, self._keyRegistry)
             index = int(torch.argmax(scores, dim=-1).reshape(-1)[0].item())
             return {"kind": "key", "code": self._keyCodes[index]}
-        
+
         if kind == "text":
             if self._textRegistry.numel() == 0 or not self._textValues:
                 return {"kind": "text", "value": ""}
