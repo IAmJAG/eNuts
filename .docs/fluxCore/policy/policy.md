@@ -1,56 +1,59 @@
 ## Overview & Design Context
 
-Policy starts from **vocabularies** — finite discrete sets.
+Vocabulary is the foundation of the discrete side of the policy.
 
-| Discrete (vocabulary) | Open / continuous (not vocabulary) |
-|------------------------|-------------------------------------|
-| **actions** | coordinate / box spatial values |
-| **argumentKinds** | key codes, free text values |
+```text
+src/fluxCore/policy/vocabulary/
+  Label       — id + description (Serializable)
+  Vocabulary  — dict of labels, toTensor() → embedding table
 
-Key and text are argument *kinds*. Their *values* are not closed lists.
+src/fluxCore/types/interface/policy/vocabulary/
+  iLabel, iVocabulary
+```
+
+| Discrete vocabulary | Open argument values |
+|---------------------|----------------------|
+| actions | coordinate / box fields |
+| argument kinds | key codes, free text |
 
 ---
 
 ## Classes
 
-### `VocabularyItem` (Serializable)
-- `label`, `description`, `embedDim`
-- `toEmbedding()` → `[embedDim]`
+### `Label`
+- `id`, `description`
+- Serializable
 
-### `Vocabulary` (Serializable)
-- ordered list of `VocabularyItem`
-- `toEmbeddings()` → `[N, embedDim]`
-- `fromLabels(...)` helper
+### `Vocabulary`
+- `Vocabulary({"down": "finger down", ...})`
+- `dimension`, `labels`, `toTensor()` → `[N, embedDim]`
+- Serializable (`entries` + `embedDim`)
 
-### `PolicyOptions` (Serializable)
-- `actions: Vocabulary`
-- `argumentKinds: Vocabulary`
-- model settings (`featureDim`, `freezeBackbone`, `device`, `embedDim`)
-- `withDefaults()` seed builder
+### `PolicyOptions`
+- `actions: Vocabulary`, `argumentKinds: Vocabulary`
+- `withDefaults()`
 
 ### `Policy`
-- `Policy(options)`
-- `predict` → `(actionKey, argumentDict)`
+- `Policy(options)` → `predict` → `(actionKey, argumentDict)`
 
-## Sample Usage
+## Sample
 
 ```python
 from fluxCore.policy import Policy, PolicyOptions, Vocabulary
-import json
 
 options = PolicyOptions.withDefaults(device="cpu")
 # or:
-# options = PolicyOptions(
-#     actions=Vocabulary.fromLabels(["down", "up", "move", "inject"]),
-#     argumentKinds=Vocabulary.fromLabels(["coordinate", "box", "key", "text"]),
-#     device="cpu",
-# )
+options = PolicyOptions(
+    actions=Vocabulary({"down": "finger down", "up": "finger up"}),
+    argumentKinds=Vocabulary({
+        "coordinate": "point",
+        "box": "rect",
+        "key": "keycode",
+        "text": "string",
+    }),
+    device="cpu",
+)
 
-json.dump(options.encode(), open("policyOptions.json", "w"), indent=2)
-
-loaded = PolicyOptions()
-loaded.decode(json.load(open("policyOptions.json")))
-
-policy = Policy(loaded)
+policy = Policy(options)
 actionKey, argument = policy.predict(imageArray)
 ```
