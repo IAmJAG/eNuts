@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 # ==================================================================================
-from typing import Sequence
+from typing import Optional
 
 # ==================================================================================
 from torch import Tensor
@@ -11,11 +11,7 @@ from torch import Tensor
 from jAGFx.serializer import Serializable
 
 # ==================================================================================
-from .__vocabulary import (
-    C_DEFAULT_EMBED_DIM,
-    Vocabulary,
-    VocabularyItem,
-)
+from .__vocabulary import C_DEFAULT_EMBED_DIM, Vocabulary, VocabularyItem
 
 # ==================================================================================
 C_SEED_ACTION_KEYS: tuple[str, ...] = ("down", "up", "move", "inject")
@@ -37,29 +33,14 @@ C_DEFAULT_FEATURE_DIM: int = 512
 
 # ==================================================================================
 class PolicyOptions(Serializable):
-    """Serializable policy construction options.
-
-    Discrete vocabularies (finite):
-      - actions
-      - argumentKinds
-
-    Argument *values* (coordinate, box fields, key codes, free text) are not
-    vocabularies — they are open-ended / continuous and are not stored here.
-    """
-
     def __init__(
-        self,
-        actions: Vocabulary | None = None,
-        argumentKinds: Vocabulary | None = None,
-        featureDim: int = C_DEFAULT_FEATURE_DIM,
-        freezeBackbone: bool = True,
-        device: str = "cuda",
-        embedDim: int = C_DEFAULT_EMBED_DIM,
+        self, actions: Optional[Vocabulary], argument: Optional[Vocabulary],
+        featureDim: int = C_DEFAULT_FEATURE_DIM, freezeBackbone: bool = True,
+        embedDim: int = C_DEFAULT_EMBED_DIM, device: str = "cuda"
     ) -> None:
         super().__init__()
-
-        self._actions: Vocabulary | None = actions
-        self._argumentKinds: Vocabulary | None = argumentKinds
+        self._actions: Optional[Vocabulary] = actions
+        self._argumentKinds: Optional[Vocabulary] = argument
         self._featureDim: int = int(featureDim)
         self._freezeBackbone: bool = bool(freezeBackbone)
         self._device: str = device if device is not None else "cuda"

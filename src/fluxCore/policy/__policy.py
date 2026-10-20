@@ -8,6 +8,8 @@ from typing import Any
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+# ==================================================================================
 from torch import Tensor
 from torch import device as TorchDevice
 from torchvision import models
@@ -21,10 +23,6 @@ from .__policyOptions import PolicyOptions
 
 # ==================================================================================
 class Policy(nn.Module, iPolicy):
-    """Image array → action (discrete vocab) + argument kind (discrete vocab)
-    + open argument value (spatial continuous; key/text not closed-set).
-    """
-
     def __init__(self, options: PolicyOptions) -> None:
         super().__init__()
 
