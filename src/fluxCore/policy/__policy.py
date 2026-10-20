@@ -9,6 +9,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
+from torch import device as TorchDevice
 from torchvision import models
 from torchvision.models import MobileNet_V3_Small_Weights
 
@@ -20,15 +21,10 @@ from .__policyOptions import PolicyOptions
 
 # ==================================================================================
 class Policy(nn.Module, iPolicy):
-    """Array of images (one process) → action key + variant argument.
-
-    All registries and hyper-parameters come from PolicyOptions (fixed at init).
-    """
-
     def __init__(self, options: PolicyOptions) -> None:
         super().__init__()
 
-        self._device = getTorchDevice(options.device)
+        self._device: TorchDevice = getTorchDevice(options.device)
         self._argKinds = options.argKinds
         self._actionKeys = options.action.labels
         self._keyCodes = options.key.labels if options.key is not None else ()
@@ -40,6 +36,7 @@ class Policy(nn.Module, iPolicy):
             "_actionRegistry",
             options.action.embeddings.detach().to(self._device).clone(),
         )
+
         if options.key is not None:
             self.register_buffer(
                 "_keyRegistry",
@@ -141,14 +138,13 @@ class Policy(nn.Module, iPolicy):
                 kind, spatial, out["keyEmbedding"], out["textEmbedding"]
             )
             return actionKey, argument
+
         finally:
-            if wasTraining:
-                self.train()
+            if wasTraining: self.train()
 
     def train(self, mode: bool = True) -> Policy:
         super().train(mode)
-        if self._freezeBackbone:
-            self._backbone.eval()
+        if self._freezeBackbone: self._backbone.eval()
         return self
 
     # ------------------------------------------------------------------
@@ -185,14 +181,12 @@ class Policy(nn.Module, iPolicy):
         return torch.matmul(emb, reg.T)
 
     def _buildArgument(
-        self,
-        kind: str,
-        spatial: Tensor,
-        keyEmbedding: Tensor,
-        textEmbedding: Tensor,
+        self, kind: str, spatial: Tensor,
+        keyEmbedding: Tensor, textEmbedding: Tensor,
     ) -> dict[str, Any]:
         if kind == "coordinate":
             return {"kind": "coordinate", "x": float(spatial[0]), "y": float(spatial[1])}
+
         if kind == "box":
             return {
                 "kind": "box",
@@ -201,6 +195,7 @@ class Policy(nn.Module, iPolicy):
                 "width": float(spatial[2]),
                 "height": float(spatial[3]),
             }
+
         if kind == "key":
             if self._keyRegistry.numel() == 0 or not self._keyCodes:
                 return {"kind": "key", "code": ""}
@@ -214,4 +209,5 @@ class Policy(nn.Module, iPolicy):
             scores = self._cosine(textEmbedding, self._textRegistry)
             index = int(torch.argmax(scores, dim=-1).reshape(-1)[0].item())
             return {"kind": "text", "value": self._textValues[index]}
+
         return {"kind": kind}
