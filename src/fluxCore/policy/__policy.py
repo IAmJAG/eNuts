@@ -8,6 +8,8 @@ from typing import Any
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+# ==================================================================================
 from torch import Tensor
 from torch import device as TorchDevice
 from torchvision import models
@@ -25,7 +27,9 @@ class Policy(nn.Module, iPolicy):
         super().__init__()
 
         action = options.requireAction()
+
         self._device: TorchDevice = getTorchDevice(options.device)
+
         self._argKinds = options.argKinds
         self._actionKeys = action.labels
         self._keyCodes = options.key.labels if options.key is not None else ()
@@ -43,6 +47,7 @@ class Policy(nn.Module, iPolicy):
             self.register_buffer(
                 "_keyRegistry", keyEmb.detach().to(self._device).clone()
             )
+
         else:
             self.register_buffer(
                 "_keyRegistry", torch.empty(0, self._embedDim, device=self._device)

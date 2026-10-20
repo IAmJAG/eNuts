@@ -2,17 +2,16 @@
 from __future__ import annotations
 
 # ==================================================================================
-import hashlib
-from typing import Optional, Sequence
+from typing import Protocol, runtime_checkable
 
 # ==================================================================================
-import torch
-import torch.nn.functional as F
-from torch import Tensor
+from jAGFx.types.interface.serializer import iSerializable
+
 
 # ==================================================================================
-from jAGFx.serializer import Serializable
-
-# ==================================================================================
-class EmbeddingItem (Serializable):
-    def __init__(self, embedding: Tensor, mask: Optional[Sequence[bool]] = None) -> None:
+@runtime_checkable
+class iLabel(iSerializable, Protocol):
+    @property
+    def id(self) -> str: ...
+    @property
+    def description(self) -> str: ...
