@@ -1,14 +1,18 @@
 # ==================================================================================
-from .__policy import (
+from .__policy import Policy
+from .__policyOptions import (
     C_ARG_KINDS,
     C_DEFAULT_FEATURE_DIM,
     C_SEED_ACTION_KEYS,
-    Policy,
+    PolicyOptions,
+    RegistryOptions,
 )
 
 # ==================================================================================
 __all__ = [
     "Policy",
+    "PolicyOptions",
+    "RegistryOptions",
     "C_SEED_ACTION_KEYS",
     "C_DEFAULT_FEATURE_DIM",
     "C_ARG_KINDS",
