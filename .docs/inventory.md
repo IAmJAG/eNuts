@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-19 01:18:22 UTC*
+*Auto-generated on: 2026-10-20 10:26:13 UTC*
 
 ## Current Directory Structure
 
@@ -139,6 +139,13 @@ eNuts/
 │   │   ├── emitters/
 │   │   │   └── scrcpy/
 │   │   │       └── __SCRCPYEmitter.py
+│   │   ├── policy/
+│   │   │   ├── __policy.py
+│   │   │   ├── __policyOptions.py
+│   │   │   ├── __vocabulary.py
+│   │   │   └── vocabulary/
+│   │   │       ├── __label.py
+│   │   │       └── __vocabulary.py
 │   │   ├── types/
 │   │   │   ├── .fff
 │   │   │   ├── geometry/
@@ -162,6 +169,11 @@ eNuts/
 │   │   │   │   ├── packets/
 │   │   │   │   │   ├── __frame.py
 │   │   │   │   │   └── __packet.py
+│   │   │   │   ├── policy/
+│   │   │   │   │   ├── __policy.py
+│   │   │   │   │   └── vocabulary/
+│   │   │   │   │       ├── __label.py
+│   │   │   │   │       └── __vocabulary.py
 │   │   │   │   └── sockets/
 │   │   │   │       ├── __controlSocket.py
 │   │   │   │       ├── __socket.py
@@ -177,6 +189,7 @@ eNuts/
 │   │       ├── __adbutils.py
 │   │       ├── __frame.py
 │   │       ├── __socket.py
+│   │       ├── __torch.py
 │   │       └── scrcpy/
 │   │           ├── __scrcpy.py
 │   │           └── __scrcpyConfig.py
@@ -622,6 +635,37 @@ src/fluxCore/emitters/scrcpy:
 			MAX_FPS -> : max_fps
 			BITRATE -> : bitrate
 
+src/fluxCore/policy:
+	__policy.py - 
+		CLASSE(S):
+			Policy -> : policy
+	__policyOptions.py - 
+		CLASSE(S):
+			PolicyOptions -> : policyoptions
+		CONSTANTS(S)/GLOBAL(S)
+			C_SEED_ACTION_KEYS -> : c_seed_action_keys
+			C_SEED_ACTION_DESCRIPTIONS -> : c_seed_action_descriptions
+			C_SEED_ARGUMENT_KINDS -> : c_seed_argument_kinds
+			C_SEED_ARGUMENT_KIND_DESCRIPTIONS -> : c_seed_argument_kind_descriptions
+			C_DEFAULT_FEATURE_DIM -> : c_default_feature_dim
+	__vocabulary.py - 
+		CLASSE(S):
+			VocabularyItem -> : vocabularyitem
+			Vocabulary -> : vocabulary
+		FUNCTION(S):
+			labelToEmbedding -> : labeltoembedding
+			labelsToEmbeddings -> : labelstoembeddings
+		CONSTANTS(S)/GLOBAL(S)
+			C_DEFAULT_EMBED_DIM -> : c_default_embed_dim
+
+src/fluxCore/policy/vocabulary:
+	__label.py - 
+		CLASSE(S):
+			Label -> : label
+	__vocabulary.py - 
+		CLASSE(S):
+			iVocabulary -> : ivocabulary
+
 src/fluxCore/types/geometry:
 	__circle.py - 
 		CLASSE(S):
@@ -673,6 +717,19 @@ src/fluxCore/types/interface/packets:
 	__packet.py - 
 		CLASSE(S):
 			iPacket -> : ipacket
+
+src/fluxCore/types/interface/policy:
+	__policy.py - 
+		CLASSE(S):
+			iPolicy -> : ipolicy
+
+src/fluxCore/types/interface/policy/vocabulary:
+	__label.py - 
+		CLASSE(S):
+			iLabel -> : ilabel
+	__vocabulary.py - 
+		CLASSE(S):
+			iVocabulary -> : ivocabulary
 
 src/fluxCore/types/interface/sockets:
 	__controlSocket.py - 
@@ -726,6 +783,9 @@ src/fluxCore/utilities:
 			AsyncReadAll -> : asyncreadall
 		CONSTANTS(S)/GLOBAL(S)
 			C_RECV_CHUNK -> : c_recv_chunk
+	__torch.py - 
+		FUNCTION(S):
+			getTorchDevice -> : gettorchdevice
 
 src/fluxCore/utilities/scrcpy:
 	__scrcpy.py - 
@@ -1359,50 +1419,51 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-3d909d9:
-	fix(logging): update VERBOSE log level from 0 to 1
-		src/jAGFx/logging/__logging.py
+899f08d:
+	docs(policy): implementation notes for vocabulary layer
+		.docs/fluxCore/policy/implementation.md
 
-a2e7939:
-	fix(logging): add 'asyncio.windows_events' to THIRD_PARTY_LOGGERS
-		src/main.py
+d7e1490:
+	docs(policy): project requirements vocabulary-first
+		.docs/policy/requirement.md
 
-ef33ac9:
-	fix(WorkSpace): rename _a* methods so @workflow does not auto-invoke them
-		src/eNuts/application/workspace/__workSpace.py
+9b9c483:
+	docs(policy): requirements for discrete vocab vs open argument values
+		.docs/fluxCore/policy/requirement.md
 
-3116911:
-	feat: add TRACE logging level and update log level to TRACE
-		src/__monkeyPatch.py
-		src/jAGFx/logging/__logging.py
-		src/main.py
+1c32491:
+	docs(policy): vocabulary-first design for discrete actions and argument kinds
+		.docs/fluxCore/policy/policy.md
 
-039172c:
-	Revert "chore: demote device/stream/WorkSpace verbose logs to debug"
-		src/eNuts/UI/pages/__devicePage.py
-		src/eNuts/UI/pages/__navigationPages.py
+120f1f2:
+	feat(policy): export Vocabulary types; drop RegistryOptions
 
-f17b5aa:
-	Revert "chore: demote Shell/deviceManager/WorkSpace verbose to debug"
-		src/eNuts/application/__shell.py
-		src/eNuts/application/device/__deviceManager.py
+e3260e4:
+	refactor(policy): use action + argumentKind vocabularies; open argument values
+		src/fluxCore/policy/__policy.py
 
-1cf4d53:
-	Revert "chore: demote WorkSpace verbose logs to debug"
-		src/eNuts/application/workspace/__workSpace.py
+bc475d6:
+	refactor(policy): PolicyOptions holds action + argumentKind vocabularies only
+		src/fluxCore/policy/__policyOptions.py
 
-aa8e27c:
-	chore: demote WorkSpace verbose logs to debug
-		src/eNuts/application/workspace/__workSpace.py
+0bb61d9:
+	feat(policy): VocabularyItem and Vocabulary as discrete serializable units
+		src/fluxCore/policy/__vocabulary.py
 
-063cd7f:
-	chore: demote Shell/deviceManager/WorkSpace verbose to debug
-		src/eNuts/application/__shell.py
-		src/eNuts/application/device/__deviceManager.py
+5697f9d:
+	feat(policy): implement vocabulary and label interfaces; remove obsolete EmbeddingItem class
+		src/fluxCore/policy/__policy.py
+		src/fluxCore/policy/embeddings/__embeddingItem.py -> src/fluxCore/policy/vocabulary/__label.py
+		src/fluxCore/policy/vocabulary/__vocabulary.py
+		src/fluxCore/types/interface/policy/embedding/__embeddingItem.py
+		src/fluxCore/types/interface/policy/vocabulary/__label.py
+		src/fluxCore/types/interface/policy/vocabulary/__vocabulary.py
 
-08fd215:
-	chore: demote device/stream/WorkSpace verbose logs to debug
-		src/eNuts/UI/pages/__devicePage.py
-		src/eNuts/UI/pages/__navigationPages.py
+127ac05:
+	feat(policy): refactor RegistryOptions constructor and add EmbeddingItem class
+		src/fluxCore/policy/__policy.py
+		src/fluxCore/policy/__policyOptions.py
+		src/fluxCore/policy/embeddings/__embeddingItem.py
+		src/fluxCore/types/interface/policy/embedding/__embeddingItem.py
 
 ```
