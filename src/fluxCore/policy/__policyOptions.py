@@ -3,7 +3,7 @@ from __future__ import annotations
 
 # ==================================================================================
 import hashlib
-from typing import Sequence
+from typing import Optional, Sequence
 
 # ==================================================================================
 import torch
@@ -40,17 +40,9 @@ def labelsToEmbeddings(labels: Sequence[str], embedDim: int) -> Tensor:
 
 # ==================================================================================
 class RegistryOptions(Serializable):
-    """Serializable discrete registry: labels (+ optional descriptions) → embeddings.
-
-    Embeddings are not persisted. They are produced by :meth:`embeddings` from
-    the label list so options files stay compact and human-editable.
-    """
-
     def __init__(
-        self,
-        labels: Sequence[str] | None = None,
-        descriptions: Sequence[str] | None = None,
-        embedDim: int = C_DEFAULT_EMBED_DIM,
+        self, labels: Optional[Sequence[str]] = None,
+        descriptions: Optional[Sequence[str]] = None, embedDim: int = C_DEFAULT_EMBED_DIM,
     ) -> None:
         super().__init__()
         self._labels: list[str] = list(labels) if labels is not None else []
@@ -62,8 +54,9 @@ class RegistryOptions(Serializable):
         self._validate()
 
     def _validate(self) -> None:
-        if self._embedDim < 1:
+        if self._embedDim < 1: 
             raise ValueError("embedDim must be >= 1")
+
         if self._descriptions and len(self._descriptions) != len(self._labels):
             raise ValueError("descriptions length must match labels length when provided")
 

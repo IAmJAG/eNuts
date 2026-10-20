@@ -25,7 +25,6 @@ class Policy(nn.Module, iPolicy):
         super().__init__()
 
         action = options.requireAction()
-
         self._device: TorchDevice = getTorchDevice(options.device)
         self._argKinds = options.argKinds
         self._actionKeys = action.labels
