@@ -1,29 +1,17 @@
 # Requirements & Design Specifications
 
-## 1. Project Overview
+## 1. Overview
 
-Policy for eNuts: an **array of images** is one process and yields **one action key plus arguments**.
+Image array → `(actionKey, variant argument)`. Implementation: `src/fluxCore/policy/`.
 
-**Implementation:** `src/fluxCore/policy/`
+## 2. Requirements
 
-## 2. Functional Requirements
+- One process per image array.
+- Action from registry fixed at policy construction.
+- Arguments: `coordinate` | `box` | `key` | `text`.
+- Key/text chosen from registries fixed at construction.
+- **No runtime registry mutation.** Vocabulary changes are planned before a policy instance runs (train/load the right checkpoint).
 
-- **FR-1:** Input `[T, 3, H, W]` or `[B, T, 3, H, W]`.
-- **FR-2:** One prediction per array (fused frames).
-- **FR-3:** MobileNetV3-Small backbone, optional freeze.
-- **FR-4:** Action via cosine similarity on a dynamic registry (volatile vocabulary).
-- **FR-5:** Arguments via a continuous vector (default 4-D, normalized `[0, 1]`).
-- **FR-6:** `predict` → `(actionKey, arguments)`.
+## 3. Deferred
 
-## 3. Locked Decisions
-
-| Item | Decision |
-|------|----------|
-| Input | Array of images = one process |
-| Action | Registry scoring; count not fixed |
-| Arguments | Shared continuous head; layout interpreted by action key |
-| Package | `src/fluxCore/policy/` |
-
-## 4. Deferred
-
-- Typed variant args (key/text branches), intent, history, LSTM fusion, training packaging
+Intent, history, free-form text generation, training packaging.
