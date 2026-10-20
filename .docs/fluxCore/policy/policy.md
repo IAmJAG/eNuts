@@ -1,47 +1,55 @@
 ## Overview & Design Context
 
-Policy at `src/fluxCore/policy/__policy.py`, options at `__policyOptions.py`.
+Policy starts from **vocabularies** — finite discrete sets.
 
-`PolicyOptions` and `RegistryOptions` extend `jAGFx.serializer.Serializable` so they can be persisted to JSON. **Labels** are stored in the file; **embeddings** are produced by the options layer (`RegistryOptions.embeddings()` / `PolicyOptions.actionEmbeddings()`), not written to disk.
+| Discrete (vocabulary) | Open / continuous (not vocabulary) |
+|------------------------|-------------------------------------|
+| **actions** | coordinate / box spatial values |
+| **argumentKinds** | key codes, free text values |
+
+Key and text are argument *kinds*. Their *values* are not closed lists.
 
 ---
 
 ## Classes
 
-### `RegistryOptions` (Serializable)
-- **Persisted:** `labels`, `descriptions` (optional), `embedDim`
-- **Computed:** `embeddings()` → `[N, embedDim]` deterministic unit vectors from label strings
+### `VocabularyItem` (Serializable)
+- `label`, `description`, `embedDim`
+- `toEmbedding()` → `[embedDim]`
+
+### `Vocabulary` (Serializable)
+- ordered list of `VocabularyItem`
+- `toEmbeddings()` → `[N, embedDim]`
+- `fromLabels(...)` helper
 
 ### `PolicyOptions` (Serializable)
-- **Persisted:** `action`, `key`, `text`, `argKinds`, `featureDim`, `freezeBackbone`, `device`, `embedDim`
-- **Helpers:** `actionEmbeddings()`, `keyEmbeddings()`, `textEmbeddings()`, `requireAction()`
+- `actions: Vocabulary`
+- `argumentKinds: Vocabulary`
+- model settings (`featureDim`, `freezeBackbone`, `device`, `embedDim`)
+- `withDefaults()` seed builder
 
 ### `Policy`
-- **Init:** `Policy(options: PolicyOptions)` only
-- **Public:** `forward`, `predict`, `actionKeys`
+- `Policy(options)`
+- `predict` → `(actionKey, argumentDict)`
 
 ## Sample Usage
 
 ```python
-from fluxCore.policy import Policy, PolicyOptions, RegistryOptions, C_SEED_ACTION_KEYS
+from fluxCore.policy import Policy, PolicyOptions, Vocabulary
 import json
 
-options = PolicyOptions(
-    action=RegistryOptions(labels=list(C_SEED_ACTION_KEYS)),
-    key=RegistryOptions(labels=["A", "TAB", "ESCAPE"]),
-    text=RegistryOptions(labels=["login", "submit"]),
-    device="cpu",
-)
+options = PolicyOptions.withDefaults(device="cpu")
+# or:
+# options = PolicyOptions(
+#     actions=Vocabulary.fromLabels(["down", "up", "move", "inject"]),
+#     argumentKinds=Vocabulary.fromLabels(["coordinate", "box", "key", "text"]),
+#     device="cpu",
+# )
 
-# Persist
-blob = options.encode()
-with open("policyOptions.json", "w", encoding="utf-8") as f:
-    json.dump(blob, f, indent=2)
+json.dump(options.encode(), open("policyOptions.json", "w"), indent=2)
 
-# Reload
 loaded = PolicyOptions()
-with open("policyOptions.json", encoding="utf-8") as f:
-    loaded.decode(json.load(f))
+loaded.decode(json.load(open("policyOptions.json")))
 
 policy = Policy(loaded)
 actionKey, argument = policy.predict(imageArray)
