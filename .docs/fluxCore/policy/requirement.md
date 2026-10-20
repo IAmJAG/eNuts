@@ -2,22 +2,26 @@
 
 ## 1. Project Overview
 
-Policy: image array → action key + **variant** argument.
+Policy: image array → discrete action + argument kind + open argument value.
 
 ## 2. Functional Requirements
 
 - **FR-1:** Input `[T,3,H,W]` or `[B,T,3,H,W]`.
 - **FR-2:** One result per array.
-- **FR-3:** MobileNetV3-Small backbone, optional freeze.
-- **FR-4:** Action via cosine score on an action registry supplied at construction.
-- **FR-5:** Arguments are variant: `coordinate` | `box` | `key` | `text`.
-- **FR-6:** Key and text values are selected from registries supplied at construction (not free-form generation).
-- **FR-7:** Registries are **not** mutated at runtime. Vocabulary growth is planned offline (new training / new checkpoint), not via a live `setRegistry`.
+- **FR-3:** Discrete **vocabularies** only for:
+  - actions
+  - argument kinds (`coordinate` | `box` | `key` | `text`)
+- **FR-4:** Argument *values* are not vocabularies (spatial continuous; key/text open-ended).
+- **FR-5:** Vocabularies are serializable (`Vocabulary` / `VocabularyItem`) and convert to embeddings via `toEmbedding` / `toEmbeddings`.
+- **FR-6:** Vocabularies are fixed at construction / checkpoint load — not mutated at runtime.
 
 ## 3. Design Decisions
 
-### Vocabulary lifecycle
-Weights and registries are fixed for a running policy instance. Changing the action/key/text set is a development/training decision: train or load a policy built for that set. Historical labels stay valid under the vocab they were annotated with.
+### Naming
+Finite discrete sets are **vocabularies**, not “registry options.”
 
-### Variant arguments
-A kind head chooses the argument type; spatial fields use a continuous head; key/text use the same embedding-scoring pattern as actions against their own registries.
+### Closed vs open
+| Closed | Open |
+|--------|------|
+| action labels | x, y, box geometry |
+| argument kind labels | key code string, text string |
