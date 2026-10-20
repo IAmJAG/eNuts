@@ -2,46 +2,47 @@
 
 Policy at `src/fluxCore/policy/__policy.py`, options at `__policyOptions.py`.
 
-Construction is **only** via `PolicyOptions` (action / key / text registries with embeddings, arg kinds, feature dim, freeze, device).
+`PolicyOptions` and `RegistryOptions` extend `jAGFx.serializer.Serializable` so they can be persisted to JSON. **Labels** are stored in the file; **embeddings** are produced by the options layer (`RegistryOptions.embeddings()` / `PolicyOptions.actionEmbeddings()`), not written to disk.
 
 ---
 
 ## Classes
 
-### `RegistryOptions`
-- **Purpose:** One discrete registry: `embeddings` `[N, embedDim]` + `labels`.
+### `RegistryOptions` (Serializable)
+- **Persisted:** `labels`, `descriptions` (optional), `embedDim`
+- **Computed:** `embeddings()` → `[N, embedDim]` deterministic unit vectors from label strings
 
-### `PolicyOptions`
-- **Purpose:** Full construction blob for `Policy`.
-- **Fields:** `action` (required), `key` / `text` (optional), `argKinds`, `featureDim`, `freezeBackbone`, `device`.
+### `PolicyOptions` (Serializable)
+- **Persisted:** `action`, `key`, `text`, `argKinds`, `featureDim`, `freezeBackbone`, `device`, `embedDim`
+- **Helpers:** `actionEmbeddings()`, `keyEmbeddings()`, `textEmbeddings()`, `requireAction()`
 
 ### `Policy`
-- **Public:** `forward`, `predict`, `actionKeys`
 - **Init:** `Policy(options: PolicyOptions)` only
+- **Public:** `forward`, `predict`, `actionKeys`
 
 ## Sample Usage
 
 ```python
-from fluxCore.policy import (
-    Policy, PolicyOptions, RegistryOptions, C_SEED_ACTION_KEYS
-)
-import torch
+from fluxCore.policy import Policy, PolicyOptions, RegistryOptions, C_SEED_ACTION_KEYS
+import json
 
-action = RegistryOptions(
-    embeddings=torch.randn(4, 128),
-    labels=list(C_SEED_ACTION_KEYS),
-)
-key = RegistryOptions(
-    embeddings=torch.randn(3, 128),
-    labels=["A", "TAB", "ESCAPE"],
-)
-text = RegistryOptions(
-    embeddings=torch.randn(2, 128),
-    labels=["login", "submit"],
+options = PolicyOptions(
+    action=RegistryOptions(labels=list(C_SEED_ACTION_KEYS)),
+    key=RegistryOptions(labels=["A", "TAB", "ESCAPE"]),
+    text=RegistryOptions(labels=["login", "submit"]),
+    device="cpu",
 )
 
-options = PolicyOptions(action=action, key=key, text=text, device="cpu")
-policy = Policy(options)
+# Persist
+blob = options.encode()
+with open("policyOptions.json", "w", encoding="utf-8") as f:
+    json.dump(blob, f, indent=2)
 
+# Reload
+loaded = PolicyOptions()
+with open("policyOptions.json", encoding="utf-8") as f:
+    loaded.decode(json.load(f))
+
+policy = Policy(loaded)
 actionKey, argument = policy.predict(imageArray)
 ```
