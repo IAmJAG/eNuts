@@ -7,25 +7,24 @@ from adbutils import AdbDevice, adb
 
 # ==================================================================================
 def getADBDevice(
-    device: Optional[Union[AdbDevice, str, None]], getFirst: bool = False
+    device: Optional[Union[AdbDevice, str, None]], returnFirst: bool = False
 ) -> Optional[AdbDevice]:
     if isinstance(device, AdbDevice):
         return device
 
-    lDevice: AdbDevice | None = None
+    _device: Optional[AdbDevice] = None
     if isinstance(device, str) and device != "":
         try:
-            lDevice = adb.device(serial=device)
-            return lDevice
+            _device = adb.device(serial=device)
+            return _device
 
         except Exception:
             pass
 
-    if lDevice is None and getFirst:
-        lDevices = adb.device_list()
-        lDevice = lDevices[0] if len(lDevices) > 0 else None
-        if lDevice is not None:
-            return lDevice
+    if _device is None and returnFirst:
+        devices = adb.device_list()
+        _device = devices[0] if len(devices) > 0 else None
+        return _device
 
     warning(f"Device {device} not found")
     return None

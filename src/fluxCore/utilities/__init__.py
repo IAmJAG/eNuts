@@ -3,6 +3,7 @@
 # ==================================================================================
 from .__frame import AsyncReadSingleFrame, ReadSingleFrame
 from .__socket import AsyncReadAll, AsyncReadExact, ReadAll, ReadExact
+from .__torch import getTorchDevice
 
 # ==================================================================================
 __all__ = [

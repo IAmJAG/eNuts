@@ -1,6 +1,4 @@
 # ==================================================================================
-# src/fluxCore/types/interface/policy/__policy.py
-# ==================================================================================
 from typing import Protocol, runtime_checkable
 
 # ==================================================================================
@@ -12,4 +10,3 @@ from torch import Tensor
 class iPolicy(Protocol):
     def forward(self, imageArray: Tensor) -> Tensor: ...
     def predict(self, imageArray: Tensor) -> str: ...
-    def reset(self) -> None: ...
