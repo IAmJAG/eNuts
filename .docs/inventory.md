@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-20 10:26:13 UTC*
+*Auto-generated on: 2026-10-20 12:53:39 UTC*
 
 ## Current Directory Structure
 
@@ -1419,6 +1419,15 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+df6199b:
+	refactor(policy): update type hints and clean up docstrings in Policy and PolicyOptions classes
+		src/fluxCore/policy/__policy.py
+		src/fluxCore/policy/__policyOptions.py
+
+d5c1912:
+	docs(inventory): update asset and directory inventory with new policy files
+		.docs/inventory.md
+
 899f08d:
 	docs(policy): implementation notes for vocabulary layer
 		.docs/fluxCore/policy/implementation.md
@@ -1449,21 +1458,5 @@ bc475d6:
 0bb61d9:
 	feat(policy): VocabularyItem and Vocabulary as discrete serializable units
 		src/fluxCore/policy/__vocabulary.py
-
-5697f9d:
-	feat(policy): implement vocabulary and label interfaces; remove obsolete EmbeddingItem class
-		src/fluxCore/policy/__policy.py
-		src/fluxCore/policy/embeddings/__embeddingItem.py -> src/fluxCore/policy/vocabulary/__label.py
-		src/fluxCore/policy/vocabulary/__vocabulary.py
-		src/fluxCore/types/interface/policy/embedding/__embeddingItem.py
-		src/fluxCore/types/interface/policy/vocabulary/__label.py
-		src/fluxCore/types/interface/policy/vocabulary/__vocabulary.py
-
-127ac05:
-	feat(policy): refactor RegistryOptions constructor and add EmbeddingItem class
-		src/fluxCore/policy/__policy.py
-		src/fluxCore/policy/__policyOptions.py
-		src/fluxCore/policy/embeddings/__embeddingItem.py
-		src/fluxCore/types/interface/policy/embedding/__embeddingItem.py
 
 ```
