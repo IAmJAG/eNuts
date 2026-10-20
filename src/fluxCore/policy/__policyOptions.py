@@ -50,13 +50,6 @@ class RegistryOptions:
 
 # ==================================================================================
 class PolicyOptions:
-    """Construction details for Policy: registries + model settings.
-
-    - action: required (labels + embeddings)
-    - argKinds: argument kinds the kind-head may emit
-    - key / text: optional registries for key-code and text selection
-    """
-
     def __init__(
         self, action: RegistryOptions, key: RegistryOptions | None = None,
         text: RegistryOptions | None = None, argKinds: Sequence[str] = C_ARG_KINDS,
