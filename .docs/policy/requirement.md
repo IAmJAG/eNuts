@@ -2,16 +2,15 @@
 
 ## 1. Overview
 
-Image array → `(actionKey, variant argument)`. Implementation: `src/fluxCore/policy/`.
+Image array → `(actionKey, argument)`. Implementation: `src/fluxCore/policy/`.
 
 ## 2. Requirements
 
-- One process per image array.
-- Action from registry fixed at policy construction.
-- Arguments: `coordinate` | `box` | `key` | `text`.
-- Key/text chosen from registries fixed at construction.
-- **No runtime registry mutation.** Vocabulary changes are planned before a policy instance runs (train/load the right checkpoint).
+- **Vocabularies (finite):** actions, argument kinds.
+- **Not vocabularies (open):** argument values — coordinates, boxes, key codes, free text.
+- Vocabularies are serializable and produce embedding tensors.
+- No runtime mutation of vocabularies.
 
 ## 3. Deferred
 
-Intent, history, free-form text generation, training packaging.
+Intent, history, concrete key/text value generation, training packaging.
