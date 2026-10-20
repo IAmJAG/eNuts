@@ -4,18 +4,20 @@
 
 ```text
 imageArray [T,3,H,W] | [B,T,3,H,W]
-        → backbone → proj → mean over T → head → L2 norm
-        → _score vs _registry → predict → actionKeys[index]
+        → backbone → projection → mean over T   (fused)
+                ├─ actionHead → L2 norm → score vs registry → action key
+                └─ argHead → Sigmoid → arguments [argDim]
 ```
 
 ## 2. Public vs internal
 
 | Public | Internal |
 | :--- | :--- |
-| `forward`, `predict`, `setRegistry`, `actionKeys`, `reset` | `_backbone`, `_proj`, `_head`, `_registry`, `_score`, `_device`, `_embedDim`, `_freezeBackbone` |
+| `forward`, `predict`, `setRegistry`, `actionKeys` | `_backbone`, `_projection`, `_actionHead`, `_argHead`, `_registry`, `_score`, `_fuse` |
 
-`train()` is overridden only to keep a frozen backbone in eval mode; callers still use the normal `nn.Module` training API.
+## 3. Weights vs computation
 
-## 3. Vocabulary growth
-
-`setRegistry` requires the same `embedDim`. It does not rebuild weight-bearing layers.
+| Change | Weights |
+| :--- | :--- |
+| Add actions (`setRegistry`, same embedDim) | Registry buffer only |
+| Change `argDim` / `featDim` / embedDim | Head / proj shapes change |
