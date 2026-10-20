@@ -8,8 +8,6 @@ from typing import Any
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-# ==================================================================================
 from torch import Tensor
 from torch import device as TorchDevice
 from torchvision import models
@@ -23,45 +21,30 @@ from .__policyOptions import PolicyOptions
 
 # ==================================================================================
 class Policy(nn.Module, iPolicy):
+    """Image array → action (discrete vocab) + argument kind (discrete vocab)
+    + open argument value (spatial continuous; key/text not closed-set).
+    """
+
     def __init__(self, options: PolicyOptions) -> None:
         super().__init__()
 
-        action = options.requireAction()
+        actions = options.requireActions()
+        argumentKinds = options.requireArgumentKinds()
 
         self._device: TorchDevice = getTorchDevice(options.device)
-
-        self._argKinds = options.argKinds
-        self._actionKeys = action.labels
-        self._keyCodes = options.key.labels if options.key is not None else ()
-        self._textValues = options.text.labels if options.text is not None else ()
+        self._actionLabels = actions.labels
+        self._argumentKindLabels = argumentKinds.labels
         self._embedDim = options.embedDim
         self._freezeBackbone = options.freezeBackbone
 
         self.register_buffer(
-            "_actionRegistry",
+            "_actionEmbeddings",
             options.actionEmbeddings().detach().to(self._device).clone(),
         )
-
-        keyEmb = options.keyEmbeddings()
-        if keyEmb is not None:
-            self.register_buffer(
-                "_keyRegistry", keyEmb.detach().to(self._device).clone()
-            )
-
-        else:
-            self.register_buffer(
-                "_keyRegistry", torch.empty(0, self._embedDim, device=self._device)
-            )
-
-        textEmb = options.textEmbeddings()
-        if textEmb is not None:
-            self.register_buffer(
-                "_textRegistry", textEmb.detach().to(self._device).clone()
-            )
-        else:
-            self.register_buffer(
-                "_textRegistry", torch.empty(0, self._embedDim, device=self._device)
-            )
+        self.register_buffer(
+            "_argumentKindEmbeddings",
+            options.argumentKindEmbeddings().detach().to(self._device).clone(),
+        )
 
         mobileNet = models.mobilenet_v3_small(
             weights=MobileNet_V3_Small_Weights.DEFAULT
@@ -83,26 +66,17 @@ class Policy(nn.Module, iPolicy):
             nn.ReLU(inplace=True),
             nn.Linear(featDim, self._embedDim),
         )
-        self._argKindHead = nn.Sequential(
+        self._argumentKindHead = nn.Sequential(
             nn.Linear(featDim, featDim),
             nn.ReLU(inplace=True),
-            nn.Linear(featDim, len(self._argKinds)),
+            nn.Linear(featDim, self._embedDim),
         )
+        # Continuous spatial payload for coordinate / box (normalized [0, 1])
         self._spatialHead = nn.Sequential(
             nn.Linear(featDim, featDim),
             nn.ReLU(inplace=True),
             nn.Linear(featDim, 4),
             nn.Sigmoid(),
-        )
-        self._keyHead = nn.Sequential(
-            nn.Linear(featDim, featDim),
-            nn.ReLU(inplace=True),
-            nn.Linear(featDim, self._embedDim),
-        )
-        self._textHead = nn.Sequential(
-            nn.Linear(featDim, featDim),
-            nn.ReLU(inplace=True),
-            nn.Linear(featDim, self._embedDim),
         )
 
         self.to(self._device)
@@ -110,16 +84,16 @@ class Policy(nn.Module, iPolicy):
     # ------------------------------------------------------------------
     @property
     def actionKeys(self) -> tuple[str, ...]:
-        return self._actionKeys
+        return self._actionLabels
 
     def forward(self, imageArray: Tensor) -> dict[str, Tensor]:
         fused = self._fuse(imageArray)
         return {
             "actionEmbedding": F.normalize(self._actionHead(fused), p=2, dim=-1),
-            "argKindLogits": self._argKindHead(fused),
+            "argumentKindEmbedding": F.normalize(
+                self._argumentKindHead(fused), p=2, dim=-1
+            ),
             "spatial": self._spatialHead(fused),
-            "keyEmbedding": F.normalize(self._keyHead(fused), p=2, dim=-1),
-            "textEmbedding": F.normalize(self._textHead(fused), p=2, dim=-1),
         }
 
     @torch.no_grad()
@@ -129,21 +103,19 @@ class Policy(nn.Module, iPolicy):
             self.eval()
             out = self.forward(imageArray)
 
-            actionScores = self._cosine(out["actionEmbedding"], self._actionRegistry)
+            actionScores = self._cosine(out["actionEmbedding"], self._actionEmbeddings)
             actionIndex = int(torch.argmax(actionScores, dim=-1).reshape(-1)[0].item())
-            actionKey = self._actionKeys[actionIndex]
+            actionKey = self._actionLabels[actionIndex]
 
-            kindIndex = int(
-                torch.argmax(out["argKindLogits"], dim=-1).reshape(-1)[0].item()
+            kindScores = self._cosine(
+                out["argumentKindEmbedding"], self._argumentKindEmbeddings
             )
-            kind = self._argKinds[kindIndex]
+            kindIndex = int(torch.argmax(kindScores, dim=-1).reshape(-1)[0].item())
+            kind = self._argumentKindLabels[kindIndex]
+
             spatial = out["spatial"].reshape(-1, 4)[0].detach().cpu()
-
-            argument = self._buildArgument(
-                kind, spatial, out["keyEmbedding"], out["textEmbedding"]
-            )
+            argument = self._buildArgument(kind, spatial)
             return actionKey, argument
-
         finally:
             if wasTraining:
                 self.train()
@@ -180,23 +152,20 @@ class Policy(nn.Module, iPolicy):
         return features.mean(dim=1)
 
     @staticmethod
-    def _cosine(embedding: Tensor, registry: Tensor) -> Tensor:
-        if registry.numel() == 0:
+    def _cosine(embedding: Tensor, table: Tensor) -> Tensor:
+        if table.numel() == 0:
             return embedding.new_zeros(embedding.size(0), 0)
         emb = F.normalize(embedding, p=2, dim=-1)
-        reg = F.normalize(registry, p=2, dim=-1)
+        reg = F.normalize(table, p=2, dim=-1)
         return torch.matmul(emb, reg.T)
 
-    def _buildArgument(
-        self,
-        kind: str,
-        spatial: Tensor,
-        keyEmbedding: Tensor,
-        textEmbedding: Tensor,
-    ) -> dict[str, Any]:
+    def _buildArgument(self, kind: str, spatial: Tensor) -> dict[str, Any]:
         if kind == "coordinate":
-            return {"kind": "coordinate", "x": float(spatial[0]), "y": float(spatial[1])}
-
+            return {
+                "kind": "coordinate",
+                "x": float(spatial[0]),
+                "y": float(spatial[1]),
+            }
         if kind == "box":
             return {
                 "kind": "box",
@@ -205,19 +174,10 @@ class Policy(nn.Module, iPolicy):
                 "width": float(spatial[2]),
                 "height": float(spatial[3]),
             }
-
         if kind == "key":
-            if self._keyRegistry.numel() == 0 or not self._keyCodes:
-                return {"kind": "key", "code": ""}
-            scores = self._cosine(keyEmbedding, self._keyRegistry)
-            index = int(torch.argmax(scores, dim=-1).reshape(-1)[0].item())
-            return {"kind": "key", "code": self._keyCodes[index]}
-
+            # Open-ended value — not selected from a closed vocabulary.
+            return {"kind": "key", "code": ""}
         if kind == "text":
-            if self._textRegistry.numel() == 0 or not self._textValues:
-                return {"kind": "text", "value": ""}
-            scores = self._cosine(textEmbedding, self._textRegistry)
-            index = int(torch.argmax(scores, dim=-1).reshape(-1)[0].item())
-            return {"kind": "text", "value": self._textValues[index]}
-
+            # Open-ended value — not selected from a closed vocabulary.
+            return {"kind": "text", "value": ""}
         return {"kind": kind}
