@@ -2,33 +2,36 @@
 
 Policy at `src/fluxCore/policy/__policy.py`.
 
-One **array of images** = one process = one action, scored against a dynamic embedded registry.
+One **array of images** = one process = **one action key + one argument vector**.
 
-Public surface is intentionally small.
+- Action: cosine score against a dynamic embedded registry (volatile vocabulary).
+- Arguments: continuous vector in `[0, 1]` (default length 4) for spatial payload.
 
 ---
 
 ## Classes
 
 ### `Policy`
-- **Purpose:** Image-array → action key via registry scoring. Implements `iPolicy`.
-- **Public methods / properties:**
-  - `forward(imageArray)` → embedding `[B, embedDim]`
-  - `predict(imageArray)` → action key `str`
-  - `setRegistry(embeddings, actionKeys)` → update volatile vocabulary
-  - `actionKeys` → current vocabulary tuple
-  - `reset()` → no-op (interface stability)
-- **Not public:** backbone, head, registry buffer, `_score`, device helpers, `numActions`.
+- **Purpose:** Image-array → `(actionKey, arguments)`. Implements `iPolicy`.
+- **Public:**
+  - `forward(imageArray)` → `(actionEmbedding [B, embedDim], arguments [B, argDim])`
+  - `predict(imageArray)` → `(actionKey: str, arguments: Tensor[argDim])`
+  - `setRegistry(actRegEmbeddings, actKeys)` → update vocabulary
+  - `actionKeys` → current vocabulary
+- **Not public:** backbone, heads, registry, `_score`, `_fuse`.
 
 ---
 
 ## Constants
 
 ### `C_SEED_ACTION_KEYS`
-Optional seed labels `("down", "up", "move", "inject")` — not a fixed vocabulary size.
+Seed labels only — not a fixed vocabulary size.
 
 ### `C_DEFAULT_FEATURE_DIM`
-Default intermediate feature size (`512`).
+`512`
+
+### `C_DEFAULT_ARG_DIM`
+`4` — layout: `[x|left, y|top, width, height]` (normalized). Coordinate-style actions use the first two values.
 
 ## Sample Usage
 
@@ -38,8 +41,9 @@ import torch
 
 keys = list(C_SEED_ACTION_KEYS)
 registry = torch.randn(len(keys), 128)
-policy = Policy(actionRegistryEmbeddings=registry, actionKeys=keys)
+policy = Policy(actRegEmbeddings=registry, actKeys=keys)
 
 imageArray = torch.rand(8, 3, 224, 224)
-key = policy.predict(imageArray)
+actionKey, args = policy.predict(imageArray)
+# args: tensor of shape [4], values in [0, 1]
 ```
