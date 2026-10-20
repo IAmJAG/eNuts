@@ -72,6 +72,7 @@ class Policy(nn.Module, iPolicy):
                 "_keyRegistry",
                 keyRegEmbeddings.detach().to(self._device).clone(),
             )
+
         else:
             self.register_buffer("_keyRegistry", torch.empty(0, self._embedDim))
 
@@ -271,6 +272,7 @@ class Policy(nn.Module, iPolicy):
             scores = self._cosine(keyEmbedding, self._keyRegistry)
             index = int(torch.argmax(scores, dim=-1).reshape(-1)[0].item())
             return {"kind": "key", "code": self._keyCodes[index]}
+        
         if kind == "text":
             if self._textRegistry.numel() == 0 or not self._textValues:
                 return {"kind": "text", "value": ""}
