@@ -20,8 +20,10 @@ class RegistryOptions:
     def __init__(self, embeddings: Tensor, labels: Sequence[str]) -> None:
         if embeddings.dim() != 2:
             raise ValueError("embeddings must have shape [N, embedDim]")
+        
         if embeddings.size(0) < 1:
             raise ValueError("embeddings must contain at least one row")
+        
         labels = tuple(labels)
         if len(labels) != embeddings.size(0):
             raise ValueError("labels length must match embeddings rows")
@@ -56,24 +58,22 @@ class PolicyOptions:
     """
 
     def __init__(
-        self,
-        action: RegistryOptions,
-        key: RegistryOptions | None = None,
-        text: RegistryOptions | None = None,
-        argKinds: Sequence[str] = C_ARG_KINDS,
-        featureDim: int = C_DEFAULT_FEATURE_DIM,
-        freezeBackbone: bool = True,
+        self, action: RegistryOptions, key: RegistryOptions | None = None,
+        text: RegistryOptions | None = None, argKinds: Sequence[str] = C_ARG_KINDS,
+        featureDim: int = C_DEFAULT_FEATURE_DIM, freezeBackbone: bool = True,
         device: str = "cuda",
     ) -> None:
         kinds = tuple(argKinds)
         if not kinds:
             raise ValueError("argKinds must be non-empty")
+        
         for kind in kinds:
             if kind not in C_ARG_KINDS:
                 raise ValueError(f"unknown arg kind: {kind!r}")
 
         if key is not None and key.embedDim != action.embedDim:
             raise ValueError("key embedDim must match action embedDim")
+        
         if text is not None and text.embedDim != action.embedDim:
             raise ValueError("text embedDim must match action embedDim")
 
