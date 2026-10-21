@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-21 07:09:10 UTC*
+*Auto-generated on: 2026-10-21 07:56:21 UTC*
 
 ## Current Directory Structure
 
@@ -1430,6 +1430,35 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+242570b:
+	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
+
+5c55622:
+	refactor(vocabulary): set default value for vocab parameter and enhance entries setter
+		src/fluxCore/policy/vocabulary/__vocabulary.py
+
+c44eb90:
+	docs(policy): clarify iVocabulary.dimension is embed width; add size
+		src/fluxCore/types/interface/policy/vocabulary/__vocabulary.py
+
+b7f2237:
+	fix(policy): embedDim heads, labels[index] lookup, require vocabularies
+		src/fluxCore/policy/__policy.py
+
+42904fb:
+	fix(policy): Vocabulary mapping API and size; dimension is embed width
+		src/fluxCore/policy/vocabulary/__vocabulary.py
+
+1501cf9:
+	refactor(policy): clean up unused constants and improve property naming
+		src/fluxCore/policy/__policy.py
+		src/fluxCore/policy/__policyOptions.py
+		src/fluxCore/policy/vocabulary/__vocabulary.py
+
+f60834c:
+	docs(inventory): update auto-generated timestamp and summarize recent changes
+		.docs/inventory.md
+
 2ec4c21:
 	refactor(policy): enhance Policy and PolicyOptions for improved vocabulary handling
 		src/fluxCore/policy/__policy.py
@@ -1452,30 +1481,5 @@ src/utilities/io:
 d1819f3:
 	refactor(policy): PolicyOptions uses vocabulary.Vocabulary only
 		src/fluxCore/policy/__policyOptions.py
-
-93c2c51:
-	refactor(policy): remove parallel vocabulary; re-export package API
-		src/fluxCore/policy/__vocabulary.py
-
-68801ed:
-	refactor(policy): export vocabulary package; drop parallel root vocabulary types
-
-2a78384:
-	fix(policy): export iLabel and iVocabulary interfaces
-
-ca844b8:
-	fix(policy): export Label and Vocabulary from vocabulary package
-
-adaee4d:
-	feat(policy): Vocabulary implements toTensor and serializable persistence
-		src/fluxCore/policy/vocabulary/__vocabulary.py
-
-fd88000:
-	fix(policy): Label serializable with Properties for encode/decode
-		src/fluxCore/policy/vocabulary/__label.py
-
-f937358:
-	docs(inventory): update auto-generated timestamp and summarize recent changes
-		.docs/inventory.md
 
 ```
