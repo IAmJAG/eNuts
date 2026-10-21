@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 # ==================================================================================
-from typing import Dict, Iterator, List, Mapping, Optional, Union
+from typing import Any, Dict, Iterator, List, Mapping, Optional, Union
 
 # ==================================================================================
 import torch
@@ -24,6 +24,9 @@ class Vocabulary(iVocabulary, Serializable):
     - dimension: embedding width (embedDim)
     - size / len: number of labels (N)
     - toTensor(): [N, dimension]
+
+    Entries are persisted as plain {id, description} maps so decode does not
+    depend on nested Label __type__ resolution through the serializer.
     """
 
     def __init__(
@@ -38,13 +41,14 @@ class Vocabulary(iVocabulary, Serializable):
             raise ValueError("dimension (embed width) must be >= 1")
 
         self._entries: Dict[str, Label] = {}
-        self.Properties.extend(["entries", "dimension"])
+        # dimension only via base Properties; entries handled in encode/decode
+        self.Properties.extend(["dimension"])
 
         if vocab:
             for key, value in vocab.items():
                 self._put(key, value)
 
-    def _put(self, key: str, value: Union[iLabel, str, Mapping]) -> None:
+    def _put(self, key: str, value: Union[iLabel, str, Mapping, Any]) -> None:
         if isinstance(value, str):
             label = Label(key, value)
 
@@ -59,9 +63,8 @@ class Vocabulary(iVocabulary, Serializable):
                 label.id = key
 
         elif isinstance(value, Mapping):
-            # Decoded plain dict or partially decoded Label payload
-            labelId = value.get("id", key) if hasattr(value, "get") else key
-            description = value.get("description", "") if hasattr(value, "get") else ""
+            labelId = value.get("id", key)
+            description = value.get("description", "")
             label = Label(str(labelId or key), str(description or ""))
 
         else:
@@ -107,21 +110,6 @@ class Vocabulary(iVocabulary, Serializable):
     def entries(self) -> Dict[str, Label]:
         return self._entries
 
-    @entries.setter
-    def entries(self, value: Dict[str, Label] | None) -> None:
-        self._entries = {}
-        if not value:
-            return
-        for key, item in value.items():
-            self._put(key, item)
-
-    def decode(self, dct) -> None:
-        """Restore Properties then normalize entries through the setter."""
-        Serializable.decode(self, dct)
-        # Serializable sets _entries directly; normalize Labels / dicts
-        raw = dict(self._entries) if self._entries else {}
-        self.entries = raw
-
     @property
     def labels(self) -> List[str]:
         return list(self._entries.keys())
@@ -141,3 +129,40 @@ class Vocabulary(iVocabulary, Serializable):
             for label in self._entries.values()
         ]
         return torch.stack(rows, dim=0)
+
+    # ------------------------------------------------------------------
+    def encode(self) -> Dict[str, object]:
+        """Persist dimension + plain entry maps (no nested Label __type__)."""
+        moduleParts = self.__module__.split(".")
+        if moduleParts and moduleParts[-1].startswith("__"):
+            moduleParts = moduleParts[:-1]
+        modulePath = ".".join(moduleParts)
+
+        return {
+            "dimension": self._dimension,
+            "entries": {
+                key: {"id": label.id, "description": label.description}
+                for key, label in self._entries.items()
+            },
+            "__type__": f"{modulePath}.{type(self).__name__}",
+        }
+
+    def decode(self, dct: Any) -> None:
+        """Restore dimension and rebuild Labels from plain entry maps."""
+        if not isinstance(dct, dict):
+            raise TypeError(f"Vocabulary.decode expects dict, got {type(dct)!r}")
+
+        dimension = dct.get("dimension", G_DEFAULT_EMBED_DIM)
+        self._dimension = int(dimension)
+        if self._dimension < 1:
+            raise ValueError("dimension (embed width) must be >= 1")
+
+        self._entries = {}
+        rawEntries = dct.get("entries") or {}
+        if not isinstance(rawEntries, dict):
+            raise TypeError(
+                f"Vocabulary.entries must be a dict, got {type(rawEntries)!r}"
+            )
+
+        for key, value in rawEntries.items():
+            self._put(str(key), value)
