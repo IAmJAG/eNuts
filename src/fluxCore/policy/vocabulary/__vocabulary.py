@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 # ==================================================================================
-from typing import Dict, List, Mapping, Optional, Union
+from typing import Dict, Iterator, List, Mapping, Optional, Union
 
 # ==================================================================================
 import torch
@@ -19,6 +19,13 @@ from .__label import Label
 
 # ==================================================================================
 class Vocabulary(iVocabulary, Serializable):
+    """Finite discrete vocabulary.
+
+    - dimension: embedding width (embedDim)
+    - size / len: number of labels (N)
+    - toTensor(): [N, dimension]
+    """
+
     def __init__(
         self,
         vocab: Optional[Mapping[str, Union[iLabel, str]]] = None,
@@ -28,9 +35,9 @@ class Vocabulary(iVocabulary, Serializable):
 
         self._dimension: int = int(dimension)
         if self._dimension < 1:
-            raise ValueError("embedDim must be >= 1")
+            raise ValueError("dimension (embed width) must be >= 1")
 
-        self._entries: Dict[str, Label] = {}        
+        self._entries: Dict[str, Label] = {}
         self.Properties.extend(["entries", "dimension"])
 
         if vocab:
@@ -38,13 +45,17 @@ class Vocabulary(iVocabulary, Serializable):
                 self._put(key, value)
 
     def _put(self, key: str, value: Union[iLabel, str]) -> None:
-        if isinstance(value, str): label = Label(key, value)
+        if isinstance(value, str):
+            label = Label(key, value)
 
-        elif isinstance(value, Label):            
+        elif isinstance(value, Label):
             label: iLabel = value
             if not label.id or label.id != key:
                 if label.id != key:
-                    warning(f"Vocabulary key mismatch: {key!r} != {label.id!r}; replacing {label.id!r} with {key!r}")
+                    warning(
+                        f"Vocabulary key mismatch: {key!r} != {label.id!r}; "
+                        f"replacing {label.id!r} with {key!r}"
+                    )
                 label.id = key
 
         else:
@@ -52,23 +63,42 @@ class Vocabulary(iVocabulary, Serializable):
 
         self._entries[key] = label
 
+    # ------------------------------------------------------------------
+    # Mapping surface (str keys only — use labels[i] / labelAt(i) for index)
+    def __getitem__(self, key: str) -> Label:
+        return self._entries[key]
+
     def __setitem__(self, key: str, value: Union[iLabel, str, Label]) -> None:
         self._put(key, value)
 
-    def __delitem__(self, key: str) -> None:        
+    def __delitem__(self, key: str) -> None:
         self._entries.pop(key, None)
+
+    def __len__(self) -> int:
+        return len(self._entries)
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self._entries)
+
+    def __contains__(self, key: object) -> bool:
+        return key in self._entries
 
     # ------------------------------------------------------------------
     @property
     def dimension(self) -> int:
+        """Embedding width (embedDim), not the label count."""
         return self._dimension
 
     @dimension.setter
     def dimension(self, value: int) -> None:
         if int(value) < 1:
-            raise ValueError("dimension must be >= 1")
-        
+            raise ValueError("dimension (embed width) must be >= 1")
         self._dimension = int(value)
+
+    @property
+    def size(self) -> int:
+        """Number of labels (N)."""
+        return len(self._entries)
 
     @property
     def entries(self) -> Dict[str, Label]:
@@ -86,9 +116,19 @@ class Vocabulary(iVocabulary, Serializable):
     def labels(self) -> List[str]:
         return list(self._entries.keys())
 
+    def labelAt(self, index: int) -> str:
+        keys = self.labels
+        if index < 0 or index >= len(keys):
+            raise IndexError(f"label index {index} out of range (size={len(keys)})")
+        return keys[index]
+
     def toTensor(self) -> Tensor:
+        """Embedding table shaped [N, dimension]."""
         dim: int = self._dimension
-        if self._entries is None or len(self._entries) < 1:
+        if not self._entries:
             return torch.empty(0, dim)
-        rows = [deterministicEmbedding(label.vocabularyKey, dim) for _, label in self._entries.items()]
+        rows = [
+            deterministicEmbedding(label.vocabularyKey, dim)
+            for label in self._entries.values()
+        ]
         return torch.stack(rows, dim=0)
