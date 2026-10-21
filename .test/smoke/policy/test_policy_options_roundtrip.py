@@ -28,11 +28,15 @@ from fixtures.policy.seeds import SEED_ACTIONS, SEED_ARGUMENT_KINDS  # noqa: E40
 def test_vocabulary_roundtrip() -> None:
     trace("test_vocabulary_roundtrip: build original Vocabulary")
     original = Vocabulary(SEED_ACTIONS, dimension=64)
-    trace(f"  labels={original.labels} dimension={original.dimension} size={original.size}")
+    trace(
+        f"  labels={original.labels} dimension={original.dimension} size={original.size}"
+    )
 
     blob = original.encode()
-    trace(f"  encode keys={list(blob.keys())} type={blob.get('__type__')}")
-    trace(f"  encode entries sample={list(blob.get('entries', {}).items())[:1]}")
+    typeName = blob.get("__type__")
+    trace(f"  encode keys={list(blob.keys())} type={typeName}")
+    sample = list(blob.get("entries", {}).items())[:1]
+    trace(f"  encode entries sample={sample}")
 
     payload = json.loads(json.dumps(blob))
     trace("  json boundary ok")
@@ -61,10 +65,15 @@ def test_policy_options_roundtrip() -> None:
     trace("test_policy_options_roundtrip: buildOptions")
     original = buildOptions(embedDim=64, featureDim=256, freezeBackbone=True)
     blob = original.encode()
-    trace(f"  encode keys={list(blob.keys())} type={blob.get('__type__')}")
-    if isinstance(blob.get("actions"), dict):
-        trace(f"  actions.__type__={blob['actions'].get('__type__)}")
-        trace(f"  actions.entries keys={list(blob['actions'].get('entries', {}).keys())}")
+    typeName = blob.get("__type__")
+    trace(f"  encode keys={list(blob.keys())} type={typeName}")
+
+    actionsBlob = blob.get("actions")
+    if isinstance(actionsBlob, dict):
+        actionsType = actionsBlob.get("__type__")
+        actionsKeys = list(actionsBlob.get("entries", {}).keys())
+        trace(f"  actions.__type__={actionsType}")
+        trace(f"  actions.entries keys={actionsKeys}")
 
     payload = json.loads(json.dumps(blob))
     restored = PolicyOptions()
@@ -92,10 +101,10 @@ def test_policy_from_restored_options_predicts() -> None:
 
     restored = PolicyOptions()
     restored.decode(payload)
-    trace(
-        f"  restored actions={restored.actions.labels if restored.actions else None} "
-        f"kinds={restored.argumentKinds.labels if restored.argumentKinds else None}"
-    )
+
+    actionLabels = restored.actions.labels if restored.actions else None
+    kindLabels = restored.argumentKinds.labels if restored.argumentKinds else None
+    trace(f"  restored actions={actionLabels} kinds={kindLabels}")
 
     policy = Policy(restored, device="cpu")
     imageArray = torch.rand(4, 3, 224, 224)
