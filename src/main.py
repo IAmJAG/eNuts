@@ -49,6 +49,7 @@ def _program(module: str, app: str, clean: bool = False, *args, **kwargs):
 def program(args: list = argv):
     setupLogging("", LOG_LEVEL)
     suppressedLogger(THIRD_PARTY_LOGGERS, THIRD_PARTY_LOG_LEVEL)    
+    trace()
     args, kwargs = ProcessArguments(args)
     return _program(*args, **kwargs)
 
