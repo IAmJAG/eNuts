@@ -16,7 +16,7 @@ from .__label import iLabel
 
 # ==================================================================================
 @runtime_checkable
-class iVocabulary(iSerializable, Dict[str, iLabel], Protocol):
+class iVocabulary(iSerializable, Protocol):
     @property
     def dimension(self) -> int: ...
     @property

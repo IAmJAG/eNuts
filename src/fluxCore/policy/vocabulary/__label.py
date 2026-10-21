@@ -33,3 +33,7 @@ class Label(iLabel, Serializable):
     @description.setter
     def description(self, value: str) -> None:
         self._description = value if value is not None else ""
+
+    @property
+    def vocabularyKey(self) -> str:
+        return f"{self._id}"

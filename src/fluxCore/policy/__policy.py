@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 # ==================================================================================
-from typing import Any
+from typing import Any, Optional, Union
 
 # ==================================================================================
 import torch
@@ -15,80 +15,79 @@ from torch import device as TorchDevice
 from torchvision import models
 from torchvision.models import MobileNet_V3_Small_Weights
 
-# ==================================================================================
 from ..types.interface.policy import iPolicy
+
+# ==================================================================================
+from ..types.interface.policy.vocabulary import iVocabulary
 from ..utilities import getTorchDevice
 from .__policyOptions import PolicyOptions
 
 
 # ==================================================================================
 class Policy(nn.Module, iPolicy):
-    def __init__(self, options: PolicyOptions) -> None:
+    def __init__(self, options: PolicyOptions, device: Optional[Union[str, TorchDevice]]) -> None:
         super().__init__()
 
-        actions = options.requireActions()
-        argumentKinds = options.requireArgumentKinds()
+        self._device: TorchDevice = getTorchDevice(device)
 
-        self._device: TorchDevice = getTorchDevice(options.device)
-        self._actionLabels = actions.labels
-        self._argumentKindLabels = argumentKinds.labels
-        self._embedDim = options.embedDim
         self._freezeBackbone = options.freezeBackbone
+        self._actionVocabulary: Optional[iVocabulary] = options.actions
+        self._argumentKindVocabulary: Optional[iVocabulary] = options.argumentKinds
+
+        self._actionEmbeddings: Tensor
+        self._argumentKindEmbeddings: Tensor
 
         self.register_buffer(
             "_actionEmbeddings",
-            options.actionEmbeddings().detach().to(self._device).clone(),
+            options.actions.toTensor().detach().to(self._device).clone()
         )
         self.register_buffer(
             "_argumentKindEmbeddings",
-            options.argumentKindEmbeddings().detach().to(self._device).clone(),
+            options.argumentKinds.toTensor().detach().to(self._device).clone()
         )
 
-        mobileNet = models.mobilenet_v3_small(
-            weights=MobileNet_V3_Small_Weights.DEFAULT
-        )
+        mobileNet = models.mobilenet_v3_small(weights=MobileNet_V3_Small_Weights.DEFAULT)
         self._backbone = nn.Sequential(
             mobileNet.features,
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
         )
+
         if self._freezeBackbone:
             for parameter in self._backbone.parameters():
                 parameter.requires_grad = False
 
-        featDim = options.featureDim
+        featDim = options.featureDimension
         self._projection = nn.Linear(576, featDim)
 
         self._actionHead = nn.Sequential(
             nn.Linear(featDim, featDim),
             nn.ReLU(inplace=True),
-            nn.Linear(featDim, self._embedDim),
+            nn.Linear(featDim, options.actions.dimension),
         )
+
         self._argumentKindHead = nn.Sequential(
             nn.Linear(featDim, featDim),
             nn.ReLU(inplace=True),
-            nn.Linear(featDim, self._embedDim),
+            nn.Linear(featDim, options.argumentKinds.dimension),
         )
-        # Continuous spatial payload for coordinate / box (normalized [0, 1])
+        
         self._spatialHead = nn.Sequential(
             nn.Linear(featDim, featDim),
             nn.ReLU(inplace=True),
             nn.Linear(featDim, 4),
             nn.Sigmoid(),
         )
-
+        
         self.to(self._device)
-
-    # ------------------------------------------------------------------
-    @property
-    def actionKeys(self) -> tuple[str, ...]:
-        return self._actionLabels
 
     def forward(self, imageArray: Tensor) -> dict[str, Tensor]:
         fused = self._fuse(imageArray)
         return {
-            "actionEmbedding": F.normalize(self._actionHead(fused), p=2, dim=-1),
-            "argumentKindEmbedding": F.normalize(
+            "actions": F.normalize(
+                self._actionHead(fused), p=2, dim=-1
+            ),
+            "argumentKinds": F.normalize(
                 self._argumentKindHead(fused), p=2, dim=-1
             ),
             "spatial": self._spatialHead(fused),
@@ -101,22 +100,20 @@ class Policy(nn.Module, iPolicy):
             self.eval()
             out = self.forward(imageArray)
 
-            actionScores = self._cosine(out["actionEmbedding"], self._actionEmbeddings)
+            actionScores = self._cosine(out["actions"], self._actionEmbeddings)
             actionIndex = int(torch.argmax(actionScores, dim=-1).reshape(-1)[0].item())
-            actionKey = self._actionLabels[actionIndex]
+            actionKey = self._actionVocabulary[actionIndex]
 
-            kindScores = self._cosine(
-                out["argumentKindEmbedding"], self._argumentKindEmbeddings
-            )
-            kindIndex = int(torch.argmax(kindScores, dim=-1).reshape(-1)[0].item())
-            kind = self._argumentKindLabels[kindIndex]
+            argumentKindScores = self._cosine(out["argumentKindEmbedding"], self._argumentKindEmbeddings)
+            argumentKindIndex = int(torch.argmax(argumentKindScores, dim=-1).reshape(-1)[0].item())
+            argumentKind = self._argumentKindVocabulary[argumentKindIndex]
 
             spatial = out["spatial"].reshape(-1, 4)[0].detach().cpu()
-            argument = self._buildArgument(kind, spatial)
+            argument = self._buildArgument(argumentKind, spatial)
             return actionKey, argument
+
         finally:
-            if wasTraining:
-                self.train()
+            if wasTraining: self.train()
 
     def train(self, mode: bool = True) -> Policy:
         super().train(mode)
@@ -126,8 +123,7 @@ class Policy(nn.Module, iPolicy):
 
     # ------------------------------------------------------------------
     def _fuse(self, imageArray: Tensor) -> Tensor:
-        if imageArray.dim() == 4:
-            imageArray = imageArray.unsqueeze(0)
+        if imageArray.dim() == 4: imageArray = imageArray.unsqueeze(0)
         if imageArray.dim() != 5:
             raise ValueError(
                 "Expected [T, 3, H, W] or [B, T, 3, H, W], "
@@ -172,10 +168,11 @@ class Policy(nn.Module, iPolicy):
                 "width": float(spatial[2]),
                 "height": float(spatial[3]),
             }
+
         if kind == "key":
-            # Open-ended value — not selected from a closed vocabulary.
             return {"kind": "key", "code": ""}
+        
         if kind == "text":
-            # Open-ended value — not selected from a closed vocabulary.
             return {"kind": "text", "value": ""}
+            
         return {"kind": kind}
