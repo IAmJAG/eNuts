@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-20 12:53:39 UTC*
+*Auto-generated on: 2026-10-21 07:09:10 UTC*
 
 ## Current Directory Structure
 
@@ -142,10 +142,14 @@ eNuts/
 │   │   ├── policy/
 │   │   │   ├── __policy.py
 │   │   │   ├── __policyOptions.py
-│   │   │   ├── __vocabulary.py
 │   │   │   └── vocabulary/
+│   │   │       ├── __actionVocabulary.py
+│   │   │       ├── __argumentKindVocabulary.py
 │   │   │       ├── __label.py
-│   │   │       └── __vocabulary.py
+│   │   │       ├── __vocabulary.py
+│   │   │       └── labels/
+│   │   │           ├── __actionLabel.py
+│   │   │           └── __argumentKindLabel.py
 │   │   ├── types/
 │   │   │   ├── .fff
 │   │   │   ├── geometry/
@@ -643,28 +647,31 @@ src/fluxCore/policy:
 		CLASSE(S):
 			PolicyOptions -> : policyoptions
 		CONSTANTS(S)/GLOBAL(S)
-			C_SEED_ACTION_KEYS -> : c_seed_action_keys
-			C_SEED_ACTION_DESCRIPTIONS -> : c_seed_action_descriptions
+			C_SEED_ACTIONS -> : c_seed_actions
 			C_SEED_ARGUMENT_KINDS -> : c_seed_argument_kinds
-			C_SEED_ARGUMENT_KIND_DESCRIPTIONS -> : c_seed_argument_kind_descriptions
 			C_DEFAULT_FEATURE_DIM -> : c_default_feature_dim
-	__vocabulary.py - 
-		CLASSE(S):
-			VocabularyItem -> : vocabularyitem
-			Vocabulary -> : vocabulary
-		FUNCTION(S):
-			labelToEmbedding -> : labeltoembedding
-			labelsToEmbeddings -> : labelstoembeddings
-		CONSTANTS(S)/GLOBAL(S)
-			C_DEFAULT_EMBED_DIM -> : c_default_embed_dim
 
 src/fluxCore/policy/vocabulary:
+	__actionVocabulary.py - 
+		CLASSE(S):
+			ActionVocabulary -> : actionvocabulary
+	__argumentKindVocabulary.py - 
+		CLASSE(S):
+			ArgumentKindVocabulary -> : argumentkindvocabulary
 	__label.py - 
 		CLASSE(S):
 			Label -> : label
 	__vocabulary.py - 
 		CLASSE(S):
-			iVocabulary -> : ivocabulary
+			Vocabulary -> : vocabulary
+
+src/fluxCore/policy/vocabulary/labels:
+	__actionLabel.py - 
+		CLASSE(S):
+			ActionLabel -> : actionlabel
+	__argumentKindLabel.py - 
+		CLASSE(S):
+			ArgumentKindLabel -> : argumentkindlabel
 
 src/fluxCore/types/geometry:
 	__circle.py - 
@@ -786,6 +793,10 @@ src/fluxCore/utilities:
 	__torch.py - 
 		FUNCTION(S):
 			getTorchDevice -> : gettorchdevice
+			deterministicEmbedding -> : deterministicembedding
+		CONSTANTS(S)/GLOBAL(S)
+			G_DEFAULT_EMBED_DIM -> : g_default_embed_dim
+			G_DEFAULT_FEATURE_DIM -> : g_default_feature_dim
 
 src/fluxCore/utilities/scrcpy:
 	__scrcpy.py - 
@@ -1419,44 +1430,52 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-df6199b:
-	refactor(policy): update type hints and clean up docstrings in Policy and PolicyOptions classes
+2ec4c21:
+	refactor(policy): enhance Policy and PolicyOptions for improved vocabulary handling
 		src/fluxCore/policy/__policy.py
 		src/fluxCore/policy/__policyOptions.py
+		src/fluxCore/policy/__vocabulary.py
+		src/fluxCore/policy/vocabulary/__actionVocabulary.py
+		src/fluxCore/policy/vocabulary/__argumentKindVocabulary.py
+		src/fluxCore/policy/vocabulary/__label.py
+		src/fluxCore/policy/vocabulary/__vocabulary.py
+		src/fluxCore/policy/vocabulary/labels/__actionLabel.py
+		src/fluxCore/policy/vocabulary/labels/__argumentKindLabel.py
+		src/fluxCore/types/interface/policy/vocabulary/__label.py
+		src/fluxCore/types/interface/policy/vocabulary/__vocabulary.py
+		src/fluxCore/utilities/__torch.py
 
-d5c1912:
-	docs(inventory): update asset and directory inventory with new policy files
-		.docs/inventory.md
-
-899f08d:
-	docs(policy): implementation notes for vocabulary layer
-		.docs/fluxCore/policy/implementation.md
-
-d7e1490:
-	docs(policy): project requirements vocabulary-first
-		.docs/policy/requirement.md
-
-9b9c483:
-	docs(policy): requirements for discrete vocab vs open argument values
-		.docs/fluxCore/policy/requirement.md
-
-1c32491:
-	docs(policy): vocabulary-first design for discrete actions and argument kinds
+868bd9c:
+	docs(policy): document Label/Vocabulary package as source of truth
 		.docs/fluxCore/policy/policy.md
 
-120f1f2:
-	feat(policy): export Vocabulary types; drop RegistryOptions
-
-e3260e4:
-	refactor(policy): use action + argumentKind vocabularies; open argument values
-		src/fluxCore/policy/__policy.py
-
-bc475d6:
-	refactor(policy): PolicyOptions holds action + argumentKind vocabularies only
+d1819f3:
+	refactor(policy): PolicyOptions uses vocabulary.Vocabulary only
 		src/fluxCore/policy/__policyOptions.py
 
-0bb61d9:
-	feat(policy): VocabularyItem and Vocabulary as discrete serializable units
+93c2c51:
+	refactor(policy): remove parallel vocabulary; re-export package API
 		src/fluxCore/policy/__vocabulary.py
+
+68801ed:
+	refactor(policy): export vocabulary package; drop parallel root vocabulary types
+
+2a78384:
+	fix(policy): export iLabel and iVocabulary interfaces
+
+ca844b8:
+	fix(policy): export Label and Vocabulary from vocabulary package
+
+adaee4d:
+	feat(policy): Vocabulary implements toTensor and serializable persistence
+		src/fluxCore/policy/vocabulary/__vocabulary.py
+
+fd88000:
+	fix(policy): Label serializable with Properties for encode/decode
+		src/fluxCore/policy/vocabulary/__label.py
+
+f937358:
+	docs(inventory): update auto-generated timestamp and summarize recent changes
+		.docs/inventory.md
 
 ```
