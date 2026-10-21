@@ -1,6 +1,7 @@
 # ==================================================================================
 from datetime import datetime
 from enum import Enum
+from importlib import import_module
 from inspect import isfunction
 from sys import modules
 from typing import Dict, Type, get_type_hints
@@ -20,20 +21,22 @@ def _decodeEnum(lType, obj):
 
     except Exception as ex:
         raise Exception(f"Error retrieving enum type {lType.__class__.__name__}") from ex
-    
+
+
 # ==================================================================================
 def _decodeSerializeable(lType: type, obj: dict):
     try:
         lNewObj: iSerializable = lType()
         lNewObj.decode(obj)
         return lNewObj
-    
+
     except TypeError as ex:
         raise Exception(f"Error occur: Type Error {lType.__name__}") from ex
 
     except Exception as ex:
         raise Exception(f"Error occur initializing {lType.__name__}") from ex
-    
+
+
 # ==================================================================================
 def _decodeFunction(lType, obj):
     lReturnType: type = get_type_hints(lType)
@@ -44,12 +47,15 @@ def _decodeFunction(lType, obj):
             return lNewObj
     return None
 
+
 # ==================================================================================
 def _decodeCustomType(obj: Dict):
     lClass: str = obj.get("__type__", None)
     if lClass is not None:
         try:
             lType = importClass(lClass)
+            if lType is None:
+                raise ModuleNotFoundError(f"Unable to resolve type path {lClass!r}")
 
             if issubclass(lType, Enum):
                 return _decodeEnum(lType, obj)
@@ -60,7 +66,8 @@ def _decodeCustomType(obj: Dict):
             else:
                 if isfunction(lType):
                     lNewObj: iSerializable = _decodeFunction(lType, obj)
-                    if lNewObj is not None: return lNewObj
+                    if lNewObj is not None:
+                        return lNewObj
 
                 obj.pop("__type__", None)
                 lNewObj = lType(**obj)
@@ -73,9 +80,12 @@ def _decodeCustomType(obj: Dict):
             raise Exception(f"Class {lClass} not found in module!") from ex
 
         except Exception as e:
-            raise Exception(f"Error trying to deserialize {type(obj).__name__}") from e
+            raise Exception(
+                f"Error trying to deserialize {type(obj).__name__}: {e!r}"
+            ) from e
 
     return None
+
 
 # ==================================================================================
 def jsonDecode(obj: dict):
@@ -84,7 +94,7 @@ def jsonDecode(obj: dict):
             return [jsonDecode(lVal) for lVal in obj]
 
         elif isinstance(obj, tuple):
-            return (jsonDecode(lVal) for lVal in obj)
+            return tuple(jsonDecode(lVal) for lVal in obj)
 
         elif isinstance(obj, dict):
             lNewObj = _decodeCustomType(obj)
@@ -94,11 +104,11 @@ def jsonDecode(obj: dict):
             elif "__datetime__" in obj:
                 lNewObj = datetime.fromisoformat(obj["__datetime__"])
                 return lNewObj
-            
+
             elif "__uuid__" in obj:
                 lNewObj = UUID(obj["__uuid__"])
                 return lNewObj
-            
+
             else:
                 return {lKey: jsonDecode(lValue) for lKey, lValue in obj.items()}
 
@@ -106,15 +116,33 @@ def jsonDecode(obj: dict):
             return obj
 
         warning(f"jsonDecode: Unknown type {type(obj)}")
-    
+
     except Exception as ex:
         raise ex
 
+
 def importClass(clsPth: str) -> Type | None:
+    """Resolve 'package.module.Class' from sys.modules or via importlib."""
     lModName, lClassName = clsPth.rsplit(".", 1)
+
     for lName, lModule in modules.items():
         if lModule and (lName == lModName or lName.endswith("." + lModName)):
             if hasattr(lModule, lClassName):
                 return getattr(lModule, lClassName)
 
-    return None   
+    # Not already imported under the encoded path — load it.
+    try:
+        lModule = import_module(lModName)
+    except ModuleNotFoundError:
+        # Encoded path may be package.Class while implementation lives in package.__name
+        # Try common private-module layout: package.__classLower
+        private = f"{lModName}.__{lClassName[0].lower()}{lClassName[1:]}"
+        try:
+            lModule = import_module(private)
+        except ModuleNotFoundError:
+            return None
+
+    if hasattr(lModule, lClassName):
+        return getattr(lModule, lClassName)
+
+    return None
