@@ -5,49 +5,39 @@ from __future__ import annotations
 from typing import Optional
 
 # ==================================================================================
-from torch import Tensor
-
-# ==================================================================================
 from jAGFx.serializer import Serializable
 
 # ==================================================================================
-from ..utilities import G_DEFAULT_EMBED_DIM, G_DEFAULT_FEATURE_DIM
+from ..utilities import G_DEFAULT_FEATURE_DIM
 from .vocabulary import Vocabulary
-
-# ==================================================================================
-C_SEED_ACTIONS: dict[str, str] = {
-    "down": "finger/right mouse button down",
-    "up": "finger/right mouse button up",
-    "move": "finger/mouse move",
-    "inject": "send key or text",
-}
-C_SEED_ARGUMENT_KINDS: dict[str, str] = {
-    "coordinate": "normalized point (x, y)",
-    "box": "normalized box (left, top, width, height)",
-    "key": "keyboard key code (open-ended value)",
-    "text": "text string (open-ended value)",
-}
-C_DEFAULT_FEATURE_DIM: int = 512
 
 
 # ==================================================================================
 class PolicyOptions(Serializable):
+    """Serializable policy construction options.
+
+    Owns only configuration. Vocabularies and seed data are supplied by the caller
+    (application or tests) — not defined here.
+    """
+
     def __init__(
-        self, actions: Optional[Vocabulary], argumentKinds: Optional[Vocabulary],
-        featureDim: int = G_DEFAULT_FEATURE_DIM, freezeBackbone: bool = True
+        self,
+        actions: Optional[Vocabulary] = None,
+        argumentKinds: Optional[Vocabulary] = None,
+        featureDim: int = G_DEFAULT_FEATURE_DIM,
+        freezeBackbone: bool = True,
     ) -> None:
         super().__init__()
 
         self._actions: Optional[Vocabulary] = actions
         self._argumentKinds: Optional[Vocabulary] = argumentKinds
         self._featureDimension: int = int(featureDim)
-
         self._freezeBackbone: bool = bool(freezeBackbone)
 
         self.Properties.extend(
             [
                 "actions",
-                "argumentKinds",                
+                "argumentKinds",
                 "featureDimension",
                 "freezeBackbone",
             ]
@@ -55,19 +45,19 @@ class PolicyOptions(Serializable):
 
     # ------------------------------------------------------------------
     @property
-    def actions(self) -> Vocabulary:
+    def actions(self) -> Optional[Vocabulary]:
         return self._actions
 
     @actions.setter
-    def actions(self, value: Vocabulary) -> None:
+    def actions(self, value: Optional[Vocabulary]) -> None:
         self._actions = value
 
     @property
-    def argumentKinds(self) -> Vocabulary:
+    def argumentKinds(self) -> Optional[Vocabulary]:
         return self._argumentKinds
 
     @argumentKinds.setter
-    def argumentKinds(self, value: Vocabulary | None) -> None:
+    def argumentKinds(self, value: Optional[Vocabulary]) -> None:
         self._argumentKinds = value
 
     @property
@@ -77,8 +67,7 @@ class PolicyOptions(Serializable):
     @featureDimension.setter
     def featureDimension(self, value: int) -> None:
         if int(value) < 1:
-            raise ValueError("featureDim must be >= 1")
-        
+            raise ValueError("featureDimension must be >= 1")
         self._featureDimension = int(value)
 
     @property
@@ -88,4 +77,3 @@ class PolicyOptions(Serializable):
     @freezeBackbone.setter
     def freezeBackbone(self, value: bool) -> None:
         self._freezeBackbone = bool(value)
-    
