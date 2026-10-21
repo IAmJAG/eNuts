@@ -8,16 +8,13 @@ from typing import Any, Optional, Union
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-# ==================================================================================
 from torch import Tensor
 from torch import device as TorchDevice
 from torchvision import models
 from torchvision.models import MobileNet_V3_Small_Weights
 
-from ..types.interface.policy import iPolicy
-
 # ==================================================================================
+from ..types.interface.policy import iPolicy
 from ..types.interface.policy.vocabulary import iVocabulary
 from ..utilities import getTorchDevice
 from .__policyOptions import PolicyOptions
@@ -25,28 +22,52 @@ from .__policyOptions import PolicyOptions
 
 # ==================================================================================
 class Policy(nn.Module, iPolicy):
-    def __init__(self, options: PolicyOptions, device: Optional[Union[str, TorchDevice]]) -> None:
+    """Image array → action + argument kind (vocab cosine) + spatial payload.
+
+    Heads project into embedding space (vocabulary.dimension = embedDim).
+    Scores are cosine vs vocabulary.toTensor() tables [N, embedDim].
+    """
+
+    def __init__(
+        self,
+        options: PolicyOptions,
+        device: Optional[Union[str, TorchDevice]] = None,
+    ) -> None:
         super().__init__()
 
+        if options.actions is None:
+            raise ValueError("Policy requires options.actions vocabulary")
+        if options.argumentKinds is None:
+            raise ValueError("Policy requires options.argumentKinds vocabulary")
+        if options.actions.size < 1:
+            raise ValueError("actions vocabulary must be non-empty")
+        if options.argumentKinds.size < 1:
+            raise ValueError("argumentKinds vocabulary must be non-empty")
+
         self._device: TorchDevice = getTorchDevice(device)
-
         self._freezeBackbone = options.freezeBackbone
-        self._actionVocabulary: Optional[iVocabulary] = options.actions
-        self._argumentKindVocabulary: Optional[iVocabulary] = options.argumentKinds
 
-        self._actionEmbeddings: Tensor
-        self._argumentKindEmbeddings: Tensor
+        self._actionVocabulary: iVocabulary = options.actions
+        self._argumentKindVocabulary: iVocabulary = options.argumentKinds
+        self._actionLabels: tuple[str, ...] = tuple(options.actions.labels)
+        self._argumentKindLabels: tuple[str, ...] = tuple(options.argumentKinds.labels)
+
+        # Embedding width (not label count)
+        actionEmbedDim = options.actions.dimension
+        argumentKindEmbedDim = options.argumentKinds.dimension
 
         self.register_buffer(
             "_actionEmbeddings",
-            options.actions.toTensor().detach().to(self._device).clone()
+            options.actions.toTensor().detach().to(self._device).clone(),
         )
         self.register_buffer(
             "_argumentKindEmbeddings",
-            options.argumentKinds.toTensor().detach().to(self._device).clone()
+            options.argumentKinds.toTensor().detach().to(self._device).clone(),
         )
 
-        mobileNet = models.mobilenet_v3_small(weights=MobileNet_V3_Small_Weights.DEFAULT)
+        mobileNet = models.mobilenet_v3_small(
+            weights=MobileNet_V3_Small_Weights.DEFAULT
+        )
         self._backbone = nn.Sequential(
             mobileNet.features,
             nn.AdaptiveAvgPool2d(1),
@@ -60,36 +81,31 @@ class Policy(nn.Module, iPolicy):
         featDim = options.featureDimension
         self._projection = nn.Linear(576, featDim)
 
+        # Project into embedding space for cosine vs vocab tables
         self._actionHead = nn.Sequential(
             nn.Linear(featDim, featDim),
             nn.ReLU(inplace=True),
-            nn.Linear(featDim, options.actions.dimension),
+            nn.Linear(featDim, actionEmbedDim),
         )
-
         self._argumentKindHead = nn.Sequential(
             nn.Linear(featDim, featDim),
             nn.ReLU(inplace=True),
-            nn.Linear(featDim, options.argumentKinds.dimension),
+            nn.Linear(featDim, argumentKindEmbedDim),
         )
-        
         self._spatialHead = nn.Sequential(
             nn.Linear(featDim, featDim),
             nn.ReLU(inplace=True),
             nn.Linear(featDim, 4),
             nn.Sigmoid(),
         )
-        
+
         self.to(self._device)
 
     def forward(self, imageArray: Tensor) -> dict[str, Tensor]:
         fused = self._fuse(imageArray)
         return {
-            "actions": F.normalize(
-                self._actionHead(fused), p=2, dim=-1
-            ),
-            "argumentKinds": F.normalize(
-                self._argumentKindHead(fused), p=2, dim=-1
-            ),
+            "actions": F.normalize(self._actionHead(fused), p=2, dim=-1),
+            "argumentKinds": F.normalize(self._argumentKindHead(fused), p=2, dim=-1),
             "spatial": self._spatialHead(fused),
         }
 
@@ -102,18 +118,23 @@ class Policy(nn.Module, iPolicy):
 
             actionScores = self._cosine(out["actions"], self._actionEmbeddings)
             actionIndex = int(torch.argmax(actionScores, dim=-1).reshape(-1)[0].item())
-            actionKey = self._actionVocabulary[actionIndex]
+            actionKey = self._actionLabels[actionIndex]
 
-            argumentKindScores = self._cosine(out["argumentKinds"], self._argumentKindEmbeddings)
-            argumentKindIndex = int(torch.argmax(argumentKindScores, dim=-1).reshape(-1)[0].item())
-            argumentKind = self._argumentKindVocabulary[argumentKindIndex]
+            argumentKindScores = self._cosine(
+                out["argumentKinds"], self._argumentKindEmbeddings
+            )
+            argumentKindIndex = int(
+                torch.argmax(argumentKindScores, dim=-1).reshape(-1)[0].item()
+            )
+            argumentKind = self._argumentKindLabels[argumentKindIndex]
 
             spatial = out["spatial"].reshape(-1, 4)[0].detach().cpu()
             argument = self._buildArgument(argumentKind, spatial)
             return actionKey, argument
 
         finally:
-            if wasTraining: self.train()
+            if wasTraining:
+                self.train()
 
     def train(self, mode: bool = True) -> Policy:
         super().train(mode)
@@ -123,7 +144,8 @@ class Policy(nn.Module, iPolicy):
 
     # ------------------------------------------------------------------
     def _fuse(self, imageArray: Tensor) -> Tensor:
-        if imageArray.dim() == 4: imageArray = imageArray.unsqueeze(0)
+        if imageArray.dim() == 4:
+            imageArray = imageArray.unsqueeze(0)
         if imageArray.dim() != 5:
             raise ValueError(
                 "Expected [T, 3, H, W] or [B, T, 3, H, W], "
@@ -168,11 +190,8 @@ class Policy(nn.Module, iPolicy):
                 "width": float(spatial[2]),
                 "height": float(spatial[3]),
             }
-
         if kind == "key":
             return {"kind": "key", "code": ""}
-        
         if kind == "text":
             return {"kind": "text", "value": ""}
-            
         return {"kind": kind}
