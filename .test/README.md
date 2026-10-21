@@ -8,45 +8,34 @@ Production types (`Policy`, `Vocabulary`, `PolicyOptions`) do not own seed data 
 
 ```text
 .test/
-  README.md                 ← this file
-  conftest.py               ← shared path/bootstrap (optional)
-  fixtures/                 ← reusable test-only data
+  README.md
+  conftest.py
+  fixtures/
     policy/
-      seeds.py              ← action / argument-kind seed maps for tests
-  smoke/                    ← fast shape/wiring checks (no training)
+      seeds.py
+      builders.py
+  smoke/
     policy/
       test_policy_forward_predict.py
-  unit/                     ← pure unit tests (future)
-  integration/              ← multi-module / emitter (future)
+      test_policy_options_roundtrip.py
+  unit/            (reserved)
+  integration/     (reserved)
 ```
 
 ## Categories
 
-| Folder | Purpose | Speed | Network |
-|--------|---------|-------|---------|
-| `smoke/` | Construct + forward + predict; shapes and contracts | Fast | May download torchvision weights once |
-| `unit/` | Isolated class behavior (Vocabulary encode/decode, etc.) | Fast | No |
-| `integration/` | Policy + stream/emitter/wrapper | Slower | Maybe |
+| Folder | Purpose |
+|--------|---------|
+| `smoke/` | Construct, shapes, serialize round-trip, predict contract |
+| `unit/` | Isolated class behavior (future) |
+| `integration/` | Policy + stream/emitter (future) |
 
 ## How to run
 
-From repo root (package root must resolve `fluxCore`):
-
-```bash
-# all smoke
-python -m pytest .test/smoke -q
-
-# one module
-python -m pytest .test/smoke/policy -q
-
-# everything under .test
-python -m pytest .test -q
-```
-
-`PYTHONPATH` should include `src` if the project is not installed editable:
-
 ```bash
 PYTHONPATH=src python -m pytest .test/smoke -q
+PYTHONPATH=src python -m pytest .test/smoke/policy -q
+PYTHONPATH=src python -m pytest .test -q
 ```
 
 ## Responsibility split
@@ -54,5 +43,5 @@ PYTHONPATH=src python -m pytest .test/smoke -q
 | Concern | Owner |
 |---------|--------|
 | Labels, vocabularies, options, model | `src/fluxCore/policy/` |
-| Seed maps, fake tensors, assert helpers | `.test/fixtures/` |
+| Seed maps, builders, fake tensors | `.test/fixtures/` |
 | Smoke / unit / integration cases | `.test/<category>/` |
