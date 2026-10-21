@@ -12,3 +12,7 @@ _SRC = _REPO_ROOT / "src"
 
 if _SRC.is_dir() and str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
+
+# Runtime builtins (trace, debug, warning, …) come from monkey patch — same as main.py.
+# typings/__builtins__.pyi is stubs only; pytest does not load them.
+import __monkeyPatch  # noqa: E402, F401
