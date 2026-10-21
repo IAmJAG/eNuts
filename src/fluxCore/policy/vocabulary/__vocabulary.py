@@ -44,19 +44,25 @@ class Vocabulary(iVocabulary, Serializable):
             for key, value in vocab.items():
                 self._put(key, value)
 
-    def _put(self, key: str, value: Union[iLabel, str]) -> None:
+    def _put(self, key: str, value: Union[iLabel, str, Mapping]) -> None:
         if isinstance(value, str):
             label = Label(key, value)
 
         elif isinstance(value, Label):
-            label: iLabel = value
+            label = value
             if not label.id or label.id != key:
-                if label.id != key:
+                if label.id and label.id != key:
                     warning(
                         f"Vocabulary key mismatch: {key!r} != {label.id!r}; "
                         f"replacing {label.id!r} with {key!r}"
                     )
                 label.id = key
+
+        elif isinstance(value, Mapping):
+            # Decoded plain dict or partially decoded Label payload
+            labelId = value.get("id", key) if hasattr(value, "get") else key
+            description = value.get("description", "") if hasattr(value, "get") else ""
+            label = Label(str(labelId or key), str(description or ""))
 
         else:
             label = Label(getattr(value, "id", key), getattr(value, "description", ""))
@@ -64,7 +70,6 @@ class Vocabulary(iVocabulary, Serializable):
         self._entries[key] = label
 
     # ------------------------------------------------------------------
-    # Mapping surface (str keys only — use labels[i] / labelAt(i) for index)
     def __getitem__(self, key: str) -> Label:
         return self._entries[key]
 
@@ -86,7 +91,6 @@ class Vocabulary(iVocabulary, Serializable):
     # ------------------------------------------------------------------
     @property
     def dimension(self) -> int:
-        """Embedding width (embedDim), not the label count."""
         return self._dimension
 
     @dimension.setter
@@ -97,7 +101,6 @@ class Vocabulary(iVocabulary, Serializable):
 
     @property
     def size(self) -> int:
-        """Number of labels (N)."""
         return len(self._entries)
 
     @property
@@ -105,12 +108,19 @@ class Vocabulary(iVocabulary, Serializable):
         return self._entries
 
     @entries.setter
-    def entries(self, value: Dict[str, Label] | None) -> None:        
-        if not value: return
-
+    def entries(self, value: Dict[str, Label] | None) -> None:
         self._entries = {}
+        if not value:
+            return
         for key, item in value.items():
             self._put(key, item)
+
+    def decode(self, dct) -> None:
+        """Restore Properties then normalize entries through the setter."""
+        Serializable.decode(self, dct)
+        # Serializable sets _entries directly; normalize Labels / dicts
+        raw = dict(self._entries) if self._entries else {}
+        self.entries = raw
 
     @property
     def labels(self) -> List[str]:
@@ -123,7 +133,6 @@ class Vocabulary(iVocabulary, Serializable):
         return keys[index]
 
     def toTensor(self) -> Tensor:
-        """Embedding table shaped [N, dimension]."""
         dim: int = self._dimension
         if not self._entries:
             return torch.empty(0, dim)
