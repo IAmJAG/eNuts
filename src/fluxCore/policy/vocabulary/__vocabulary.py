@@ -21,7 +21,7 @@ from .__label import Label
 class Vocabulary(iVocabulary, Serializable):
     def __init__(
         self,
-        vocab: Optional[Mapping[str, Union[iLabel, str]]],
+        vocab: Optional[Mapping[str, Union[iLabel, str]]] = None,
         dimension: int = G_DEFAULT_EMBED_DIM,
     ) -> None:
         super().__init__()
@@ -75,8 +75,12 @@ class Vocabulary(iVocabulary, Serializable):
         return self._entries
 
     @entries.setter
-    def entries(self, value: Dict[str, Label]) -> None:
-        return self._entries
+    def entries(self, value: Dict[str, Label] | None) -> None:        
+        if not value: return
+
+        self._entries = {}
+        for key, item in value.items():
+            self._put(key, item)
 
     @property
     def labels(self) -> List[str]:
