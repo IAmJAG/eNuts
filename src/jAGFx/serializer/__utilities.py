@@ -13,6 +13,33 @@ from ..types.interface.serializer import iSerializable
 
 
 # ==================================================================================
+def _isSerializableType(lType: type) -> bool:
+    """True if lType implements the serializable surface.
+
+    ``issubclass(..., iSerializable)`` raises TypeError because iSerializable is a
+    Protocol with non-method members (``Properties``). Prefer concrete MRO check,
+    then duck-type encode/decode.
+    """
+    try:
+        from .__serializable import Serializable
+
+        if issubclass(lType, Serializable):
+            return True
+    except Exception:
+        pass
+
+    try:
+        if issubclass(lType, iSerializable):
+            return True
+    except TypeError:
+        pass
+
+    return callable(getattr(lType, "encode", None)) and callable(
+        getattr(lType, "decode", None)
+    )
+
+
+# ==================================================================================
 def _decodeEnum(lType, obj):
     try:
         lMember = obj.get("__member__", None)
@@ -60,18 +87,16 @@ def _decodeCustomType(obj: Dict):
             if issubclass(lType, Enum):
                 return _decodeEnum(lType, obj)
 
-            elif issubclass(lType, iSerializable):
+            if _isSerializableType(lType):
                 return _decodeSerializeable(lType, obj)
 
-            else:
-                if isfunction(lType):
-                    lNewObj: iSerializable = _decodeFunction(lType, obj)
-                    if lNewObj is not None:
-                        return lNewObj
+            if isfunction(lType):
+                lNewObj: iSerializable = _decodeFunction(lType, obj)
+                if lNewObj is not None:
+                    return lNewObj
 
-                payload = {k: v for k, v in obj.items() if k != "__type__"}
-                lNewObj = lType(**payload)
-                return lNewObj
+            payload = {k: v for k, v in obj.items() if k != "__type__"}
+            return lType(**payload)
 
         except ModuleNotFoundError as ex:
             raise Exception(f"Module {lClass} not found!") from ex
@@ -80,9 +105,7 @@ def _decodeCustomType(obj: Dict):
             raise Exception(f"Class {lClass} not found in module!") from ex
 
         except Exception as e:
-            raise Exception(
-                f"Error trying to deserialize {lClass}: {e!r}"
-            ) from e
+            raise Exception(f"Error trying to deserialize {lClass}: {e!r}") from e
 
     return None
 
