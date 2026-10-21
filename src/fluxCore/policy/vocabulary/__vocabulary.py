@@ -75,7 +75,7 @@ class Vocabulary(iVocabulary, Serializable):
         return self._entries
 
     @entries.setter
-    def entries(self) -> int:
+    def entries(self, value: Dict[str, Label]) -> None:
         return self._entries
 
     @property

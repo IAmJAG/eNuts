@@ -104,7 +104,7 @@ class Policy(nn.Module, iPolicy):
             actionIndex = int(torch.argmax(actionScores, dim=-1).reshape(-1)[0].item())
             actionKey = self._actionVocabulary[actionIndex]
 
-            argumentKindScores = self._cosine(out["argumentKindEmbedding"], self._argumentKindEmbeddings)
+            argumentKindScores = self._cosine(out["argumentKinds"], self._argumentKindEmbeddings)
             argumentKindIndex = int(torch.argmax(argumentKindScores, dim=-1).reshape(-1)[0].item())
             argumentKind = self._argumentKindVocabulary[argumentKindIndex]
 

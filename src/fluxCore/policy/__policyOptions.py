@@ -50,7 +50,6 @@ class PolicyOptions(Serializable):
                 "argumentKinds",                
                 "featureDimension",
                 "freezeBackbone",
-                "device",
             ]
         )
 
@@ -73,14 +72,14 @@ class PolicyOptions(Serializable):
 
     @property
     def featureDimension(self) -> int:
-        return self._featureDim
+        return self._featureDimension
 
     @featureDimension.setter
     def featureDimension(self, value: int) -> None:
         if int(value) < 1:
             raise ValueError("featureDim must be >= 1")
         
-        self._featureDim = int(value)
+        self._featureDimension = int(value)
 
     @property
     def freezeBackbone(self) -> bool:

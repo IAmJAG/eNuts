@@ -1,6 +1,6 @@
 # ==================================================================================
 from .__label import Label
-from .__vocabulary import C_DEFAULT_EMBED_DIM, Vocabulary
+from .__vocabulary import Vocabulary
 
 # ==================================================================================
-__all__ = ["Label", "Vocabulary", "C_DEFAULT_EMBED_DIM"]
+__all__ = ["Label", "Vocabulary"]
