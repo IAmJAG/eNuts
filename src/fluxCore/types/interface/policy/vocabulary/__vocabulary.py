@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 # ==================================================================================
-from typing import Dict, List, Protocol, runtime_checkable
+from typing import List, Protocol, runtime_checkable
 
 # ==================================================================================
 from torch import Tensor
@@ -10,17 +10,23 @@ from torch import Tensor
 # ==================================================================================
 from jAGFx.types.interface.serializer import iSerializable
 
-# ==================================================================================
-from .__label import iLabel
-
 
 # ==================================================================================
 @runtime_checkable
 class iVocabulary(iSerializable, Protocol):
     @property
-    def dimension(self) -> int: ...
+    def dimension(self) -> int:
+        """Embedding width (embedDim), not label count."""
+        ...
+
+    @property
+    def size(self) -> int:
+        """Number of labels (N)."""
+        ...
+
     @property
     def labels(self) -> List[str]: ...
-    def toTensor(self) -> Tensor: ...
 
-    
+    def toTensor(self) -> Tensor:
+        """Embedding table [N, dimension]."""
+        ...
