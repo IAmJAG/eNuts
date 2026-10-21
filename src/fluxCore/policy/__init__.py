@@ -1,10 +1,6 @@
 # ==================================================================================
 from .__policy import Policy
-from .__policyOptions import (
-    C_SEED_ACTIONS,
-    C_SEED_ARGUMENT_KINDS,
-    PolicyOptions,
-)
+from .__policyOptions import PolicyOptions
 from .vocabulary import Label, Vocabulary
 
 # ==================================================================================
@@ -13,6 +9,4 @@ __all__ = [
     "PolicyOptions",
     "Label",
     "Vocabulary",
-    "C_SEED_ACTIONS",
-    "C_SEED_ARGUMENT_KINDS",
 ]
