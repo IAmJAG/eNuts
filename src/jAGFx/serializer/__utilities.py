@@ -4,7 +4,7 @@ from enum import Enum
 from importlib import import_module
 from inspect import isfunction
 from sys import modules
-from typing import Dict, Type, get_type_hints
+from typing import Any, Dict, Type, get_type_hints
 from uuid import UUID
 
 # ==================================================================================
@@ -31,10 +31,10 @@ def _decodeSerializeable(lType: type, obj: dict):
         return lNewObj
 
     except TypeError as ex:
-        raise Exception(f"Error occur: Type Error {lType.__name__}") from ex
+        raise Exception(f"Error occur: Type Error {lType.__name__}: {ex!r}") from ex
 
     except Exception as ex:
-        raise Exception(f"Error occur initializing {lType.__name__}") from ex
+        raise Exception(f"Error occur initializing {lType.__name__}: {ex!r}") from ex
 
 
 # ==================================================================================
@@ -69,8 +69,8 @@ def _decodeCustomType(obj: Dict):
                     if lNewObj is not None:
                         return lNewObj
 
-                obj.pop("__type__", None)
-                lNewObj = lType(**obj)
+                payload = {k: v for k, v in obj.items() if k != "__type__"}
+                lNewObj = lType(**payload)
                 return lNewObj
 
         except ModuleNotFoundError as ex:
@@ -81,41 +81,42 @@ def _decodeCustomType(obj: Dict):
 
         except Exception as e:
             raise Exception(
-                f"Error trying to deserialize {type(obj).__name__}: {e!r}"
+                f"Error trying to deserialize {lClass}: {e!r}"
             ) from e
 
     return None
 
 
 # ==================================================================================
-def jsonDecode(obj: dict):
+def jsonDecode(obj: Any):
     try:
+        if obj is None or isinstance(obj, (str, int, float, bool)):
+            return obj
+
         if isinstance(obj, list):
             return [jsonDecode(lVal) for lVal in obj]
 
-        elif isinstance(obj, tuple):
+        if isinstance(obj, tuple):
             return tuple(jsonDecode(lVal) for lVal in obj)
 
-        elif isinstance(obj, dict):
+        if isinstance(obj, dict):
             lNewObj = _decodeCustomType(obj)
             if lNewObj is not None:
                 return lNewObj
 
-            elif "__datetime__" in obj:
-                lNewObj = datetime.fromisoformat(obj["__datetime__"])
-                return lNewObj
+            if "__datetime__" in obj:
+                return datetime.fromisoformat(obj["__datetime__"])
 
-            elif "__uuid__" in obj:
-                lNewObj = UUID(obj["__uuid__"])
-                return lNewObj
+            if "__uuid__" in obj:
+                return UUID(obj["__uuid__"])
 
-            else:
-                return {lKey: jsonDecode(lValue) for lKey, lValue in obj.items()}
+            return {lKey: jsonDecode(lValue) for lKey, lValue in obj.items()}
 
         if type(obj).__name__ in KNOWN_TYPES:
             return obj
 
         warning(f"jsonDecode: Unknown type {type(obj)}")
+        return obj
 
     except Exception as ex:
         raise ex
@@ -130,12 +131,9 @@ def importClass(clsPth: str) -> Type | None:
             if hasattr(lModule, lClassName):
                 return getattr(lModule, lClassName)
 
-    # Not already imported under the encoded path — load it.
     try:
         lModule = import_module(lModName)
     except ModuleNotFoundError:
-        # Encoded path may be package.Class while implementation lives in package.__name
-        # Try common private-module layout: package.__classLower
         private = f"{lModName}.__{lClassName[0].lower()}{lClassName[1:]}"
         try:
             lModule = import_module(private)
