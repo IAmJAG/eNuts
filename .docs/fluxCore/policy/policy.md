@@ -1,14 +1,9 @@
 ## Overview & Design Context
 
-Vocabulary is the foundation of the discrete side of the policy.
-
 ```text
-src/fluxCore/policy/vocabulary/
-  Label       — id + description (Serializable)
-  Vocabulary  — dict of labels, toTensor() → embedding table
-
-src/fluxCore/types/interface/policy/vocabulary/
-  iLabel, iVocabulary
+Policy              — stack tensor → action + argument (weights)
+StreamingPolicy     — inherits Policy; carousel + time gate → predict
+PolicyOptions       — vocab + featureDim + freezeBackbone + stackSize + durationSec
 ```
 
 | Discrete vocabulary | Open argument values |
@@ -18,59 +13,45 @@ src/fluxCore/types/interface/policy/vocabulary/
 
 ---
 
-## Classes
+## PolicyOptions
 
-### `Label`
-- `id`, `description`
-- Serializable
-
-### `Vocabulary`
-- `Vocabulary({"down": "finger down", ...})`
-- `dimension` (embed width), `size` / `labels`, `toTensor()` → `[N, dimension]`
-- encode/decode: plain entry maps
-
-### `PolicyOptions`
 - `actions`, `argumentKinds`, `featureDimension`, `freezeBackbone`
-- Serializable (`encode` / `decode`) — **persisted as its own JSON file**
-- Does not own device or seed data
+- `stackSize` ∈ {4, 8, 16, 32, 64} — carousel capacity for StreamingPolicy
+- `durationSec` > 0 — real-time span the stack represents (accept rate ≈ stackSize / durationSec)
+- Frame type is **not** an option; push accepts `ndarray` or `Tensor`
 
-### `Policy`
+## Policy
+
 - `Policy(options, device="cpu")`
-- `forward` / `predict`
-- **Weights only:** `save(path)` / `load(path, options, device="cpu")`
+- `forward` / `predict(imageArray)` — `imageArray` is `[T,3,H,W]`
+- Weights: `save(path)` / `load(path, options, device="cpu")` — no options inside `.pt`
+
+## StreamingPolicy(Policy)
+
+- Owns carousel, blank padding, time gate; decision via inherited `predict`
+- `push(frame, timestamp) → (action, argument) | None` — None if frame not accepted
+- Tick = every accepted frame written into the stack
+- Pads leading blanks until `stackSize` real frames collected
+- Runtime buffers are not persisted
+
+```python
+from fluxCore.policy import StreamingPolicy, PolicyOptions, Vocabulary
+
+options = PolicyOptions(
+    actions=Vocabulary({"down": "finger down", "up": "finger up"}),
+    argumentKinds=Vocabulary({
+        "coordinate": "point", "box": "rect", "key": "key", "text": "text",
+    }),
+    stackSize=16,
+    durationSec=2.0,
+)
+policy = StreamingPolicy(options, device="cpu")
+result = policy.push(frame, timestamp=0.0)  # ndarray or Tensor
+```
 
 ## Persistence
 
 | Artifact | Contents |
 |----------|----------|
-| Options JSON | `PolicyOptions.encode()` |
+| Options JSON | full PolicyOptions including stackSize / durationSec |
 | Weight file `.pt` | `{ version, model_state }` only |
-
-Device is never stored; it is an argument (default `cpu`) at construct/load.
-
-```python
-import json
-from fluxCore.policy import Policy, PolicyOptions, Vocabulary
-
-options = PolicyOptions(
-    actions=Vocabulary({"down": "finger down", "up": "finger up"}),
-    argumentKinds=Vocabulary({
-        "coordinate": "point",
-        "box": "rect",
-        "key": "keycode",
-        "text": "string",
-    }),
-)
-policy = Policy(options, device="cpu")
-
-with open("policy_options.json", "w", encoding="utf-8") as f:
-    json.dump(options.encode(), f, indent=2)
-policy.save("policy.pt")
-
-restoredOptions = PolicyOptions()
-with open("policy_options.json", encoding="utf-8") as f:
-    restoredOptions.decode(json.load(f))
-
-policy = Policy.load("policy.pt", options=restoredOptions, device="cpu")
-actionKey, argument = policy.predict(imageArray)
-```
