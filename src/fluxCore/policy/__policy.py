@@ -24,24 +24,25 @@ from .__policyOptions import PolicyOptions
 # ==================================================================================
 class Policy(nn.Module, iPolicy):
     CHECKPOINT_VERSION = 1
-
     def __init__(
-        self,
-        options: PolicyOptions,
-        device: Optional[Union[str, TorchDevice]] = "cuda",
+        self, options: PolicyOptions, device: Optional[Union[str, TorchDevice]] = "cuda", 
+        *args, **kwargs
     ) -> None:
+        
         super().__init__()
 
         if options.actions is None:
             raise ValueError("Policy requires options.actions vocabulary")
+
         if options.argumentKinds is None:
             raise ValueError("Policy requires options.argumentKinds vocabulary")
+        
         if options.actions.size < 1:
             raise ValueError("actions vocabulary must be non-empty")
+        
         if options.argumentKinds.size < 1:
             raise ValueError("argumentKinds vocabulary must be non-empty")
 
-        # cuda first; getTorchDevice falls back to cpu when hardware missing
         self._device: TorchDevice = getTorchDevice(device)
         self._freezeBackbone = options.freezeBackbone
 
@@ -57,6 +58,7 @@ class Policy(nn.Module, iPolicy):
             "_actionEmbeddings",
             options.actions.toTensor().detach().to(self._device).clone(),
         )
+
         self.register_buffer(
             "_argumentKindEmbeddings",
             options.argumentKinds.toTensor().detach().to(self._device).clone(),
@@ -65,6 +67,7 @@ class Policy(nn.Module, iPolicy):
         mobileNet = models.mobilenet_v3_small(
             weights=MobileNet_V3_Small_Weights.DEFAULT
         )
+
         self._backbone = nn.Sequential(
             mobileNet.features,
             nn.AdaptiveAvgPool2d(1),
@@ -83,11 +86,13 @@ class Policy(nn.Module, iPolicy):
             nn.ReLU(inplace=True),
             nn.Linear(featDim, actionEmbedDim),
         )
+
         self._argumentKindHead = nn.Sequential(
             nn.Linear(featDim, featDim),
             nn.ReLU(inplace=True),
             nn.Linear(featDim, argumentKindEmbedDim),
         )
+
         self._spatialHead = nn.Sequential(
             nn.Linear(featDim, featDim),
             nn.ReLU(inplace=True),
@@ -97,7 +102,6 @@ class Policy(nn.Module, iPolicy):
 
         self.to(self._device)
 
-    # ------------------------------------------------------------------
     def save(self, path: str | Path) -> None:
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -109,17 +113,16 @@ class Policy(nn.Module, iPolicy):
 
     @classmethod
     def load(
-        cls,
-        path: str | Path,
-        options: PolicyOptions,
+        cls, path: str | Path, options: PolicyOptions,
         device: Optional[Union[str, TorchDevice]] = "cuda",
-    ) -> Policy:
+    ) -> iPolicy:
         resolved = getTorchDevice(device)
         checkpoint = torch.load(path, map_location="cpu", weights_only=False)
         if checkpoint.get("version") != cls.CHECKPOINT_VERSION:
             raise ValueError(
                 f"Unsupported policy checkpoint version: {checkpoint.get('version')!r}"
             )
+        
         if "modelState" not in checkpoint:
             raise ValueError("Policy checkpoint missing modelState")
 
@@ -128,7 +131,7 @@ class Policy(nn.Module, iPolicy):
         return policy
 
     # ------------------------------------------------------------------
-    def forward(self, imageArray: Tensor) -> dict[str, Tensor]:
+    def forward(self, imageArray: Tensor, *args, **kwargs) -> dict[str, Tensor]:
         fused = self._fuse(imageArray)
         return {
             "actions": F.normalize(self._actionHead(fused), p=2, dim=-1),
@@ -137,22 +140,27 @@ class Policy(nn.Module, iPolicy):
         }
 
     @torch.no_grad()
-    def predict(self, imageArray: Tensor) -> tuple[str, dict[str, Any]]:
+    def predict(self, imageArray: Tensor, *args, **kwargs) -> tuple[str, dict[str, Any]]:
         wasTraining = self.training
         try:
             self.eval()
             out = self.forward(imageArray)
 
-            actionScores = self._cosine(out["actions"], self._actionEmbeddings)
+            actionEmbedding: Tensor = self._actionVocabulary.toTensor()
+            argumentKindEmbedding: Tensor = self._argumentKindVocabulary.toTensor()
+
+            actionScores = self._cosine(out["actions"], actionEmbedding)
             actionIndex = int(torch.argmax(actionScores, dim=-1).reshape(-1)[0].item())
             actionKey = self._actionLabels[actionIndex]
 
             argumentKindScores = self._cosine(
-                out["argumentKinds"], self._argumentKindEmbeddings
+                out["argumentKinds"], argumentKindEmbedding
             )
+
             argumentKindIndex = int(
                 torch.argmax(argumentKindScores, dim=-1).reshape(-1)[0].item()
             )
+            
             argumentKind = self._argumentKindLabels[argumentKindIndex]
 
             spatial = out["spatial"].reshape(-1, 4)[0].detach().cpu()
@@ -163,16 +171,16 @@ class Policy(nn.Module, iPolicy):
             if wasTraining:
                 self.train()
 
-    def train(self, mode: bool = True) -> Policy:
+    def train(self, mode: bool = True) -> iPolicy:
         super().train(mode)
         if self._freezeBackbone:
             self._backbone.eval()
         return self
 
-    # ------------------------------------------------------------------
     def _fuse(self, imageArray: Tensor) -> Tensor:
         if imageArray.dim() == 4:
             imageArray = imageArray.unsqueeze(0)
+
         if imageArray.dim() != 5:
             raise ValueError(
                 "Expected [T, 3, H, W] or [B, T, 3, H, W], "
@@ -188,6 +196,7 @@ class Policy(nn.Module, iPolicy):
         if self._freezeBackbone:
             with torch.no_grad():
                 features = self._backbone(flat)
+
         else:
             features = self._backbone(flat)
 

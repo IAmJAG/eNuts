@@ -19,23 +19,11 @@ C_DEFAULT_DURATION_SEC: float = 1.0
 
 # ==================================================================================
 class PolicyOptions(Serializable):
-    """Serializable policy construction options.
-
-    Owns only configuration. Vocabularies and seed data are supplied by the caller
-    (application or tests) — not defined here.
-
-    stackSize / durationSec configure StreamingPolicy carousel and time gate.
-    Frame representation (ndarray vs tensor) is not an option — handled at push.
-    """
-
     def __init__(
         self,
-        actions: Optional[Vocabulary] = None,
-        argumentKinds: Optional[Vocabulary] = None,
-        featureDim: int = G_DEFAULT_FEATURE_DIM,
-        freezeBackbone: bool = True,
-        stackSize: int = C_DEFAULT_STACK_SIZE,
-        durationSec: float = C_DEFAULT_DURATION_SEC,
+        actions: Optional[Vocabulary] = None, argumentKinds: Optional[Vocabulary] = None,
+        featureDim: int = G_DEFAULT_FEATURE_DIM, freezeBackbone: bool = True,
+        stackSize: int = C_DEFAULT_STACK_SIZE, durationSec: float = C_DEFAULT_DURATION_SEC,
     ) -> None:
         super().__init__()
 

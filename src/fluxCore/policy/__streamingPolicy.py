@@ -52,10 +52,8 @@ class StreamingPolicy(Policy):
         self._carousel.clear()
         self._lastAcceptTime = None
 
-    def push(
-        self,
-        frame: Union[Tensor, np.ndarray],
-        timestamp: float,
+    def step(
+        self, frame: Union[Tensor, np.ndarray], timestamp: float,
     ) -> Optional[tuple[str, dict[str, Any]]]:
         """Ingest one source frame. Returns prediction only on accept (tick)."""
         if not self._shouldAccept(float(timestamp)):
