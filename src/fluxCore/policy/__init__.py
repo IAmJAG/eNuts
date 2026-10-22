@@ -7,15 +7,26 @@ from .__policyOptions import (
     PolicyOptions,
 )
 from .__streamingPolicy import StreamingPolicy
-from .vocabulary import Label, Vocabulary
+from .vocabulary import (
+    ActionLabel,
+    ActionVocabulary,
+    ArgumentKindLabel,
+    ArgumentKindVocabulary,
+    Label,
+    Vocabulary,
+)
 
 # ==================================================================================
 __all__ = [
     "Policy",
     "StreamingPolicy",
     "PolicyOptions",
-    "Label",
     "Vocabulary",
+    "ActionVocabulary",
+    "ArgumentKindVocabulary",
+    "Label",
+    "ActionLabel",
+    "ArgumentKindLabel",
     "C_STACK_SIZES",
     "C_DEFAULT_STACK_SIZE",
     "C_DEFAULT_DURATION_SEC",
