@@ -24,27 +24,24 @@ from .__policyOptions import PolicyOptions
 # ==================================================================================
 class Policy(nn.Module, iPolicy):
     CHECKPOINT_VERSION = 1
+
     def __init__(
-        self, options: PolicyOptions,
+        self,
+        options: PolicyOptions,
         device: Optional[Union[str, TorchDevice]] = "cuda",
     ) -> None:
         super().__init__()
 
         if options.actions is None:
             raise ValueError("Policy requires options.actions vocabulary")
-        
         if options.argumentKinds is None:
             raise ValueError("Policy requires options.argumentKinds vocabulary")
-        
         if options.actions.size < 1:
             raise ValueError("actions vocabulary must be non-empty")
-        
         if options.argumentKinds.size < 1:
             raise ValueError("argumentKinds vocabulary must be non-empty")
 
-        if device is None:
-            device = "cpu"
-
+        # cuda first; getTorchDevice falls back to cpu when hardware missing
         self._device: TorchDevice = getTorchDevice(device)
         self._freezeBackbone = options.freezeBackbone
 
@@ -103,7 +100,7 @@ class Policy(nn.Module, iPolicy):
     # ------------------------------------------------------------------
     def save(self, path: str | Path) -> None:
         path = Path(path)
-        path.parent.mkdir(parents=True, exist_ok=True)        
+        path.parent.mkdir(parents=True, exist_ok=True)
         checkpoint = {
             "version": self.CHECKPOINT_VERSION,
             "modelState": self.state_dict(),
@@ -111,22 +108,22 @@ class Policy(nn.Module, iPolicy):
         torch.save(checkpoint, path)
 
     @classmethod
-    def load(cls,
-        path: str | Path, options: PolicyOptions, 
+    def load(
+        cls,
+        path: str | Path,
+        options: PolicyOptions,
         device: Optional[Union[str, TorchDevice]] = "cuda",
     ) -> Policy:
-        if device is None: device = "cpu"
-
-        checkpoint = torch.load(path, map_location=device, weights_only=False)
+        resolved = getTorchDevice(device)
+        checkpoint = torch.load(path, map_location="cpu", weights_only=False)
         if checkpoint.get("version") != cls.CHECKPOINT_VERSION:
             raise ValueError(
                 f"Unsupported policy checkpoint version: {checkpoint.get('version')!r}"
             )
-        
         if "modelState" not in checkpoint:
-            raise ValueError("Policy checkpoint missing model_state")
+            raise ValueError("Policy checkpoint missing modelState")
 
-        policy = cls(options, device=device)
+        policy = cls(options, device=resolved)
         policy.load_state_dict(checkpoint["modelState"], strict=True)
         return policy
 
