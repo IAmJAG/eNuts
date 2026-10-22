@@ -40,7 +40,7 @@ def test_save_load_weights_with_separate_options(tmp_path: Path) -> None:
     trace(f"  weights written → {weightsPath}")
 
     blob = torch.load(weightsPath, map_location="cpu", weights_only=False)
-    assert set(blob.keys()) == {"version", "model_state"}
+    assert set(blob.keys()) == {"version", "modelState"}
     assert "options" not in blob
     assert blob["version"] == Policy.CHECKPOINT_VERSION
 
@@ -66,7 +66,7 @@ def test_save_load_weights_with_separate_options(tmp_path: Path) -> None:
 def test_load_rejects_bad_version(tmp_path: Path) -> None:
     options = buildOptions(embedDim=64, featureDim=256)
     path = tmp_path / "bad.pt"
-    torch.save({"version": -1, "model_state": {}}, path)
+    torch.save({"version": -1, "modelState": {}}, path)
 
     try:
         Policy.load(path, options=options, device="cpu")
