@@ -23,23 +23,25 @@ from .__policyOptions import PolicyOptions
 
 # ==================================================================================
 class Policy(nn.Module, iPolicy):
+    """Image stack → action + argument. Vocab embedding tables are cached at init."""
+
     CHECKPOINT_VERSION = 1
+
     def __init__(
-        self, options: PolicyOptions, device: Optional[Union[str, TorchDevice]] = "cuda", 
-        *args, **kwargs
+        self,
+        options: PolicyOptions,
+        device: Optional[Union[str, TorchDevice]] = "cuda",
+        *args,
+        **kwargs,
     ) -> None:
-        
         super().__init__()
 
         if options.actions is None:
             raise ValueError("Policy requires options.actions vocabulary")
-
         if options.argumentKinds is None:
             raise ValueError("Policy requires options.argumentKinds vocabulary")
-        
         if options.actions.size < 1:
             raise ValueError("actions vocabulary must be non-empty")
-        
         if options.argumentKinds.size < 1:
             raise ValueError("argumentKinds vocabulary must be non-empty")
 
@@ -54,23 +56,22 @@ class Policy(nn.Module, iPolicy):
         actionEmbedDim = options.actions.dimension
         argumentKindEmbedDim = options.argumentKinds.dimension
 
-        self._actionEmbeddings: Tensor
-        self._argumentKindEmbeddings: Tensor
-
+        # Cached at construction — not resolved live (vocab fixed for this policy lifetime)
         self.register_buffer(
             "_actionEmbeddings",
-            options.actions.toTensor().detach().to(self._device).clone(),
+            options.actions.toTensor().detach().to(device=self._device, dtype=torch.float32).clone(),
         )
-
         self.register_buffer(
             "_argumentKindEmbeddings",
-            options.argumentKinds.toTensor().detach().to(self._device).clone(),
+            options.argumentKinds.toTensor()
+            .detach()
+            .to(device=self._device, dtype=torch.float32)
+            .clone(),
         )
 
         mobileNet = models.mobilenet_v3_small(
             weights=MobileNet_V3_Small_Weights.DEFAULT
         )
-
         self._backbone = nn.Sequential(
             mobileNet.features,
             nn.AdaptiveAvgPool2d(1),
@@ -89,13 +90,11 @@ class Policy(nn.Module, iPolicy):
             nn.ReLU(inplace=True),
             nn.Linear(featDim, actionEmbedDim),
         )
-
         self._argumentKindHead = nn.Sequential(
             nn.Linear(featDim, featDim),
             nn.ReLU(inplace=True),
             nn.Linear(featDim, argumentKindEmbedDim),
         )
-
         self._spatialHead = nn.Sequential(
             nn.Linear(featDim, featDim),
             nn.ReLU(inplace=True),
@@ -116,7 +115,9 @@ class Policy(nn.Module, iPolicy):
 
     @classmethod
     def load(
-        cls, path: str | Path, options: PolicyOptions,
+        cls,
+        path: str | Path,
+        options: PolicyOptions,
         device: Optional[Union[str, TorchDevice]] = "cuda",
     ) -> iPolicy:
         resolved = getTorchDevice(device)
@@ -125,12 +126,12 @@ class Policy(nn.Module, iPolicy):
             raise ValueError(
                 f"Unsupported policy checkpoint version: {checkpoint.get('version')!r}"
             )
-        
         if "modelState" not in checkpoint:
             raise ValueError("Policy checkpoint missing modelState")
 
         policy = cls(options, device=resolved)
         policy.load_state_dict(checkpoint["modelState"], strict=True)
+        policy.to(policy._device)
         return policy
 
     # ------------------------------------------------------------------
@@ -149,15 +150,16 @@ class Policy(nn.Module, iPolicy):
             self.eval()
             out = self.forward(imageArray)
 
-            actionEmbedding: Tensor = self._actionEmbeddings
-            argumentKindEmbedding: Tensor = self._argumentKindEmbeddings
-
-            actionScores = self._cosine(out["actions"], actionEmbedding)
+            actionScores = self._cosine(out["actions"], self._actionEmbeddings)
             actionIndex = int(torch.argmax(actionScores, dim=-1).reshape(-1)[0].item())
             actionKey = self._actionLabels[actionIndex]
 
-            argumentKindScores = self._cosine(out["argumentKinds"], argumentKindEmbedding)
-            argumentKindIndex = int(torch.argmax(argumentKindScores, dim=-1).reshape(-1)[0].item())            
+            argumentKindScores = self._cosine(
+                out["argumentKinds"], self._argumentKindEmbeddings
+            )
+            argumentKindIndex = int(
+                torch.argmax(argumentKindScores, dim=-1).reshape(-1)[0].item()
+            )
             argumentKind = self._argumentKindLabels[argumentKindIndex]
 
             spatial = out["spatial"].reshape(-1, 4)[0].detach().cpu()
@@ -177,7 +179,6 @@ class Policy(nn.Module, iPolicy):
     def _fuse(self, imageArray: Tensor) -> Tensor:
         if imageArray.dim() == 4:
             imageArray = imageArray.unsqueeze(0)
-
         if imageArray.dim() != 5:
             raise ValueError(
                 "Expected [T, 3, H, W] or [B, T, 3, H, W], "
@@ -193,7 +194,6 @@ class Policy(nn.Module, iPolicy):
         if self._freezeBackbone:
             with torch.no_grad():
                 features = self._backbone(flat)
-
         else:
             features = self._backbone(flat)
 
@@ -204,6 +204,8 @@ class Policy(nn.Module, iPolicy):
     def _cosine(embedding: Tensor, table: Tensor) -> Tensor:
         if table.numel() == 0:
             return embedding.new_zeros(embedding.size(0), 0)
+        # Always score on the embedding's device (policy _device)
+        table = table.to(device=embedding.device, dtype=embedding.dtype)
         emb = F.normalize(embedding, p=2, dim=-1)
         reg = F.normalize(table, p=2, dim=-1)
         return torch.matmul(emb, reg.T)
