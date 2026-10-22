@@ -26,23 +26,32 @@ src/fluxCore/types/interface/policy/vocabulary/
 
 ### `Vocabulary`
 - `Vocabulary({"down": "finger down", ...})`
-- `dimension`, `labels`, `toTensor()` → `[N, embedDim]`
-- Serializable (`entries` + `embedDim`)
+- `dimension` (embed width), `size` / `labels`, `toTensor()` → `[N, dimension]`
+- encode/decode: plain entry maps
 
 ### `PolicyOptions`
-- `actions: Vocabulary`, `argumentKinds: Vocabulary`
-- `withDefaults()`
+- `actions`, `argumentKinds`, `featureDimension`, `freezeBackbone`
+- Serializable (`encode` / `decode`) — **persisted as its own JSON file**
+- Does not own device or seed data
 
 ### `Policy`
-- `Policy(options)` → `predict` → `(actionKey, argumentDict)`
+- `Policy(options, device="cpu")`
+- `forward` / `predict`
+- **Weights only:** `save(path)` / `load(path, options, device="cpu")`
 
-## Sample
+## Persistence
+
+| Artifact | Contents |
+|----------|----------|
+| Options JSON | `PolicyOptions.encode()` |
+| Weight file `.pt` | `{ version, model_state }` only |
+
+Device is never stored; it is an argument (default `cpu`) at construct/load.
 
 ```python
+import json
 from fluxCore.policy import Policy, PolicyOptions, Vocabulary
 
-options = PolicyOptions.withDefaults(device="cpu")
-# or:
 options = PolicyOptions(
     actions=Vocabulary({"down": "finger down", "up": "finger up"}),
     argumentKinds=Vocabulary({
@@ -51,9 +60,17 @@ options = PolicyOptions(
         "key": "keycode",
         "text": "string",
     }),
-    device="cpu",
 )
+policy = Policy(options, device="cpu")
 
-policy = Policy(options)
+with open("policy_options.json", "w", encoding="utf-8") as f:
+    json.dump(options.encode(), f, indent=2)
+policy.save("policy.pt")
+
+restoredOptions = PolicyOptions()
+with open("policy_options.json", encoding="utf-8") as f:
+    restoredOptions.decode(json.load(f))
+
+policy = Policy.load("policy.pt", options=restoredOptions, device="cpu")
 actionKey, argument = policy.predict(imageArray)
 ```
