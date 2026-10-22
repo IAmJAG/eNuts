@@ -115,9 +115,7 @@ class Policy(nn.Module, iPolicy):
 
     @classmethod
     def load(
-        cls,
-        path: str | Path,
-        options: PolicyOptions,
+        cls, path: str | Path, options: PolicyOptions,
         device: Optional[Union[str, TorchDevice]] = "cuda",
     ) -> iPolicy:
         resolved = getTorchDevice(device)

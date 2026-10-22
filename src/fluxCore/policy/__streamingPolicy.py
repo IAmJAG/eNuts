@@ -22,18 +22,8 @@ C_FRAME_SIZE: int = 224
 
 # ==================================================================================
 class StreamingPolicy(Policy):
-    """Streaming outer policy: carousel + time gate, then Policy decision.
-
-    - Accepts ndarray or Tensor frames (emitter decides decode path).
-    - stackSize / durationSec from PolicyOptions drive capacity and accept rate.
-    - Pads missing slots with blank frames; ticks predict on every accepted frame.
-    - Stream buffers are runtime-only (not part of weight persistence).
-    - All tensors follow self._device (inherited from Policy).
-    """
-
     def __init__(
-        self,
-        options: PolicyOptions,
+        self, options: PolicyOptions,
         device: Optional[Union[str, TorchDevice]] = "cuda",
     ) -> None:
         super().__init__(options, device=device)
@@ -45,25 +35,18 @@ class StreamingPolicy(Policy):
         self._carousel: Deque[Tensor] = deque(maxlen=self._stackSize)
         self._lastAcceptTime: Optional[float] = None
         self._blank: Tensor = torch.zeros(
-            3,
-            C_FRAME_SIZE,
-            C_FRAME_SIZE,
-            dtype=torch.float32,
-            device=self._device,
+            3, C_FRAME_SIZE, C_FRAME_SIZE,
+            dtype=torch.float32, device=self._device,
         )
 
     # ------------------------------------------------------------------
     def reset(self) -> None:
-        """Clear carousel and time gate (runtime state only)."""
         self._carousel.clear()
         self._lastAcceptTime = None
 
     def step(
-        self,
-        frame: Union[Tensor, np.ndarray],
-        timestamp: float,
+        self, frame: Union[Tensor, np.ndarray], timestamp: float,
     ) -> Optional[tuple[str, dict[str, Any]]]:
-        """Ingest one source frame. Returns prediction only on accept (tick)."""
         if not self._shouldAccept(float(timestamp)):
             return None
 
@@ -76,25 +59,23 @@ class StreamingPolicy(Policy):
 
     # ------------------------------------------------------------------
     def _shouldAccept(self, timestamp: float) -> bool:
-        if self._lastAcceptTime is None:
-            return True
+        if self._lastAcceptTime is None: return True
         return (timestamp - self._lastAcceptTime) >= self._minAcceptInterval
 
     def _buildStack(self) -> Tensor:
-        """[T, 3, H, W] on self._device; leading blanks if carousel not yet full."""
         frames: list[Tensor] = []
         missing = self._stackSize - len(self._carousel)
-        if missing > 0:
-            frames.extend([self._blank for _ in range(missing)])
+        if missing > 0: frames.extend([self._blank for _ in range(missing)])
         frames.extend(list(self._carousel))
         return torch.stack(frames, dim=0)
 
     def _preprocess(self, frame: Union[Tensor, np.ndarray]) -> Tensor:
-        """Normalize to float CHW [3, 224, 224] on self._device."""
         if isinstance(frame, np.ndarray):
             tensor = torch.from_numpy(np.ascontiguousarray(frame))
+
         elif isinstance(frame, Tensor):
             tensor = frame.detach()
+
         else:
             raise TypeError(
                 f"frame must be numpy.ndarray or torch.Tensor, got {type(frame)!r}"
@@ -103,15 +84,20 @@ class StreamingPolicy(Policy):
         tensor = tensor.float()
         if tensor.ndim == 2:
             tensor = tensor.unsqueeze(0).expand(3, -1, -1).clone()
+
         elif tensor.ndim == 3:
             if tensor.shape[0] in (1, 3):
                 pass
+
             elif tensor.shape[-1] in (1, 3):
                 tensor = tensor.permute(2, 0, 1)
+
             else:
                 raise ValueError(f"Cannot interpret frame shape {tuple(tensor.shape)}")
+
             if tensor.shape[0] == 1:
                 tensor = tensor.expand(3, -1, -1).clone()
+
         else:
             raise ValueError(f"Expected 2D or 3D frame, got shape {tuple(tensor.shape)}")
 
