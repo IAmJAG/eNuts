@@ -21,14 +21,18 @@ G_DEFAULT_FEATURE_DIM: int = 512
 
 
 # ==================================================================================
-def getTorchDevice(device: Optional[Union[TorchDevice, str]]) -> Optional[TorchDevice]:
+def getTorchDevice(device: Optional[Union[TorchDevice, str]] = None) -> TorchDevice:
+    """Resolve device. Default cuda when available; otherwise cpu."""
+    if device is None:
+        device = "cuda" if is_available() else "cpu"
+
     if isinstance(device, str):
-        isCUDAAvailable: bool = is_available()
-        if device.lower().startswith("cuda") and not isCUDAAvailable:
+        if device.lower().startswith("cuda") and not is_available():
             device = "cpu"
         return TorchDevice(device)
-    
+
     return device
+
 
 # ==================================================================================
 def deterministicEmbedding(key: str | Dict[str, Any], embedDim: int) -> Tensor:
