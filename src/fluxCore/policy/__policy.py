@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 # ==================================================================================
+from pathlib import Path
 from typing import Any, Optional, Union
 
 # ==================================================================================
@@ -26,12 +27,19 @@ class Policy(nn.Module, iPolicy):
 
     Heads project into embedding space (vocabulary.dimension = embedDim).
     Scores are cosine vs vocabulary.toTensor() tables [N, embedDim].
+
+    Persistence is split:
+      - PolicyOptions.encode/decode → separate options file (JSON)
+      - Policy.save/load → weight file only (version + model_state)
+    Device is never stored; it is an argument (default cpu) at build/load.
     """
+
+    CHECKPOINT_VERSION = 1
 
     def __init__(
         self,
         options: PolicyOptions,
-        device: Optional[Union[str, TorchDevice]] = None,
+        device: Optional[Union[str, TorchDevice]] = "cpu",
     ) -> None:
         super().__init__()
 
@@ -44,6 +52,9 @@ class Policy(nn.Module, iPolicy):
         if options.argumentKinds.size < 1:
             raise ValueError("argumentKinds vocabulary must be non-empty")
 
+        if device is None:
+            device = "cpu"
+
         self._device: TorchDevice = getTorchDevice(device)
         self._freezeBackbone = options.freezeBackbone
 
@@ -52,7 +63,6 @@ class Policy(nn.Module, iPolicy):
         self._actionLabels: tuple[str, ...] = tuple(options.actions.labels)
         self._argumentKindLabels: tuple[str, ...] = tuple(options.argumentKinds.labels)
 
-        # Embedding width (not label count)
         actionEmbedDim = options.actions.dimension
         argumentKindEmbedDim = options.argumentKinds.dimension
 
@@ -81,7 +91,6 @@ class Policy(nn.Module, iPolicy):
         featDim = options.featureDimension
         self._projection = nn.Linear(576, featDim)
 
-        # Project into embedding space for cosine vs vocab tables
         self._actionHead = nn.Sequential(
             nn.Linear(featDim, featDim),
             nn.ReLU(inplace=True),
@@ -101,6 +110,41 @@ class Policy(nn.Module, iPolicy):
 
         self.to(self._device)
 
+    # ------------------------------------------------------------------
+    def save(self, path: str | Path) -> None:
+        """Persist weights only. Options are saved separately via PolicyOptions.encode."""
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        checkpoint = {
+            "version": self.CHECKPOINT_VERSION,
+            "model_state": self.state_dict(),
+        }
+        torch.save(checkpoint, path)
+
+    @classmethod
+    def load(
+        cls,
+        path: str | Path,
+        options: PolicyOptions,
+        device: Optional[Union[str, TorchDevice]] = "cpu",
+    ) -> Policy:
+        """Rebuild from options + weight file. Device is an argument (default cpu)."""
+        if device is None:
+            device = "cpu"
+
+        checkpoint = torch.load(path, map_location="cpu", weights_only=False)
+        if checkpoint.get("version") != cls.CHECKPOINT_VERSION:
+            raise ValueError(
+                f"Unsupported policy checkpoint version: {checkpoint.get('version')!r}"
+            )
+        if "model_state" not in checkpoint:
+            raise ValueError("Policy checkpoint missing model_state")
+
+        policy = cls(options, device=device)
+        policy.load_state_dict(checkpoint["model_state"], strict=True)
+        return policy
+
+    # ------------------------------------------------------------------
     def forward(self, imageArray: Tensor) -> dict[str, Tensor]:
         fused = self._fuse(imageArray)
         return {
