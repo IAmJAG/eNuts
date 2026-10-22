@@ -98,7 +98,6 @@ class StreamingPolicy(Policy):
         if tensor.ndim == 2:
             tensor = tensor.unsqueeze(0).expand(3, -1, -1).clone()
         elif tensor.ndim == 3:
-            # HWC vs CHW
             if tensor.shape[0] in (1, 3):
                 pass
             elif tensor.shape[-1] in (1, 3):
@@ -113,11 +112,10 @@ class StreamingPolicy(Policy):
         if tensor.shape[0] != 3:
             raise ValueError(f"Expected 3 channels after layout fix, got {tensor.shape[0]}")
 
-        # [0, 255] → [0, 1] if needed
         if float(tensor.max()) > 1.5:
             tensor = tensor / 255.0
 
-        tensor = tensor.unsqueeze(0)  # NCHW for interpolate
+        tensor = tensor.unsqueeze(0)
         tensor = F.interpolate(
             tensor,
             size=(C_FRAME_SIZE, C_FRAME_SIZE),
@@ -125,19 +123,3 @@ class StreamingPolicy(Policy):
             align_corners=False,
         )
         return tensor.squeeze(0).cpu().contiguous()
-
-    # ------------------------------------------------------------------
-    @classmethod
-    def load(
-        cls,
-        path: str | Path,
-        options: PolicyOptions,
-        device: Optional[Union[str, TorchDevice]] = "cpu",
-    ) -> StreamingPolicy:
-        policy = super().load(path, options=options, device=device)
-        # super returns Policy; re-wrap is avoided by constructing subclass path:
-        if not isinstance(policy, cls):
-            loaded = cls(options, device=device)
-            loaded.load_state_dict(policy.state_dict(), strict=True)
-            return loaded
-        return policy
