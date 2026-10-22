@@ -3,7 +3,6 @@ from __future__ import annotations
 
 # ==================================================================================
 from collections import deque
-from pathlib import Path
 from typing import Any, Deque, Optional, Union
 
 # ==================================================================================
@@ -29,12 +28,13 @@ class StreamingPolicy(Policy):
     - stackSize / durationSec from PolicyOptions drive capacity and accept rate.
     - Pads missing slots with blank frames; ticks predict on every accepted frame.
     - Stream buffers are runtime-only (not part of weight persistence).
+    - All tensors follow self._device (inherited from Policy).
     """
 
     def __init__(
         self,
         options: PolicyOptions,
-        device: Optional[Union[str, TorchDevice]] = "cpu",
+        device: Optional[Union[str, TorchDevice]] = "cuda",
     ) -> None:
         super().__init__(options, device=device)
 
@@ -44,7 +44,13 @@ class StreamingPolicy(Policy):
 
         self._carousel: Deque[Tensor] = deque(maxlen=self._stackSize)
         self._lastAcceptTime: Optional[float] = None
-        self._blank: Tensor = torch.zeros(3, C_FRAME_SIZE, C_FRAME_SIZE, dtype=torch.float32)
+        self._blank: Tensor = torch.zeros(
+            3,
+            C_FRAME_SIZE,
+            C_FRAME_SIZE,
+            dtype=torch.float32,
+            device=self._device,
+        )
 
     # ------------------------------------------------------------------
     def reset(self) -> None:
@@ -53,7 +59,9 @@ class StreamingPolicy(Policy):
         self._lastAcceptTime = None
 
     def step(
-        self, frame: Union[Tensor, np.ndarray], timestamp: float,
+        self,
+        frame: Union[Tensor, np.ndarray],
+        timestamp: float,
     ) -> Optional[tuple[str, dict[str, Any]]]:
         """Ingest one source frame. Returns prediction only on accept (tick)."""
         if not self._shouldAccept(float(timestamp)):
@@ -73,16 +81,16 @@ class StreamingPolicy(Policy):
         return (timestamp - self._lastAcceptTime) >= self._minAcceptInterval
 
     def _buildStack(self) -> Tensor:
-        """[T, 3, H, W] with leading blanks if carousel not yet full."""
+        """[T, 3, H, W] on self._device; leading blanks if carousel not yet full."""
         frames: list[Tensor] = []
         missing = self._stackSize - len(self._carousel)
         if missing > 0:
-            frames.extend([self._blank.clone() for _ in range(missing)])
+            frames.extend([self._blank for _ in range(missing)])
         frames.extend(list(self._carousel))
         return torch.stack(frames, dim=0)
 
     def _preprocess(self, frame: Union[Tensor, np.ndarray]) -> Tensor:
-        """Normalize to CPU float CHW [3, 224, 224]. Accepts ndarray or Tensor."""
+        """Normalize to float CHW [3, 224, 224] on self._device."""
         if isinstance(frame, np.ndarray):
             tensor = torch.from_numpy(np.ascontiguousarray(frame))
         elif isinstance(frame, Tensor):
@@ -108,16 +116,18 @@ class StreamingPolicy(Policy):
             raise ValueError(f"Expected 2D or 3D frame, got shape {tuple(tensor.shape)}")
 
         if tensor.shape[0] != 3:
-            raise ValueError(f"Expected 3 channels after layout fix, got {tensor.shape[0]}")
+            raise ValueError(
+                f"Expected 3 channels after layout fix, got {tensor.shape[0]}"
+            )
 
         if float(tensor.max()) > 1.5:
             tensor = tensor / 255.0
 
-        tensor = tensor.unsqueeze(0)
+        tensor = tensor.to(device=self._device, dtype=torch.float32).unsqueeze(0)
         tensor = F.interpolate(
             tensor,
             size=(C_FRAME_SIZE, C_FRAME_SIZE),
             mode="bilinear",
             align_corners=False,
         )
-        return tensor.squeeze(0).cpu().contiguous()
+        return tensor.squeeze(0).contiguous()
