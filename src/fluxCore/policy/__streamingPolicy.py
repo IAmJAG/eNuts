@@ -8,6 +8,7 @@ from typing import Any, Deque, Optional, Union
 # ==================================================================================
 import numpy as np
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
 from torch import device as TorchDevice
@@ -18,17 +19,67 @@ from .__policyOptions import PolicyOptions
 
 # ==================================================================================
 C_FRAME_SIZE: int = 224
+# ImageNet stats — matches MobileNet_V3_Small_Weights.DEFAULT training
+C_IMAGENET_MEAN: tuple[float, float, float] = (0.485, 0.456, 0.406)
+C_IMAGENET_STD: tuple[float, float, float] = (0.229, 0.224, 0.225)
+
+
+# ==================================================================================
+class FrameTransformHead(nn.Module):
+    """Classifier-style frame prep: layout → [0,1] → resize → ImageNet normalize.
+
+    Input:  CHW or NCHW float/uint-scale tensor on any device
+    Output: same batch rank, size (…, 3, frameSize, frameSize), normalized
+    """
+
+    def __init__(self, frameSize: int = C_FRAME_SIZE) -> None:
+        super().__init__()
+        self._frameSize = int(frameSize)
+        self.register_buffer(
+            "_mean",
+            torch.tensor(C_IMAGENET_MEAN, dtype=torch.float32).view(1, 3, 1, 1),
+        )
+        self.register_buffer(
+            "_std",
+            torch.tensor(C_IMAGENET_STD, dtype=torch.float32).view(1, 3, 1, 1),
+        )
+
+    def forward(self, images: Tensor) -> Tensor:
+        if images.ndim == 3:
+            images = images.unsqueeze(0)
+            squeeze = True
+        elif images.ndim == 4:
+            squeeze = False
+        else:
+            raise ValueError(
+                f"FrameTransformHead expects CHW or NCHW, got shape {tuple(images.shape)}"
+            )
+
+        images = images.float()
+        if float(images.max()) > 1.5:
+            images = images / 255.0
+
+        images = F.interpolate(
+            images,
+            size=(self._frameSize, self._frameSize),
+            mode="bilinear",
+            align_corners=False,
+        )
+        images = (images - self._mean) / self._std
+        if squeeze:
+            return images.squeeze(0)
+        return images
 
 
 # ==================================================================================
 class StreamingPolicy(Policy):
-    """Streaming outer policy: carousel + time gate, then Policy decision.
+    """Streaming outer policy: transform head + carousel + time gate → Policy.
 
     - Accepts ndarray or Tensor frames (emitter decides decode path).
-    - stackSize / durationSec from PolicyOptions drive capacity and accept rate.
-    - Pads missing slots with blank frames; ticks predict on every accepted frame.
+    - FrameTransformHead preps each accepted frame (resize + ImageNet normalize).
+    - stackSize / durationSec drive capacity and accept rate.
+    - Pads with transformed blank frames; tick predict on every accepted frame.
     - Stream buffers are runtime-only (not part of weight persistence).
-    - All tensors follow self._device (inherited from Policy).
     """
 
     def __init__(
@@ -42,15 +93,18 @@ class StreamingPolicy(Policy):
         self._durationSec: float = float(options.durationSec)
         self._minAcceptInterval: float = self._durationSec / float(self._stackSize)
 
+        self._transformHead = FrameTransformHead(C_FRAME_SIZE)
+        self._transformHead.to(self._device)
+
         self._carousel: Deque[Tensor] = deque(maxlen=self._stackSize)
         self._lastAcceptTime: Optional[float] = None
-        self._blank: Tensor = torch.zeros(
-            3,
-            C_FRAME_SIZE,
-            C_FRAME_SIZE,
-            dtype=torch.float32,
-            device=self._device,
+
+        # Blank = transformed black frame (same space as real frames)
+        black = torch.zeros(
+            3, C_FRAME_SIZE, C_FRAME_SIZE, dtype=torch.float32, device=self._device
         )
+        with torch.no_grad():
+            self._blank = self._transformHead(black).detach()
 
     # ------------------------------------------------------------------
     def reset(self) -> None:
@@ -67,8 +121,8 @@ class StreamingPolicy(Policy):
         if not self._shouldAccept(float(timestamp)):
             return None
 
-        processed = self._preprocess(frame)
-        self._carousel.append(processed)
+        processed = self._transformHead(self._toCHW(frame))
+        self._carousel.append(processed.detach())
         self._lastAcceptTime = float(timestamp)
 
         stack = self._buildStack()
@@ -89,8 +143,8 @@ class StreamingPolicy(Policy):
         frames.extend(list(self._carousel))
         return torch.stack(frames, dim=0)
 
-    def _preprocess(self, frame: Union[Tensor, np.ndarray]) -> Tensor:
-        """Normalize to float CHW [3, 224, 224] on self._device."""
+    def _toCHW(self, frame: Union[Tensor, np.ndarray]) -> Tensor:
+        """ndarray | Tensor → float CHW on self._device (no normalize/resize)."""
         if isinstance(frame, np.ndarray):
             tensor = torch.from_numpy(np.ascontiguousarray(frame))
         elif isinstance(frame, Tensor):
@@ -120,14 +174,4 @@ class StreamingPolicy(Policy):
                 f"Expected 3 channels after layout fix, got {tensor.shape[0]}"
             )
 
-        if float(tensor.max()) > 1.5:
-            tensor = tensor / 255.0
-
-        tensor = tensor.to(device=self._device, dtype=torch.float32).unsqueeze(0)
-        tensor = F.interpolate(
-            tensor,
-            size=(C_FRAME_SIZE, C_FRAME_SIZE),
-            mode="bilinear",
-            align_corners=False,
-        )
-        return tensor.squeeze(0).contiguous()
+        return tensor.to(device=self._device, dtype=torch.float32)
