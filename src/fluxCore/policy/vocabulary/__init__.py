@@ -1,6 +1,7 @@
 # ==================================================================================
-from .__label import Label
+from .__actionVocabulary import ActionVocabulary
+from .__argumentKindVocabulary import ArgumentKindVocabulary
 from .__vocabulary import Vocabulary
 
 # ==================================================================================
-__all__ = ["Label", "Vocabulary"]
+__all__ = ["Vocabulary", "ArgumentKindVocabulary", "ActionVocabulary"]

@@ -5,7 +5,7 @@ from __future__ import annotations
 from jAGFx.serializer import Serializable
 
 # ==================================================================================
-from ...types.interface.policy.vocabulary import iLabel
+from ....types.interface.policy.vocabulary import iLabel
 
 
 # ==================================================================================

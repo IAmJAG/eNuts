@@ -23,32 +23,22 @@ from .__policyOptions import PolicyOptions
 
 # ==================================================================================
 class Policy(nn.Module, iPolicy):
-    """Image array → action + argument kind (vocab cosine) + spatial payload.
-
-    Heads project into embedding space (vocabulary.dimension = embedDim).
-    Scores are cosine vs vocabulary.toTensor() tables [N, embedDim].
-
-    Persistence is split:
-      - PolicyOptions.encode/decode → separate options file (JSON)
-      - Policy.save/load → weight file only (version + model_state)
-    Device is never stored; it is an argument (default cpu) at build/load.
-    """
-
     CHECKPOINT_VERSION = 1
-
     def __init__(
-        self,
-        options: PolicyOptions,
-        device: Optional[Union[str, TorchDevice]] = "cpu",
+        self, options: PolicyOptions,
+        device: Optional[Union[str, TorchDevice]] = "cuda",
     ) -> None:
         super().__init__()
 
         if options.actions is None:
             raise ValueError("Policy requires options.actions vocabulary")
+        
         if options.argumentKinds is None:
             raise ValueError("Policy requires options.argumentKinds vocabulary")
+        
         if options.actions.size < 1:
             raise ValueError("actions vocabulary must be non-empty")
+        
         if options.argumentKinds.size < 1:
             raise ValueError("argumentKinds vocabulary must be non-empty")
 
@@ -112,36 +102,32 @@ class Policy(nn.Module, iPolicy):
 
     # ------------------------------------------------------------------
     def save(self, path: str | Path) -> None:
-        """Persist weights only. Options are saved separately via PolicyOptions.encode."""
         path = Path(path)
-        path.parent.mkdir(parents=True, exist_ok=True)
+        path.parent.mkdir(parents=True, exist_ok=True)        
         checkpoint = {
             "version": self.CHECKPOINT_VERSION,
-            "model_state": self.state_dict(),
+            "modelState": self.state_dict(),
         }
         torch.save(checkpoint, path)
 
     @classmethod
-    def load(
-        cls,
-        path: str | Path,
-        options: PolicyOptions,
-        device: Optional[Union[str, TorchDevice]] = "cpu",
+    def load(cls,
+        path: str | Path, options: PolicyOptions, 
+        device: Optional[Union[str, TorchDevice]] = "cuda",
     ) -> Policy:
-        """Rebuild from options + weight file. Device is an argument (default cpu)."""
-        if device is None:
-            device = "cpu"
+        if device is None: device = "cpu"
 
-        checkpoint = torch.load(path, map_location="cpu", weights_only=False)
+        checkpoint = torch.load(path, map_location=device, weights_only=False)
         if checkpoint.get("version") != cls.CHECKPOINT_VERSION:
             raise ValueError(
                 f"Unsupported policy checkpoint version: {checkpoint.get('version')!r}"
             )
-        if "model_state" not in checkpoint:
+        
+        if "modelState" not in checkpoint:
             raise ValueError("Policy checkpoint missing model_state")
 
         policy = cls(options, device=device)
-        policy.load_state_dict(checkpoint["model_state"], strict=True)
+        policy.load_state_dict(checkpoint["modelState"], strict=True)
         return policy
 
     # ------------------------------------------------------------------

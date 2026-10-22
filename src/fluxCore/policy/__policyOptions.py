@@ -14,12 +14,6 @@ from .vocabulary import Vocabulary
 
 # ==================================================================================
 class PolicyOptions(Serializable):
-    """Serializable policy construction options.
-
-    Owns only configuration. Vocabularies and seed data are supplied by the caller
-    (application or tests) — not defined here.
-    """
-
     def __init__(
         self,
         actions: Optional[Vocabulary] = None,
