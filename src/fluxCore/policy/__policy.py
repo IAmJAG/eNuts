@@ -54,6 +54,9 @@ class Policy(nn.Module, iPolicy):
         actionEmbedDim = options.actions.dimension
         argumentKindEmbedDim = options.argumentKinds.dimension
 
+        self._actionEmbeddings: Tensor
+        self._argumentKindEmbeddings: Tensor
+
         self.register_buffer(
             "_actionEmbeddings",
             options.actions.toTensor().detach().to(self._device).clone(),
@@ -146,21 +149,15 @@ class Policy(nn.Module, iPolicy):
             self.eval()
             out = self.forward(imageArray)
 
-            actionEmbedding: Tensor = self._actionVocabulary.toTensor()
-            argumentKindEmbedding: Tensor = self._argumentKindVocabulary.toTensor()
+            actionEmbedding: Tensor = self._actionEmbeddings
+            argumentKindEmbedding: Tensor = self._argumentKindEmbeddings
 
             actionScores = self._cosine(out["actions"], actionEmbedding)
             actionIndex = int(torch.argmax(actionScores, dim=-1).reshape(-1)[0].item())
             actionKey = self._actionLabels[actionIndex]
 
-            argumentKindScores = self._cosine(
-                out["argumentKinds"], argumentKindEmbedding
-            )
-
-            argumentKindIndex = int(
-                torch.argmax(argumentKindScores, dim=-1).reshape(-1)[0].item()
-            )
-            
+            argumentKindScores = self._cosine(out["argumentKinds"], argumentKindEmbedding)
+            argumentKindIndex = int(torch.argmax(argumentKindScores, dim=-1).reshape(-1)[0].item())            
             argumentKind = self._argumentKindLabels[argumentKindIndex]
 
             spatial = out["spatial"].reshape(-1, 4)[0].detach().cpu()
