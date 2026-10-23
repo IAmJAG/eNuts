@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 # ==================================================================================
-from typing import Any, Dict, Iterator, List, Mapping, Optional, Union
+from typing import Any, Dict, Iterator, List, Mapping, Optional, Type, Union
 
 # ==================================================================================
 import torch
@@ -14,10 +14,15 @@ from jAGFx.serializer import Serializable
 # ==================================================================================
 from ...types.interface.policy.vocabulary import iLabel, iVocabulary
 from ...utilities import G_DEFAULT_EMBED_DIM, deterministicEmbedding
+from .labels import Label
 
 
 # ==================================================================================
 class Vocabulary[T: iLabel](iVocabulary, Serializable):
+    """Generic discrete vocabulary. Subclasses set labelClass to the concrete Label type."""
+
+    labelClass: Type[iLabel] = Label
+
     def __init__(
         self,
         vocab: Optional[Mapping[str, Union[T, str]]] = None,
@@ -37,10 +42,12 @@ class Vocabulary[T: iLabel](iVocabulary, Serializable):
                 self._put(key, value)
 
     def _put(self, key: str, value: Union[T, str, Mapping, Any]) -> None:
-        if isinstance(value, str):
-            label = T(key, value)
+        LabelCls = type(self).labelClass
 
-        elif isinstance(value, T):
+        if isinstance(value, str):
+            label = LabelCls(key, value)
+
+        elif isinstance(value, iLabel):
             label = value
             if not label.id or label.id != key:
                 if label.id and label.id != key:
@@ -53,12 +60,14 @@ class Vocabulary[T: iLabel](iVocabulary, Serializable):
         elif isinstance(value, Mapping):
             labelId = value.get("id", key)
             description = value.get("description", "")
-            label = T(str(labelId or key), str(description or ""))
+            label = LabelCls(str(labelId or key), str(description or ""))
 
         else:
-            label = T(getattr(value, "id", key), getattr(value, "description", ""))
+            label = LabelCls(
+                getattr(value, "id", key), getattr(value, "description", "")
+            )
 
-        self._entries[key] = label
+        self._entries[key] = label  # type: ignore[assignment]
 
     # ------------------------------------------------------------------
     def __getitem__(self, key: str) -> T:
