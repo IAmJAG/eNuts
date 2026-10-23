@@ -9,21 +9,26 @@ intent                          ← blanket over the whole stack
   carousel[t] = (visual_t, action_t, parameters_t)
 ```
 
-At each visual, the **action taken** and its **parameters** are aligned with that frame. Intent encloses the trajectory. Missing action/params use pads (`NONE` / empty), not omitted channels.
+Missing action/params use pads (`NONE` / empty), not omitted channels.
 
 ```text
 src/fluxCore/policy/
   __dcPolicy.py          DCPolicy
   __policyOptions.py     PolicyOptions (+ pad constants)
-  vocabulary/            Vocabulary, ActionVocabulary, ArgumentKindVocabulary
-  vocabulary/labels/     Label, …
+  vocabulary/
+    __vocabulary.py              Vocabulary[TLabel]
+    __actionVocabulary.py        ActionVocabulary
+    __argumentKindVocabulary.py  ArgumentKindVocabulary
+    __intentVocabulary.py        IntentVocabulary
+    labels/
+      Label, ActionLabel, ArgumentKindLabel, IntentLabel
 ```
 
-| Discrete (vocabulary) | Continuous / open |
-|----------------------|-------------------|
-| actions (incl. `NONE`) | spatial x,y / box |
-| argument kinds (incl. `none`) | key code, text value |
-| intents | — |
+| Discrete (typed vocabulary) | Continuous / open |
+|----------------------------|-------------------|
+| `ActionVocabulary` / `ActionLabel` (incl. `NONE`) | spatial x,y / box |
+| `ArgumentKindVocabulary` / `ArgumentKindLabel` (incl. `none`) | key code, text value |
+| `IntentVocabulary` / `IntentLabel` | — |
 
 ---
 
@@ -37,7 +42,7 @@ slot stack → backbone(visual) + actionEmb + paramVec
 h → action / arg-kind / spatial heads → cosine / pack
 ```
 
-Accept interval: `durationSec / stackSize` (`acceptIntervalSec`). Optional `timestamp` gates whether a new slot is pushed.
+Accept interval: `durationSec / stackSize` (`PolicyOptions.acceptIntervalSec`).
 
 ---
 
@@ -45,18 +50,23 @@ Accept interval: `durationSec / stackSize` (`acceptIntervalSec`). Optional `time
 
 ```python
 from fluxCore.policy import (
-    DCPolicy, PolicyOptions, Vocabulary,
-    C_NONE_ACTION, C_NONE_ARGUMENT_KIND,
+    DCPolicy,
+    PolicyOptions,
+    ActionVocabulary,
+    ArgumentKindVocabulary,
+    IntentVocabulary,
+    C_NONE_ACTION,
+    C_NONE_ARGUMENT_KIND,
 )
 
 options = PolicyOptions(
-    actions=Vocabulary({
+    actions=ActionVocabulary({
         "NONE": "pad", "down": "down", "up": "up", "move": "move", "inject": "inject",
     }),
-    argumentKinds=Vocabulary({
+    argumentKinds=ArgumentKindVocabulary({
         "none": "pad", "coordinate": "pt", "box": "box", "key": "key", "text": "text",
     }),
-    intents=Vocabulary({"idle": "idle", "login": "login"}),
+    intents=IntentVocabulary({"idle": "idle", "login": "login"}),
     stackSize=16,
     durationSec=2.0,
 )
@@ -82,7 +92,7 @@ policy = DCPolicy.load("policy.pt", options=options, device="cuda")
 
 | Artifact | Contents |
 |----------|----------|
-| Options JSON | vocabs (actions, argumentKinds, intents), stack, duration, … |
+| Options JSON | typed vocabs (actions, argumentKinds, intents), stack, duration, … |
 | Weight file | `{ VERSION: "2.0", MODELSTATE }` |
 
 Carousel is runtime-only.
@@ -91,15 +101,26 @@ Carousel is runtime-only.
 
 ## PolicyOptions
 
-- `actions`, `argumentKinds`, `intents` — required by `validate()`
-- `featureDimension` (default 576), `freezeBackbone`
-- `stackSize` ∈ {4, 8, 16, 32, 64}, `durationSec` > 0
-- `acceptIntervalSec` = `durationSec / stackSize` (`frameRate` is a legacy alias for the same interval)
-- Pads: `C_NONE_ACTION` (`"NONE"`), `C_NONE_ARGUMENT_KIND` (`"none"`)
+| Field | Type |
+|-------|------|
+| `actions` | `ActionVocabulary` |
+| `argumentKinds` | `ArgumentKindVocabulary` |
+| `intents` | `IntentVocabulary` |
+| `featureDimension` | int (default 576) |
+| `freezeBackbone` | bool |
+| `stackSize` | ∈ {4, 8, 16, 32, 64} |
+| `durationSec` | float > 0 |
+| `acceptIntervalSec` | read-only: `durationSec / stackSize` |
+
+Pads: `C_NONE_ACTION` (`"NONE"`), `C_NONE_ARGUMENT_KIND` (`"none"`).
+
+`validate()` requires all three vocabularies non-empty.
 
 ---
 
-## Vocabulary
+## Vocabulary layer
 
-- `toTensor()` → `[N, dimension]`; cached on `DCPolicy` at init
-- Labels under `vocabulary/labels/`
+- Base: `Vocabulary[TLabel]` with `toTensor()` → `[N, dimension]`
+- Typed subclasses: `ActionVocabulary`, `ArgumentKindVocabulary`, `IntentVocabulary`
+- Labels: `Label`, `ActionLabel`, `ArgumentKindLabel`, `IntentLabel`
+- Embeddings are **cached on `DCPolicy`** at construction
