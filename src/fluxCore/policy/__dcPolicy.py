@@ -23,22 +23,24 @@ from torchvision.models import MobileNet_V3_Small_Weights, MobileNetV3
 # ==================================================================================
 from ..types.interface.policy import iPolicy
 from ..types.interface.policy.vocabulary import iVocabulary
-from ..utilities import C_FRAME_SIZE, G_NORMALIZE_MEAN, G_NORMALIZE_STD, getTorchDevice
-from .__policyOptions import (
-    C_NONE_ACTION,
-    C_NONE_ARGUMENT_KIND,
-    PolicyOptions,
+from ..utilities import (
+    G_DEFAULT_FEATURE_DIM,
+    G_FRAME_SIZE,
+    G_NORMALIZE_MEAN,
+    G_NORMALIZE_STD,
+    G_PARAM_DIM,
+    getTorchDevice,
 )
+from .__policyOptions import C_NONE_ACTION, C_NONE_ARGUMENT_KIND, PolicyOptions
 
 # ==================================================================================
-# Fixed param encoding width: [x, y, w, h] + 4 reserved = 8
 C_PARAM_DIM: int = 8
 C_BACKBONE_DIM: int = 576
 
-
 # ==================================================================================
 class DCPolicy(nn.Module, iPolicy):
-    """Discrete-Continuous Policy.
+    """
+    Discrete-Continuous Policy.
 
     Context (full joint):
       intent  — blanket over the carousel
@@ -48,13 +50,9 @@ class DCPolicy(nn.Module, iPolicy):
     """
 
     CP_VERSION: str = "2.0"
-
     def __init__(
-        self,
-        options: PolicyOptions,
-        device: Optional[Union[str, TorchDevice]] = "cuda",
-        *args,
-        **kwargs,
+        self, options: PolicyOptions, device: Optional[Union[str, TorchDevice]] = "cuda",
+        *args, **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
 
@@ -63,18 +61,20 @@ class DCPolicy(nn.Module, iPolicy):
         weights: MobileNetV3 = models.mobilenet_v3_small(
             weights=MobileNet_V3_Small_Weights.DEFAULT
         )
+
         backbone: nn.Sequential = nn.Sequential(
             weights.features,
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
         )
+
         if options.freezeBackbone:
             for param in backbone.parameters():
                 param.requires_grad = False
 
         transform = transforms.Compose(
             [
-                transforms.Resize((C_FRAME_SIZE, C_FRAME_SIZE)),
+                transforms.Resize((G_FRAME_SIZE, G_FRAME_SIZE)),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=G_NORMALIZE_MEAN, std=G_NORMALIZE_STD),
             ]
@@ -85,13 +85,12 @@ class DCPolicy(nn.Module, iPolicy):
         intentEmbedDim = options.intents.dimension
         featureDim = options.featureDimension
 
-        # slot: visual(576) + actionEmb + param(8) → featureDim
-        slotIn = C_BACKBONE_DIM + actionEmbedDim + C_PARAM_DIM
+        slotIn = G_DEFAULT_FEATURE_DIM + actionEmbedDim + C_PARAM_DIM
         self._slotMerge = nn.Sequential(
             nn.Linear(slotIn, featureDim),
             nn.ReLU(inplace=True),
         )
-        # pooled slots + intent → featureDim
+        
         self._contextMerge = nn.Sequential(
             nn.Linear(featureDim + intentEmbedDim, featureDim),
             nn.ReLU(inplace=True),
@@ -102,11 +101,13 @@ class DCPolicy(nn.Module, iPolicy):
             nn.ReLU(inplace=True),
             nn.Linear(featureDim, actionEmbedDim),
         )
+
         self._argumentKindHead = nn.Sequential(
             nn.Linear(featureDim, featureDim),
             nn.ReLU(inplace=True),
             nn.Linear(featureDim, argKindEmbedDim),
         )
+
         self._spatialHead = nn.Sequential(
             nn.Linear(featureDim, featureDim),
             nn.ReLU(inplace=True),
@@ -134,38 +135,38 @@ class DCPolicy(nn.Module, iPolicy):
         self._actionIndex: Dict[str, int] = {
             label: i for i, label in enumerate(self._actionLabels)
         }
+
         self._argKindIndex: Dict[str, int] = {
             label: i for i, label in enumerate(self._argKindLabels)
         }
+
         self._intentIndex: Dict[str, int] = {
             label: i for i, label in enumerate(self._intentLabels)
         }
 
+        self._actionEmbeddings: Tensor
+        self._argKindEmbeddings: Tensor
+        self._intentEmbeddings: Tensor
+
         self.register_buffer(
             "_actionEmbeddings",
-            options.actions.toTensor()
-            .detach()
-            .to(device=device, dtype=torch.float32)
-            .clone(),
+            options.actions.toTensor().detach()
+            .to(device=device, dtype=torch.float32).clone(),
         )
         self.register_buffer(
             "_argKindEmbeddings",
-            options.argumentKinds.toTensor()
-            .detach()
-            .to(device=device, dtype=torch.float32)
-            .clone(),
+            options.argumentKinds.toTensor().detach()
+            .to(device=device, dtype=torch.float32).clone(),
         )
         self.register_buffer(
             "_intentEmbeddings",
-            options.intents.toTensor()
-            .detach()
-            .to(device=device, dtype=torch.float32)
-            .clone(),
+            options.intents.toTensor().detach()
+            .to(device=device, dtype=torch.float32).clone(),
         )
 
         # Carousel of slots: (visual [3,H,W], actionEmb [A], param [P])
         blankVisual = torch.zeros(
-            3, C_FRAME_SIZE, C_FRAME_SIZE, dtype=torch.float32, device=device
+            3, G_FRAME_SIZE, G_FRAME_SIZE, dtype=torch.float32, device=device
         )
         noneActionEmb = self._lookupActionEmbedding(C_NONE_ACTION).detach()
         emptyParam = torch.zeros(C_PARAM_DIM, dtype=torch.float32, device=device)
@@ -179,7 +180,6 @@ class DCPolicy(nn.Module, iPolicy):
 
         self.to(device=device)
 
-    # ------------------------------------------------------------------
     def _lookupActionEmbedding(self, action: str) -> Tensor:
         idx = self._actionIndex.get(action, self._actionIndex.get(C_NONE_ACTION, 0))
         return self._actionEmbeddings[idx]
@@ -198,58 +198,64 @@ class DCPolicy(nn.Module, iPolicy):
         if kind == "coordinate":
             out[0] = float(parameters.get("x", 0.0))
             out[1] = float(parameters.get("y", 0.0))
+
         elif kind == "box":
             out[0] = float(parameters.get("left", 0.0))
             out[1] = float(parameters.get("top", 0.0))
             out[2] = float(parameters.get("width", 0.0))
             out[3] = float(parameters.get("height", 0.0))
+
         elif kind == "key":
             code = str(parameters.get("code", ""))
             out[4] = (hash(code) % 1000) / 1000.0
+
         elif kind == "text":
             value = str(parameters.get("value", ""))
             out[5] = (hash(value) % 1000) / 1000.0
 
         kindIdx = self._argKindIndex.get(kind)
         if kindIdx is not None and self._argKindEmbeddings.numel() > 0:
-            # fold first 2 dims of kind embed into slots 6–7
             k = self._argKindEmbeddings[kindIdx][:2]
             out[6] = float(k[0].item()) if k.numel() > 0 else 0.0
             out[7] = float(k[1].item()) if k.numel() > 1 else 0.0
+
         return out
 
     def _shouldAccept(self, timestamp: float) -> bool:
-        if self._lastAcceptTime is None:
-            return True
+        if self._lastAcceptTime is None: return True
         return (float(timestamp) - self._lastAcceptTime) >= self._acceptIntervalSec
 
     def _toPil(self, image: Any) -> Image.Image:
         if isinstance(image, ndarray):
-            if image.dtype != np.uint8:
+            if image.dtype != np.uint8: 
                 image = np.clip(image, 0, 255).astype(np.uint8)
+
             return Image.fromarray(image)
+
         if isinstance(image, Tensor):
             t = image.detach().cpu()
             if t.ndim == 3 and t.shape[0] in (1, 3):
                 t = t.permute(1, 2, 0)
+
             arr = t.numpy()
             if arr.max() <= 1.5:
                 arr = (arr * 255).astype(np.uint8)
+
             else:
                 arr = arr.astype(np.uint8)
+
             return Image.fromarray(arr)
-        if isinstance(image, Image.Image):
-            return image
+        
+        if isinstance(image, Image.Image): return image
+
         raise TypeError(f"Unable to convert image of type {type(image)} to PIL Image")
 
     def _push(
-        self,
-        image: Image.Image | ndarray | Tensor,
-        action: str,
+        self, image: Image.Image | ndarray | Tensor, action: str,
         parameters: Optional[Dict[str, Any]],
     ) -> None:
-        if not isinstance(image, Image.Image):
-            image = self._toPil(image)
+        if not isinstance(image, Image.Image): image = self._toPil(image)
+
         visual: Tensor = self._transform(image)
         visual = visual.to(device=self._device, dtype=torch.float32)
         actionEmb = self._lookupActionEmbedding(action).to(self._device)
@@ -257,7 +263,6 @@ class DCPolicy(nn.Module, iPolicy):
         self._carousel.append((visual, actionEmb, paramVec))
 
     def _fuseContext(self, intent: str) -> Tensor:
-        """Encode all slots, temporal mean, merge intent → [1, featureDim]."""
         visuals = torch.stack([s[0] for s in self._carousel], dim=0)  # [T,3,H,W]
         actionEmbs = torch.stack([s[1] for s in self._carousel], dim=0)  # [T,A]
         params = torch.stack([s[2] for s in self._carousel], dim=0)  # [T,P]
@@ -282,17 +287,14 @@ class DCPolicy(nn.Module, iPolicy):
 
     # ------------------------------------------------------------------
     def forward(
-        self,
-        image: Image.Image | ndarray | Tensor,
-        intent: str,
-        action: str = C_NONE_ACTION,
-        parameters: Optional[Dict[str, Any]] = None,
+        self, image: Image.Image | ndarray | Tensor, intent: str,
+        action: str = C_NONE_ACTION, parameters: Optional[Dict[str, Any]] = None,
         timestamp: Optional[float] = None,
-        *args,
-        **kwargs,
+        *args, **kwargs,
     ) -> Dict[str, Tensor]:
         if timestamp is None:
             self._push(image, action, parameters)
+
         elif self._shouldAccept(float(timestamp)):
             self._push(image, action, parameters)
             self._lastAcceptTime = float(timestamp)
@@ -306,48 +308,37 @@ class DCPolicy(nn.Module, iPolicy):
 
     @torch.no_grad()
     def predict(
-        self,
-        image: Image.Image | ndarray | Tensor,
-        intent: str,
-        action: str = C_NONE_ACTION,
-        parameters: Optional[Dict[str, Any]] = None,
+        self, image: Image.Image | ndarray | Tensor, intent: str,
+        action: str = C_NONE_ACTION, parameters: Optional[Dict[str, Any]] = None,
         timestamp: Optional[float] = None,
-        *args,
-        **kwargs,
+        *args, **kwargs,
     ) -> tuple[str, Dict[str, Any]]:
         wasTraining = self.training
         try:
             self.eval()
             out = self.forward(
-                image,
-                intent=intent,
-                action=action,
-                parameters=parameters,
-                timestamp=timestamp,
+                image, intent=intent, action=action,
+                parameters=parameters, timestamp=timestamp,
             )
 
             actionScores = self._cosine(out["ACTIONS"], self._actionEmbeddings)
             actionIndex = int(torch.argmax(actionScores, dim=-1).reshape(-1)[0].item())
-            # Prefer non-NONE when possible for display; still valid if NONE is predicted
             actionKey = self._actionLabels[actionIndex]
 
             argKindScores = self._cosine(out["ARGKINDS"], self._argKindEmbeddings)
-            argKindIndex = int(
-                torch.argmax(argKindScores, dim=-1).reshape(-1)[0].item()
-            )
+            argKindIndex = int(torch.argmax(argKindScores, dim=-1).reshape(-1)[0].item())
             argKind = self._argKindLabels[argKindIndex]
 
             spatial = out["SPATIAL"].reshape(-1, 4)[0].detach().cpu()
             argument = self._buildArgument(argKind, spatial)
             return actionKey, argument
+        
         finally:
-            if wasTraining:
-                self.train()
+            if wasTraining: self.train()
 
     @staticmethod
     def _cosine(embedding: Tensor, table: Tensor) -> Tensor:
-        if table.numel() == 0:
-            return embedding.new_zeros(embedding.size(0), 0)
+        if table.numel() == 0: return embedding.new_zeros(embedding.size(0), 0)
         table = table.to(device=embedding.device, dtype=embedding.dtype)
         emb = F.normalize(embedding, p=2, dim=-1)
         reg = F.normalize(table, p=2, dim=-1)
@@ -355,8 +346,7 @@ class DCPolicy(nn.Module, iPolicy):
 
     def train(self, mode: bool = True) -> iPolicy:
         super().train(mode)
-        if self._freezeBB:
-            self._backbone.eval()
+        if self._freezeBB: self._backbone.eval()
         return self
 
     def _buildArgument(self, kind: str, spatial: Tensor) -> dict[str, Any]:
@@ -366,6 +356,7 @@ class DCPolicy(nn.Module, iPolicy):
                 "x": float(spatial[0]),
                 "y": float(spatial[1]),
             }
+
         if kind == "box":
             return {
                 "kind": "box",
@@ -374,27 +365,31 @@ class DCPolicy(nn.Module, iPolicy):
                 "width": float(spatial[2]),
                 "height": float(spatial[3]),
             }
+
         if kind == "key":
             return {"kind": "key", "code": ""}
+
         if kind == "text":
             return {"kind": "text", "value": ""}
+
         if kind == C_NONE_ARGUMENT_KIND:
             return {"kind": C_NONE_ARGUMENT_KIND}
+
         return {"kind": kind}
 
     def save(self, path: str | Path) -> None:
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         torch.save(
-            {"VERSION": self.CP_VERSION, "MODELSTATE": self.state_dict()},
-            path,
+            {
+                "VERSION": self.CP_VERSION,
+                "MODELSTATE": self.state_dict()
+            }, path
         )
 
     @classmethod
     def load(
-        cls,
-        path: str | Path,
-        options: PolicyOptions,
+        cls, path: str | Path, options: PolicyOptions,
         device: Optional[Union[str, TorchDevice]] = "cuda",
     ) -> iPolicy:
         model: Dict = torch.load(path, map_location="cpu", weights_only=False)
@@ -404,6 +399,7 @@ class DCPolicy(nn.Module, iPolicy):
             )
         if "MODELSTATE" not in model:
             raise ValueError("Policy checkpoint missing MODELSTATE")
+        
         policy = cls(options, device=device)
         policy.load_state_dict(model["MODELSTATE"], strict=True)
         return policy

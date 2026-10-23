@@ -19,10 +19,10 @@ from .vocabulary import (
 C_STACK_SIZES: frozenset[int] = frozenset({4, 8, 16, 32, 64})
 C_DEFAULT_STACK_SIZE: int = 16
 C_DEFAULT_DURATION_SEC: float = 1.0
-
-# Pad ids for missing action / argument context (must exist in vocabs when used)
+# ==================================================================================
 C_NONE_ACTION: str = "NONE"
 C_NONE_ARGUMENT_KIND: str = "none"
+# ==================================================================================
 
 
 # ==================================================================================

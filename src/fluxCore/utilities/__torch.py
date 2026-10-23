@@ -21,12 +21,12 @@ G_DEFAULT_FEATURE_DIM: int = 576
 G_NORMALIZE_MEAN: List[float] = [0.485, 0.456, 0.406]
 G_NORMALIZE_STD: List[float]= [0.229, 0.224, 0.225]
 
-C_FRAME_SIZE: int = 224
+G_FRAME_SIZE: int = 224
+G_PARAM_DIM: int = 8
 # ==================================================================================
 
 # ==================================================================================
 def getTorchDevice(device: Optional[Union[TorchDevice, str]] = None) -> TorchDevice:
-    """Resolve device. Default cuda when available; otherwise cpu."""
     if device is None:
         device = "cuda" if is_available() else "cpu"
 
