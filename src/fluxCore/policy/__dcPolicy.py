@@ -33,9 +33,6 @@ from ..utilities import (
 )
 from .__policyOptions import C_NONE_ACTION, C_NONE_ARGUMENT_KIND, PolicyOptions
 
-# ==================================================================================
-C_PARAM_DIM: int = 8
-C_BACKBONE_DIM: int = 576
 
 # ==================================================================================
 class DCPolicy(nn.Module, iPolicy):
@@ -85,7 +82,7 @@ class DCPolicy(nn.Module, iPolicy):
         intentEmbedDim = options.intents.dimension
         featureDim = options.featureDimension
 
-        slotIn = G_DEFAULT_FEATURE_DIM + actionEmbedDim + C_PARAM_DIM
+        slotIn = G_DEFAULT_FEATURE_DIM + actionEmbedDim + G_PARAM_DIM
         self._slotMerge = nn.Sequential(
             nn.Linear(slotIn, featureDim),
             nn.ReLU(inplace=True),
@@ -169,7 +166,7 @@ class DCPolicy(nn.Module, iPolicy):
             3, G_FRAME_SIZE, G_FRAME_SIZE, dtype=torch.float32, device=device
         )
         noneActionEmb = self._lookupActionEmbedding(C_NONE_ACTION).detach()
-        emptyParam = torch.zeros(C_PARAM_DIM, dtype=torch.float32, device=device)
+        emptyParam = torch.zeros(G_PARAM_DIM, dtype=torch.float32, device=device)
         self._carousel: Deque[Tuple[Tensor, Tensor, Tensor]] = deque(
             [
                 (blankVisual.clone(), noneActionEmb.clone(), emptyParam.clone())
@@ -190,7 +187,7 @@ class DCPolicy(nn.Module, iPolicy):
 
     def _encodeParameters(self, parameters: Optional[Dict[str, Any]]) -> Tensor:
         """Fixed [C_PARAM_DIM] vector on device. EMPTY → zeros."""
-        out = torch.zeros(C_PARAM_DIM, dtype=torch.float32, device=self._device)
+        out = torch.zeros(G_PARAM_DIM, dtype=torch.float32, device=self._device)
         if not parameters:
             return out
 
