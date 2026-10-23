@@ -2,6 +2,7 @@
 from .__frame import AsyncReadSingleFrame, ReadSingleFrame
 from .__socket import AsyncReadAll, AsyncReadExact, ReadAll, ReadExact
 from .__torch import (
+    C_FRAME_SIZE,
     G_DEFAULT_EMBED_DIM,
     G_DEFAULT_FEATURE_DIM,
     G_NORMALIZE_MEAN,
@@ -24,4 +25,5 @@ __all__ = [
     "G_DEFAULT_FEATURE_DIM",
     "G_NORMALIZE_MEAN",
     "G_NORMALIZE_STD",
+    "C_FRAME_SIZE",
 ]

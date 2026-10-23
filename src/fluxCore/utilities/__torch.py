@@ -20,8 +20,9 @@ G_DEFAULT_FEATURE_DIM: int = 576
 
 G_NORMALIZE_MEAN: List[float] = [0.485, 0.456, 0.406]
 G_NORMALIZE_STD: List[float]= [0.229, 0.224, 0.225]
-# ==================================================================================
 
+C_FRAME_SIZE: int = 224
+# ==================================================================================
 
 # ==================================================================================
 def getTorchDevice(device: Optional[Union[TorchDevice, str]] = None) -> TorchDevice:
@@ -30,8 +31,7 @@ def getTorchDevice(device: Optional[Union[TorchDevice, str]] = None) -> TorchDev
         device = "cuda" if is_available() else "cpu"
 
     if isinstance(device, str):
-        if device.lower().startswith("cuda") and not is_available():
-            device = "cpu"
+        if device.lower().startswith("cuda") and not is_available(): device = "cpu"
         return TorchDevice(device)
 
     return device
