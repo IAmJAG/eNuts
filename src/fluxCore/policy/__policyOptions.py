@@ -9,7 +9,11 @@ from jAGFx.serializer import Serializable
 
 # ==================================================================================
 from ..utilities import G_DEFAULT_FEATURE_DIM
-from .vocabulary import Vocabulary
+from .vocabulary import (
+    ActionVocabulary,
+    ArgumentKindVocabulary,
+    IntentVocabulary,
+)
 
 # ==================================================================================
 C_STACK_SIZES: frozenset[int] = frozenset({4, 8, 16, 32, 64})
@@ -23,17 +27,11 @@ C_NONE_ARGUMENT_KIND: str = "none"
 
 # ==================================================================================
 class PolicyOptions(Serializable):
-    """Serializable policy construction options.
-
-    Vocabularies: actions, argumentKinds, intents.
-    Accept interval (seconds) = durationSec / stackSize (property acceptIntervalSec).
-    """
-
     def __init__(
         self,
-        actions: Optional[Vocabulary] = None,
-        argumentKinds: Optional[Vocabulary] = None,
-        intents: Optional[Vocabulary] = None,
+        actions: Optional[ActionVocabulary] = None,
+        argumentKinds: Optional[ArgumentKindVocabulary] = None,
+        intents: Optional[IntentVocabulary] = None,
         featureDim: int = G_DEFAULT_FEATURE_DIM,
         freezeBackbone: bool = True,
         stackSize: int = C_DEFAULT_STACK_SIZE,
@@ -41,9 +39,9 @@ class PolicyOptions(Serializable):
     ) -> None:
         super().__init__()
 
-        self._actions: Optional[Vocabulary] = actions
-        self._argumentKinds: Optional[Vocabulary] = argumentKinds
-        self._intents: Optional[Vocabulary] = intents
+        self._actions: Optional[ActionVocabulary] = actions
+        self._argumentKinds: Optional[ArgumentKindVocabulary] = argumentKinds
+        self._intents: Optional[IntentVocabulary] = intents
         self._featureDimension: int = int(featureDim)
         self._freezeBackbone: bool = bool(freezeBackbone)
         self._stackSize: int = int(stackSize)
@@ -69,11 +67,6 @@ class PolicyOptions(Serializable):
     def acceptIntervalSec(self) -> float:
         """Minimum seconds between accepted carousel slots."""
         return self._durationSec / float(self._stackSize)
-
-    @property
-    def frameRate(self) -> float:
-        """Alias of acceptIntervalSec (historical name; value is an interval, not Hz)."""
-        return self.acceptIntervalSec
 
     def validate(self) -> None:
         """Require non-empty actions, argumentKinds, and intents."""
@@ -105,27 +98,27 @@ class PolicyOptions(Serializable):
 
     # ------------------------------------------------------------------
     @property
-    def actions(self) -> Optional[Vocabulary]:
+    def actions(self) -> Optional[ActionVocabulary]:
         return self._actions
 
     @actions.setter
-    def actions(self, value: Optional[Vocabulary]) -> None:
+    def actions(self, value: Optional[ActionVocabulary]) -> None:
         self._actions = value
 
     @property
-    def argumentKinds(self) -> Optional[Vocabulary]:
+    def argumentKinds(self) -> Optional[ArgumentKindVocabulary]:
         return self._argumentKinds
 
     @argumentKinds.setter
-    def argumentKinds(self, value: Optional[Vocabulary]) -> None:
+    def argumentKinds(self, value: Optional[ArgumentKindVocabulary]) -> None:
         self._argumentKinds = value
 
     @property
-    def intents(self) -> Optional[Vocabulary]:
+    def intents(self) -> Optional[IntentVocabulary]:
         return self._intents
 
     @intents.setter
-    def intents(self, value: Optional[Vocabulary]) -> None:
+    def intents(self, value: Optional[IntentVocabulary]) -> None:
         self._intents = value
 
     @property

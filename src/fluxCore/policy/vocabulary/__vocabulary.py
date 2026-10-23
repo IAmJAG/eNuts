@@ -14,14 +14,13 @@ from jAGFx.serializer import Serializable
 # ==================================================================================
 from ...types.interface.policy.vocabulary import iLabel, iVocabulary
 from ...utilities import G_DEFAULT_EMBED_DIM, deterministicEmbedding
-from .labels.__label import Label
 
 
 # ==================================================================================
-class Vocabulary(iVocabulary, Serializable):
+class Vocabulary[T: iLabel](iVocabulary, Serializable):
     def __init__(
         self,
-        vocab: Optional[Mapping[str, Union[iLabel, str]]] = None,
+        vocab: Optional[Mapping[str, Union[T, str]]] = None,
         dimension: int = G_DEFAULT_EMBED_DIM,
     ) -> None:
         super().__init__()
@@ -30,18 +29,18 @@ class Vocabulary(iVocabulary, Serializable):
         if self._dimension < 1:
             raise ValueError("dimension (embed width) must be >= 1")
 
-        self._entries: Dict[str, Label] = {}
+        self._entries: Dict[str, T] = {}
         self.Properties.extend(["dimension", "entries"])
 
         if vocab:
             for key, value in vocab.items():
                 self._put(key, value)
 
-    def _put(self, key: str, value: Union[iLabel, str, Mapping, Any]) -> None:
+    def _put(self, key: str, value: Union[T, str, Mapping, Any]) -> None:
         if isinstance(value, str):
-            label = Label(key, value)
+            label = T(key, value)
 
-        elif isinstance(value, Label):
+        elif isinstance(value, T):
             label = value
             if not label.id or label.id != key:
                 if label.id and label.id != key:
@@ -54,18 +53,18 @@ class Vocabulary(iVocabulary, Serializable):
         elif isinstance(value, Mapping):
             labelId = value.get("id", key)
             description = value.get("description", "")
-            label = Label(str(labelId or key), str(description or ""))
+            label = T(str(labelId or key), str(description or ""))
 
         else:
-            label = Label(getattr(value, "id", key), getattr(value, "description", ""))
+            label = T(getattr(value, "id", key), getattr(value, "description", ""))
 
         self._entries[key] = label
 
     # ------------------------------------------------------------------
-    def __getitem__(self, key: str) -> Label:
+    def __getitem__(self, key: str) -> T:
         return self._entries[key]
 
-    def __setitem__(self, key: str, value: Union[iLabel, str, Label]) -> None:
+    def __setitem__(self, key: str, value: Union[T, str]) -> None:
         self._put(key, value)
 
     def __delitem__(self, key: str) -> None:
@@ -96,7 +95,7 @@ class Vocabulary(iVocabulary, Serializable):
         return len(self._entries)
 
     @property
-    def entries(self) -> Dict[str, Label]:
+    def entries(self) -> Dict[str, T]:
         return self._entries
 
     @property

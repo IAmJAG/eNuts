@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-23 06:24:10 UTC*
+*Auto-generated on: 2026-10-23 07:39:43 UTC*
 
 ## Current Directory Structure
 
@@ -165,10 +165,12 @@ eNuts/
 │   │   │   └── vocabulary/
 │   │   │       ├── __actionVocabulary.py
 │   │   │       ├── __argumentKindVocabulary.py
+│   │   │       ├── __intentVocabulary.py
 │   │   │       ├── __vocabulary.py
 │   │   │       └── labels/
 │   │   │           ├── __actionLabel.py
 │   │   │           ├── __argumentKindLabel.py
+│   │   │           ├── __intentLabel.py
 │   │   │           └── __label.py
 │   │   ├── types/
 │   │   │   ├── .fff
@@ -431,13 +433,14 @@ eNuts/
 		CONSTANTS(S)/GLOBAL(S)
 			SEED_ACTIONS -> : seed_actions
 			SEED_ARGUMENT_KINDS -> : seed_argument_kinds
+			SEED_INTENTS -> : seed_intents
 
 .test/smoke/policy:
 	test_policy_forward_predict.py - 
 		FUNCTION(S):
 			_buildPolicy -> : _buildpolicy
 			test_carousel_initialized_to_stack_size -> : test_carousel_initialized_to_stack_size
-			test_forward_shapes_raw_image -> : test_forward_shapes_raw_image
+			test_forward_shapes_full_context -> : test_forward_shapes_full_context
 			test_predict_contract -> : test_predict_contract
 			test_stride_skips_push_when_too_soon -> : test_stride_skips_push_when_too_soon
 			test_missing_vocabularies_raise_via_options -> : test_missing_vocabularies_raise_via_options
@@ -703,6 +706,9 @@ src/fluxCore/policy:
 	__dcPolicy.py - 
 		CLASSE(S):
 			DCPolicy -> : dcpolicy
+		CONSTANTS(S)/GLOBAL(S)
+			C_PARAM_DIM -> : c_param_dim
+			C_BACKBONE_DIM -> : c_backbone_dim
 	__policyOptions.py - 
 		CLASSE(S):
 			PolicyOptions -> : policyoptions
@@ -710,6 +716,8 @@ src/fluxCore/policy:
 			C_STACK_SIZES -> : c_stack_sizes
 			C_DEFAULT_STACK_SIZE -> : c_default_stack_size
 			C_DEFAULT_DURATION_SEC -> : c_default_duration_sec
+			C_NONE_ACTION -> : c_none_action
+			C_NONE_ARGUMENT_KIND -> : c_none_argument_kind
 
 src/fluxCore/policy/vocabulary:
 	__actionVocabulary.py - 
@@ -718,6 +726,9 @@ src/fluxCore/policy/vocabulary:
 	__argumentKindVocabulary.py - 
 		CLASSE(S):
 			ArgumentKindVocabulary -> : argumentkindvocabulary
+	__intentVocabulary.py - 
+		CLASSE(S):
+			IntentVocabulary -> : intentvocabulary
 	__vocabulary.py - 
 		CLASSE(S):
 			Vocabulary -> : vocabulary
@@ -729,6 +740,9 @@ src/fluxCore/policy/vocabulary/labels:
 	__argumentKindLabel.py - 
 		CLASSE(S):
 			ArgumentKindLabel -> : argumentkindlabel
+	__intentLabel.py - 
+		CLASSE(S):
+			IntentLabel -> : intentlabel
 	__label.py - 
 		CLASSE(S):
 			Label -> : label
@@ -1494,46 +1508,43 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-8a5f722:
-	refactor(policy): streamline buffer registration and improve forward method clarity
-		src/fluxCore/policy/__dcPolicy.py
+a3a0acf:
+	feat: Update DCPolicy to version 2.0 with enhanced context handling
 
-41f9edf:
-	feat(policy): add frameRate property to PolicyOptions and update DCPolicy to use it
+4cd8de4:
+	refactor(policy): rename frameRate to frameStride for clarity and update related logic
 		src/fluxCore/policy/__dcPolicy.py
 		src/fluxCore/policy/__policyOptions.py
 
-dc0daa6:
-	feat(policy): add C_FRAME_SIZE constant and refactor DCPolicy initialization
-		src/fluxCore/policy/__dcPolicy.py
-		src/fluxCore/utilities/__torch.py
+f8d1a2e:
+	docs(policy): implementation of full context pipeline (phases 1â€“4 done)
+		.docs/fluxCore/policy/implementation.md
 
-ec54169:
-	test(smoke): options roundtrip builds DCPolicy
+64c63b7:
+	docs(policy): mark full-context FRs implemented
+		.docs/fluxCore/policy/requirement.md
+
+cd1c169:
+	docs(policy): document DCPolicy v2 full context API
+		.docs/fluxCore/policy/policy.md
+
+903e8a7:
+	test(smoke): options roundtrip includes intents; DCPolicy predict
 		.test/smoke/policy/test_policy_options_roundtrip.py
 
-a629785:
-	test(smoke): DCPolicy persist VERSION+MODELSTATE
+982c2ff:
+	test(smoke): DCPolicy v2 persist with intents in options
 		.test/smoke/policy/test_policy_persist.py
 
-8d05564:
-	test(smoke): DCPolicy forward/predict on raw images
+7bd22fe:
+	test(smoke): full context forward/predict for DCPolicy v2
 		.test/smoke/policy/test_policy_forward_predict.py
 
-e9e6969:
-	feat(policy): DCPolicy zero-filled carousel, durationSec/stackSize stride on forward
-		src/fluxCore/policy/__dcPolicy.py
+9757a5f:
+	feat(policy): export pad constants and acceptInterval helpers
 
-4d29d18:
-	feat(policy): PolicyOptions.validate() for required non-empty vocabularies
-		src/fluxCore/policy/__policyOptions.py
-
-19ad582:
-	chore(test): remove StreamingPolicy smoke tests; DCPolicy is source of truth
-		.test/smoke/policy/test_streaming_policy.py
-
-2cc94fd:
-	fix(torch): update default feature dimension to 576
-		src/fluxCore/utilities/__torch.py
+7d6b43c:
+	test(fixtures): buildOptions includes intents vocabulary
+		.test/fixtures/policy/builders.py
 
 ```
