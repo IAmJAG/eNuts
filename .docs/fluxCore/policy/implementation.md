@@ -15,7 +15,19 @@ forward(image, intent, action, parameters, timestamp?)
   → predict: cosine vs cached tables → (actionKey, argumentDict)
 ```
 
-## 2. Modules
+## 2. Typed options & vocabulary
+
+| Options field | Type | Labels |
+|---------------|------|--------|
+| `actions` | `ActionVocabulary` | `ActionLabel` |
+| `argumentKinds` | `ArgumentKindVocabulary` | `ArgumentKindLabel` |
+| `intents` | `IntentVocabulary` | `IntentLabel` |
+
+Base class: `Vocabulary[TLabel]`. Subclasses live under `src/fluxCore/policy/vocabulary/`.
+
+`PolicyOptions.validate()` requires all three non-empty.
+
+## 3. Modules
 
 | Module | Role |
 |--------|------|
@@ -24,47 +36,30 @@ forward(image, intent, action, parameters, timestamp?)
 | `_slotMerge` | Linear(576 + actionDim + 8 → featureDim) |
 | `_contextMerge` | Linear(featureDim + intentDim → featureDim) |
 | `_actionHead` / `_argumentKindHead` / `_spatialHead` | decision |
-| `_actionEmbeddings` / `_argKindEmbeddings` / `_intentEmbeddings` | cached buffers |
+| `_actionEmbeddings` / `_argKindEmbeddings` / `_intentEmbeddings` | cached buffers from typed vocabs |
 
-## 3. Parameter encoding (`C_PARAM_DIM` = 8)
+## 4. Parameter encoding (`C_PARAM_DIM` = 8)
 
 | Indices | Content |
 |---------|---------|
-| 0–3 | spatial (x,y or left,top,width,height) |
+| 0–3 | spatial |
 | 4–5 | key/text hash folds |
 | 6–7 | argument-kind embed snippet |
 
-Empty / missing parameters → zeros.
-
-## 4. Pads
+## 5. Pads
 
 | Constant | Value |
 |----------|--------|
 | `C_NONE_ACTION` | `"NONE"` |
 | `C_NONE_ARGUMENT_KIND` | `"none"` |
 
-Include these labels in the action / argument-kind vocabularies.
-
-## 5. Phases
+## 6. Phases
 
 | Phase | Status |
 |-------|--------|
-| 0 Baseline image-only | superseded by v2 |
-| 1 Options + intents + pads | **Done** |
-| 2 Slot carousel + API | **Done** |
-| 3 Encode/fuse full context | **Done** |
-| 4 Tests + docs + CP_VERSION 2.0 | **Done** |
+| 1–4 Full context + tests | **Done** |
+| Typed intent/action/arg vocab | **Done** (user) |
 | 5 Training / richer temporal / key-text values | Deferred |
-
-## 6. Predict packing
-
-| kind | argument dict |
-|------|----------------|
-| coordinate | `{kind, x, y}` |
-| box | `{kind, left, top, width, height}` |
-| key | `{kind, code}` |
-| text | `{kind, value}` |
-| none | `{kind: none}` |
 
 ## 7. Checkpoint
 
@@ -72,4 +67,4 @@ Include these labels in the action / argument-kind vocabularies.
 { "VERSION": "2.0", "MODELSTATE": state_dict() }
 ```
 
-Options JSON: actions, argumentKinds, intents, stackSize, durationSec, featureDimension, freezeBackbone.
+Options JSON serializes the three typed vocabularies plus stack/duration/feature settings.
