@@ -1,11 +1,13 @@
 ## Overview
 
-**Source of truth:** `DCPolicy` — `src/fluxCore/policy/__dcPolicy.py`
+**Source of truth:** `DCPolicy` — `src/fluxCore/policy/__dcPolicy.py` (`CP_VERSION` 2.0)
 
 Canonical docs:
 
-- `.docs/fluxCore/policy/policy.md` — overview + current API
-- `.docs/fluxCore/policy/requirement.md` — FR current + target context
-- `.docs/fluxCore/policy/implementation.md` — **phased implementation plan**
+- `.docs/fluxCore/policy/policy.md`
+- `.docs/fluxCore/policy/requirement.md`
+- `.docs/fluxCore/policy/implementation.md`
 
-**Target context:** carousel of `(visual, action, parameters)` with **intent** as blanket over the stack.
+**Context:** carousel of `(visual, action, parameters)` + **intent** blanket.
+
+**Typed vocabs:** `ActionVocabulary`, `ArgumentKindVocabulary`, `IntentVocabulary` with matching labels (`ActionLabel`, `ArgumentKindLabel`, `IntentLabel`).
