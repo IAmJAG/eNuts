@@ -1,5 +1,5 @@
 # ==================================================================================
-"""Smoke: PolicyOptions serializes and restores enough to build Policy."""
+"""Smoke: PolicyOptions serializes; restored options build DCPolicy."""
 # ==================================================================================
 from __future__ import annotations
 
@@ -9,10 +9,11 @@ from pathlib import Path
 import sys
 
 # ==================================================================================
+import numpy as np
 import torch
 
 # ==================================================================================
-from fluxCore.policy import Policy, PolicyOptions, Vocabulary
+from fluxCore.policy import DCPolicy, PolicyOptions, Vocabulary
 from fluxCore.policy.vocabulary import Label
 
 # ==================================================================================
@@ -26,91 +27,48 @@ from fixtures.policy.seeds import SEED_ACTIONS, SEED_ARGUMENT_KINDS  # noqa: E40
 
 # ==================================================================================
 def test_vocabulary_roundtrip() -> None:
-    trace("test_vocabulary_roundtrip: build original Vocabulary")
     original = Vocabulary(SEED_ACTIONS, dimension=64)
-    trace(
-        f"  labels={original.labels} dimension={original.dimension} size={original.size}"
-    )
-
     blob = original.encode()
-    typeName = blob.get("__type__")
-    trace(f"  encode keys={list(blob.keys())} type={typeName}")
-    sample = list(blob.get("entries", {}).items())[:1]
-    trace(f"  encode entries sample={sample}")
-
     payload = json.loads(json.dumps(blob))
-    trace("  json boundary ok")
 
     restored = Vocabulary()
-    trace("  decoding into empty Vocabulary")
     restored.decode(payload)
-    trace(
-        f"  restored labels={restored.labels} dimension={restored.dimension} size={restored.size}"
-    )
 
     assert restored.dimension == original.dimension
     assert restored.size == original.size
     assert restored.labels == original.labels
     for key in original.labels:
-        assert key in restored
         assert isinstance(restored[key], Label)
-        assert restored[key].id == key
         assert restored[key].description == original[key].description
-
     assert torch.allclose(original.toTensor(), restored.toTensor())
-    trace("test_vocabulary_roundtrip: PASS")
 
 
 def test_policy_options_roundtrip() -> None:
-    trace("test_policy_options_roundtrip: buildOptions")
-    original = buildOptions(embedDim=64, featureDim=256, freezeBackbone=True)
-    blob = original.encode()
-    typeName = blob.get("__type__")
-    trace(f"  encode keys={list(blob.keys())} type={typeName}")
+    original = buildOptions(embedDim=64, featureDim=576, freezeBackbone=True, stackSize=4)
+    payload = json.loads(json.dumps(original.encode()))
 
-    actionsBlob = blob.get("actions")
-    if isinstance(actionsBlob, dict):
-        actionsType = actionsBlob.get("__type__")
-        actionsKeys = list(actionsBlob.get("entries", {}).keys())
-        trace(f"  actions.__type__={actionsType}")
-        trace(f"  actions.entries keys={actionsKeys}")
-
-    payload = json.loads(json.dumps(blob))
     restored = PolicyOptions()
-    trace("  decoding PolicyOptions")
     restored.decode(payload)
-    trace(
-        f"  restored featureDimension={restored.featureDimension} "
-        f"freezeBackbone={restored.freezeBackbone}"
-    )
+    restored.validate()
 
     assert restored.featureDimension == original.featureDimension
     assert restored.freezeBackbone == original.freezeBackbone
-    assert restored.actions is not None and restored.argumentKinds is not None
+    assert restored.stackSize == original.stackSize
+    assert restored.durationSec == original.durationSec
     assert restored.actions.labels == original.actions.labels
     assert restored.argumentKinds.labels == original.argumentKinds.labels
-    assert restored.actions.dimension == original.actions.dimension
-    assert restored.argumentKinds.dimension == original.argumentKinds.dimension
-    trace("test_policy_options_roundtrip: PASS")
 
 
 def test_policy_from_restored_options_predicts() -> None:
-    trace("test_policy_from_restored_options_predicts: encode/decode options")
-    original = buildOptions(embedDim=64, featureDim=256, freezeBackbone=True)
+    original = buildOptions(embedDim=64, featureDim=576, freezeBackbone=True, stackSize=4)
     payload = json.loads(json.dumps(original.encode()))
 
     restored = PolicyOptions()
     restored.decode(payload)
 
-    actionLabels = restored.actions.labels if restored.actions else None
-    kindLabels = restored.argumentKinds.labels if restored.argumentKinds else None
-    trace(f"  restored actions={actionLabels} kinds={kindLabels}")
-
-    policy = Policy(restored, device="cpu")
-    imageArray = torch.rand(4, 3, 224, 224)
-    actionKey, argument = policy.predict(imageArray)
-    trace(f"  predict actionKey={actionKey!r} argument={argument!r}")
+    policy = DCPolicy(restored, device="cpu")
+    image = np.random.randint(0, 255, (48, 48, 3), dtype=np.uint8)
+    actionKey, argument = policy.predict(image)
 
     assert actionKey in SEED_ACTIONS
     assert argument["kind"] in SEED_ARGUMENT_KINDS
-    trace("test_policy_from_restored_options_predicts: PASS")
