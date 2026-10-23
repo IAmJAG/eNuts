@@ -1,81 +1,89 @@
 ## Overview
 
-**Source of truth:** `src/fluxCore/policy/__dcPolicy.py` → **`DCPolicy`**
+**Source of truth:** `src/fluxCore/policy/__dcPolicy.py` → **`DCPolicy`** (`CP_VERSION` **2.0**)
 
-Discrete–continuous policy for UI/device automation.
-
-### Context model (target)
+### Context model
 
 ```text
 intent                          ← blanket over the whole stack
   carousel[t] = (visual_t, action_t, parameters_t)
 ```
 
-At each visual, the **action taken** and its **parameters** are aligned with that frame. Intent encloses the trajectory. The model always sees the full joint context (pads for missing action/params, not omitted channels).
+At each visual, the **action taken** and its **parameters** are aligned with that frame. Intent encloses the trajectory. Missing action/params use pads (`NONE` / empty), not omitted channels.
 
 ```text
 src/fluxCore/policy/
   __dcPolicy.py          DCPolicy
-  __policyOptions.py     PolicyOptions
-  vocabulary/            Vocabulary, ActionVocabulary, ArgumentKindVocabulary, …
-  vocabulary/labels/     Label, ActionLabel, ArgumentKindLabel, …
+  __policyOptions.py     PolicyOptions (+ pad constants)
+  vocabulary/            Vocabulary, ActionVocabulary, ArgumentKindVocabulary
+  vocabulary/labels/     Label, …
 ```
 
 | Discrete (vocabulary) | Continuous / open |
 |----------------------|-------------------|
-| actions | spatial x,y / box |
-| argument kinds | key code, text value |
-| intents (planned) | — |
+| actions (incl. `NONE`) | spatial x,y / box |
+| argument kinds (incl. `none`) | key code, text value |
+| intents | — |
 
 ---
 
-## Current vs target
+## Pipeline
 
-| | **Current (shipped)** | **Target (phased)** |
-|--|----------------------|---------------------|
-| Input | raw image (+ optional timestamp) | image + intent + action + parameters (+ timestamp) |
-| Carousel | visuals only (zero-filled) | slots `(visual, action, params)` |
-| Fusion | backbone mean over frames | per-slot merge → temporal pool → intent merge |
-| Output | action + argument dict | same |
+```text
+image + action + parameters  → slot → carousel[T]
+intent                       → embed
+slot stack → backbone(visual) + actionEmb + paramVec
+           → slotMerge → mean over T → contextMerge(intent) → h
+h → action / arg-kind / spatial heads → cosine / pack
+```
 
-See `requirement.md` and `implementation.md` for phases and code hit list.
+Accept interval: `durationSec / stackSize` (`acceptIntervalSec`). Optional `timestamp` gates whether a new slot is pushed.
 
 ---
 
-## DCPolicy (current behavior)
-
-| Concern | Behavior |
-|---------|----------|
-| Input | Raw image (`PIL` / `ndarray` / `Tensor`) |
-| Transform | Resize 224, ToTensor, ImageNet Normalize |
-| Carousel | `stackSize` slots, init zeros; accept interval = `durationSec / stackSize` |
-| Backbone | MobileNet V3 Small → 576-d features |
-| Heads | action embed, argument-kind embed, spatial `[4]` |
-| Scoring | cosine vs **cached** embedding buffers |
-| Device | argument, default cuda (fallback cpu) |
+## API
 
 ```python
-from fluxCore.policy import DCPolicy, PolicyOptions, Vocabulary
+from fluxCore.policy import (
+    DCPolicy, PolicyOptions, Vocabulary,
+    C_NONE_ACTION, C_NONE_ARGUMENT_KIND,
+)
 
 options = PolicyOptions(
-    actions=Vocabulary({"down": "finger down", "up": "finger up"}),
-    argumentKinds=Vocabulary({
-        "coordinate": "point", "box": "rect", "key": "key", "text": "text",
+    actions=Vocabulary({
+        "NONE": "pad", "down": "down", "up": "up", "move": "move", "inject": "inject",
     }),
+    argumentKinds=Vocabulary({
+        "none": "pad", "coordinate": "pt", "box": "box", "key": "key", "text": "text",
+    }),
+    intents=Vocabulary({"idle": "idle", "login": "login"}),
     stackSize=16,
     durationSec=2.0,
 )
+options.validate()
 policy = DCPolicy(options, device="cuda")
-out = policy.forward(image, timestamp=0.0)
-action, argument = policy.predict(image, timestamp=0.0)
+
+out = policy.forward(
+    image,
+    intent="login",
+    action="down",
+    parameters={"kind": "coordinate", "x": 0.5, "y": 0.4},
+    timestamp=0.0,
+)
+action, argument = policy.predict(
+    image, intent="login", action=C_NONE_ACTION, parameters=None, timestamp=0.25,
+)
+
+policy.save("policy.pt")
+policy = DCPolicy.load("policy.pt", options=options, device="cuda")
 ```
 
 ### Persistence
 
 | Artifact | Contents |
 |----------|----------|
-| Options JSON | `PolicyOptions.encode()` |
-| Weight file | `{ VERSION, MODELSTATE }` only |
+| Options JSON | vocabs (actions, argumentKinds, intents), stack, duration, … |
+| Weight file | `{ VERSION: "2.0", MODELSTATE }` |
 
 Carousel is runtime-only.
 
@@ -83,11 +91,11 @@ Carousel is runtime-only.
 
 ## PolicyOptions
 
-- `actions`, `argumentKinds` — required via `validate()`
+- `actions`, `argumentKinds`, `intents` — required by `validate()`
 - `featureDimension` (default 576), `freezeBackbone`
 - `stackSize` ∈ {4, 8, 16, 32, 64}, `durationSec` > 0
-- `frameRate` property = `durationSec / stackSize` (accept **interval** in seconds)
-- Planned: `intents` vocabulary
+- `acceptIntervalSec` = `durationSec / stackSize` (`frameRate` is a legacy alias for the same interval)
+- Pads: `C_NONE_ACTION` (`"NONE"`), `C_NONE_ARGUMENT_KIND` (`"none"`)
 
 ---
 
