@@ -16,7 +16,7 @@ from torch.nn.functional import normalize as tfNormalize
 
 # ==================================================================================
 G_DEFAULT_EMBED_DIM: int = 128
-G_DEFAULT_FEATURE_DIM: int = 512
+G_DEFAULT_FEATURE_DIM: int = 576
 
 G_NORMALIZE_MEAN: List[float] = [0.485, 0.456, 0.406]
 G_NORMALIZE_STD: List[float]= [0.229, 0.224, 0.225]
