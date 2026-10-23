@@ -95,8 +95,8 @@ class DCPolicy(nn.Module, iPolicy):
         self._freezeBB: bool = options.freezeBackbone
         self._stackSize: int = int(options.stackSize)
         self._durationSec: float = float(options.durationSec)
-        self._minAcceptInterval: float = self._durationSec / float(self._stackSize)
         self._lastAcceptTime: Optional[float] = None
+        self._frameRate: float = options.frameRate
 
         self._actionVocabulary: iVocabulary = options.actions
         self._argumentKindVocabulary: iVocabulary = options.argumentKinds
@@ -105,18 +105,14 @@ class DCPolicy(nn.Module, iPolicy):
 
         self.register_buffer(
             "_actionEmbeddings",
-            options.actions.toTensor()
-            .detach()
-            .to(device=device, dtype=torch.float32)
-            .clone(),
+            options.actions.toTensor().detach()
+            .to(device=device, dtype=torch.float32).clone(),
         )
 
         self.register_buffer(
             "_argKindEmbeddings",
-            options.argumentKinds.toTensor()
-            .detach()
-            .to(device=device, dtype=torch.float32)
-            .clone(),
+            options.argumentKinds.toTensor().detach()
+            .to(device=device, dtype=torch.float32).clone(),
         )
 
         # Fixed-length carousel: start filled with zero tensors
@@ -134,7 +130,7 @@ class DCPolicy(nn.Module, iPolicy):
     # ------------------------------------------------------------------
     def _shouldAccept(self, timestamp: float) -> bool:
         if self._lastAcceptTime is None: return True
-        return (float(timestamp) - self._lastAcceptTime) >= self._minAcceptInterval
+        return (float(timestamp) - self._lastAcceptTime) >= self._frameRate
 
     def _push(self, image: Image.Image | ndarray | Tensor) -> None:
         if not isinstance(image, Image.Image):
@@ -165,8 +161,7 @@ class DCPolicy(nn.Module, iPolicy):
 
             return Image.fromarray(arr)
 
-        if isinstance(image, Image.Image):
-            return image
+        if isinstance(image, Image.Image): return image
 
         raise TypeError(f"Unable to convert image of type {type(image)} to PIL Image")
 
@@ -174,9 +169,8 @@ class DCPolicy(nn.Module, iPolicy):
         self, image: Image.Image | ndarray | Tensor, timestamp: Optional[float] = None,
         *args, **kwargs,
     ) -> Dict[str, Tensor]:
-        """Ingest frame (stride-gated) and score heads on the current carousel."""
+        
         if timestamp is None:
-            # No clock → always accept (offline / tests)
             self._push(image)
 
         elif self._shouldAccept(float(timestamp)):

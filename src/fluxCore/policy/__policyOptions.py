@@ -20,12 +20,9 @@ C_DEFAULT_DURATION_SEC: float = 1.0
 # ==================================================================================
 class PolicyOptions(Serializable):
     def __init__(
-        self,
-        actions: Optional[Vocabulary] = None,
-        argumentKinds: Optional[Vocabulary] = None,
-        featureDim: int = G_DEFAULT_FEATURE_DIM,
-        freezeBackbone: bool = True,
-        stackSize: int = C_DEFAULT_STACK_SIZE,
+        self, actions: Optional[Vocabulary] = None,
+        argumentKinds: Optional[Vocabulary] = None, featureDim: int = G_DEFAULT_FEATURE_DIM,
+        freezeBackbone: bool = True, stackSize: int = C_DEFAULT_STACK_SIZE,
         durationSec: float = C_DEFAULT_DURATION_SEC,
     ) -> None:
         super().__init__()
@@ -42,24 +39,27 @@ class PolicyOptions(Serializable):
 
         self.Properties.extend(
             [
-                "actions",
-                "argumentKinds",
-                "featureDimension",
-                "freezeBackbone",
-                "stackSize",
-                "durationSec",
+                "actions", "argumentKinds", "featureDimension",
+                "freezeBackbone", "stackSize", "durationSec",
             ]
         )
 
+    @property
+    def frameRate(self) -> float: 
+        return self._durationSec / float(self._stackSize)
+    
     # ------------------------------------------------------------------
     def validate(self) -> None:
         """Require non-empty action and argument-kind vocabularies (call before DCPolicy)."""
         if self._actions is None:
             raise ValueError("PolicyOptions.actions vocabulary is required")
+        
         if self._argumentKinds is None:
             raise ValueError("PolicyOptions.argumentKinds vocabulary is required")
+        
         if self._actions.size < 1:
             raise ValueError("PolicyOptions.actions vocabulary must be non-empty")
+        
         if self._argumentKinds.size < 1:
             raise ValueError("PolicyOptions.argumentKinds vocabulary must be non-empty")
 
