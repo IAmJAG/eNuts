@@ -5,10 +5,12 @@ from __future__ import annotations
 
 # ==================================================================================
 from fluxCore.policy import (
+    ActionVocabulary,
+    ArgumentKindVocabulary,
     C_DEFAULT_DURATION_SEC,
     C_DEFAULT_STACK_SIZE,
+    IntentVocabulary,
     PolicyOptions,
-    Vocabulary,
 )
 from fluxCore.utilities import G_DEFAULT_EMBED_DIM, G_DEFAULT_FEATURE_DIM
 
@@ -26,9 +28,9 @@ def buildOptions(
     durationSec: float = C_DEFAULT_DURATION_SEC,
 ) -> PolicyOptions:
     return PolicyOptions(
-        actions=Vocabulary(SEED_ACTIONS, dimension=embedDim),
-        argumentKinds=Vocabulary(SEED_ARGUMENT_KINDS, dimension=embedDim),
-        intents=Vocabulary(SEED_INTENTS, dimension=embedDim),
+        actions=ActionVocabulary(SEED_ACTIONS, dimension=embedDim),
+        argumentKinds=ArgumentKindVocabulary(SEED_ARGUMENT_KINDS, dimension=embedDim),
+        intents=IntentVocabulary(SEED_INTENTS, dimension=embedDim),
         featureDim=featureDim,
         freezeBackbone=freezeBackbone,
         stackSize=stackSize,
