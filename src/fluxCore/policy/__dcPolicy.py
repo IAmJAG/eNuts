@@ -26,19 +26,26 @@ from ..types.interface.policy.vocabulary import iVocabulary
 from ..utilities import G_NORMALIZE_MEAN, G_NORMALIZE_STD, getTorchDevice
 from .__policyOptions import PolicyOptions
 
+# ==================================================================================
+C_FRAME_SIZE: int = 224
+
 
 # ==================================================================================
 class DCPolicy(nn.Module, iPolicy):
-    """
-    Descrete-Continuous Policy
-    """
+    """Discrete-Continuous Policy: raw image → transform + carousel → action/args."""
+
     CP_VERSION: str = "1.0"
+
     def __init__(
-        self, options: PolicyOptions,
-        device: Optional[Union[str, TorchDevice]] = "cuda", 
-        *args, **kwargs
+        self,
+        options: PolicyOptions,
+        device: Optional[Union[str, TorchDevice]] = "cuda",
+        *args,
+        **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
+
+        options.validate()
 
         weights: MobileNetV3 = models.mobilenet_v3_small(
             weights=MobileNet_V3_Small_Weights.DEFAULT
@@ -50,15 +57,14 @@ class DCPolicy(nn.Module, iPolicy):
             nn.Flatten(),
         )
 
-        transform = self.transform = transforms.Compose(
+        transform = transforms.Compose(
             [
-                transforms.Resize((224, 224)),
+                transforms.Resize((C_FRAME_SIZE, C_FRAME_SIZE)),
                 transforms.ToTensor(),
                 transforms.Normalize(
                     mean=G_NORMALIZE_MEAN,
                     std=G_NORMALIZE_STD,
                 ),
-                
             ]
         )
 
@@ -68,83 +74,90 @@ class DCPolicy(nn.Module, iPolicy):
 
         actionEmbeddingDimension = options.actions.dimension
         argKindEmbeddingDimension = options.argumentKinds.dimension
-
         featureDimension = options.featureDimension
-        
-        # region: HEADS
+
         self._actionHead = nn.Sequential(
             nn.Linear(featureDimension, featureDimension),
             nn.ReLU(inplace=True),
             nn.Linear(featureDimension, actionEmbeddingDimension),
         )
-
         self._argumentKindHead = nn.Sequential(
             nn.Linear(featureDimension, featureDimension),
             nn.ReLU(inplace=True),
             nn.Linear(featureDimension, argKindEmbeddingDimension),
         )
-
         self._spatialHead = nn.Sequential(
             nn.Linear(featureDimension, featureDimension),
             nn.ReLU(inplace=True),
             nn.Linear(featureDimension, 4),
             nn.Sigmoid(),
         )
-        # endregion
 
-        device = getTorchDevice(device)        
+        device = getTorchDevice(device)
 
         self._backbone = backbone
         self._transform = transform
         self._device: TorchDevice = device
         self._freezeBB: bool = options.freezeBackbone
+        self._stackSize: int = int(options.stackSize)
+        self._durationSec: float = float(options.durationSec)
+        self._minAcceptInterval: float = self._durationSec / float(self._stackSize)
+        self._lastAcceptTime: Optional[float] = None
 
         self._actionVocabulary: iVocabulary = options.actions
         self._argumentKindVocabulary: iVocabulary = options.argumentKinds
         self._actionLabels: tuple[str, ...] = tuple(options.actions.labels)
         self._argKindLabels: tuple[str, ...] = tuple(options.argumentKinds.labels)
 
-        self._actionEmbeddings: Tensor
-        self._argKindEmbeddings: Tensor
-
         self.register_buffer(
             "_actionEmbeddings",
             options.actions.toTensor()
             .detach()
-            .to(device=self._device, dtype=torch.float32)
+            .to(device=device, dtype=torch.float32)
             .clone(),
         )
-
         self.register_buffer(
             "_argKindEmbeddings",
             options.argumentKinds.toTensor()
             .detach()
-            .to(device=self._device, dtype=torch.float32)
+            .to(device=device, dtype=torch.float32)
             .clone(),
         )
 
-        self._imageCarousel: Deque[Tensor] = deque[Tensor](maxlen=options.stackSize)
+        # Fixed-length carousel: start filled with zero tensors
+        blank = torch.zeros(
+            3, C_FRAME_SIZE, C_FRAME_SIZE, dtype=torch.float32, device=device
+        )
+        self._imageCarousel: Deque[Tensor] = deque(
+            [blank.clone() for _ in range(self._stackSize)],
+            maxlen=self._stackSize,
+        )
 
         self.to(device=device)
 
-    def _push(self, image: Image.Image):
+    # ------------------------------------------------------------------
+    def _shouldAccept(self, timestamp: float) -> bool:
+        if self._lastAcceptTime is None:
+            return True
+        return (float(timestamp) - self._lastAcceptTime) >= self._minAcceptInterval
+
+    def _push(self, image: Image.Image | ndarray | Tensor) -> None:
         if not isinstance(image, Image.Image):
             image = self._toPil(image)
 
-        image: Tensor = self._transform(image)
-        image = image.to(device=self._device, dtype=torch.float32)
-        self._imageCarousel.append(image)
+        tensor: Tensor = self._transform(image)
+        tensor = tensor.to(device=self._device, dtype=torch.float32)
+        self._imageCarousel.append(tensor)
 
-    def _toPil(self, image):
+    def _toPil(self, image: Any) -> Image.Image:
         if isinstance(image, ndarray):
-            if image.dtype != np.uint8: 
+            if image.dtype != np.uint8:
                 image = np.clip(image, 0, 255).astype(np.uint8)
-
             return Image.fromarray(image)
-        
+
         if isinstance(image, Tensor):
             t = image.detach().cpu()
-            if t.ndim == 3 and t.shape[0] in (1, 3):  # CHW
+            if t.ndim == 3 and t.shape[0] in (1, 3):
                 t = t.permute(1, 2, 0)
             arr = t.numpy()
             if arr.max() <= 1.5:
@@ -155,45 +168,57 @@ class DCPolicy(nn.Module, iPolicy):
 
         if isinstance(image, Image.Image):
             return image
-        
+
         raise TypeError(f"Unable to convert image of type {type(image)} to PIL Image")
 
-    def forward(self, image: Image.Image, *args, **kwargs) -> dict[str, Tensor]:
-        self._push(image)
+    def forward(
+        self,
+        image: Image.Image | ndarray | Tensor,
+        *args,
+        timestamp: Optional[float] = None,
+        **kwargs,
+    ) -> dict[str, Tensor]:
+        """Ingest frame (stride-gated) and score heads on the current carousel."""
+        if timestamp is None:
+            # No clock → always accept (offline / tests)
+            self._push(image)
+        elif self._shouldAccept(float(timestamp)):
+            self._push(image)
+            self._lastAcceptTime = float(timestamp)
 
-        carousel: Deque[Tensor] = self._imageCarousel
-        actionHead: nn.Module = self._actionHead
-        argKindHead: nn.Module = self._argumentKindHead
-        spatialHead: nn.Module = self._spatialHead
-
-        finalFeatures = self._fuse(carousel)
+        finalFeatures = self._fuse(self._imageCarousel)
         return {
-            "ACTIONS": actionHead(finalFeatures),
-            "ARGKINDS": argKindHead(finalFeatures),
-            "SPATIAL": spatialHead(finalFeatures),
+            "ACTIONS": self._actionHead(finalFeatures),
+            "ARGKINDS": self._argumentKindHead(finalFeatures),
+            "SPATIAL": self._spatialHead(finalFeatures),
         }
 
     @torch.no_grad()
-    def predict(self, image: Image.Image, *args, **kwargs) -> tuple[str, Dict[str, Any]]:
+    def predict(
+        self,
+        image: Image.Image | ndarray | Tensor,
+        *args,
+        timestamp: Optional[float] = None,
+        **kwargs,
+    ) -> tuple[str, Dict[str, Any]]:
         wasTraining = self.training
         try:
             self.eval()
-            out = self.forward(image)
+            out = self.forward(image, timestamp=timestamp)
 
             actionScores = self._cosine(out["ACTIONS"], self._actionEmbeddings)
             actionIndex = int(torch.argmax(actionScores, dim=-1).reshape(-1)[0].item())
             actionKey = self._actionLabels[actionIndex]
 
             argKindScores = self._cosine(out["ARGKINDS"], self._argKindEmbeddings)
-            argKindIndex = int(torch.argmax(argKindScores, dim=-1).reshape(-1)[0].item())
+            argKindIndex = int(
+                torch.argmax(argKindScores, dim=-1).reshape(-1)[0].item()
+            )
             argKind = self._argKindLabels[argKindIndex]
 
             spatial = out["SPATIAL"].reshape(-1, 4)[0].detach().cpu()
             argument = self._buildArgument(argKind, spatial)
             return actionKey, argument
-
-        except Exception as e:
-            raise e
 
         finally:
             if wasTraining:
@@ -203,8 +228,6 @@ class DCPolicy(nn.Module, iPolicy):
     def _cosine(embedding: Tensor, table: Tensor) -> Tensor:
         if table.numel() == 0:
             return embedding.new_zeros(embedding.size(0), 0)
-        
-        # Always score on the embedding's device (policy _device)
         table = table.to(device=embedding.device, dtype=embedding.dtype)
         emb = F.normalize(embedding, p=2, dim=-1)
         reg = F.normalize(table, p=2, dim=-1)
@@ -214,13 +237,12 @@ class DCPolicy(nn.Module, iPolicy):
         super().train(mode)
         if self._freezeBB:
             self._backbone.eval()
-
         return self
 
     def _fuse(self, frameDeque: Deque[Tensor]) -> Tensor:
         frameSequence = torch.stack(list(frameDeque), dim=0).unsqueeze(0)
         b, t, c, h, w = frameSequence.shape
-        flattenedSequence = frameSequence.view(b * t, c, h, w)        
+        flattenedSequence = frameSequence.view(b * t, c, h, w)
         visualFeatures = self._backbone(flattenedSequence)
         visualSequence = visualFeatures.view(b, t, -1)
         return visualSequence.mean(dim=1)
@@ -232,7 +254,6 @@ class DCPolicy(nn.Module, iPolicy):
                 "x": float(spatial[0]),
                 "y": float(spatial[1]),
             }
-        
         if kind == "box":
             return {
                 "kind": "box",
@@ -241,15 +262,12 @@ class DCPolicy(nn.Module, iPolicy):
                 "width": float(spatial[2]),
                 "height": float(spatial[3]),
             }
-        
         if kind == "key":
             return {"kind": "key", "code": ""}
-        
         if kind == "text":
             return {"kind": "text", "value": ""}
-        
         return {"kind": kind}
-    
+
     def save(self, path: str | Path) -> None:
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -258,20 +276,21 @@ class DCPolicy(nn.Module, iPolicy):
             "MODELSTATE": self.state_dict(),
         }
         torch.save(checkpoint, path)
-    
+
     @classmethod
     def load(
-        cls, path: str | Path, options: PolicyOptions,
+        cls,
+        path: str | Path,
+        options: PolicyOptions,
         device: Optional[Union[str, TorchDevice]] = "cuda",
-    ) -> iPolicy:        
+    ) -> iPolicy:
         model = torch.load(path, map_location="cpu", weights_only=False)
         if model.get("VERSION", None) != cls.CP_VERSION:
             raise ValueError(
                 f"Unsupported policy checkpoint version: {model.get('VERSION')!r}"
             )
-
         if "MODELSTATE" not in model:
-            raise ValueError("Policy checkpoint missing modelState")
+            raise ValueError("Policy checkpoint missing MODELSTATE")
 
         policy = cls(options, device=device)
         policy.load_state_dict(model["MODELSTATE"], strict=True)
