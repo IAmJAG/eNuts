@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-21 07:56:21 UTC*
+*Auto-generated on: 2026-10-23 06:24:10 UTC*
 
 ## Current Directory Structure
 
@@ -16,8 +16,28 @@ eNuts/
 │   │   └── NamingConventions.md
 │   └── templates/
 │       └── documentTemplates.md
+├── .pytest_cache/
+│   ├── .gitignore
+│   ├── CACHEDIR.TAG
+│   ├── README.md
+│   └── v/
+│       └── cache/
+│           ├── lastfailed
+│           └── nodeids
 ├── .scripts/
 │   └── updateInventory.py
+├── .test/
+│   ├── README.md
+│   ├── conftest.py
+│   ├── fixtures/
+│   │   └── policy/
+│   │       ├── builders.py
+│   │       └── seeds.py
+│   └── smoke/
+│       └── policy/
+│           ├── test_policy_forward_predict.py
+│           ├── test_policy_options_roundtrip.py
+│           └── test_policy_persist.py
 ├── README.md
 ├── assets/
 │   ├── gameInfo.json
@@ -140,16 +160,16 @@ eNuts/
 │   │   │   └── scrcpy/
 │   │   │       └── __SCRCPYEmitter.py
 │   │   ├── policy/
-│   │   │   ├── __policy.py
+│   │   │   ├── __dcPolicy.py
 │   │   │   ├── __policyOptions.py
 │   │   │   └── vocabulary/
 │   │   │       ├── __actionVocabulary.py
 │   │   │       ├── __argumentKindVocabulary.py
-│   │   │       ├── __label.py
 │   │   │       ├── __vocabulary.py
 │   │   │       └── labels/
 │   │   │           ├── __actionLabel.py
-│   │   │           └── __argumentKindLabel.py
+│   │   │           ├── __argumentKindLabel.py
+│   │   │           └── __label.py
 │   │   ├── types/
 │   │   │   ├── .fff
 │   │   │   ├── geometry/
@@ -397,6 +417,46 @@ eNuts/
 			C_EXCLUDED_FILES -> : c_excluded_files
 			C_EXCLUDED_VARIABLES -> : c_excluded_variables
 
+.test:
+	conftest.py - 
+		CONSTANTS(S)/GLOBAL(S)
+			_REPO_ROOT -> : _repo_root
+			_SRC -> : _src
+
+.test/fixtures/policy:
+	builders.py - 
+		FUNCTION(S):
+			buildOptions -> : buildoptions
+	seeds.py - 
+		CONSTANTS(S)/GLOBAL(S)
+			SEED_ACTIONS -> : seed_actions
+			SEED_ARGUMENT_KINDS -> : seed_argument_kinds
+
+.test/smoke/policy:
+	test_policy_forward_predict.py - 
+		FUNCTION(S):
+			_buildPolicy -> : _buildpolicy
+			test_carousel_initialized_to_stack_size -> : test_carousel_initialized_to_stack_size
+			test_forward_shapes_raw_image -> : test_forward_shapes_raw_image
+			test_predict_contract -> : test_predict_contract
+			test_stride_skips_push_when_too_soon -> : test_stride_skips_push_when_too_soon
+			test_missing_vocabularies_raise_via_options -> : test_missing_vocabularies_raise_via_options
+		CONSTANTS(S)/GLOBAL(S)
+			_TEST_ROOT -> : _test_root
+	test_policy_options_roundtrip.py - 
+		FUNCTION(S):
+			test_vocabulary_roundtrip -> : test_vocabulary_roundtrip
+			test_policy_options_roundtrip -> : test_policy_options_roundtrip
+			test_policy_from_restored_options_predicts -> : test_policy_from_restored_options_predicts
+		CONSTANTS(S)/GLOBAL(S)
+			_TEST_ROOT -> : _test_root
+	test_policy_persist.py - 
+		FUNCTION(S):
+			test_save_load_weights_with_separate_options -> : test_save_load_weights_with_separate_options
+			test_load_rejects_bad_version -> : test_load_rejects_bad_version
+		CONSTANTS(S)/GLOBAL(S)
+			_TEST_ROOT -> : _test_root
+
 src:
 	__monkeyPatch.py - 
 	main.py - 
@@ -640,16 +700,16 @@ src/fluxCore/emitters/scrcpy:
 			BITRATE -> : bitrate
 
 src/fluxCore/policy:
-	__policy.py - 
+	__dcPolicy.py - 
 		CLASSE(S):
-			Policy -> : policy
+			DCPolicy -> : dcpolicy
 	__policyOptions.py - 
 		CLASSE(S):
 			PolicyOptions -> : policyoptions
 		CONSTANTS(S)/GLOBAL(S)
-			C_SEED_ACTIONS -> : c_seed_actions
-			C_SEED_ARGUMENT_KINDS -> : c_seed_argument_kinds
-			C_DEFAULT_FEATURE_DIM -> : c_default_feature_dim
+			C_STACK_SIZES -> : c_stack_sizes
+			C_DEFAULT_STACK_SIZE -> : c_default_stack_size
+			C_DEFAULT_DURATION_SEC -> : c_default_duration_sec
 
 src/fluxCore/policy/vocabulary:
 	__actionVocabulary.py - 
@@ -658,9 +718,6 @@ src/fluxCore/policy/vocabulary:
 	__argumentKindVocabulary.py - 
 		CLASSE(S):
 			ArgumentKindVocabulary -> : argumentkindvocabulary
-	__label.py - 
-		CLASSE(S):
-			Label -> : label
 	__vocabulary.py - 
 		CLASSE(S):
 			Vocabulary -> : vocabulary
@@ -672,6 +729,9 @@ src/fluxCore/policy/vocabulary/labels:
 	__argumentKindLabel.py - 
 		CLASSE(S):
 			ArgumentKindLabel -> : argumentkindlabel
+	__label.py - 
+		CLASSE(S):
+			Label -> : label
 
 src/fluxCore/types/geometry:
 	__circle.py - 
@@ -797,6 +857,9 @@ src/fluxCore/utilities:
 		CONSTANTS(S)/GLOBAL(S)
 			G_DEFAULT_EMBED_DIM -> : g_default_embed_dim
 			G_DEFAULT_FEATURE_DIM -> : g_default_feature_dim
+			G_NORMALIZE_MEAN -> : g_normalize_mean
+			G_NORMALIZE_STD -> : g_normalize_std
+			C_FRAME_SIZE -> : c_frame_size
 
 src/fluxCore/utilities/scrcpy:
 	__scrcpy.py - 
@@ -939,6 +1002,7 @@ src/jAGFx/serializer:
 			Serializable -> : serializable
 	__utilities.py - 
 		FUNCTION(S):
+			_isSerializableType -> : _isserializabletype
 			_decodeEnum -> : _decodeenum
 			_decodeSerializeable -> : _decodeserializeable
 			_decodeFunction -> : _decodefunction
@@ -1430,56 +1494,46 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-242570b:
-	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
+8a5f722:
+	refactor(policy): streamline buffer registration and improve forward method clarity
+		src/fluxCore/policy/__dcPolicy.py
 
-5c55622:
-	refactor(vocabulary): set default value for vocab parameter and enhance entries setter
-		src/fluxCore/policy/vocabulary/__vocabulary.py
-
-c44eb90:
-	docs(policy): clarify iVocabulary.dimension is embed width; add size
-		src/fluxCore/types/interface/policy/vocabulary/__vocabulary.py
-
-b7f2237:
-	fix(policy): embedDim heads, labels[index] lookup, require vocabularies
-		src/fluxCore/policy/__policy.py
-
-42904fb:
-	fix(policy): Vocabulary mapping API and size; dimension is embed width
-		src/fluxCore/policy/vocabulary/__vocabulary.py
-
-1501cf9:
-	refactor(policy): clean up unused constants and improve property naming
-		src/fluxCore/policy/__policy.py
+41f9edf:
+	feat(policy): add frameRate property to PolicyOptions and update DCPolicy to use it
+		src/fluxCore/policy/__dcPolicy.py
 		src/fluxCore/policy/__policyOptions.py
-		src/fluxCore/policy/vocabulary/__vocabulary.py
 
-f60834c:
-	docs(inventory): update auto-generated timestamp and summarize recent changes
-		.docs/inventory.md
-
-2ec4c21:
-	refactor(policy): enhance Policy and PolicyOptions for improved vocabulary handling
-		src/fluxCore/policy/__policy.py
-		src/fluxCore/policy/__policyOptions.py
-		src/fluxCore/policy/__vocabulary.py
-		src/fluxCore/policy/vocabulary/__actionVocabulary.py
-		src/fluxCore/policy/vocabulary/__argumentKindVocabulary.py
-		src/fluxCore/policy/vocabulary/__label.py
-		src/fluxCore/policy/vocabulary/__vocabulary.py
-		src/fluxCore/policy/vocabulary/labels/__actionLabel.py
-		src/fluxCore/policy/vocabulary/labels/__argumentKindLabel.py
-		src/fluxCore/types/interface/policy/vocabulary/__label.py
-		src/fluxCore/types/interface/policy/vocabulary/__vocabulary.py
+dc0daa6:
+	feat(policy): add C_FRAME_SIZE constant and refactor DCPolicy initialization
+		src/fluxCore/policy/__dcPolicy.py
 		src/fluxCore/utilities/__torch.py
 
-868bd9c:
-	docs(policy): document Label/Vocabulary package as source of truth
-		.docs/fluxCore/policy/policy.md
+ec54169:
+	test(smoke): options roundtrip builds DCPolicy
+		.test/smoke/policy/test_policy_options_roundtrip.py
 
-d1819f3:
-	refactor(policy): PolicyOptions uses vocabulary.Vocabulary only
+a629785:
+	test(smoke): DCPolicy persist VERSION+MODELSTATE
+		.test/smoke/policy/test_policy_persist.py
+
+8d05564:
+	test(smoke): DCPolicy forward/predict on raw images
+		.test/smoke/policy/test_policy_forward_predict.py
+
+e9e6969:
+	feat(policy): DCPolicy zero-filled carousel, durationSec/stackSize stride on forward
+		src/fluxCore/policy/__dcPolicy.py
+
+4d29d18:
+	feat(policy): PolicyOptions.validate() for required non-empty vocabularies
 		src/fluxCore/policy/__policyOptions.py
+
+19ad582:
+	chore(test): remove StreamingPolicy smoke tests; DCPolicy is source of truth
+		.test/smoke/policy/test_streaming_policy.py
+
+2cc94fd:
+	fix(torch): update default feature dimension to 576
+		src/fluxCore/utilities/__torch.py
 
 ```

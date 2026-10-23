@@ -186,7 +186,7 @@ class DCPolicy(nn.Module, iPolicy):
     @torch.no_grad()
     def predict(
         self, image: Image.Image | ndarray | Tensor, timestamp: Optional[float] = None,
-        *args, **kwargs,
+        *args, **kwargs
     ) -> tuple[str, Dict[str, Any]]:
 
         wasTraining = self.training

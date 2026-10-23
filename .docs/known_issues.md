@@ -50,3 +50,7 @@
 
 * **Notes for Phase 5+:** `SCRCPYEmitter` raises `ON_FRAME` with `iFrame`; UI should marshal frames to the Qt thread and push into `jAGQt.widgets.Image` (`image` accepts `QPixmap` / `QImage` / path / Tensor). Open until device page content is wired.
 * **Status:** Open (design only).
+
+
+# Descrete-Continues Policy 
+* ** TODO: GPU Tensor path - path for purely originated from GPU
