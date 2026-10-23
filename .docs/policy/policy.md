@@ -1,30 +1,20 @@
-## Overview & Design Context
+## Overview
 
-Minimal policy for eNuts.
+**Source of truth:** `DCPolicy` — `src/fluxCore/policy/__dcPolicy.py`
 
-**Input:** one image (`ndarray` or `Tensor`)  
-**Output:** next discrete action key (`down` | `up` | `move` | `inject`)
+Canonical documentation (mirrors source tree):
 
-All advanced features (intent, history, continuous arguments, temporal stack, etc.) are deferred. See `requirement.md`.
+- `.docs/fluxCore/policy/policy.md`
+- `.docs/fluxCore/policy/requirement.md`
+- `.docs/fluxCore/policy/implementation.md`
 
----
+## Summary
 
-## Classes
+Discrete–continuous policy: raw image → transform + carousel → action + argument.
 
-*(None yet — source implementation has not been created.)*
+```python
+from fluxCore.policy import DCPolicy, PolicyOptions, Vocabulary
 
----
-
-## Functions
-
-*(None yet — source implementation has not been created.)*
-
----
-
-## Constants & Globals
-
-*(None yet — source implementation has not been created.)*
-
-## Sample Usage
-
-*(Pending implementation.)*
+policy = DCPolicy(options, device="cuda")
+action, argument = policy.predict(image)  # raw ndarray or Tensor
+```
