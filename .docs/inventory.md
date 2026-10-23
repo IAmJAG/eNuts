@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-23 07:39:43 UTC*
+*Auto-generated on: 2026-10-23 09:55:06 UTC*
 
 ## Current Directory Structure
 
@@ -45,7 +45,6 @@ eNuts/
 │   │   ├── collapse.png
 │   │   ├── expand.png
 │   │   └── logo.png
-│   ├── logo copy.png
 │   ├── logo.png
 │   ├── names.json
 │   ├── names_categorized.json
@@ -442,13 +441,17 @@ eNuts/
 			test_carousel_initialized_to_stack_size -> : test_carousel_initialized_to_stack_size
 			test_forward_shapes_full_context -> : test_forward_shapes_full_context
 			test_predict_contract -> : test_predict_contract
+			test_predict_with_prior_action_and_params -> : test_predict_with_prior_action_and_params
 			test_stride_skips_push_when_too_soon -> : test_stride_skips_push_when_too_soon
 			test_missing_vocabularies_raise_via_options -> : test_missing_vocabularies_raise_via_options
+			test_build_options_uses_typed_vocabularies -> : test_build_options_uses_typed_vocabularies
 		CONSTANTS(S)/GLOBAL(S)
 			_TEST_ROOT -> : _test_root
 	test_policy_options_roundtrip.py - 
 		FUNCTION(S):
-			test_vocabulary_roundtrip -> : test_vocabulary_roundtrip
+			test_action_vocabulary_roundtrip -> : test_action_vocabulary_roundtrip
+			test_intent_vocabulary_roundtrip -> : test_intent_vocabulary_roundtrip
+			test_argument_kind_vocabulary_roundtrip -> : test_argument_kind_vocabulary_roundtrip
 			test_policy_options_roundtrip -> : test_policy_options_roundtrip
 			test_policy_from_restored_options_predicts -> : test_policy_from_restored_options_predicts
 		CONSTANTS(S)/GLOBAL(S)
@@ -706,9 +709,6 @@ src/fluxCore/policy:
 	__dcPolicy.py - 
 		CLASSE(S):
 			DCPolicy -> : dcpolicy
-		CONSTANTS(S)/GLOBAL(S)
-			C_PARAM_DIM -> : c_param_dim
-			C_BACKBONE_DIM -> : c_backbone_dim
 	__policyOptions.py - 
 		CLASSE(S):
 			PolicyOptions -> : policyoptions
@@ -873,7 +873,8 @@ src/fluxCore/utilities:
 			G_DEFAULT_FEATURE_DIM -> : g_default_feature_dim
 			G_NORMALIZE_MEAN -> : g_normalize_mean
 			G_NORMALIZE_STD -> : g_normalize_std
-			C_FRAME_SIZE -> : c_frame_size
+			G_FRAME_SIZE -> : g_frame_size
+			G_PARAM_DIM -> : g_param_dim
 
 src/fluxCore/utilities/scrcpy:
 	__scrcpy.py - 
@@ -1508,43 +1509,44 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-a3a0acf:
-	feat: Update DCPolicy to version 2.0 with enhanced context handling
+fb504d0:
+	fix(policy): replace C_PARAM_DIM with G_PARAM_DIM for consistency
+		src/fluxCore/policy/__dcPolicy.py
 
-4cd8de4:
-	refactor(policy): rename frameRate to frameStride for clarity and update related logic
+2214b65:
+	fix(torch): remove G_BACKBONE_DIM definition for clarity
+		src/fluxCore/utilities/__torch.py
+
+e7ce3b4:
+	feat(torch): add G_BACKBONE_DIM for MobileNet V3 Small features
+
+3c37909:
+	refactor(policy): update parameter names and improve code readability
 		src/fluxCore/policy/__dcPolicy.py
 		src/fluxCore/policy/__policyOptions.py
+		src/fluxCore/utilities/__torch.py
 
-f8d1a2e:
-	docs(policy): implementation of full context pipeline (phases 1â€“4 done)
-		.docs/fluxCore/policy/implementation.md
+abacfcf:
+	fix(utilities): export G_BACKBONE_DIM
 
-64c63b7:
-	docs(policy): mark full-context FRs implemented
-		.docs/fluxCore/policy/requirement.md
+f4d633f:
+	fix(utilities): define G_BACKBONE_DIM (MobileNet-V3-Small flatten width)
+		src/fluxCore/utilities/__torch.py
 
-cd1c169:
-	docs(policy): document DCPolicy v2 full context API
-		.docs/fluxCore/policy/policy.md
+2a24d08:
+	chore(assets): remove unused logo copy image
+		assets/logo copy.png
 
-903e8a7:
-	test(smoke): options roundtrip includes intents; DCPolicy predict
-		.test/smoke/policy/test_policy_options_roundtrip.py
+d54e874:
+	fix(policy): ArgumentKindVocabulary.labelClass = ArgumentKindLabel
+		src/fluxCore/policy/vocabulary/__argumentKindVocabulary.py
 
-982c2ff:
-	test(smoke): DCPolicy v2 persist with intents in options
-		.test/smoke/policy/test_policy_persist.py
+63f2baf:
+	fix(policy): IntentVocabulary.labelClass = IntentLabel
+		src/fluxCore/policy/vocabulary/__intentVocabulary.py
 
-7bd22fe:
-	test(smoke): full context forward/predict for DCPolicy v2
-		.test/smoke/policy/test_policy_forward_predict.py
-
-9757a5f:
-	feat(policy): export pad constants and acceptInterval helpers
-
-7d6b43c:
-	test(fixtures): buildOptions includes intents vocabulary
-		.test/fixtures/policy/builders.py
+030da1c:
+	fix(policy): ActionVocabulary.labelClass = ActionLabel
+		src/fluxCore/policy/vocabulary/__actionVocabulary.py
 
 ```
