@@ -4,23 +4,33 @@
 
 ## 1. Overview
 
-Discrete–continuous policy for UI/device automation frames.
+Discrete–continuous policy for UI/device automation.
 
-- **In:** one raw image (`ndarray` or `Tensor`)
-- **Out:** discrete action key + argument kind + argument payload (spatial and/or open values)
+**Context (target):**
 
-## 2. Functional requirements
+- Per slot: **visual** + **action taken at that visual** + **parameters** of that action
+- **Intent** is the blanket over the whole carousel / decision
+- Model always receives the full joint context (explicit NONE/EMPTY pads when a slot has no action/params)
 
-| ID | Requirement |
-|----|-------------|
-| FR-1 | `forward` / `predict` accept a **raw** image; the policy owns transform and carousel |
-| FR-2 | Image carousel length = `PolicyOptions.stackSize` ∈ {4, 8, 16, 32, 64} |
-| FR-3 | Discrete vocabularies only for **actions** and **argument kinds** |
-| FR-4 | Argument **values** are open (coordinate/box continuous; key/text free) |
-| FR-5 | Vocab embeddings are computed at construction and **cached** (not live-resolved each step) |
-| FR-6 | Vocabularies fixed for the policy instance / checkpoint pair — no runtime mutation |
-| FR-7 | Weights persist separately from options (`VERSION` + `MODELSTATE`) |
-| FR-8 | Device is a construct/load argument (default cuda, fallback cpu) |
+**Output:** next discrete action + argument kind + argument payload.
+
+## 2. Functional requirements (current + target)
+
+| ID | Requirement | Status |
+|----|-------------|--------|
+| FR-1 | Raw image in; policy owns transform | Current |
+| FR-2 | Carousel length = `stackSize` ∈ {4, 8, 16, 32, 64} | Current |
+| FR-3 | Accept interval = `durationSec / stackSize` when `timestamp` provided | Current |
+| FR-4 | Discrete vocabs: actions, argument kinds | Current |
+| FR-5 | Argument values open (spatial / key / text) | Current |
+| FR-6 | Embeddings cached at init | Current |
+| FR-7 | Weights separate from options (`VERSION` + `MODELSTATE`) | Current |
+| FR-8 | Device is construct/load arg (cuda-first, cpu fallback) | Current |
+| FR-9 | Vocab null/empty checks live on `PolicyOptions.validate()` | Current |
+| FR-10 | Discrete **intent** vocabulary | Target |
+| FR-11 | Carousel slot = (visual, action, parameters) aligned in time | Target |
+| FR-12 | Intent conditions the pooled trajectory (blanket) | Target |
+| FR-13 | `forward`/`predict` accept image, intent, action, parameters, optional timestamp | Target |
 
 ## 3. Closed vs open
 
@@ -28,10 +38,10 @@ Discrete–continuous policy for UI/device automation frames.
 |---------------------|------|
 | action labels | x, y, box geometry |
 | argument kind labels | key code string, text string |
+| intent labels | — |
 
-## 4. Deferred
+## 4. Deferred (after target context)
 
-- Intent channel
-- Action history as model input
 - Learned key/text value generation
 - Full training loop packaging
+- Richer temporal encoder than mean pool (e.g. attention)
