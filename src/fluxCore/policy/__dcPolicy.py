@@ -93,10 +93,8 @@ class DCPolicy(nn.Module, iPolicy):
         self._transform = transform
         self._device: TorchDevice = device
         self._freezeBB: bool = options.freezeBackbone
-        self._stackSize: int = int(options.stackSize)
-        self._durationSec: float = float(options.durationSec)
         self._lastAcceptTime: Optional[float] = None
-        self._frameRate: float = options.frameRate
+        self._frameStride: float = options.frameStride
 
         self._actionVocabulary: iVocabulary = options.actions
         self._argumentKindVocabulary: iVocabulary = options.argumentKinds
@@ -127,7 +125,7 @@ class DCPolicy(nn.Module, iPolicy):
     # ------------------------------------------------------------------
     def _shouldAccept(self, timestamp: float) -> bool:
         if self._lastAcceptTime is None: return True
-        return (float(timestamp) - self._lastAcceptTime) >= self._frameRate
+        return (float(timestamp) - self._lastAcceptTime) >= self._frameStride
 
     def _push(self, image: Image.Image | ndarray | Tensor) -> None:
         if not isinstance(image, Image.Image):

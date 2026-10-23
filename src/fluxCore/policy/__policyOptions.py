@@ -45,7 +45,7 @@ class PolicyOptions(Serializable):
         )
 
     @property
-    def frameRate(self) -> float: 
+    def frameStride(self) -> float: 
         return self._durationSec / float(self._stackSize)
     
     # ------------------------------------------------------------------
