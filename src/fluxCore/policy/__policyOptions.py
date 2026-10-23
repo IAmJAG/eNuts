@@ -16,19 +16,34 @@ C_STACK_SIZES: frozenset[int] = frozenset({4, 8, 16, 32, 64})
 C_DEFAULT_STACK_SIZE: int = 16
 C_DEFAULT_DURATION_SEC: float = 1.0
 
+# Pad ids for missing action / argument context (must exist in vocabs when used)
+C_NONE_ACTION: str = "NONE"
+C_NONE_ARGUMENT_KIND: str = "none"
+
 
 # ==================================================================================
 class PolicyOptions(Serializable):
+    """Serializable policy construction options.
+
+    Vocabularies: actions, argumentKinds, intents.
+    Accept interval (seconds) = durationSec / stackSize (property acceptIntervalSec).
+    """
+
     def __init__(
-        self, actions: Optional[Vocabulary] = None,
-        argumentKinds: Optional[Vocabulary] = None, featureDim: int = G_DEFAULT_FEATURE_DIM,
-        freezeBackbone: bool = True, stackSize: int = C_DEFAULT_STACK_SIZE,
+        self,
+        actions: Optional[Vocabulary] = None,
+        argumentKinds: Optional[Vocabulary] = None,
+        intents: Optional[Vocabulary] = None,
+        featureDim: int = G_DEFAULT_FEATURE_DIM,
+        freezeBackbone: bool = True,
+        stackSize: int = C_DEFAULT_STACK_SIZE,
         durationSec: float = C_DEFAULT_DURATION_SEC,
     ) -> None:
         super().__init__()
 
         self._actions: Optional[Vocabulary] = actions
         self._argumentKinds: Optional[Vocabulary] = argumentKinds
+        self._intents: Optional[Vocabulary] = intents
         self._featureDimension: int = int(featureDim)
         self._freezeBackbone: bool = bool(freezeBackbone)
         self._stackSize: int = int(stackSize)
@@ -39,29 +54,41 @@ class PolicyOptions(Serializable):
 
         self.Properties.extend(
             [
-                "actions", "argumentKinds", "featureDimension",
-                "freezeBackbone", "stackSize", "durationSec",
+                "actions",
+                "argumentKinds",
+                "intents",
+                "featureDimension",
+                "freezeBackbone",
+                "stackSize",
+                "durationSec",
             ]
         )
 
-    @property
-    def frameRate(self) -> float: 
-        return self._durationSec / float(self._stackSize)
-    
     # ------------------------------------------------------------------
+    @property
+    def acceptIntervalSec(self) -> float:
+        """Minimum seconds between accepted carousel slots."""
+        return self._durationSec / float(self._stackSize)
+
+    @property
+    def frameRate(self) -> float:
+        """Alias of acceptIntervalSec (historical name; value is an interval, not Hz)."""
+        return self.acceptIntervalSec
+
     def validate(self) -> None:
-        """Require non-empty action and argument-kind vocabularies (call before DCPolicy)."""
+        """Require non-empty actions, argumentKinds, and intents."""
         if self._actions is None:
             raise ValueError("PolicyOptions.actions vocabulary is required")
-        
         if self._argumentKinds is None:
             raise ValueError("PolicyOptions.argumentKinds vocabulary is required")
-        
+        if self._intents is None:
+            raise ValueError("PolicyOptions.intents vocabulary is required")
         if self._actions.size < 1:
             raise ValueError("PolicyOptions.actions vocabulary must be non-empty")
-        
         if self._argumentKinds.size < 1:
             raise ValueError("PolicyOptions.argumentKinds vocabulary must be non-empty")
+        if self._intents.size < 1:
+            raise ValueError("PolicyOptions.intents vocabulary must be non-empty")
 
     # ------------------------------------------------------------------
     @staticmethod
@@ -92,6 +119,14 @@ class PolicyOptions(Serializable):
     @argumentKinds.setter
     def argumentKinds(self, value: Optional[Vocabulary]) -> None:
         self._argumentKinds = value
+
+    @property
+    def intents(self) -> Optional[Vocabulary]:
+        return self._intents
+
+    @intents.setter
+    def intents(self, value: Optional[Vocabulary]) -> None:
+        self._intents = value
 
     @property
     def featureDimension(self) -> int:
