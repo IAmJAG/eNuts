@@ -48,7 +48,8 @@ class DCPolicy(nn.Module, iPolicy):
 
     CP_VERSION: str = "2.0"
     def __init__(
-        self, options: PolicyOptions, device: Optional[Union[str, TorchDevice]] = "cuda",
+        self, options: PolicyOptions,
+        device: Optional[Union[str, TorchDevice]] = "cuda",
         *args, **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
