@@ -12,7 +12,15 @@ import numpy as np
 import torch
 
 # ==================================================================================
-from fluxCore.policy import C_NONE_ACTION, DCPolicy, PolicyOptions
+from fluxCore.policy import (
+    ActionVocabulary,
+    ArgumentKindVocabulary,
+    C_NONE_ACTION,
+    C_NONE_ARGUMENT_KIND,
+    DCPolicy,
+    IntentVocabulary,
+    PolicyOptions,
+)
 from fluxCore.utilities import G_DEFAULT_EMBED_DIM, G_DEFAULT_FEATURE_DIM
 
 # ==================================================================================
@@ -42,7 +50,9 @@ def test_carousel_initialized_to_stack_size() -> None:
     for visual, actionEmb, param in policy._carousel:
         assert visual.shape == (3, 224, 224)
         assert actionEmb.ndim == 1
+        assert actionEmb.shape[0] == G_DEFAULT_EMBED_DIM
         assert param.shape == (8,)
+        assert visual.device == policy._device
 
 
 def test_forward_shapes_full_context() -> None:
@@ -60,6 +70,7 @@ def test_forward_shapes_full_context() -> None:
     assert out["ACTIONS"].shape[-1] == G_DEFAULT_EMBED_DIM
     assert out["ARGKINDS"].shape[-1] == G_DEFAULT_EMBED_DIM
     assert out["SPATIAL"].shape[-1] == 4
+    assert torch.all(out["SPATIAL"] >= 0) and torch.all(out["SPATIAL"] <= 1)
 
 
 def test_predict_contract() -> None:
@@ -78,7 +89,23 @@ def test_predict_contract() -> None:
     assert argument["kind"] in SEED_ARGUMENT_KINDS
 
 
+def test_predict_with_prior_action_and_params() -> None:
+    policy = _buildPolicy()
+    image = np.random.randint(0, 255, (64, 64, 3), dtype=np.uint8)
+
+    actionKey, argument = policy.predict(
+        image,
+        intent="login",
+        action="down",
+        parameters={"kind": "box", "left": 0.1, "top": 0.2, "width": 0.3, "height": 0.4},
+        timestamp=0.0,
+    )
+    assert actionKey in SEED_ACTIONS
+    assert argument["kind"] in SEED_ARGUMENT_KINDS
+
+
 def test_stride_skips_push_when_too_soon() -> None:
+    # stackSize=4, durationSec=1 → acceptIntervalSec=0.25
     policy = _buildPolicy()
     image = np.zeros((32, 32, 3), dtype=np.uint8)
 
@@ -100,3 +127,26 @@ def test_missing_vocabularies_raise_via_options() -> None:
     except ValueError:
         raised = True
     assert raised
+
+    # Partial: actions only
+    partial = PolicyOptions(
+        actions=ActionVocabulary(SEED_ACTIONS, dimension=32),
+        argumentKinds=None,
+        intents=None,
+    )
+    try:
+        partial.validate()
+        raisedPartial = False
+    except ValueError:
+        raisedPartial = True
+    assert raisedPartial
+
+
+def test_build_options_uses_typed_vocabularies() -> None:
+    options = buildOptions(stackSize=4)
+    assert isinstance(options.actions, ActionVocabulary)
+    assert isinstance(options.argumentKinds, ArgumentKindVocabulary)
+    assert isinstance(options.intents, IntentVocabulary)
+    assert set(SEED_INTENTS.keys()) <= set(options.intents.labels)
+    assert C_NONE_ACTION in options.actions.labels
+    assert C_NONE_ARGUMENT_KIND in options.argumentKinds.labels
