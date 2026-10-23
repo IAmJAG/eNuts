@@ -2,19 +2,10 @@
 
 **Source of truth:** `DCPolicy` — `src/fluxCore/policy/__dcPolicy.py`
 
-Canonical documentation (mirrors source tree):
+Canonical docs:
 
-- `.docs/fluxCore/policy/policy.md`
-- `.docs/fluxCore/policy/requirement.md`
-- `.docs/fluxCore/policy/implementation.md`
+- `.docs/fluxCore/policy/policy.md` — overview + current API
+- `.docs/fluxCore/policy/requirement.md` — FR current + target context
+- `.docs/fluxCore/policy/implementation.md` — **phased implementation plan**
 
-## Summary
-
-Discrete–continuous policy: raw image → transform + carousel → action + argument.
-
-```python
-from fluxCore.policy import DCPolicy, PolicyOptions, Vocabulary
-
-policy = DCPolicy(options, device="cuda")
-action, argument = policy.predict(image)  # raw ndarray or Tensor
-```
+**Target context:** carousel of `(visual, action, parameters)` with **intent** as blanket over the stack.
