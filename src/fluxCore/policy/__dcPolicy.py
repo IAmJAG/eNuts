@@ -4,15 +4,17 @@ from __future__ import annotations
 # ==================================================================================
 from collections import deque
 from pathlib import Path
-from typing import Deque, Optional, Union
+from typing import Any, Deque, Dict, Optional, Union
 
 # ==================================================================================
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 # ==================================================================================
 from numpy import ndarray
+from PIL import Image
 from torch import Tensor
 from torch import device as TorchDevice
 from torchvision import models, transforms
@@ -56,6 +58,7 @@ class DCPolicy(nn.Module, iPolicy):
                     mean=G_NORMALIZE_MEAN,
                     std=G_NORMALIZE_STD,
                 ),
+                
             ]
         )
 
@@ -124,14 +127,38 @@ class DCPolicy(nn.Module, iPolicy):
 
         self.to(device=device)
 
-    def _push(self, image: Tensor):
-        if isinstance(image, ndarray):
-            image = torch.from_numpy(image)
+    def _push(self, image: Image.Image):
+        if not isinstance(image, Image.Image):
+            image = self._toPil(image)
 
-        image = self._transform(image)
+        image: Tensor = self._transform(image)
+        image = image.to(device=self._device, dtype=torch.float32)
         self._imageCarousel.append(image)
 
-    def forward(self, image: Tensor | ndarray, *args, **kwargs) -> dict[str, Tensor]:
+    def _toPil(self, image):
+        if isinstance(image, ndarray):
+            if image.dtype != np.uint8: 
+                image = np.clip(image, 0, 255).astype(np.uint8)
+
+            return Image.fromarray(image)
+        
+        if isinstance(image, Tensor):
+            t = image.detach().cpu()
+            if t.ndim == 3 and t.shape[0] in (1, 3):  # CHW
+                t = t.permute(1, 2, 0)
+            arr = t.numpy()
+            if arr.max() <= 1.5:
+                arr = (arr * 255).astype(np.uint8)
+            else:
+                arr = arr.astype(np.uint8)
+            return Image.fromarray(arr)
+
+        if isinstance(image, Image.Image):
+            return image
+        
+        raise TypeError(f"Unable to convert image of type {type(image)} to PIL Image")
+
+    def forward(self, image: Image.Image, *args, **kwargs) -> dict[str, Tensor]:
         self._push(image)
 
         carousel: Deque[Tensor] = self._imageCarousel
@@ -147,7 +174,7 @@ class DCPolicy(nn.Module, iPolicy):
         }
 
     @torch.no_grad()
-    def predict(self, image: Tensor | ndarray, *args, **kwargs) -> tuple[str, dict[str, Any]]:
+    def predict(self, image: Image.Image, *args, **kwargs) -> tuple[str, Dict[str, Any]]:
         wasTraining = self.training
         try:
             self.eval()
@@ -192,13 +219,11 @@ class DCPolicy(nn.Module, iPolicy):
 
     def _fuse(self, frameDeque: Deque[Tensor]) -> Tensor:
         frameSequence = torch.stack(list(frameDeque), dim=0).unsqueeze(0)
-        lBatchSize, lTimeSteps, lChannels, lHeight, lWidth = frameSequence.shape
-        flattenedSequence = frameSequence.view(
-            lBatchSize * lTimeSteps, lChannels, lHeight, lWidth
-        )        
-        visualFeatures, batchSize, timeSteps = self._backbone(flattenedSequence)
-        visualSequence = visualFeatures.view(batchSize, timeSteps, -1)
-        return visualSequence[:, -1, :]
+        b, t, c, h, w = frameSequence.shape
+        flattenedSequence = frameSequence.view(b * t, c, h, w)        
+        visualFeatures = self._backbone(flattenedSequence)
+        visualSequence = visualFeatures.view(b, t, -1)
+        return visualSequence.mean(dim=1)
 
     def _buildArgument(self, kind: str, spatial: Tensor) -> dict[str, Any]:
         if kind == "coordinate":
