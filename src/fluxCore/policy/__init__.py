@@ -1,11 +1,11 @@
 # ==================================================================================
-from .__policy import Policy
 from .__policyOptions import (
     C_DEFAULT_DURATION_SEC,
     C_DEFAULT_STACK_SIZE,
     C_STACK_SIZES,
     PolicyOptions,
 )
+from .__policyX import Policy
 from .__streamingPolicy import StreamingPolicy
 from .vocabulary import (
     ActionLabel,

@@ -4,6 +4,8 @@ from .__socket import AsyncReadAll, AsyncReadExact, ReadAll, ReadExact
 from .__torch import (
     G_DEFAULT_EMBED_DIM,
     G_DEFAULT_FEATURE_DIM,
+    G_NORMALIZE_MEAN,
+    G_NORMALIZE_STD,
     deterministicEmbedding,
     getTorchDevice,
 )
@@ -20,4 +22,6 @@ __all__ = [
     "getTorchDevice",
     "G_DEFAULT_EMBED_DIM",
     "G_DEFAULT_FEATURE_DIM",
+    "G_NORMALIZE_MEAN",
+    "G_NORMALIZE_STD",
 ]

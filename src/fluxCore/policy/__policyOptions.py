@@ -39,12 +39,8 @@ class PolicyOptions(Serializable):
 
         self.Properties.extend(
             [
-                "actions",
-                "argumentKinds",
-                "featureDimension",
-                "freezeBackbone",
-                "stackSize",
-                "durationSec",
+                "actions", "argumentKinds", "featureDimension",
+                "freezeBackbone", "stackSize", "durationSec",
             ]
         )
 
