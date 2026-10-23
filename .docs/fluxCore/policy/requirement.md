@@ -1,37 +1,40 @@
 # Requirements — DCPolicy
 
-**Source of truth:** `DCPolicy` in `src/fluxCore/policy/__dcPolicy.py`.
+**Source of truth:** `DCPolicy` in `src/fluxCore/policy/__dcPolicy.py` (`CP_VERSION` 2.0).
 
 ## 1. Overview
 
-Discrete–continuous policy for UI/device automation frames.
-
-- **In:** one raw image (`ndarray` or `Tensor`)
-- **Out:** discrete action key + argument kind + argument payload (spatial and/or open values)
+- **Context:** intent blanket + carousel of `(visual, action, parameters)`
+- **Out:** next discrete action + argument kind + argument payload
 
 ## 2. Functional requirements
 
-| ID | Requirement |
-|----|-------------|
-| FR-1 | `forward` / `predict` accept a **raw** image; the policy owns transform and carousel |
-| FR-2 | Image carousel length = `PolicyOptions.stackSize` ∈ {4, 8, 16, 32, 64} |
-| FR-3 | Discrete vocabularies only for **actions** and **argument kinds** |
-| FR-4 | Argument **values** are open (coordinate/box continuous; key/text free) |
-| FR-5 | Vocab embeddings are computed at construction and **cached** (not live-resolved each step) |
-| FR-6 | Vocabularies fixed for the policy instance / checkpoint pair — no runtime mutation |
-| FR-7 | Weights persist separately from options (`VERSION` + `MODELSTATE`) |
-| FR-8 | Device is a construct/load argument (default cuda, fallback cpu) |
+| ID | Requirement | Status |
+|----|-------------|--------|
+| FR-1 | Raw image in; policy owns transform | Done |
+| FR-2 | Carousel length = `stackSize` ∈ {4, 8, 16, 32, 64} | Done |
+| FR-3 | Accept interval = `durationSec / stackSize` when `timestamp` set | Done |
+| FR-4 | Discrete vocabs: actions, argument kinds, **intents** | Done |
+| FR-5 | Argument values open (spatial / key / text) | Done |
+| FR-6 | Embeddings cached at init | Done |
+| FR-7 | Weights separate from options (`VERSION` + `MODELSTATE`) | Done |
+| FR-8 | Device construct/load (cuda-first, cpu fallback) | Done |
+| FR-9 | Vocab checks on `PolicyOptions.validate()` | Done |
+| FR-10 | Intent vocabulary required | Done |
+| FR-11 | Slot = (visual, action, parameters) | Done |
+| FR-12 | Intent conditions pooled trajectory | Done |
+| FR-13 | `forward`/`predict`(image, intent, action, parameters, timestamp?) | Done |
 
 ## 3. Closed vs open
 
-| Closed (vocabulary) | Open |
-|---------------------|------|
-| action labels | x, y, box geometry |
-| argument kind labels | key code string, text string |
+| Closed | Open |
+|--------|------|
+| action labels (incl. `NONE`) | x, y, box geometry |
+| argument kind labels (incl. `none`) | key code, text string |
+| intent labels | — |
 
 ## 4. Deferred
 
-- Intent channel
-- Action history as model input
 - Learned key/text value generation
-- Full training loop packaging
+- Training loop packaging
+- Richer temporal encoder than mean pool

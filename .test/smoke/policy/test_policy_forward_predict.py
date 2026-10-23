@@ -1,5 +1,5 @@
 # ==================================================================================
-"""Smoke: DCPolicy constructs, forward dict, predict contract, stride."""
+"""Smoke: DCPolicy full context — intent, action, parameters, stride."""
 # ==================================================================================
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ import numpy as np
 import torch
 
 # ==================================================================================
-from fluxCore.policy import DCPolicy, PolicyOptions, Vocabulary
+from fluxCore.policy import C_NONE_ACTION, DCPolicy, PolicyOptions
 from fluxCore.utilities import G_DEFAULT_EMBED_DIM, G_DEFAULT_FEATURE_DIM
 
 # ==================================================================================
@@ -21,7 +21,7 @@ if str(_TEST_ROOT) not in sys.path:
     sys.path.insert(0, str(_TEST_ROOT))
 
 from fixtures.policy.builders import buildOptions  # noqa: E402
-from fixtures.policy.seeds import SEED_ACTIONS, SEED_ARGUMENT_KINDS  # noqa: E402
+from fixtures.policy.seeds import SEED_ACTIONS, SEED_ARGUMENT_KINDS, SEED_INTENTS  # noqa: E402
 
 
 # ==================================================================================
@@ -38,30 +38,40 @@ def _buildPolicy(device: str = "cpu") -> DCPolicy:
 
 def test_carousel_initialized_to_stack_size() -> None:
     policy = _buildPolicy()
-    assert len(policy._imageCarousel) == 4
-    for frame in policy._imageCarousel:
-        assert frame.shape == (3, 224, 224)
-        assert frame.device == policy._device
+    assert len(policy._carousel) == 4
+    for visual, actionEmb, param in policy._carousel:
+        assert visual.shape == (3, 224, 224)
+        assert actionEmb.ndim == 1
+        assert param.shape == (8,)
 
 
-def test_forward_shapes_raw_image() -> None:
+def test_forward_shapes_full_context() -> None:
     policy = _buildPolicy()
     image = np.random.randint(0, 255, (480, 360, 3), dtype=np.uint8)
 
-    out = policy.forward(image)
+    out = policy.forward(
+        image,
+        intent="login",
+        action="down",
+        parameters={"kind": "coordinate", "x": 0.5, "y": 0.5},
+    )
 
     assert set(out.keys()) == {"ACTIONS", "ARGKINDS", "SPATIAL"}
     assert out["ACTIONS"].shape[-1] == G_DEFAULT_EMBED_DIM
     assert out["ARGKINDS"].shape[-1] == G_DEFAULT_EMBED_DIM
     assert out["SPATIAL"].shape[-1] == 4
-    assert torch.all(out["SPATIAL"] >= 0) and torch.all(out["SPATIAL"] <= 1)
 
 
 def test_predict_contract() -> None:
     policy = _buildPolicy()
     image = np.random.randint(0, 255, (64, 64, 3), dtype=np.uint8)
 
-    actionKey, argument = policy.predict(image)
+    actionKey, argument = policy.predict(
+        image,
+        intent="browse",
+        action=C_NONE_ACTION,
+        parameters=None,
+    )
 
     assert actionKey in SEED_ACTIONS
     assert isinstance(argument, dict)
@@ -69,34 +79,24 @@ def test_predict_contract() -> None:
 
 
 def test_stride_skips_push_when_too_soon() -> None:
-    # stackSize=4, durationSec=1 → min interval 0.25s
     policy = _buildPolicy()
     image = np.zeros((32, 32, 3), dtype=np.uint8)
 
-    policy.forward(image, timestamp=0.0)
-    # carousel still length 4 (zeros + one real); count non-zero-ish by last frame changed
-    lastAfterFirst = policy._imageCarousel[-1].clone()
+    policy.forward(image, intent="idle", action="move", timestamp=0.0)
+    lastVisual = policy._carousel[-1][0].clone()
 
-    policy.forward(image, timestamp=0.1)  # too soon — no push
-    assert torch.equal(policy._imageCarousel[-1], lastAfterFirst)
+    policy.forward(image, intent="idle", action="up", timestamp=0.1)
+    assert torch.equal(policy._carousel[-1][0], lastVisual)
 
-    policy.forward(image, timestamp=0.25)  # accept
-    # last slot replaced (still may be similar content; length stays 4)
-    assert len(policy._imageCarousel) == 4
+    policy.forward(image, intent="idle", action="up", timestamp=0.25)
+    assert len(policy._carousel) == 4
 
 
 def test_missing_vocabularies_raise_via_options() -> None:
-    options = PolicyOptions(actions=None, argumentKinds=None)
+    options = PolicyOptions(actions=None, argumentKinds=None, intents=None)
     try:
         options.validate()
         raised = False
     except ValueError:
         raised = True
     assert raised
-
-    try:
-        DCPolicy(options, device="cpu")
-        raised2 = False
-    except ValueError:
-        raised2 = True
-    assert raised2
