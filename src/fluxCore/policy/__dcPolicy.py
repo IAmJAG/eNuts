@@ -104,18 +104,15 @@ class DCPolicy(nn.Module, iPolicy):
         self._argKindLabels: tuple[str, ...] = tuple(options.argumentKinds.labels)
 
         self.register_buffer(
-            "_actionEmbeddings",
-            options.actions.toTensor().detach()
+            "_actionEmbeddings", options.actions.toTensor().detach()
             .to(device=device, dtype=torch.float32).clone(),
         )
 
         self.register_buffer(
-            "_argKindEmbeddings",
-            options.argumentKinds.toTensor().detach()
+            "_argKindEmbeddings", options.argumentKinds.toTensor().detach()
             .to(device=device, dtype=torch.float32).clone(),
         )
 
-        # Fixed-length carousel: start filled with zero tensors
         blank = torch.zeros(
             3, C_FRAME_SIZE, C_FRAME_SIZE, dtype=torch.float32, device=device
         )
@@ -167,7 +164,7 @@ class DCPolicy(nn.Module, iPolicy):
 
     def forward(
         self, image: Image.Image | ndarray | Tensor, timestamp: Optional[float] = None,
-        *args, **kwargs,
+        *args, **kwargs
     ) -> Dict[str, Tensor]:
         
         if timestamp is None:
@@ -177,7 +174,9 @@ class DCPolicy(nn.Module, iPolicy):
             self._push(image)
             self._lastAcceptTime = float(timestamp)
 
-        finalFeatures = self._fuse(self._imageCarousel)
+        carousel: Deque[Tensor] = self._imageCarousel
+
+        finalFeatures: Tensor = self._fuse(carousel)
         return {
             "ACTIONS": self._actionHead(finalFeatures),
             "ARGKINDS": self._argumentKindHead(finalFeatures),
