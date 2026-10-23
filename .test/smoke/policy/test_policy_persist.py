@@ -1,5 +1,5 @@
 # ==================================================================================
-"""Smoke: options JSON separate from weight file; DCPolicy.save/load."""
+"""Smoke: options JSON separate from weights; DCPolicy v2 save/load."""
 # ==================================================================================
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ import numpy as np
 import torch
 
 # ==================================================================================
-from fluxCore.policy import DCPolicy, PolicyOptions
+from fluxCore.policy import C_NONE_ACTION, DCPolicy, PolicyOptions
 
 # ==================================================================================
 _TEST_ROOT = Path(__file__).resolve().parents[2]
@@ -26,7 +26,6 @@ from fixtures.policy.seeds import SEED_ACTIONS, SEED_ARGUMENT_KINDS  # noqa: E40
 
 # ==================================================================================
 def test_save_load_weights_with_separate_options(tmp_path: Path) -> None:
-    trace("test_save_load_weights_with_separate_options: build")
     options = buildOptions(embedDim=64, featureDim=576, freezeBackbone=True, stackSize=4)
     policy = DCPolicy(options, device="cpu")
 
@@ -35,26 +34,26 @@ def test_save_load_weights_with_separate_options(tmp_path: Path) -> None:
 
     with optionsPath.open("w", encoding="utf-8") as handle:
         json.dump(options.encode(), handle, indent=2)
-
     policy.save(weightsPath)
 
     blob = torch.load(weightsPath, map_location="cpu", weights_only=False)
     assert set(blob.keys()) == {"VERSION", "MODELSTATE"}
-    assert "options" not in blob
     assert blob["VERSION"] == DCPolicy.CP_VERSION
 
     restoredOptions = PolicyOptions()
     with optionsPath.open(encoding="utf-8") as handle:
         restoredOptions.decode(json.load(handle))
     restoredOptions.validate()
+    assert restoredOptions.intents is not None
 
     loaded = DCPolicy.load(weightsPath, options=restoredOptions, device="cpu")
     image = np.random.randint(0, 255, (64, 64, 3), dtype=np.uint8)
-    actionKey, argument = loaded.predict(image)
+    actionKey, argument = loaded.predict(
+        image, intent="login", action=C_NONE_ACTION, parameters=None
+    )
 
     assert actionKey in SEED_ACTIONS
     assert argument["kind"] in SEED_ARGUMENT_KINDS
-    trace("test_save_load_weights_with_separate_options: PASS")
 
 
 def test_load_rejects_bad_version(tmp_path: Path) -> None:
