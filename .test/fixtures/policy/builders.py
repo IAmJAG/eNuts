@@ -13,7 +13,7 @@ from fluxCore.policy import (
 from fluxCore.utilities import G_DEFAULT_EMBED_DIM, G_DEFAULT_FEATURE_DIM
 
 # ==================================================================================
-from .seeds import SEED_ACTIONS, SEED_ARGUMENT_KINDS
+from .seeds import SEED_ACTIONS, SEED_ARGUMENT_KINDS, SEED_INTENTS
 
 
 # ==================================================================================
@@ -25,11 +25,10 @@ def buildOptions(
     stackSize: int = C_DEFAULT_STACK_SIZE,
     durationSec: float = C_DEFAULT_DURATION_SEC,
 ) -> PolicyOptions:
-    actions = Vocabulary(SEED_ACTIONS, dimension=embedDim)
-    argumentKinds = Vocabulary(SEED_ARGUMENT_KINDS, dimension=embedDim)
     return PolicyOptions(
-        actions=actions,
-        argumentKinds=argumentKinds,
+        actions=Vocabulary(SEED_ACTIONS, dimension=embedDim),
+        argumentKinds=Vocabulary(SEED_ARGUMENT_KINDS, dimension=embedDim),
+        intents=Vocabulary(SEED_INTENTS, dimension=embedDim),
         featureDim=featureDim,
         freezeBackbone=freezeBackbone,
         stackSize=stackSize,
