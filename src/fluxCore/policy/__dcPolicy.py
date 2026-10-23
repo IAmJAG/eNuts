@@ -282,12 +282,10 @@ class DCPolicy(nn.Module, iPolicy):
         merged = torch.cat([pooled, intentEmb], dim=-1)
         return self._contextMerge(merged)  # [1, featureDim]
 
-    # ------------------------------------------------------------------
     def forward(
         self, image: Image.Image | ndarray | Tensor, intent: str,
         action: str = C_NONE_ACTION, parameters: Optional[Dict[str, Any]] = None,
-        timestamp: Optional[float] = None,
-        *args, **kwargs,
+        timestamp: Optional[float] = None, *args, **kwargs,
     ) -> Dict[str, Tensor]:
         if timestamp is None:
             self._push(image, action, parameters)
