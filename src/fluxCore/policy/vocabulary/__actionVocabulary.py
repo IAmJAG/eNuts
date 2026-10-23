@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 # ==================================================================================
-from typing import Mapping, Optional, Union
+from typing import Mapping, Optional, Type, Union
 
 # ==================================================================================
 from ...types.interface.policy.vocabulary import iLabel
@@ -13,8 +13,11 @@ from .labels import ActionLabel
 
 # ==================================================================================
 class ActionVocabulary(Vocabulary[ActionLabel]):
+    labelClass: Type[iLabel] = ActionLabel
+
     def __init__(
-        self,vocab: Optional[Mapping[str, Union[ActionLabel, str]]] = None,
+        self,
+        vocab: Optional[Mapping[str, Union[ActionLabel, str]]] = None,
         dimension: int = G_DEFAULT_EMBED_DIM,
     ) -> None:
         super().__init__(vocab=vocab, dimension=dimension)
