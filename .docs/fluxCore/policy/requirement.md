@@ -1,27 +1,37 @@
-# Requirements & Design Specifications
+# Requirements — DCPolicy
 
-## 1. Project Overview
+**Source of truth:** `DCPolicy` in `src/fluxCore/policy/__dcPolicy.py`.
 
-Policy: image array → discrete action + argument kind + open argument value.
+## 1. Overview
 
-## 2. Functional Requirements
+Discrete–continuous policy for UI/device automation frames.
 
-- **FR-1:** Input `[T,3,H,W]` or `[B,T,3,H,W]`.
-- **FR-2:** One result per array.
-- **FR-3:** Discrete **vocabularies** only for:
-  - actions
-  - argument kinds (`coordinate` | `box` | `key` | `text`)
-- **FR-4:** Argument *values* are not vocabularies (spatial continuous; key/text open-ended).
-- **FR-5:** Vocabularies are serializable (`Vocabulary` / `VocabularyItem`) and convert to embeddings via `toEmbedding` / `toEmbeddings`.
-- **FR-6:** Vocabularies are fixed at construction / checkpoint load — not mutated at runtime.
+- **In:** one raw image (`ndarray` or `Tensor`)
+- **Out:** discrete action key + argument kind + argument payload (spatial and/or open values)
 
-## 3. Design Decisions
+## 2. Functional requirements
 
-### Naming
-Finite discrete sets are **vocabularies**, not “registry options.”
+| ID | Requirement |
+|----|-------------|
+| FR-1 | `forward` / `predict` accept a **raw** image; the policy owns transform and carousel |
+| FR-2 | Image carousel length = `PolicyOptions.stackSize` ∈ {4, 8, 16, 32, 64} |
+| FR-3 | Discrete vocabularies only for **actions** and **argument kinds** |
+| FR-4 | Argument **values** are open (coordinate/box continuous; key/text free) |
+| FR-5 | Vocab embeddings are computed at construction and **cached** (not live-resolved each step) |
+| FR-6 | Vocabularies fixed for the policy instance / checkpoint pair — no runtime mutation |
+| FR-7 | Weights persist separately from options (`VERSION` + `MODELSTATE`) |
+| FR-8 | Device is a construct/load argument (default cuda, fallback cpu) |
 
-### Closed vs open
-| Closed | Open |
-|--------|------|
+## 3. Closed vs open
+
+| Closed (vocabulary) | Open |
+|---------------------|------|
 | action labels | x, y, box geometry |
 | argument kind labels | key code string, text string |
+
+## 4. Deferred
+
+- Intent channel
+- Action history as model input
+- Learned key/text value generation
+- Full training loop packaging
