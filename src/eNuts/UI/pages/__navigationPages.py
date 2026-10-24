@@ -5,6 +5,7 @@ from __future__ import annotations
 from jAGQt.widgets.page import Page
 
 # ==================================================================================
+from .__kgRecorderPage import buildKGRecorderPage
 from .__pageKeys import (
     PAGE_ANNOTATOR,
     PAGE_DASHBOARD,
@@ -45,11 +46,7 @@ def buildNavigationPages() -> dict[str, Page]:
     pages[PAGE_ANNOTATOR] = buildBlankPage(
         PAGE_ANNOTATOR, "Annotator", "Annotation tools"
     )
-    pages[PAGE_KG_RECORDER] = buildBlankPage(
-        PAGE_KG_RECORDER,
-        "Key & Gesture Recorder",
-        "Capture keys and gestures",
-    )
+    pages[PAGE_KG_RECORDER] = buildKGRecorderPage(PAGE_KG_RECORDER)
     pages[PAGE_SETTINGS] = buildBlankPage(
         PAGE_SETTINGS, "Settings", "Application preferences"
     )
