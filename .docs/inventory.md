@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-23 09:55:06 UTC*
+*Auto-generated on: 2026-10-24 11:48:04 UTC*
 
 ## Current Directory Structure
 
@@ -85,10 +85,12 @@ eNuts/
 │   │   │   │   └── __sideBarMenuBuilder.py
 │   │   │   ├── pages/
 │   │   │   │   ├── __devicePage.py
+│   │   │   │   ├── __kgRecorderPage.py
 │   │   │   │   ├── __navigationPages.py
 │   │   │   │   ├── __pageKeys.py
 │   │   │   │   └── __smokePages.py
 │   │   │   ├── widgets/
+│   │   │   │   ├── __captureImage.py
 │   │   │   │   ├── spinners/
 │   │   │   │   │   ├── __evolvingNeuralBrain.py
 │   │   │   │   │   ├── __evolvingNeuralOrb.py
@@ -102,6 +104,8 @@ eNuts/
 │   │   │   ├── __shell.py
 │   │   │   ├── device/
 │   │   │   │   └── __deviceManager.py
+│   │   │   ├── recorder/
+│   │   │   │   └── __kgRecorder.py
 │   │   │   ├── theme/
 │   │   │   │   └── __theme.py
 │   │   │   └── workspace/
@@ -122,8 +126,10 @@ eNuts/
 │   │   │       ├── application/
 │   │   │       │   ├── __applicationInformation.py
 │   │   │       │   └── __shell.py
-│   │   │       └── configuration/
-│   │   │           └── __eNutsConfiguration.py
+│   │   │       ├── configuration/
+│   │   │       │   └── __eNutsConfiguration.py
+│   │   │       └── recorder/
+│   │   │           └── __iKGRecorder.py
 │   │   └── utilities/
 │   │       ├── .fff
 │   │       └── asyncADB/
@@ -497,6 +503,13 @@ src/eNuts/application/device:
 			DEVICE_INITIALIZED_EVENT -> : device_initialized_event
 			POLL_INTERVAL -> : poll_interval
 
+src/eNuts/application/recorder:
+	__kgRecorder.py - 
+		CLASSE(S):
+			KGRecorder -> : kgrecorder
+		CONSTANTS(S)/GLOBAL(S)
+			C_ON_FRAME -> : c_on_frame
+
 src/eNuts/application/theme:
 	__theme.py - 
 		FUNCTION(S):
@@ -548,6 +561,12 @@ src/eNuts/types/interface/configuration:
 		CLASSE(S):
 			iENUTSConfiguration -> : ienutsconfiguration
 
+src/eNuts/types/interface/recorder:
+	__iKGRecorder.py - 
+		CLASSE(S):
+			eKGRecorderState -> : ekgrecorderstate
+			iKGRecorder -> : ikgrecorder
+
 src/eNuts/types/interface/UI/windows:
 	__mainWindow.py - 
 		CLASSE(S):
@@ -569,6 +588,9 @@ src/eNuts/UI/pages:
 		FUNCTION(S):
 			buildDevicePage -> : builddevicepage
 			_applyFrame -> : _applyframe
+	__kgRecorderPage.py - 
+		FUNCTION(S):
+			buildKGRecorderPage -> : buildkgrecorderpage
 	__navigationPages.py - 
 		FUNCTION(S):
 			buildBlankPage -> : buildblankpage
@@ -592,6 +614,11 @@ src/eNuts/UI/pages:
 			buildSmokeTestPages -> : buildsmoketestpages
 		CONSTANTS(S)/GLOBAL(S)
 			PAGE_KEYS -> : page_keys
+
+src/eNuts/UI/widgets:
+	__captureImage.py - 
+		CLASSE(S):
+			CaptureImage -> : captureimage
 
 src/eNuts/UI/widgets/spinners:
 	__evolvingNeuralBrain.py - 
@@ -1509,44 +1536,52 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-fb504d0:
-	fix(policy): replace C_PARAM_DIM with G_PARAM_DIM for consistency
+030f57a:
+	docs(kg-recorder): note live device combo and stream attach
+		.docs/eNuts/application/recorder/implementation.md
+
+f146b2b:
+	feat(kg-recorder): pass deviceManager to KGRecorder for combo + stream
+		src/eNuts/application/__shell.py
+
+e898e99:
+	feat(kg-recorder): populate device combo from deviceManager and attach stream to CaptureImage
+		src/eNuts/application/recorder/__kgRecorder.py
+
+a21409d:
+	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
+
+39bd766:
+	fix(policy): add missing line breaks for improved readability in DCPolicy class
 		src/fluxCore/policy/__dcPolicy.py
 
-2214b65:
-	fix(torch): remove G_BACKBONE_DIM definition for clarity
-		src/fluxCore/utilities/__torch.py
+ff4f8bb:
+	docs(kg-recorder): requirement, implementation, and code docs for K&G Recorder
+		.docs/eNuts/UI/pages/implementation.md
+		.docs/eNuts/UI/pages/kgRecorderPage.md
+		.docs/eNuts/UI/pages/requirement.md
+		.docs/eNuts/UI/widgets/captureImage.md
+		.docs/eNuts/UI/widgets/implementation.md
+		.docs/eNuts/UI/widgets/requirement.md
+		.docs/eNuts/application/recorder/implementation.md
+		.docs/eNuts/application/recorder/kgRecorder.md
+		.docs/eNuts/application/recorder/requirement.md
+		.docs/eNuts/types/interface/recorder/iKGRecorder.md
+		.docs/eNuts/types/interface/recorder/implementation.md
+		.docs/eNuts/types/interface/recorder/requirement.md
 
-e7ce3b4:
-	feat(torch): add G_BACKBONE_DIM for MobileNet V3 Small features
+4f11aa2:
+	feat(kg-recorder): export KGRecorder from application package
 
-3c37909:
-	refactor(policy): update parameter names and improve code readability
-		src/fluxCore/policy/__dcPolicy.py
-		src/fluxCore/policy/__policyOptions.py
-		src/fluxCore/utilities/__torch.py
+6809afa:
+	feat(kg-recorder): wire KGRecorder into Shell as ENUTSWindow component
+		src/eNuts/application/__shell.py
 
-abacfcf:
-	fix(utilities): export G_BACKBONE_DIM
+2b335d4:
+	feat(kg-recorder): export buildKGRecorderPage
 
-f4d633f:
-	fix(utilities): define G_BACKBONE_DIM (MobileNet-V3-Small flatten width)
-		src/fluxCore/utilities/__torch.py
-
-2a24d08:
-	chore(assets): remove unused logo copy image
-		assets/logo copy.png
-
-d54e874:
-	fix(policy): ArgumentKindVocabulary.labelClass = ArgumentKindLabel
-		src/fluxCore/policy/vocabulary/__argumentKindVocabulary.py
-
-63f2baf:
-	fix(policy): IntentVocabulary.labelClass = IntentLabel
-		src/fluxCore/policy/vocabulary/__intentVocabulary.py
-
-030da1c:
-	fix(policy): ActionVocabulary.labelClass = ActionLabel
-		src/fluxCore/policy/vocabulary/__actionVocabulary.py
+48550c7:
+	feat(kg-recorder): wire buildKGRecorderPage into navigation pages
+		src/eNuts/UI/pages/__navigationPages.py
 
 ```
