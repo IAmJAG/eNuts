@@ -151,11 +151,13 @@ class DCPolicy(nn.Module, iPolicy):
             options.actions.toTensor().detach()
             .to(device=device, dtype=torch.float32).clone(),
         )
+
         self.register_buffer(
             "_argKindEmbeddings",
             options.argumentKinds.toTensor().detach()
             .to(device=device, dtype=torch.float32).clone(),
         )
+
         self.register_buffer(
             "_intentEmbeddings",
             options.intents.toTensor().detach()
@@ -166,6 +168,7 @@ class DCPolicy(nn.Module, iPolicy):
         blankVisual = torch.zeros(
             3, G_FRAME_SIZE, G_FRAME_SIZE, dtype=torch.float32, device=device
         )
+        
         noneActionEmb = self._lookupActionEmbedding(C_NONE_ACTION).detach()
         emptyParam = torch.zeros(G_PARAM_DIM, dtype=torch.float32, device=device)
         self._carousel: Deque[Tuple[Tensor, Tensor, Tensor]] = deque(
