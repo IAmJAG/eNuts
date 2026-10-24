@@ -27,8 +27,9 @@ class Shell(ApplicationInformation):
             self._deviceManager = mgr
 
             recorder = KGRecorder(parent=self)
+            recorder.setDeviceManager(mgr)
             self._kgRecorder = recorder
-            verbose("[Shell] KGRecorder created")
+            verbose("[Shell] KGRecorder created and bound to deviceManager")
 
             central: WorkSpace = WorkSpace(deviceMgr=mgr)
             verbose(
@@ -73,7 +74,6 @@ class Shell(ApplicationInformation):
             warning("[Shell] kg-recorder page has no CommandBar")
             return
 
-        # CommandBarButton exposes clicked; resolve by caption within groups.
         def _findButtons() -> dict[str, object]:
             found: dict[str, object] = {}
             try:
@@ -210,7 +210,6 @@ class Shell(ApplicationInformation):
                 recorder.unbindPage()
             except Exception as ex:
                 warning(f"[Shell] KGRecorder.unbindPage failed: {ex}")
-        # Detach UI frame handlers before widgets are destroyed.
         ws = getattr(self, "_workSpace", None)
         if ws is not None and hasattr(ws, "detachAllStreams"):
             try:
