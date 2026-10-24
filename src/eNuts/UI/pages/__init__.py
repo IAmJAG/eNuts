@@ -1,5 +1,6 @@
 # ==================================================================================
 from .__devicePage import DeviceFrameBridge, buildDevicePage
+from .__kgRecorderPage import buildKGRecorderPage
 from .__navigationPages import buildBlankPage, buildNavigationPages
 from .__pageKeys import (
     C_DEVICE_KEY_PREFIX,
@@ -27,6 +28,7 @@ __all__ = [
     "DeviceFrameBridge",
     "buildBlankPage",
     "buildDevicePage",
+    "buildKGRecorderPage",
     "buildNavigationPages",
     "devicePageKey",
     "devicePageKeyFromId",
