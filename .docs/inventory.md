@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-25 03:03:26 UTC*
+*Auto-generated on: 2026-10-25 06:51:41 UTC*
 
 ## Current Directory Structure
 
@@ -67,7 +67,8 @@ eNuts/
 │       │   └── palette
 │       ├── ironman/
 │       │   ├── main.css
-│       │   └── palette
+│       │   ├── palette
+│       │   └── sideBar.css
 │       ├── light/
 │       │   ├── main.css
 │       │   └── palette
@@ -578,9 +579,9 @@ src/eNuts/UI/navigation:
 		FUNCTION(S):
 			setPageKey -> : setpagekey
 			pageKeyOf -> : pagekeyof
-			buildSmokeTestSideBarMenu -> : buildsmoketestsidebarmenu
+			buildSideBarMenu -> : buildsidebarmenu
 		CONSTANTS(S)/GLOBAL(S)
-			C_PAGE_KEY_PROP -> : c_page_key_prop
+			G_PAGE_KEY_PROP -> : g_page_key_prop
 
 src/eNuts/UI/pages:
 	__devicePage.py - 
@@ -608,8 +609,8 @@ src/eNuts/UI/pages:
 			PAGE_ANNOTATOR -> : page_annotator
 			PAGE_KG_RECORDER -> : page_kg_recorder
 			PAGE_SETTINGS -> : page_settings
-			C_DEVICE_KEY_PREFIX -> : c_device_key_prefix
-			C_DEVICE_NONE -> : c_device_none
+			G_DEVICE_KEY_PREFIX -> : g_device_key_prefix
+			G_DEVICE_NONE -> : g_device_none
 	__smokePages.py - 
 		FUNCTION(S):
 			buildSmokeTestPages -> : buildsmoketestpages
@@ -1437,8 +1438,6 @@ src/jAGQt/widgets/sideBar/menu:
 	__sideBarMenuItem.py - 
 		CLASSE(S):
 			SideBarMenuItem -> : sidebarmenuitem
-		FUNCTION(S):
-			_defaultIconPath -> : _defaulticonpath
 		CONSTANTS(S)/GLOBAL(S)
 			C_ROOT_ICON_SIZE -> : c_root_icon_size
 			C_CHILD_ICON_SIZE -> : c_child_icon_size
@@ -1537,6 +1536,45 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+10af66d:
+	feat(sidebar): refactor sidebar menu and styles; update key naming conventions
+		config/themes/ironman/main.css
+		config/themes/ironman/sideBar.css
+		src/eNuts/UI/navigation/__sideBarMenuBuilder.py
+		src/eNuts/UI/pages/__devicePage.py
+		src/eNuts/UI/pages/__pageKeys.py
+		src/eNuts/application/__shell.py
+		src/eNuts/application/device/__deviceManager.py
+		src/eNuts/application/workspace/__workSpace.py
+		src/jAGQt/widgets/SideBar/menu/__eSideBarMenuRole.py
+		src/jAGQt/widgets/SideBar/menu/__sideBarMenu.py
+		src/jAGQt/widgets/SideBar/menu/__sideBarMenuItem.py
+
+e12d205:
+	feat(KGRecorder): stop non-selected emitters; flush capture image on start
+		src/eNuts/application/recorder/__kgRecorder.py
+
+672c5d1:
+	feat(deviceManager): stopExcept â€” stop all emitters except one serial
+		src/eNuts/application/device/__deviceManager.py
+
+409ac29:
+	fix(AndroidAction): inherit only concrete Action to avoid Protocol MRO conflict
+		src/fluxCore/action/android/__androidAction.py
+
+a0c297a:
+	fix(AndroidAction): put concrete Action before Protocol in MRO so _name is initialized
+		src/fluxCore/action/android/__androidAction.py
+
+303b239:
+	fix: update class inheritance for AndroidAction and geometry classes to use Serializable
+		.docs/inventory.md
+		src/fluxCore/action/android/__androidAction.py
+		src/fluxCore/types/geometry/__circle.py
+		src/fluxCore/types/geometry/__point.py
+		src/fluxCore/types/geometry/__rectangle.py
+		src/fluxCore/types/interface/action/__androidAction.py
+
 a4d452b:
 	fix(fluxCore): break circular import in iAndroidAction (TYPE_CHECKING for eCommandType)
 		src/fluxCore/types/interface/action/__androidAction.py
@@ -1551,29 +1589,5 @@ a4d452b:
 
 2249321:
 	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
-
-93092da:
-	fix(Image): disable interaction by setting interactionEnabled to False
-		src/jAGQt/widgets/Image/__image.py
-
-12ab2fd:
-	fix(KGRecorder): log pointer move only while button is held (dragging)
-		src/eNuts/application/recorder/__kgRecorder.py
-
-75c99e6:
-	fix(CaptureImage): disable Image pan/zoom via interactionEnabled=False
-		src/eNuts/UI/widgets/__captureImage.py
-
-01a8615:
-	fix(Image): gate pan/zoom behind interactionEnabled (default True)
-		src/jAGQt/widgets/Image/__image.py
-
-f4c1dba:
-	docs(inventory): update auto-generated timestamp
-		.docs/inventory.md
-
-e724b99:
-	docs(inventory): update auto-generated timestamp and enhance directory structure documentation
-		.docs/inventory.md
 
 ```
