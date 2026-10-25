@@ -130,7 +130,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
     def _wBuildMenu(self) -> None:
         sideBar: SideBar = self._sideBar
         menu, settings = buildSideBarMenu()
-
+        
         sideBar.setContent(menu)
         sideBar.setFooter(settings)
 

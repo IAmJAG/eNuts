@@ -38,7 +38,7 @@ def buildSideBarMenu() -> tuple[SideBarMenu, SideBarMenuItem]:
     menu = SideBarMenu()
 
     # Dashboard    
-    dashboard = menu.addItem("Dashboard", role=eSideBarMenuRole.Leaf)
+    dashboard = menu.addItem("Dashboard", role=eSideBarMenuRole.Header, icon="dashboard")
 
     # Tools
     tools = menu.addItem("Tools", role=eSideBarMenuRole.Header)    

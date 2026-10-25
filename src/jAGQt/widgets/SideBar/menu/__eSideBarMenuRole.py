@@ -4,5 +4,6 @@ from enum import Enum, auto
 
 # ==================================================================================
 class eSideBarMenuRole(Enum):
-    Header = auto()  
+    Header = auto()
     Leaf = auto()
+    

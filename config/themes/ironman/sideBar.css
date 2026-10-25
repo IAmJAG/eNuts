@@ -3,15 +3,73 @@ QWidget#W_SIDEBAR {
     border-right: 1px solid $border;
 }
 
-QWidget#W_SIDEBAR > QWidget#W_SIDEBAR_MENU,
+QWidget#W_SIDEBAR > QWidget#W_SIDEBAR_FOOTER > QWidget,
+QWidget#W_SIDEBAR > QWidget#W_SIDEBAR_CONTENT > QWidget#W_SIDEBAR_MENU,    
 QWidget#W_SIDEBAR > QWidget{
     background: $surface;
-    margin: 0px 2px 0px 0px;
+    margin-right: 2px;
+}
+
+QWidget#W_SIDEBAR > QWidget#W_SIDEBAR_CONTENT > QWidget#W_SIDEBAR_MENU{
+    border-bottom: 1px solid $border;
+}
+
+QWidget#W_SIDEBAR > QWidget#W_SIDEBAR_HEADER {
+    background: $surface;
+    border-bottom: 1px solid $border;
 }
 
 QWidget#W_SIDEBAR > QWidget#W_SIDEBAR_HEADER > QLabel#W_SIDEBAR_HEADER_TITLE {
     color: $accent;
     font-weight: 800;
     font-size: 18px;
+}
+
+QWidget#W_SIDEBAR_MENU_ITEM {
+    background: transparent;
+    color: $textMuted;
+    border: 1px solid transparent;
+    border-radius: 0px;
+}
+
+/* Header rows — flush with menu column */
+QWidget#W_SIDEBAR_MENU_ITEM[role="header"] {
+    margin-left: 0px;
+    padding: 6px 10px;
+    font-weight: 600;
+    color: $text;
+}
+
+/*
+ * Leaf rows — indent via margin-left (not padding).
+ * Qt layouts fill the widget; stylesheet padding on a laid-out QWidget
+ * does not shift child content. margin-left offsets the whole row in the body.
+ */
+QWidget#W_SIDEBAR_MENU_ITEM[role="leaf"] {
+    margin-left: 20px;
+    padding: 4px 10px;
+    font-weight: 400;
+    color: $textMuted;
+}
+
+QWidget#W_SIDEBAR_MENU_ITEM:hover,
+QWidget#W_SIDEBAR_MENU_ITEM[hover="true"] {
+    background: $hover;
+    color: $text;
+    border-color: $border;
+}
+
+QWidget#W_SIDEBAR_MENU_ITEM[selected="true"] {
+    background: $selected;
+    color: $text;
+    border: 1px solid $accent;
+    border-left: 3px solid $accentAlt;
+    font-weight: 600;
+}
+
+QWidget#W_SIDEBAR_MENU_ITEM[selected="true"][hover="true"] {
+    background: $selectedHover;
+    border-color: $accent;
+    border-left-color: $accentAlt;
 }
 

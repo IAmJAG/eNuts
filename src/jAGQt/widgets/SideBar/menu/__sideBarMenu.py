@@ -163,6 +163,7 @@ class SideBarMenu(ComponentBase, ObjectName, QScrollArea):
         kw = self._metricsKw()
         if isinstance(item, str):
             row = SideBarMenuItem(caption=item, icon=icon, role=role, **kw)
+            
         else:
             row = item
             row.applyMetrics(**kw)
