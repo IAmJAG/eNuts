@@ -15,58 +15,52 @@ from ..pages import (
 )
 
 # ==================================================================================
-C_PAGE_KEY_PROP = "pageKey"
-
+G_PAGE_KEY_PROP = "pageKey"
 
 # ==================================================================================
 def setPageKey(item: SideBarMenuItem, key: str) -> None:
-    item.setProperty(C_PAGE_KEY_PROP, key)
-
+    item.setProperty(G_PAGE_KEY_PROP, key)
 
 # ==================================================================================
 def pageKeyOf(item: object) -> str | None:
     """Read the navigation key attached to a SideBarMenuItem, if any."""
-    if not isinstance(item, SideBarMenuItem):
-        return None
-    value = item.property(C_PAGE_KEY_PROP)
-    if value is None:
-        return None
+    if not isinstance(item, SideBarMenuItem): return None
+    value = item.property(G_PAGE_KEY_PROP)
+
+    if value is None: return None
+    
     key = str(value).strip()
     return key or None
 
 
 # ==================================================================================
-def buildSmokeTestSideBarMenu() -> tuple[SideBarMenu, SideBarMenuItem, SideBarMenuItem]:
-    """Build nav menu + Settings footer; every static node has a pageKey.
-
-    Returns ``(menu, settingsItem, devicesHeader)``.
-
-    Devices starts with **no** children. WorkSpace adds leaves only when
-    deviceManager reports real devices (no ``(no devices)`` placeholder).
-    """
+def buildSideBarMenu() -> tuple[SideBarMenu, SideBarMenuItem, SideBarMenuItem]:
     menu = SideBarMenu()
 
+    # Dashboard    
     dashboard = menu.addItem("Dashboard", role=eSideBarMenuRole.Leaf)
-    setPageKey(dashboard, PAGE_DASHBOARD)
 
-    devices = menu.addItem("Devices", role=eSideBarMenuRole.Header)
-    setPageKey(devices, PAGE_DEVICES)
-    # Intentionally no children until discovery.
-
-    tools = menu.addItem("Tools", role=eSideBarMenuRole.Header)
-    setPageKey(tools, PAGE_TOOLS)
-    annotator = tools.addChild("Annotator")
-    setPageKey(annotator, PAGE_ANNOTATOR)
+    # Tools
+    tools = menu.addItem("Tools", role=eSideBarMenuRole.Header)    
     recorder = tools.addChild("K&G Recorder")
-    setPageKey(recorder, PAGE_KG_RECORDER)
+    annotator = tools.addChild("Annotator")    
 
+    # Settings
     settings = SideBarMenuItem(
         caption="Settings",
         role=eSideBarMenuRole.Header,
     )
+
+    setPageKey(dashboard, PAGE_DASHBOARD)
+
+    setPageKey(tools, PAGE_TOOLS)
+    setPageKey(recorder, PAGE_KG_RECORDER)
+    setPageKey(annotator, PAGE_ANNOTATOR)
+    
     setPageKey(settings, PAGE_SETTINGS)
+    
     settings.selectionRequested.connect(
         lambda item: menu.selectItem(item) if menu.SelectOnClick else None
     )
 
-    return menu, settings, devices
+    return menu, settings

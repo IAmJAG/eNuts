@@ -133,7 +133,7 @@ class deviceManager(AsyncSubscription):
 
         while not isShuttingDown():
             devices = await _getDevices()
-
+            
             curIds = set(devices.keys())
             oldIds = set(self._devices.keys())
 
@@ -154,6 +154,7 @@ class deviceManager(AsyncSubscription):
         async def _discoveryRunner() -> None:
             try:
                 await self._discovery()
+
             except Exception as ex:
                 error("[deviceManager] discovery FAIL", ex)
 

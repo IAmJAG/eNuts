@@ -8,12 +8,7 @@ from typing import List, Optional, Tuple, Union
 # ==================================================================================
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QIcon, QPixmap, QResizeEvent, QShowEvent
-from PySide6.QtWidgets import (
-    QBoxLayout,
-    QScrollArea,
-    QSizePolicy,
-    QWidget,
-)
+from PySide6.QtWidgets import QBoxLayout, QScrollArea, QSizePolicy, QWidget
 
 # ==================================================================================
 from jAGFx.workflow import workflow
@@ -38,12 +33,9 @@ QSPolicy = QSizePolicy.Policy
 StyleBackground = Qt.WidgetAttribute.WA_StyledBackground
 # ==================================================================================
 
-
 # ==================================================================================
 @workflow
 class SideBarMenu(ComponentBase, ObjectName, QScrollArea):
-    """Scrollable list of top-level SideBarMenuItems."""
-
     OBJECT_NAME = "W_SIDEBAR_MENU"
 
     itemClicked = Signal(object)
@@ -91,18 +83,16 @@ class SideBarMenu(ComponentBase, ObjectName, QScrollArea):
             self._column = column
             self._columnLayout = columnLayout
             verbose("[SideBarMenu] _wInitializeUI EXIT")
+
         except Exception as ex:
-            error("[SideBarMenu] _wInitializeUI FAIL", ex)
             error(f"[SideBarMenu] traceback:\n{format_exc()}")
             raise
 
     def _fillColumnWidth(self) -> None:
         """Make the inner column (and rows) use the full viewport width."""
-        if self._column is None:
-            return
+        if self._column is None: return
         vw = self.viewport().width() if self.viewport() is not None else 0
-        if vw <= 0:
-            vw = self.width()
+        if vw <= 0: vw = self.width()
         if vw > 0:
             self._column.setMinimumWidth(vw)
             self._column.setMaximumWidth(16777215)
@@ -133,15 +123,9 @@ class SideBarMenu(ComponentBase, ObjectName, QScrollArea):
         )
 
     def applyMetrics(
-        self,
-        *,
-        rootIconSize: int,
-        childIconSize: int,
-        rootFontPt: int,
-        childFontPt: int,
-        itemMargins: Tuple[int, int, int, int],
-        childIndent: int,
-        collapsedWidth: int,
+        self, *, rootIconSize: int, childIconSize: int, rootFontPt: int,
+        childFontPt: int, itemMargins: Tuple[int, int, int, int],
+        childIndent: int, collapsedWidth: int,
     ) -> None:
         self._rootIconSize = int(rootIconSize)
         self._childIconSize = int(childIconSize)
@@ -163,19 +147,17 @@ class SideBarMenu(ComponentBase, ObjectName, QScrollArea):
             top.setChromeCollapsed(self._chromeCollapsed)
             for child in top.Children:
                 child.setChromeCollapsed(self._chromeCollapsed)
+
         if not collapsed:
             self._fillColumnWidth()
 
     def _insertBeforeStretch(self, widget: QWidget) -> None:
         layout = self._columnLayout
-        if layout is None:
-            raise RuntimeError("SideBarMenu UI not initialized")
+        if layout is None: raise RuntimeError("SideBarMenu UI not initialized")
         layout.insertWidget(max(0, layout.count() - 1), widget, stretch=0)
 
     def addItem(
-        self,
-        item: Union[SideBarMenuItem, str],
-        icon: Optional[Union[QIcon, QPixmap, str]] = None,
+        self, item: Union[SideBarMenuItem, str], icon: Optional[Union[QIcon, QPixmap, str]] = None,
         role: eSideBarMenuRole = eSideBarMenuRole.Header,
     ) -> SideBarMenuItem:
         kw = self._metricsKw()

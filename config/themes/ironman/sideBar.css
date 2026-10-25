@@ -1,0 +1,8 @@
+QWidget#SideBar {
+    background: $surface;
+    border-right: 1px solid red;
+}
+QWidget#W_WORKSPACE QWidget#W_SIDEBAR {
+    background: $surface;
+    border-right: 1px solid red;
+}

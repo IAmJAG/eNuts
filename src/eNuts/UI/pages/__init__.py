@@ -3,8 +3,8 @@ from .__devicePage import DeviceFrameBridge, buildDevicePage
 from .__kgRecorderPage import buildKGRecorderPage
 from .__navigationPages import buildBlankPage, buildNavigationPages
 from .__pageKeys import (
-    C_DEVICE_KEY_PREFIX,
-    C_DEVICE_NONE,
+    G_DEVICE_KEY_PREFIX,
+    G_DEVICE_NONE,
     PAGE_ANNOTATOR,
     PAGE_DASHBOARD,
     PAGE_DEVICES,
@@ -17,8 +17,8 @@ from .__pageKeys import (
 
 # ==================================================================================
 __all__ = [
-    "C_DEVICE_KEY_PREFIX",
-    "C_DEVICE_NONE",
+    "G_DEVICE_KEY_PREFIX",
+    "G_DEVICE_NONE",
     "PAGE_ANNOTATOR",
     "PAGE_DASHBOARD",
     "PAGE_DEVICES",

@@ -21,10 +21,10 @@ from jAGQt.widgets.sideBar import SideBar, SideBarMenuItem, eSideBarState
 from utilities.io import getICONPath
 
 # ==================================================================================
-from ...UI.navigation import buildSmokeTestSideBarMenu, pageKeyOf, setPageKey
+from ...UI.navigation import buildSideBarMenu, pageKeyOf, setPageKey
 from ...UI.pages import (
-    C_DEVICE_KEY_PREFIX,
-    C_DEVICE_NONE,
+    G_DEVICE_KEY_PREFIX,
+    G_DEVICE_NONE,
     PAGE_DASHBOARD,
     PAGE_DEVICES,
     buildDevicePage,
@@ -59,16 +59,19 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
     _sigDeviceRemoved: SignalInstance = Signal(object)
 
     def __init__(
-        self, deviceMgr: Optional[deviceManager] = None,
-        *args, **kwargs,
+        self, deviceMgr: Optional[deviceManager] = None, 
+        title: str = "eNuts",
+        *args, **kwargs
     ) -> None:
-        debug("[WorkSpace] __init__ ENTER")
+        debug(f"[{self.__class__.__name__}] __init__ ENTER")
         try:
             super().__init__(*args, **kwargs)
             self._sideBar: Optional[SideBar] = None
             self._stack: Optional[QStackedWidget] = None
             self._pages: Dict[str, Page] = {}
             self._pageIndex: Dict[str, int] = {}
+            self._title: str = title
+
             self._devicesHeader: Optional[SideBarMenuItem] = None
             self._deviceManager: Optional[deviceManager] = deviceMgr
             self._devicePageKeys: Set[str] = set()
@@ -78,90 +81,79 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             self._bridges: Dict[str, DeviceFrameBridge] = {}
 
         except Exception as ex:
-            error("[WorkSpace] __init__ FAIL", ex)
-            error(f"[WorkSpace] __init__ traceback:\n{format_exc()}")
-            raise
+            error(f"[{self.__class__.__name__}] __init__ FAIL", ex)
 
-        debug(f"[WorkSpace] __init__ EXIT objectName={self.objectName()!r}")
+        finally:
+            objName: str = f"{self.objectName()!r}"
+            debug(f"[{self.__class__.__name__}] __init__ EXIT objectName={objName}")
+
+    def _buildSideBar(self) -> None:
+        # SideBar
+        expandPath: str = getICONPath("expand.png")
+        collapsePath: str = getICONPath("collapse.png")
+
+        sideBarOptions = SideBarOptions(animation=C_SIDEBAR_ANIMATION_TYPE)
+        animationOptions = AnimationOptions(name="RubberBand", durationMs=C_SIDEBAR_ANIMATION_MS)
+
+        sideBar: SideBar = SideBar(
+            icons={
+                eSideBarState.Expanded: collapsePath,
+                eSideBarState.Collapsed: expandPath,
+            },
+            title=self._title,
+            initialState=eSideBarState.Expanded,
+            options=sideBarOptions,
+            animationOptions=animationOptions,
+        )
+
+        return sideBar
+
+        pages = buildNavigationPages()
+        pageIndex: Dict[str, int] = {}
+        for key, page in pages.items():
+            idx = stack.addWidget(page)
+            pageIndex[key] = idx
+
+        if PAGE_DASHBOARD in pageIndex:
+            stack.setCurrentIndex(pageIndex[PAGE_DASHBOARD])
+
+        # menu, settings = buildSideBarMenu()
+        
+                    # menu.itemClicked.connect(self._onNavItemClicked)
+                    # settings.clicked.connect(self._onNavItemClicked)
+
+        self._sigDevicesReady.connect(self._onDevicesReadyUi)
+        self._sigDeviceAdded.connect(self._onDeviceAddedUi)
+        self._sigDeviceRemoved.connect(self._onDeviceRemovedUi)
+        self._bindDeviceManager(self._deviceManager)
 
     def _wInitializeUI(self) -> None:
         debug("[WorkSpace] _wInitializeUI ENTER")
         try:
             self.setAttribute(StyleBackground, True)
-            self.setStyleSheet("background-color: #1e1e1e;")
 
-            expandPath: str = getICONPath("expand.png")
-            collapsePath: str = getICONPath("collapse.png")
-
-            sideBarOptions = SideBarOptions(
-                animation=C_SIDEBAR_ANIMATION_TYPE,
-            )
-            animationOptions = AnimationOptions(
-                name="RubberBand",
-                durationMs=C_SIDEBAR_ANIMATION_MS,
-            )
-
-            sideBar: SideBar = SideBar(
-                icons={
-                    eSideBarState.Expanded: collapsePath,
-                    eSideBarState.Collapsed: expandPath,
-                },
-                title="eNuts",
-                initialState=eSideBarState.Expanded,
-                options=sideBarOptions,
-                animationOptions=animationOptions,
-            )
-
-            menu, settings, devicesHeader = buildSmokeTestSideBarMenu()
-            sideBar.Content = menu
-            sideBar.Footer = settings
-            self._devicesHeader = devicesHeader
+            sideBar = self._buildSideBar()
 
             stack: QStackedWidget = QStackedWidget()
-            stack.setObjectName("W_WORKSPACE_STACK")
-            stack.setSizePolicy(QSPolicy.Expanding, QSPolicy.Expanding)
-
-            pages = buildNavigationPages()
-            pageIndex: Dict[str, int] = {}
-            for key, page in pages.items():
-                idx = stack.addWidget(page)
-                pageIndex[key] = idx
-
-            if PAGE_DASHBOARD in pageIndex:
-                stack.setCurrentIndex(pageIndex[PAGE_DASHBOARD])
-
-            menu.itemClicked.connect(self._onNavItemClicked)
-            settings.clicked.connect(self._onNavItemClicked)
-
+            stack.setSizePolicy(QSPolicy.Expanding, QSPolicy.Expanding)           
+            
             layout: QBoxLayout = QBoxLayout(QBoxLayout.Direction.LeftToRight)
             layout.setSpacing(0)
-            layout.setContentsMargins(0, 0, 0, 0)
+            layout.setContentsMargins(0, 0, 0, 0)            
             layout.addWidget(sideBar)
             layout.addWidget(stack, 1)
 
-            if hasattr(self, "_layout"):
+            if hasattr(self, "_layout"): 
                 self._layout = layout
-                del self._layout
-
+                
             self.setLayout(layout)
+            
             self._sideBar = sideBar
             self._stack = stack
-            self._pages = pages
-            self._pageIndex = pageIndex
+            debug("[WorkSpace] _wInitializeUI EXIT ")
 
-            self._sigDevicesReady.connect(self._onDevicesReadyUi)
-            self._sigDeviceAdded.connect(self._onDeviceAddedUi)
-            self._sigDeviceRemoved.connect(self._onDeviceRemovedUi)
-            self._bindDeviceManager(self._deviceManager)
-
-            debug(
-                f"[WorkSpace] _wInitializeUI EXIT "
-                f"deviceMgr={'yes' if self._deviceManager else 'no'}"
-            )
         except Exception as ex:
             error("[WorkSpace] _wInitializeUI FAIL", ex)
-            error(f"[WorkSpace] _wInitializeUI traceback:\n{format_exc()}")
-            raise
 
     def _onNavItemClicked(self, item: object) -> None:
         key = pageKeyOf(item)
@@ -175,7 +167,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
 
     def showPage(self, key: str) -> bool:
         stack = self._stack
-        index = self._pageIndex.get(key)
+        index = self._pageIndex.get(key, None)
         if stack is None or index is None:
             warning(f"[WorkSpace] unknown page key={key!r}")
             return False

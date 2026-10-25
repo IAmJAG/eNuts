@@ -19,10 +19,8 @@ class DeviceFrameBridge(QObject):
     """Marshal decoded frames onto the Qt thread for Image."""
 
     frameReady: SignalInstance = Signal(object)  # QImage | QPixmap
-
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
-
 
 # ==================================================================================
 def buildDevicePage(key: str, title: str, serial: str) -> Page:

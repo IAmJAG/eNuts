@@ -35,19 +35,8 @@ C_DEFAULT_ICON = "logo.png"
 
 
 # ==================================================================================
-def _defaultIconPath() -> str:
-    return getICONPath(C_DEFAULT_ICON)
-
-
-# ==================================================================================
 @workflow
 class SideBarMenuItem(SideBarItem):
-    """One menu row.
-
-    Hierarchy (ParentItem), not role, drives indent and visual weight.
-    Collapsed rail: captions hidden, icons centered; children stay visible.
-    """
-
     OBJECT_NAME = "W_SIDEBAR_MENU_ITEM"
 
     clicked = Signal(object)
@@ -55,24 +44,17 @@ class SideBarMenuItem(SideBarItem):
     selectionRequested = Signal(object)
 
     def __init__(
-        self,
-        caption: str = "",
-        icon: Optional[Union[QIcon, QPixmap, str]] = None,
+        self, caption: str = "", icon: Optional[Union[QIcon, QPixmap, str]] = None,
         role: eSideBarMenuRole = eSideBarMenuRole.Header,
-        rootIconSize: int = C_ROOT_ICON_SIZE,
-        childIconSize: int = C_CHILD_ICON_SIZE,
-        rootFontPt: int = C_ROOT_FONT_PT,
-        childFontPt: int = C_CHILD_FONT_PT,
+        rootIconSize: int = C_ROOT_ICON_SIZE, childIconSize: int = C_CHILD_ICON_SIZE,
+        rootFontPt: int = C_ROOT_FONT_PT, childFontPt: int = C_CHILD_FONT_PT,
         itemMargins: Tuple[int, int, int, int] = C_ITEM_MARGIN,
-        childIndent: int = C_CHILD_INDENT,
-        collapsedWidth: int = C_COLLAPSED_WIDTH,
-        *args,
-        **kwargs,
+        childIndent: int = C_CHILD_INDENT, collapsedWidth: int = C_COLLAPSED_WIDTH,
+        *args, **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
         self._captionText: str = caption
-        if icon is None:
-            icon = _defaultIconPath()
+        if icon is None: icon = getICONPath(C_DEFAULT_ICON)
         self._iconSource: Optional[Union[QIcon, QPixmap, str]] = icon
         self._role: eSideBarMenuRole = role
         self._rootIconSize: int = int(rootIconSize)

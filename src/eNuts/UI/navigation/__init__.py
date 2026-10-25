@@ -1,9 +1,9 @@
 # ==================================================================================
 from .__sideBarMenuBuilder import (
-    buildSmokeTestSideBarMenu,
+    buildSideBarMenu,
     pageKeyOf,
     setPageKey,
 )
 
 # ==================================================================================
-__all__ = ["buildSmokeTestSideBarMenu", "pageKeyOf", "setPageKey"]
+__all__ = ["buildSideBarMenu", "pageKeyOf", "setPageKey"]

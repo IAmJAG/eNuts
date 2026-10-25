@@ -10,46 +10,33 @@ from PySide6.QtCore import QRect, QSettings, Qt
 # ==================================================================================
 from jAGQt.types.interface.window import iMainWindowBase
 
+from ..UI.pages import PAGE_KG_RECORDER
+
 # ==================================================================================
 from .__applicationInformation import ApplicationInformation
 from .device import deviceManager
 from .recorder import KGRecorder
 from .workspace import WorkSpace
-from ..UI.pages import PAGE_KG_RECORDER
 
 
 # ==================================================================================
 class Shell(ApplicationInformation):
     def _wInitializeUI(self: iMainWindowBase) -> None:
-        verbose("[Shell] _wInitializeUI ENTER")
+        verbose(f"[{self.__class__.__name__}] _wInitializeUI ENTER")
         try:
-            mgr = deviceManager(self._shutdownEvent)
-            self._deviceManager = mgr
-
-            recorder = KGRecorder(parent=self)
-            recorder.setDeviceManager(mgr)
-            self._kgRecorder = recorder
-            verbose("[Shell] KGRecorder created and bound to deviceManager")
-
+            mgr = deviceManager(self._shutdownEvent)            
+            
             central: WorkSpace = WorkSpace(deviceMgr=mgr)
-            verbose(
-                f"[Shell] WorkSpace created objectName={central.objectName()!r}"
-            )
             self.setCentralWidget(central)
-            self._workSpace = central
-            verbose("[Shell] setCentralWidget done")
 
-            self._bindKGRecorder(central, recorder)
-
-            mgr.runDiscovery()
+            self._deviceManager = mgr            
             verbose("[Shell] deviceManager.runDiscovery started")
 
         except Exception as ex:
-            error("[Shell] _wInitializeUI FAIL", ex)
-            error(f"[Shell] _wInitializeUI traceback:\n{format_exc()}")
-            raise
+            error(f"[{self.__class__.__name__}] _wInitializeUI FAIL", ex)
+
         finally:
-            verbose("[Shell] _wInitializeUI EXIT")
+            verbose("f[{self.__class__.__name__}] _wInitializeUI EXIT")
 
     def _bindKGRecorder(self, workSpace: WorkSpace, recorder: KGRecorder) -> None:
         """Attach KGRecorder to the kg-recorder page view (minimal Shell logic)."""
@@ -64,6 +51,7 @@ class Shell(ApplicationInformation):
             self._wireKGRecorderCommands(page, recorder)
             self._wireKGRecorderViews(page, recorder)
             verbose("[Shell] KGRecorder bound to page")
+
         except Exception as ex:
             error("[Shell] _bindKGRecorder FAIL", ex)
             error(f"[Shell] traceback:\n{format_exc()}")
