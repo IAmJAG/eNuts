@@ -18,8 +18,7 @@ from ..types.interface.application import iApplicationInformation
 class ApplicationInformation(iApplicationInformation, WindowBase):
     def __init__(
         self: WindowBase, shutdownEvent: asyncEvent,
-        cfg: iApplicationConfiguration,
-        *args, **kwargs,
+        cfg: iApplicationConfiguration, *args, **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
         self._config = cfg
@@ -31,7 +30,6 @@ class ApplicationInformation(iApplicationInformation, WindowBase):
 
     def _wInitializeInfo(self) -> None:
         self.title = self.config.title or self.applicationId or "eNuts"
-
         logoName = self.logo or "logo"
         iconPath = getICONPath(f"{logoName}.png")
         self.icon = QIcon(iconPath)

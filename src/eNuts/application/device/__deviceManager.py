@@ -21,8 +21,6 @@ POLL_INTERVAL: float = 2.0
 
 # ==================================================================================
 class deviceManager(AsyncSubscription):
-    """App-wide device + SCRCPYEmitter registry."""
-
     def __init__(self, shutdownEvent: Event, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._shutdownEvent = shutdownEvent
@@ -62,12 +60,12 @@ class deviceManager(AsyncSubscription):
             raise KeyError(f"No SCRCPYEmitter registered for id={deviceId!r}")
 
         if not self._streamReady.get(deviceId, False):
-            verbose(f"[deviceManager] ensureRunning initialize id={deviceId!r}")
+            verbose(f"[{self.__class__.__name__}] ensureRunning initialize id={deviceId!r}")
             await emitter.initialize()
             self._streamReady[deviceId] = True
 
         if not emitter.isRunning:
-            verbose(f"[deviceManager] ensureRunning start id={deviceId!r}")
+            verbose(f"[{self.__class__.__name__}] ensureRunning start id={deviceId!r}")
             emitter.start()
 
         return emitter
@@ -79,7 +77,7 @@ class deviceManager(AsyncSubscription):
         try:
             if device.isRunning:
                 device.stop()
-                verbose(f"[deviceManager] stopped emitter id={deviceId!r}")
+                verbose(f"[{self.__class__.__name__}] stopped emitter id={deviceId!r}")
         except Exception as ex:
             warning(f"[deviceManager] stop emitter id={deviceId!r} failed: {ex}")
         self._streamReady.pop(deviceId, None)
@@ -99,7 +97,7 @@ class deviceManager(AsyncSubscription):
             if keep is not None and str(device.id) == keep:
                 continue
             self._stopEmitter(device)
-        verbose(f"[deviceManager] stopExcept keep={keep!r} done")
+        verbose(f"[{self.__class__.__name__}] stopExcept keep={keep!r} done")
 
     async def _discovery(self) -> None:
         isShuttingDown = self._shutdownEvent.is_set
@@ -111,7 +109,7 @@ class deviceManager(AsyncSubscription):
 
         devices: Dict[str, iDevice] = await _getDevices()
         verbose(
-            f"[deviceManager] initial discovery count={len(devices)} "
+            f"[{self.__class__.__name__}] initial discovery count={len(devices)} "
             f"ids={list(devices.keys())}"
         )
 
@@ -127,7 +125,7 @@ class deviceManager(AsyncSubscription):
 
         self.raiseEvent(DEVICE_INITIALIZED_EVENT, self)
         verbose(
-            f"[deviceManager] INITIALIZED stored={len(self._devices)} "
+            f"[{self.__class__.__name__}] INITIALIZED stored={len(self._devices)} "
             f"ids={list(self._devices.keys())}"
         )
 
@@ -165,11 +163,10 @@ class deviceManager(AsyncSubscription):
         if device is None:
             return None
         deviceId: str = str(device.id)
-        if deviceId in self._devices:
-            return self._devices[deviceId]
+        if deviceId in self._devices: return self._devices[deviceId]
         self._devices[deviceId] = device
         verbose(
-            f"[deviceManager] addDevice id={deviceId!r} "
+            f"[{self.__class__.__name__}] addDevice id={deviceId!r} "
             f"name={getattr(device, 'name', None)!r} "
             f"type={type(device).__name__}"
         )
@@ -183,7 +180,7 @@ class deviceManager(AsyncSubscription):
         removed: Optional[iDevice] = self._devices.pop(deviceId, None)
         if removed is not None:
             self._stopEmitter(removed)
-            verbose(f"[deviceManager] removeDevice id={deviceId!r}")
+            verbose(f"[{self.__class__.__name__}] removeDevice id={deviceId!r}")
             self.raiseEvent(DEVICE_REMOVED_EVENT, removed)
             return removed
         return None

@@ -11,7 +11,7 @@ from jAGQt.widgets.image import Image
 from jAGQt.widgets.page import Page
 
 # ==================================================================================
-from .__navigationPages import buildBlankPage
+from ..navigation import buildBlankPage
 
 
 # ==================================================================================

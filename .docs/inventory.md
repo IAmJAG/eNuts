@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-25 06:54:04 UTC*
+*Auto-generated on: 2026-10-25 23:48:08 UTC*
 
 ## Current Directory Structure
 
@@ -42,9 +42,14 @@ eNuts/
 ├── assets/
 │   ├── gameInfo.json
 │   ├── icons/
+│   │   ├── KGRecorder.png
+│   │   ├── annotation.png
 │   │   ├── collapse.png
+│   │   ├── dashboard.png
 │   │   ├── expand.png
-│   │   └── logo.png
+│   │   ├── logo.png
+│   │   ├── settings.png
+│   │   └── tools.png
 │   ├── logo.png
 │   ├── names.json
 │   ├── names_categorized.json
@@ -83,11 +88,11 @@ eNuts/
 │   │   ├── UI/
 │   │   │   ├── .ff
 │   │   │   ├── navigation/
+│   │   │   │   ├── __navigation.py
 │   │   │   │   └── __sideBarMenuBuilder.py
 │   │   │   ├── pages/
 │   │   │   │   ├── __devicePage.py
 │   │   │   │   ├── __kgRecorderPage.py
-│   │   │   │   ├── __navigationPages.py
 │   │   │   │   ├── __pageKeys.py
 │   │   │   │   └── __smokePages.py
 │   │   │   ├── widgets/
@@ -575,6 +580,12 @@ src/eNuts/types/interface/UI/windows:
 			iENUTSWindow -> : ienutswindow
 
 src/eNuts/UI/navigation:
+	__navigation.py - 
+		FUNCTION(S):
+			buildBlankPage -> : buildblankpage
+			buildNavigationPages -> : buildnavigationpages
+		CONSTANTS(S)/GLOBAL(S)
+			PAGE_AND_MENU -> : page_and_menu
 	__sideBarMenuBuilder.py - 
 		FUNCTION(S):
 			setPageKey -> : setpagekey
@@ -593,10 +604,6 @@ src/eNuts/UI/pages:
 	__kgRecorderPage.py - 
 		FUNCTION(S):
 			buildKGRecorderPage -> : buildkgrecorderpage
-	__navigationPages.py - 
-		FUNCTION(S):
-			buildBlankPage -> : buildblankpage
-			buildNavigationPages -> : buildnavigationpages
 	__pageKeys.py - 
 		FUNCTION(S):
 			devicePageKeyFromId -> : devicepagekeyfromid
@@ -1536,6 +1543,32 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+a1087cb:
+	feat(sidebar): enhance sidebar menu styles and roles; add dashboard icon
+		assets/icons/dashboard.png
+		config/themes/ironman/sideBar.css
+		src/eNuts/UI/navigation/__sideBarMenuBuilder.py
+		src/eNuts/application/workspace/__workSpace.py
+		src/jAGQt/widgets/SideBar/menu/__eSideBarMenuRole.py
+		src/jAGQt/widgets/SideBar/menu/__sideBarMenu.py
+
+26b03d4:
+	feat(ui): update sidebar menu initialization and enhance workspace UI integration
+		config/eNuts/appconfig.json
+		config/themes/ironman/sideBar.css
+		src/eNuts/UI/navigation/__sideBarMenuBuilder.py
+		src/eNuts/application/__shell.py
+		src/eNuts/application/workspace/__workSpace.py
+		src/jAGQt/widgets/SideBar/menu/__sideBarMenu.py
+
+574f35d:
+	feat(inventory): update auto-generated timestamp and enhance directory structure documentation
+		.docs/inventory.md
+		config/themes/ironman/sideBar.css
+		src/eNuts/application/workspace/__workSpace.py
+		src/jAGQt/widgets/SideBar/__sideBar.py
+		src/jAGQt/widgets/components/__objectName.py
+
 9d5e1d4:
 	docs(inventory): update auto-generated timestamp and enhance directory structure documentation
 		.docs/inventory.md
@@ -1578,17 +1611,5 @@ a0c297a:
 		src/fluxCore/types/geometry/__point.py
 		src/fluxCore/types/geometry/__rectangle.py
 		src/fluxCore/types/interface/action/__androidAction.py
-
-a4d452b:
-	fix(fluxCore): break circular import in iAndroidAction (TYPE_CHECKING for eCommandType)
-		src/fluxCore/types/interface/action/__androidAction.py
-
-7874f72:
-	docs(kg-recorder): always-inject and device lock while recording
-		.docs/eNuts/application/recorder/implementation.md
-
-5b36f76:
-	feat(KGRecorder): always inject keys/gestures to device; lock device while recording
-		src/eNuts/application/recorder/__kgRecorder.py
 
 ```

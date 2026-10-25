@@ -2,11 +2,14 @@
 from __future__ import annotations
 
 # ==================================================================================
+from typing import Dict
+
+# ==================================================================================
 from jAGQt.widgets.page import Page
 
 # ==================================================================================
-from .__kgRecorderPage import buildKGRecorderPage
-from .__pageKeys import (
+from ..pages.__kgRecorderPage import buildKGRecorderPage
+from ..pages.__pageKeys import (
     PAGE_ANNOTATOR,
     PAGE_DASHBOARD,
     PAGE_DEVICES,
@@ -15,28 +18,59 @@ from .__pageKeys import (
     PAGE_TOOLS,
 )
 
+PAGE_AND_MENU: Dict = {
+    "CONTENT": {
+        "Dashboard": {
+            "title": "Dashboard",
+            "description": "Overview and status",
+            "icon": "dashboard.png",
+        },
+        "Tools":{
+            "title": "Tools",
+            "description": "Dataset gathering tools",
+            "icon": "tools.png",
+            "MENU": [
+                {
+                    "K&G Recorder": {
+                        "title": "K&G Recorder",
+                        "description": "Keyboard and Gesture Recorder",
+                        "icon": "KGRecorder.png",
+                    },
+                },
+                {
+                    "Annotator": {
+                        "title": "Annotator",
+                        "description": "Video/Image Annotator",
+                        "icon": "annotation.png",
+                    }
+                }
+            ]
+        }
+    },
+    "FOOTER": {
+        "Settings": {
+            "title": "Settings",
+            "description": "System settings",
+            "icon": "settings.png",
+        }
+    }
+}
+# ==================================================================================
 
 # ==================================================================================
 def buildBlankPage(key: str, title: str, description: str = "") -> Page:
-    """Basic Page: header only (title/description). No content widgets."""
     page = Page(title=title, description=description, id=key)
     verbose(f"[pages] blank page key={key!r} title={title!r}")
     return page
 
-
 # ==================================================================================
 def buildNavigationPages() -> dict[str, Page]:
-    """Static navigation pages (no live device leaves).
-
-    Device pages are registered at runtime by WorkSpace when discovery reports
-    devices. No ``device:none`` placeholder — Devices header alone until leaves
-    appear.
-    """
     pages: dict[str, Page] = {}
 
     pages[PAGE_DASHBOARD] = buildBlankPage(
         PAGE_DASHBOARD, "Dashboard", "Overview and status"
     )
+
     pages[PAGE_DEVICES] = buildBlankPage(
         PAGE_DEVICES, "Devices", "Device summary"
     )

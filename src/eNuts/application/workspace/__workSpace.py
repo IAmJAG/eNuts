@@ -129,8 +129,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
 
     def _wBuildMenu(self) -> None:
         sideBar: SideBar = self._sideBar
-        menu, settings = buildSideBarMenu()
-        
+        menu, settings = buildSideBarMenu()        
         sideBar.setContent(menu)
         sideBar.setFooter(settings)
 
@@ -338,9 +337,9 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             devices = self._listDevices(mgr)
             debug(f"[WorkSpace] devices ready count={len(devices)}")
             self._syncDevicesList(devices)
+
         except Exception as ex:
             error("[WorkSpace] _onDevicesReadyUi FAIL", ex)
-            error(f"[WorkSpace] traceback:\n{format_exc()}")
 
     def _onDeviceAddedUi(self, device: object) -> None:
         try:
@@ -349,6 +348,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             debug(f"[WorkSpace] device added id={device.id!r} name={device.name!r}")
             self._registerDevice(device)
             self._rebuildDevicesMenuLeaves()
+            
         except Exception as ex:
             error("[WorkSpace] _onDeviceAddedUi FAIL", ex)
             error(f"[WorkSpace] traceback:\n{format_exc()}")

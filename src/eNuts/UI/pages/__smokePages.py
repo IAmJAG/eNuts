@@ -1,7 +1,7 @@
 # ==================================================================================
 # Retired — use buildNavigationPages / __pageKeys instead.
 # ==================================================================================
-from .__navigationPages import buildBlankPage, buildNavigationPages
+from ..navigation.__navigation import buildBlankPage, buildNavigationPages
 from .__pageKeys import (
     C_DEVICE_NONE,
     PAGE_ANNOTATOR,
@@ -22,7 +22,6 @@ PAGE_KEYS = (
     PAGE_KG_RECORDER,
     PAGE_SETTINGS,
 )
-
 
 def buildSmokeTestPages(deviceNames: list[str] | None = None):
     return buildNavigationPages(deviceNames)
