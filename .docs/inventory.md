@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-25 01:30:28 UTC*
+*Auto-generated on: 2026-10-25 03:03:26 UTC*
 
 ## Current Directory Structure
 
@@ -509,6 +509,7 @@ src/eNuts/application/recorder:
 			KGRecorder -> : kgrecorder
 		CONSTANTS(S)/GLOBAL(S)
 			C_ON_FRAME -> : c_on_frame
+			_C_QT_TO_ANDROID -> : _c_qt_to_android
 
 src/eNuts/application/theme:
 	__theme.py - 
@@ -1536,52 +1537,43 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+a4d452b:
+	fix(fluxCore): break circular import in iAndroidAction (TYPE_CHECKING for eCommandType)
+		src/fluxCore/types/interface/action/__androidAction.py
+
+7874f72:
+	docs(kg-recorder): always-inject and device lock while recording
+		.docs/eNuts/application/recorder/implementation.md
+
+5b36f76:
+	feat(KGRecorder): always inject keys/gestures to device; lock device while recording
+		src/eNuts/application/recorder/__kgRecorder.py
+
+2249321:
+	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
+
+93092da:
+	fix(Image): disable interaction by setting interactionEnabled to False
+		src/jAGQt/widgets/Image/__image.py
+
+12ab2fd:
+	fix(KGRecorder): log pointer move only while button is held (dragging)
+		src/eNuts/application/recorder/__kgRecorder.py
+
+75c99e6:
+	fix(CaptureImage): disable Image pan/zoom via interactionEnabled=False
+		src/eNuts/UI/widgets/__captureImage.py
+
+01a8615:
+	fix(Image): gate pan/zoom behind interactionEnabled (default True)
+		src/jAGQt/widgets/Image/__image.py
+
+f4c1dba:
+	docs(inventory): update auto-generated timestamp
+		.docs/inventory.md
+
 e724b99:
 	docs(inventory): update auto-generated timestamp and enhance directory structure documentation
 		.docs/inventory.md
-
-030f57a:
-	docs(kg-recorder): note live device combo and stream attach
-		.docs/eNuts/application/recorder/implementation.md
-
-f146b2b:
-	feat(kg-recorder): pass deviceManager to KGRecorder for combo + stream
-		src/eNuts/application/__shell.py
-
-e898e99:
-	feat(kg-recorder): populate device combo from deviceManager and attach stream to CaptureImage
-		src/eNuts/application/recorder/__kgRecorder.py
-
-a21409d:
-	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
-
-39bd766:
-	fix(policy): add missing line breaks for improved readability in DCPolicy class
-		src/fluxCore/policy/__dcPolicy.py
-
-ff4f8bb:
-	docs(kg-recorder): requirement, implementation, and code docs for K&G Recorder
-		.docs/eNuts/UI/pages/implementation.md
-		.docs/eNuts/UI/pages/kgRecorderPage.md
-		.docs/eNuts/UI/pages/requirement.md
-		.docs/eNuts/UI/widgets/captureImage.md
-		.docs/eNuts/UI/widgets/implementation.md
-		.docs/eNuts/UI/widgets/requirement.md
-		.docs/eNuts/application/recorder/implementation.md
-		.docs/eNuts/application/recorder/kgRecorder.md
-		.docs/eNuts/application/recorder/requirement.md
-		.docs/eNuts/types/interface/recorder/iKGRecorder.md
-		.docs/eNuts/types/interface/recorder/implementation.md
-		.docs/eNuts/types/interface/recorder/requirement.md
-
-4f11aa2:
-	feat(kg-recorder): export KGRecorder from application package
-
-6809afa:
-	feat(kg-recorder): wire KGRecorder into Shell as ENUTSWindow component
-		src/eNuts/application/__shell.py
-
-2b335d4:
-	feat(kg-recorder): export buildKGRecorderPage
 
 ```

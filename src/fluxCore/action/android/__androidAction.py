@@ -14,7 +14,7 @@ from .enums import eCommandType
 
 
 # ==================================================================================
-class AndroidAction(Action, iActionMetadata, iAndroidAction):    
+class AndroidAction(iAndroidAction, Action):    
     def __init__(self, name: str = None, commandType: eCommandType = eCommandType.UNKNOWN, *args, **kwargs):
         name = name if name else f"ANDROID_ACTION_{commandType.name.upper()}"
         super().__init__(name, *args, **kwargs)

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 # ==================================================================================
-from typing import TYPE_CHECKING, Protocol, runtime_checkable
+from typing import TYPE_CHECKING
 
 # ==================================================================================
 from ..sockets import iControlSocket
@@ -17,8 +17,7 @@ if TYPE_CHECKING:
 
 
 # ==================================================================================
-@runtime_checkable
-class iAndroidAction(iActionMetadata, Protocol):
+class iAndroidAction(iActionMetadata):
     def __init__(
         self,
         name: str | None = None,
