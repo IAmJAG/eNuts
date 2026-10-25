@@ -90,6 +90,17 @@ class deviceManager(AsyncSubscription):
             self._stopEmitter(device)
         verbose("[deviceManager] stopAll done")
 
+    def stopExcept(self, keepDeviceId: Optional[str]) -> None:
+        """Stop every running emitter except the given serial (if any)."""
+        keep = (keepDeviceId or "").strip() or None
+        for device in list(self._devices.values()):
+            if not isinstance(device, SCRCPYEmitter):
+                continue
+            if keep is not None and str(device.id) == keep:
+                continue
+            self._stopEmitter(device)
+        verbose(f"[deviceManager] stopExcept keep={keep!r} done")
+
     async def _discovery(self) -> None:
         isShuttingDown = self._shutdownEvent.is_set
 
