@@ -60,7 +60,7 @@ class SideBarMenu(ComponentBase, ObjectName, QScrollArea):
     def _wInitializeUI(self) -> None:
         verbose("[SideBarMenu] _wInitializeUI ENTER")
         try:
-            self.setAttribute(StyleBackground, True)
+            super()._wInitializeUI()
             self.setWidgetResizable(True)
             self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
             self.setFrameShape(QScrollArea.Shape.NoFrame)

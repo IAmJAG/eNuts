@@ -34,7 +34,7 @@ def pageKeyOf(item: object) -> str | None:
 
 
 # ==================================================================================
-def buildSideBarMenu() -> tuple[SideBarMenu, SideBarMenuItem, SideBarMenuItem]:
+def buildSideBarMenu() -> tuple[SideBarMenu, SideBarMenuItem]:
     menu = SideBarMenu()
 
     # Dashboard    

@@ -26,7 +26,7 @@ class Shell(ApplicationInformation):
         try:
             mgr = deviceManager(self._shutdownEvent)            
             
-            central: WorkSpace = WorkSpace(deviceMgr=mgr)
+            central: WorkSpace = WorkSpace(deviceMgr=mgr, title=self.title)
             self.setCentralWidget(central)
 
             self._deviceManager = mgr            

@@ -50,7 +50,7 @@ C_ON_FRAME = "ON_FRAME"
 
 
 # ==================================================================================
-@workflow
+@workflow("InitializeUI", "BuildMenu")
 class WorkSpace(ComponentBase, ObjectName, QWidget):
     OBJECT_NAME = "W_WORKSPACE"
 
@@ -126,6 +126,13 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
         self._sigDeviceAdded.connect(self._onDeviceAddedUi)
         self._sigDeviceRemoved.connect(self._onDeviceRemovedUi)
         self._bindDeviceManager(self._deviceManager)
+
+    def _wBuildMenu(self) -> None:
+        sideBar: SideBar = self._sideBar
+        menu, settings = buildSideBarMenu()
+
+        sideBar.setContent(menu)
+        sideBar.setFooter(settings)
 
     def _wInitializeUI(self) -> None:                
         debug("[WorkSpace] _wInitializeUI ENTER")
