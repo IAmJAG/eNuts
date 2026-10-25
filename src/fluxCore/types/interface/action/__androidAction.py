@@ -1,13 +1,28 @@
 # ==================================================================================
-from typing import Any, Protocol, runtime_checkable
+from __future__ import annotations
 
 # ==================================================================================
-from ....action.android.enums import eCommandType
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
+
+# ==================================================================================
 from ..sockets import iControlSocket
 from .__actionMetadata import iActionMetadata
 
+# ==================================================================================
+if TYPE_CHECKING:
+    # Import under TYPE_CHECKING only — runtime import of action.android.enums
+    # pulls fluxCore.action.__init__ → Action → this package while it is still
+    # loading (circular ImportError).
+    from ....action.android.enums import eCommandType
+
 
 # ==================================================================================
+@runtime_checkable
 class iAndroidAction(iActionMetadata, Protocol):
-    def __init__(self, name: str = None, commandType: eCommandType = eCommandType.UNKNOWN): ...
-    def execute(self, control: iControlSocket, payload: bytes): ...
+    def __init__(
+        self,
+        name: str | None = None,
+        commandType: eCommandType | None = None,
+    ) -> None: ...
+
+    def execute(self, control: iControlSocket, payload: bytes) -> None: ...
