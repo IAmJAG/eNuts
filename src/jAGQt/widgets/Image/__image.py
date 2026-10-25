@@ -30,10 +30,15 @@ Backend = Literal["software", "opengl"]
 
 # ==================================================================================
 class Image(QWidget, ComponentBase):
-    """Fast image viewer with zoom / pan.
+    """Fast image viewer with optional zoom / pan.
 
     backend="software"  → pure QWidget + cached scaled QPixmap (default)
-    backend="opengl"    → QOpenGLWidget child (GPU-backed)    """
+    backend="opengl"    → QOpenGLWidget child (GPU-backed)
+
+    When ``interactionEnabled`` is False, mouse drag, wheel zoom, and
+    double-click reset are disabled so the surface can be used for
+    gesture capture without colliding with viewer navigation.
+    """
 
     onResize: Signal = Signal(QSize)
     onZoomChanged: Signal = Signal(float)
@@ -58,6 +63,7 @@ class Image(QWidget, ComponentBase):
         # shared interaction state
         self._lastMousePos: Optional[QPoint] = None
         self._panning: bool = False
+        self._interactionEnabled: bool = True
 
         # OpenGL child (created only when needed)
         self._gl: Optional["_GLView"] = None
@@ -83,6 +89,22 @@ class Image(QWidget, ComponentBase):
     @property
     def backend(self) -> Backend:
         return self._backend
+
+    @property
+    def interactionEnabled(self) -> bool:
+        """When False, pan / zoom / double-click reset are disabled."""
+        return self._interactionEnabled
+
+    @interactionEnabled.setter
+    def interactionEnabled(self, value: bool) -> None:
+        enabled = bool(value)
+        if enabled == self._interactionEnabled:
+            return
+        self._interactionEnabled = enabled
+        if not enabled:
+            self._panning = False
+            self._lastMousePos = None
+            self.setCursor(Qt.CursorShape.ArrowCursor)
 
     @property
     def zoom(self) -> float:
@@ -266,7 +288,8 @@ class Image(QWidget, ComponentBase):
         painter.end()
 
     def wheelEvent(self, event: QWheelEvent) -> None:
-        if self._image is None:
+        if not self._interactionEnabled or self._image is None:
+            event.ignore()
             return
 
         lDelta = event.angleDelta().y()
@@ -281,6 +304,10 @@ class Image(QWidget, ComponentBase):
         event.accept()
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
+        if not self._interactionEnabled:
+            super().mousePressEvent(event)
+            return
+
         if event.button() == Qt.MouseButton.LeftButton:
             self._panning = True
             self._lastMousePos = event.position().toPoint()
@@ -290,6 +317,10 @@ class Image(QWidget, ComponentBase):
             super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
+        if not self._interactionEnabled:
+            super().mouseMoveEvent(event)
+            return
+
         if self._panning and self._lastMousePos is not None:
             lDelta = event.position().toPoint() - self._lastMousePos
             self._offset += QPointF(lDelta)
@@ -300,6 +331,10 @@ class Image(QWidget, ComponentBase):
             super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
+        if not self._interactionEnabled:
+            super().mouseReleaseEvent(event)
+            return
+
         if event.button() == Qt.MouseButton.LeftButton and self._panning:
             self._panning = False
             self._lastMousePos = None
@@ -309,6 +344,10 @@ class Image(QWidget, ComponentBase):
             super().mouseReleaseEvent(event)
 
     def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:
+        if not self._interactionEnabled:
+            super().mouseDoubleClickEvent(event)
+            return
+
         self.resetView()
         self._requestUpdate()
         event.accept()
