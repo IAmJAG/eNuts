@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-25 06:51:41 UTC*
+*Auto-generated on: 2026-10-25 06:54:04 UTC*
 
 ## Current Directory Structure
 
@@ -1536,6 +1536,10 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+9d5e1d4:
+	docs(inventory): update auto-generated timestamp and enhance directory structure documentation
+		.docs/inventory.md
+
 10af66d:
 	feat(sidebar): refactor sidebar menu and styles; update key naming conventions
 		config/themes/ironman/main.css
@@ -1586,8 +1590,5 @@ a4d452b:
 5b36f76:
 	feat(KGRecorder): always inject keys/gestures to device; lock device while recording
 		src/eNuts/application/recorder/__kgRecorder.py
-
-2249321:
-	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
 
 ```

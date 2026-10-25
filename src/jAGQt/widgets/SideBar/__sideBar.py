@@ -99,6 +99,7 @@ class SideBar(ComponentBase, ObjectName, QWidget):
     def _wInitializeUI(self) -> None:
         verbose("[SideBar] _wInitializeUI ENTER")
         try:
+            super()._wInitializeUI()
             self.setSizePolicy(QSPolicy.Fixed, QSPolicy.Expanding)
 
             titleText: str = self._titleText
@@ -107,6 +108,7 @@ class SideBar(ComponentBase, ObjectName, QWidget):
             initialState: eSideBarState = self._initialState
             pendingOptions = self._pendingOptions
             pendingAnimOptions = self._pendingAnimationOptions
+
             del self._titleText
             del self._descriptionText
             del self._icons

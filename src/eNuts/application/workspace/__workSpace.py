@@ -127,11 +127,10 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
         self._sigDeviceRemoved.connect(self._onDeviceRemovedUi)
         self._bindDeviceManager(self._deviceManager)
 
-    def _wInitializeUI(self) -> None:
+    def _wInitializeUI(self) -> None:                
         debug("[WorkSpace] _wInitializeUI ENTER")
+        super()._wInitializeUI()
         try:
-            self.setAttribute(StyleBackground, True)
-
             sideBar = self._buildSideBar()
 
             stack: QStackedWidget = QStackedWidget()

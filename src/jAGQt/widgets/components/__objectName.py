@@ -21,5 +21,5 @@ class ObjectName:
         super().__init__(objectName=OBJNAME, *args, **kwargs)
 
     def _wInitializeUI(self: QWidget) -> None:
-        self.setSizePolicy(QSPolicy.Expanding, QSPolicy.Expanding)
         self.setAttribute(StyleBackground, True)
+        self.setSizePolicy(QSPolicy.Expanding, QSPolicy.Expanding)        
