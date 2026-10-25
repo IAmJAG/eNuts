@@ -7,7 +7,7 @@ from traceback import format_exc
 from typing import Any, Callable, Dict, List, Optional
 
 # ==================================================================================
-from PySide6.QtCore import QObject, Signal, SignalInstance
+from PySide6.QtCore import QObject, Qt, Signal, SignalInstance
 from PySide6.QtGui import QImage, QKeyEvent, QMouseEvent
 
 # ==================================================================================
@@ -477,6 +477,9 @@ class KGRecorder(QObject):
         if self._state != eKGRecorderState.Recording:
             return
         if not isinstance(event, QMouseEvent):
+            return
+        # Only log move while a button is held (dragging / finger down).
+        if event.buttons() == Qt.MouseButton.NoButton:
             return
         self._appendPointer("move", event)
 
