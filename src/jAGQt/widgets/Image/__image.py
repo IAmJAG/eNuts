@@ -63,7 +63,7 @@ class Image(QWidget, ComponentBase):
         # shared interaction state
         self._lastMousePos: Optional[QPoint] = None
         self._panning: bool = False
-        self._interactionEnabled: bool = True
+        self._interactionEnabled: bool = False
 
         # OpenGL child (created only when needed)
         self._gl: Optional["_GLView"] = None
