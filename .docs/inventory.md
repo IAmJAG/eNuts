@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-24 11:48:04 UTC*
+*Auto-generated on: 2026-10-25 01:30:28 UTC*
 
 ## Current Directory Structure
 
@@ -1536,6 +1536,10 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+e724b99:
+	docs(inventory): update auto-generated timestamp and enhance directory structure documentation
+		.docs/inventory.md
+
 030f57a:
 	docs(kg-recorder): note live device combo and stream attach
 		.docs/eNuts/application/recorder/implementation.md
@@ -1579,9 +1583,5 @@ ff4f8bb:
 
 2b335d4:
 	feat(kg-recorder): export buildKGRecorderPage
-
-48550c7:
-	feat(kg-recorder): wire buildKGRecorderPage into navigation pages
-		src/eNuts/UI/pages/__navigationPages.py
 
 ```
