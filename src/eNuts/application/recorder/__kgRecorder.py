@@ -350,6 +350,16 @@ class KGRecorder(QObject):
             return None
         return None
 
+    def _flushCaptureImage(self) -> None:
+        """Clear the capture surface so recording does not start on a stale frame."""
+        capture = self._capture
+        if capture is None:
+            return
+        try:
+            capture.image = None
+        except Exception as ex:
+            warning(f"[KGRecorder] flushCaptureImage failed: {ex}")
+
     # ------------------------------------------------------------------
     # Inject helpers
     # ------------------------------------------------------------------
@@ -402,11 +412,9 @@ class KGRecorder(QObject):
         ox = float(offset.x()) if offset is not None else 0.0
         oy = float(offset.y()) if offset is not None else 0.0
 
-        # Widget → displayed image pixel space
         imgX = (widgetX - ox) / scale
         imgY = (widgetY - oy) / scale
 
-        # Image pixel → device resolution
         devX = imgX * (float(resolution.x) / imgW)
         devY = imgY * (float(resolution.y) / imgH)
 
@@ -485,10 +493,18 @@ class KGRecorder(QObject):
             return
         self._deviceId = cleaned
         verbose(f"[KGRecorder] deviceId={self._deviceId!r}")
+        # Recorder owns one live stream: stop every other emitter.
+        mgr = self._deviceManager
+        if mgr is not None:
+            try:
+                mgr.stopExcept(cleaned)
+            except Exception as ex:
+                warning(f"[KGRecorder] stopExcept failed: {ex}")
         if cleaned:
             self._attachStream(cleaned)
         else:
             self._detachStream()
+            self._flushCaptureImage()
 
     def start(self) -> None:
         if self._state == eKGRecorderState.Recording:
@@ -497,8 +513,21 @@ class KGRecorder(QObject):
             warning("[KGRecorder] start: no device selected")
             self.statusTextChanged.emit("Select a device before recording")
             return
-        if self._streamSerial != self._deviceId:
-            self._attachStream(self._deviceId)
+
+        # Only the selected device may stream while recording.
+        mgr = self._deviceManager
+        if mgr is not None:
+            try:
+                mgr.stopExcept(self._deviceId)
+            except Exception as ex:
+                warning(f"[KGRecorder] stopExcept on start failed: {ex}")
+
+        # Drop any stale frame so the session begins from a clean surface.
+        self._flushCaptureImage()
+
+        # Re-attach / ensure selected emitter is the sole live stream.
+        self._attachStream(self._deviceId)
+
         self._events.clear()
         self._sessionStart = monotonic()
         self._setState(eKGRecorderState.Recording)
@@ -690,7 +719,6 @@ class KGRecorder(QObject):
             return
         if not self._deviceId:
             return
-        # Hover ignored — only while dragging (finger/button down).
         if event.buttons() == Qt.MouseButton.NoButton:
             return
         if self._injectPointer(eKeyState.MOVE, event):
