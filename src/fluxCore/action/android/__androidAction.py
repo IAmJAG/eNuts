@@ -7,17 +7,17 @@ from struct import pack
 from utilities import createTask
 
 # ==================================================================================
-from ...types.interface.action import iActionMetadata, iAndroidAction
 from ...types.interface.sockets import iControlSocket
 from .. import Action
 from .enums import eCommandType
 
 
 # ==================================================================================
-# Concrete Action must come before Protocol bases so super().__init__ reaches
-# Action.__init__ and sets _name / _data. Protocol-first MRO skips Action and
-# leaves Touch/InjectKey with "object has no attribute '_name'".
-class AndroidAction(Action, iActionMetadata, iAndroidAction):
+# Inherit only the concrete Action base. Do not mix in iActionMetadata /
+# iAndroidAction Protocols here: Action already subclasses iActionMetadata, and
+# iAndroidAction also extends iActionMetadata, which yields an inconsistent MRO.
+# Structural typing (runtime_checkable Protocols) still applies without inheritance.
+class AndroidAction(Action):
     def __init__(
         self,
         name: str = None,
