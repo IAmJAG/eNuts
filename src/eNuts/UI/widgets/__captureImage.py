@@ -2,9 +2,8 @@
 from __future__ import annotations
 
 # ==================================================================================
-from PySide6.QtCore import QPoint, Signal, SignalInstance
+from PySide6.QtCore import Signal, SignalInstance
 from PySide6.QtGui import QKeyEvent, QMouseEvent
-from PySide6.QtWidgets import QWidget
 
 # ==================================================================================
 from jAGQt.widgets.image import Image
@@ -14,8 +13,9 @@ from jAGQt.widgets.image import Image
 class CaptureImage(Image):
     """Plain Image that additionally surfaces keyboard and mouse events.
 
-    No recording state. No filters that turn on/off. Controllers may
-    subscribe to the signals; this widget only displays and emits.
+    Viewer pan / zoom is disabled (``interactionEnabled=False``) so pointer
+    gestures are not stolen by Image navigation. No recording state.
+    Controllers subscribe to the signals; this widget only displays and emits.
     """
 
     keyPressed: SignalInstance = Signal(object)   # QKeyEvent
@@ -29,6 +29,8 @@ class CaptureImage(Image):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.setObjectName(self.OBJECT_NAME)
+        # Root fix: Image pan/zoom must not collide with gesture capture.
+        self.interactionEnabled = False
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         self.keyPressed.emit(event)
