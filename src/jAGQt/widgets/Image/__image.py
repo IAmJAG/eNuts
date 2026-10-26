@@ -5,15 +5,8 @@ import os
 from typing import Optional, Union
 
 # ==================================================================================
-from PySide6.QtCore import QPointF, QSize, Qt, Signal
-from PySide6.QtGui import (
-    QColor,
-    QImage,
-    QPainter,
-    QPaintEvent,
-    QPixmap,
-    QResizeEvent,
-)
+from PySide6.QtCore import QPointF, QSize, Qt
+from PySide6.QtGui import QColor, QImage, QPainter, QPaintEvent, QPixmap
 from PySide6.QtWidgets import QWidget
 from torch import Tensor
 
@@ -23,9 +16,7 @@ from ..components import ComponentBase
 
 # ==================================================================================
 class Image(QWidget, ComponentBase):
-    """Software image display. Display only — no pan, zoom, or mouse interaction."""
-
-    onResize: Signal = Signal(QSize)
+    """Software image display. Display only — paint the image, nothing else."""
 
     # ------------------------------------------------------------------
     def __init__(
@@ -192,14 +183,8 @@ class Image(QWidget, ComponentBase):
         return QPixmap.fromImage(qimg)
 
     # ------------------------------------------------------------------
-    # EVENTS
+    # PAINT ONLY
     # ------------------------------------------------------------------
-    def resizeEvent(self, event: QResizeEvent) -> None:
-        self.onResize.emit(event.size())
-        if self._image is not None and not self._image.isNull():
-            self.resetView()
-        super().resizeEvent(event)
-
     def paintEvent(self, event: QPaintEvent) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
