@@ -5,34 +5,42 @@ import os
 from typing import Optional, Union
 
 # ==================================================================================
-from PySide6.QtCore import QPointF, QSize, Qt
-from PySide6.QtGui import QColor, QImage, QPainter, QPaintEvent, QPixmap
+from PySide6.QtCore import QRect, QSize, Qt
+from PySide6.QtGui import QColor, QImage, QPainter, QPaintEvent, QPixmap, QResizeEvent
 from PySide6.QtWidgets import QWidget
 from torch import Tensor
 
 # ==================================================================================
 from ..components import ComponentBase
+from .__fitMode import ImageFitMode
 
 
 # ==================================================================================
 class Image(QWidget, ComponentBase):
-    """Software image display. Display only — paint the image, nothing else."""
+    """Software image display.
+
+    Displays an image. Handles resize via ``fitMode``:
+
+    - Scale — scale proportionally to fit inside the widget.
+    - Fill  — stretch to fill the entire widget (aspect ignored).
+    - Crop  — scale proportionally to cover, center, crop to viewport.
+    """
 
     # ------------------------------------------------------------------
     def __init__(
         self,
         bg: Union[str, QColor] = "lightgray",
+        fitMode: ImageFitMode = ImageFitMode.Scale,
         *args,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
 
         self._image: Optional[QPixmap] = None
-        self._zoom: float = 100.0
-        self._offset: QPointF = QPointF(0.0, 0.0)
         self._backgroundColor: QColor = QColor(bg) if isinstance(bg, str) else bg
-
+        self._fitMode: ImageFitMode = fitMode
         self._scaled: Optional[QPixmap] = None
+        self._drawRect: QRect = QRect()
         self._dirty: bool = True
 
         self.setupUI()
@@ -47,29 +55,15 @@ class Image(QWidget, ComponentBase):
     # PROPERTIES
     # ------------------------------------------------------------------
     @property
-    def zoom(self) -> float:
-        return self._zoom
+    def fitMode(self) -> ImageFitMode:
+        return self._fitMode
 
-    @zoom.setter
-    def zoom(self, value: float) -> None:
-        lNew = max(1.0, min(value, 10_000.0))
-        if abs(lNew - self._zoom) < 0.01:
+    @fitMode.setter
+    def fitMode(self, value: ImageFitMode) -> None:
+        if value is self._fitMode:
             return
-        self._zoom = lNew
+        self._fitMode = value
         self._dirty = True
-        self.update()
-
-    @property
-    def offset(self) -> QPointF:
-        return self._offset
-
-    @offset.setter
-    def offset(self, value: Union[QPointF, tuple]) -> None:
-        if not isinstance(value, QPointF):
-            value = QPointF(*value)
-        if value == self._offset:
-            return
-        self._offset = value
         self.update()
 
     @property
@@ -81,8 +75,8 @@ class Image(QWidget, ComponentBase):
         if value is None:
             self._image = None
             self._scaled = None
+            self._drawRect = QRect()
             self._dirty = True
-            self.resetView()
             self.update()
             return
 
@@ -106,7 +100,6 @@ class Image(QWidget, ComponentBase):
 
         self._image = lPixmap.copy()
         self._dirty = True
-        self.resetView()
         self.update()
 
     # ------------------------------------------------------------------
@@ -115,46 +108,68 @@ class Image(QWidget, ComponentBase):
         self.update()
 
     # ------------------------------------------------------------------
-    # LOGIC
+    # LAYOUT
     # ------------------------------------------------------------------
-    def resetView(self) -> None:
-        """Fit image to widget (aspect-preserving) and center."""
-        if self._image is None or self._image.isNull() or self.width() <= 0 or self.height() <= 0:
-            self._zoom = 100.0
-            self._offset = QPointF(0.0, 0.0)
-            self._dirty = True
-            return
+    def _recompute(self) -> None:
+        """Recompute scaled pixmap and draw rect from current size and fitMode."""
+        self._dirty = False
+        self._scaled = None
+        self._drawRect = QRect()
 
-        lWRatio = self.width() / self._image.width()
-        lHRatio = self.height() / self._image.height()
-        lFit = min(lWRatio, lHRatio)
-
-        self._zoom = lFit * 100.0
-        lScaledW = self._image.width() * lFit
-        lScaledH = self._image.height() * lFit
-        self._offset = QPointF(
-            (self.width() - lScaledW) * 0.5,
-            (self.height() - lScaledH) * 0.5,
-        )
-        self._dirty = True
-
-    def _rebuildScaled(self) -> None:
         if self._image is None or self._image.isNull():
-            self._scaled = None
-            self._dirty = False
             return
 
-        lScale = self._zoom / 100.0
-        lTarget = QSize(
-            max(1, int(self._image.width() * lScale)),
-            max(1, int(self._image.height() * lScale)),
-        )
-        self._scaled = self._image.scaled(
-            lTarget,
+        w = self.width()
+        h = self.height()
+        if w <= 0 or h <= 0:
+            return
+
+        iw = self._image.width()
+        ih = self._image.height()
+        if iw <= 0 or ih <= 0:
+            return
+
+        mode = self._fitMode
+
+        if mode is ImageFitMode.Fill:
+            # Stretch to fill — ignore aspect.
+            self._scaled = self._image.scaled(
+                w, h,
+                Qt.AspectRatioMode.IgnoreAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
+            self._drawRect = QRect(0, 0, w, h)
+            return
+
+        if mode is ImageFitMode.Scale:
+            # Fit inside — keep aspect, letterbox.
+            scale = min(w / iw, h / ih)
+            tw = max(1, int(iw * scale))
+            th = max(1, int(ih * scale))
+            self._scaled = self._image.scaled(
+                tw, th,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
+            x = (w - tw) // 2
+            y = (h - th) // 2
+            self._drawRect = QRect(x, y, tw, th)
+            return
+
+        # Crop — cover, keep aspect, center crop.
+        scale = max(w / iw, h / ih)
+        tw = max(1, int(iw * scale))
+        th = max(1, int(ih * scale))
+        scaled = self._image.scaled(
+            tw, th,
             Qt.AspectRatioMode.KeepAspectRatio,
             Qt.TransformationMode.SmoothTransformation,
         )
-        self._dirty = False
+        # Crop the overflow so the result matches the widget size, centered.
+        x = (tw - w) // 2
+        y = (th - h) // 2
+        self._scaled = scaled.copy(x, y, w, h)
+        self._drawRect = QRect(0, 0, w, h)
 
     @staticmethod
     def _tensorToPixmap(tensor: Tensor) -> QPixmap:
@@ -183,21 +198,21 @@ class Image(QWidget, ComponentBase):
         return QPixmap.fromImage(qimg)
 
     # ------------------------------------------------------------------
-    # PAINT ONLY
+    # EVENTS (resize + paint only)
     # ------------------------------------------------------------------
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        self._dirty = True
+        super().resizeEvent(event)
+
     def paintEvent(self, event: QPaintEvent) -> None:
+        if self._dirty:
+            self._recompute()
+
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
         painter.fillRect(self.rect(), self._backgroundColor)
 
-        if self._image is None or self._image.isNull():
-            painter.end()
-            return
-
-        if self._dirty or self._scaled is None:
-            self._rebuildScaled()
-
-        if self._scaled is not None and not self._scaled.isNull():
-            painter.drawPixmap(self._offset.toPoint(), self._scaled)
+        if self._scaled is not None and not self._scaled.isNull() and not self._drawRect.isEmpty():
+            painter.drawPixmap(self._drawRect, self._scaled)
 
         painter.end()
