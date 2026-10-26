@@ -8,7 +8,7 @@ OpenGL image display. Shows the image and handles resize via ``fitMode``.
 ### `GLImage`
 - **Purpose:** GPU-backed image display. Same fit modes as Image.
 - **Properties:**
-  - `image` — QPixmap | QImage | str | Tensor | None
+  - `image` — QPixmap | QImage | str | None
   - `fitMode` — ImageFitMode (Scale | Fill | Crop)
 - **Methods:**
   - `setBackgroundColor(color)`
