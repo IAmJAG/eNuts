@@ -55,7 +55,7 @@ PAGE_AND_MENU: Dict[str, Dict[str, Any]] = {
 
 
 # ==================================================================================
-def buildBlankPage(key: str, title: str, description: str = "") -> Page:
+def buildBlankPage(key: str, title: str, description: str = "", icon: str = "") -> Page:
     page = Page(title=title, description=description, id=key)
     verbose(f"[pages] blank page key={key!r} title={title!r}")
     return page
@@ -93,8 +93,7 @@ def buildNavigationPages() -> dict[str, Page]:
     for sectionName in ("CONTENT", "FOOTER"):
         section = PAGE_AND_MENU.get(sectionName) or {}
         for pageId, entry in _flattenEntries(section):
-            if pageId in pages:
-                continue
+            if pageId in pages: continue
             title = str(entry.get("title") or pageId)
             description = str(entry.get("description") or "")
             builder = builders.get(pageId)

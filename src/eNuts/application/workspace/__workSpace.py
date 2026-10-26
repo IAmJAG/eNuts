@@ -88,9 +88,6 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             objName: str = f"{self.objectName()!r}"
             debug(f"[{self.__class__.__name__}] __init__ EXIT objectName={objName}")
 
-    # --------------------------------------------------------------------------
-    # SideBar *base* only — chrome, options, animation. No menu, no pages.
-    # --------------------------------------------------------------------------
     def _buildSideBar(self) -> SideBar:
         expandPath: str = getICONPath("expand.png")
         collapsePath: str = getICONPath("collapse.png")
@@ -111,9 +108,6 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             animationOptions=animationOptions,
         )
 
-    # --------------------------------------------------------------------------
-    # Workflow stage 1: shell only (SideBar base + stack + layout + device signals).
-    # --------------------------------------------------------------------------
     def _wInitializeUI(self) -> None:
         debug("[WorkSpace] _wInitializeUI ENTER")
         super()._wInitializeUI()
