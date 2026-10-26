@@ -5,10 +5,9 @@ import os
 from typing import Optional, Union
 
 # ==================================================================================
-from PySide6.QtCore import QRect, QSize, Qt
+from PySide6.QtCore import QRect, Qt
 from PySide6.QtGui import QColor, QImage, QPainter, QPaintEvent, QPixmap, QResizeEvent
 from PySide6.QtWidgets import QWidget
-from torch import Tensor
 
 # ==================================================================================
 from ..components import ComponentBase
@@ -71,7 +70,7 @@ class Image(QWidget, ComponentBase):
         return self._image
 
     @image.setter
-    def image(self, value: Union[QPixmap, QImage, str, Tensor, None]) -> None:
+    def image(self, value: Union[QPixmap, QImage, str, None]) -> None:
         if value is None:
             self._image = None
             self._scaled = None
@@ -90,10 +89,8 @@ class Image(QWidget, ComponentBase):
             lPixmap = QPixmap.fromImage(value)
         elif isinstance(value, QPixmap):
             lPixmap = value
-        elif isinstance(value, Tensor):
-            lPixmap = self._tensorToPixmap(value)
         else:
-            raise TypeError("Expected str | QImage | QPixmap | Tensor | None")
+            raise TypeError("Expected str | QImage | QPixmap | None")
 
         if lPixmap is None or lPixmap.isNull():
             return
@@ -132,7 +129,6 @@ class Image(QWidget, ComponentBase):
         mode = self._fitMode
 
         if mode is ImageFitMode.Fill:
-            # Stretch to fill — ignore aspect.
             self._scaled = self._image.scaled(
                 w, h,
                 Qt.AspectRatioMode.IgnoreAspectRatio,
@@ -142,7 +138,6 @@ class Image(QWidget, ComponentBase):
             return
 
         if mode is ImageFitMode.Scale:
-            # Fit inside — keep aspect, letterbox.
             scale = min(w / iw, h / ih)
             tw = max(1, int(iw * scale))
             th = max(1, int(ih * scale))
@@ -165,37 +160,10 @@ class Image(QWidget, ComponentBase):
             Qt.AspectRatioMode.KeepAspectRatio,
             Qt.TransformationMode.SmoothTransformation,
         )
-        # Crop the overflow so the result matches the widget size, centered.
         x = (tw - w) // 2
         y = (th - h) // 2
         self._scaled = scaled.copy(x, y, w, h)
         self._drawRect = QRect(0, 0, w, h)
-
-    @staticmethod
-    def _tensorToPixmap(tensor: Tensor) -> QPixmap:
-        t = tensor.detach().cpu()
-        if t.ndim == 4:
-            t = t[0]
-        if t.ndim == 3 and t.shape[0] in (1, 3, 4):
-            t = t.permute(1, 2, 0)
-        if t.dtype.is_floating_point:
-            t = (t.clamp(0, 1) * 255).to("uint8")
-        else:
-            t = t.to("uint8")
-
-        h, w, c = t.shape
-        if c == 1:
-            fmt = QImage.Format.Format_Grayscale8
-        elif c == 3:
-            fmt = QImage.Format.Format_RGB888
-        elif c == 4:
-            fmt = QImage.Format.Format_RGBA8888
-        else:
-            raise ValueError(f"Unsupported channel count: {c}")
-
-        t = t.contiguous()
-        qimg = QImage(t.data_ptr(), w, h, t.stride(0), fmt).copy()
-        return QPixmap.fromImage(qimg)
 
     # ------------------------------------------------------------------
     # EVENTS (resize + paint only)
