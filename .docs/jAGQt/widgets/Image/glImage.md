@@ -1,21 +1,18 @@
 ## Overview & Design Context
-OpenGL-backed image display widget. Uses QOpenGLWidget with QPainter over the GL context. Display only — no pan, zoom, or mouse interaction.
-* **Design Decision / Deviation Notes:** Extracted from the previous combined Image. All interaction code removed.
+OpenGL image display. Paint the image. Nothing else.
+* **Design Decision / Deviation Notes:** No event handlers. No signals. Display only.
 
 ---
 
 ## Classes
 
 ### `GLImage`
-- **Purpose:** GPU-backed image display. Same display contract as Image (fit/center on set/resize).
+- **Purpose:** GPU-backed image display.
 - **Methods:**
   - `setupUI()` -> Background.
-  - `setBackgroundColor(color)` -> Clear color for the GL surface.
+  - `setBackgroundColor(color)` -> Clear color.
   - `resetView()` -> Fit and center.
-  - `_uploadTexture(pixmap)` / `_clearTexture()` -> Manage QOpenGLTexture + fallback QImage.
-  - `_tensorToPixmap(tensor)` -> Same Tensor conversion as Image.
-  - `initializeGL` / `resizeGL` / `paintGL` -> Clear and draw via QPainter.
-  - `resizeEvent(event)` -> Emit onResize and re-fit.
+  - `initializeGL` / `resizeGL` / `paintGL` -> Clear and draw.
 
 ---
 
