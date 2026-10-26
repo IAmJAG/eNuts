@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-25 23:48:08 UTC*
+*Auto-generated on: 2026-10-26 04:52:23 UTC*
 
 ## Current Directory Structure
 
@@ -61,25 +61,18 @@ eNuts/
 │   ├── eNuts/
 │   │   └── appconfig.json
 │   └── themes/
-│       ├── dark/
+│       ├── dark
+│       ├── dracula
+│       ├── ironman
+│       ├── light
+│       ├── material
+│       ├── options/
+│       │   └── dark/
+│       │       ├── Animation.json
+│       │       └── SideBar.json
+│       ├── qss/
 │       │   ├── main.css
-│       │   ├── options/
-│       │   │   ├── Animation.json
-│       │   │   └── SideBar.json
-│       │   └── palette
-│       ├── dracula/
-│       │   ├── main.css
-│       │   └── palette
-│       ├── ironman/
-│       │   ├── main.css
-│       │   ├── palette
 │       │   └── sideBar.css
-│       ├── light/
-│       │   ├── main.css
-│       │   └── palette
-│       ├── material/
-│       │   ├── main.css
-│       │   └── palette
 │       └── superman/
 ├── src/
 │   ├── __monkeyPatch.py
@@ -89,6 +82,7 @@ eNuts/
 │   │   │   ├── .ff
 │   │   │   ├── navigation/
 │   │   │   │   ├── __navigation.py
+│   │   │   │   ├── __pageKeys.py
 │   │   │   │   └── __sideBarMenuBuilder.py
 │   │   │   ├── pages/
 │   │   │   │   ├── __devicePage.py
@@ -368,7 +362,10 @@ eNuts/
 │   │   │   │   ├── __icon.py
 │   │   │   │   └── __stateFullIcon.py
 │   │   │   ├── image/
-│   │   │   │   └── __image.py
+│   │   │   │   ├── __fitMode.py
+│   │   │   │   ├── __glImage.py
+│   │   │   │   ├── __image.py
+│   │   │   │   └── __imageBase.py
 │   │   │   ├── page/
 │   │   │   │   └── __page.py
 │   │   │   ├── sideBar/
@@ -523,6 +520,9 @@ src/eNuts/application/theme:
 			loadStyles -> : loadstyles
 			_loadPalette -> : _loadpalette
 			loadStyle -> : loadstyle
+		CONSTANTS(S)/GLOBAL(S)
+			C_QSS_DIR -> : c_qss_dir
+			C_QSS_EXTS -> : c_qss_exts
 
 src/eNuts/application/workspace:
 	__workSpace.py - 
@@ -583,13 +583,31 @@ src/eNuts/UI/navigation:
 	__navigation.py - 
 		FUNCTION(S):
 			buildBlankPage -> : buildblankpage
+			_flattenEntries -> : _flattenentries
+			_pageBuilders -> : _pagebuilders
 			buildNavigationPages -> : buildnavigationpages
 		CONSTANTS(S)/GLOBAL(S)
 			PAGE_AND_MENU -> : page_and_menu
+	__pageKeys.py - 
+		FUNCTION(S):
+			devicePageKeyFromId -> : devicepagekeyfromid
+			devicePageKey -> : devicepagekey
+			serialFromPageKey -> : serialfrompagekey
+		CONSTANTS(S)/GLOBAL(S)
+			PAGE_DASHBOARD -> : page_dashboard
+			PAGE_DEVICES -> : page_devices
+			PAGE_TOOLS -> : page_tools
+			PAGE_ANNOTATOR -> : page_annotator
+			PAGE_KG_RECORDER -> : page_kg_recorder
+			PAGE_SETTINGS -> : page_settings
+			G_DEVICE_KEY_PREFIX -> : g_device_key_prefix
+			G_DEVICE_NONE -> : g_device_none
 	__sideBarMenuBuilder.py - 
 		FUNCTION(S):
 			setPageKey -> : setpagekey
 			pageKeyOf -> : pagekeyof
+			_iconOf -> : _iconof
+			_addEntry -> : _addentry
 			buildSideBarMenu -> : buildsidebarmenu
 		CONSTANTS(S)/GLOBAL(S)
 			G_PAGE_KEY_PROP -> : g_page_key_prop
@@ -605,19 +623,6 @@ src/eNuts/UI/pages:
 		FUNCTION(S):
 			buildKGRecorderPage -> : buildkgrecorderpage
 	__pageKeys.py - 
-		FUNCTION(S):
-			devicePageKeyFromId -> : devicepagekeyfromid
-			devicePageKey -> : devicepagekey
-			serialFromPageKey -> : serialfrompagekey
-		CONSTANTS(S)/GLOBAL(S)
-			PAGE_DASHBOARD -> : page_dashboard
-			PAGE_DEVICES -> : page_devices
-			PAGE_TOOLS -> : page_tools
-			PAGE_ANNOTATOR -> : page_annotator
-			PAGE_KG_RECORDER -> : page_kg_recorder
-			PAGE_SETTINGS -> : page_settings
-			G_DEVICE_KEY_PREFIX -> : g_device_key_prefix
-			G_DEVICE_NONE -> : g_device_none
 	__smokePages.py - 
 		FUNCTION(S):
 			buildSmokeTestPages -> : buildsmoketestpages
@@ -1391,12 +1396,20 @@ src/jAGQt/widgets/icon:
 			C_DEFAULT_WIPE_MS -> : c_default_wipe_ms
 
 src/jAGQt/widgets/image:
+	__fitMode.py - 
+		CLASSE(S):
+			ImageFitMode -> : imagefitmode
+	__glImage.py - 
+		CLASSE(S):
+			GLImage -> : glimage
 	__image.py - 
 		CLASSE(S):
 			Image -> : image
-			_GLView -> : _glview
+	__imageBase.py - 
+		CLASSE(S):
+			ImageBase -> : imagebase
 		CONSTANTS(S)/GLOBAL(S)
-			Backend -> : backend
+			BACKGROUND_COLOR -> : background_color
 
 src/jAGQt/widgets/page:
 	__page.py - 
@@ -1543,73 +1556,44 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-a1087cb:
-	feat(sidebar): enhance sidebar menu styles and roles; add dashboard icon
-		assets/icons/dashboard.png
-		config/themes/ironman/sideBar.css
-		src/eNuts/UI/navigation/__sideBarMenuBuilder.py
-		src/eNuts/application/workspace/__workSpace.py
-		src/jAGQt/widgets/SideBar/menu/__eSideBarMenuRole.py
-		src/jAGQt/widgets/SideBar/menu/__sideBarMenu.py
-
-26b03d4:
-	feat(ui): update sidebar menu initialization and enhance workspace UI integration
-		config/eNuts/appconfig.json
-		config/themes/ironman/sideBar.css
-		src/eNuts/UI/navigation/__sideBarMenuBuilder.py
-		src/eNuts/application/__shell.py
-		src/eNuts/application/workspace/__workSpace.py
-		src/jAGQt/widgets/SideBar/menu/__sideBarMenu.py
-
-574f35d:
-	feat(inventory): update auto-generated timestamp and enhance directory structure documentation
-		.docs/inventory.md
-		config/themes/ironman/sideBar.css
-		src/eNuts/application/workspace/__workSpace.py
-		src/jAGQt/widgets/SideBar/__sideBar.py
-		src/jAGQt/widgets/components/__objectName.py
-
-9d5e1d4:
-	docs(inventory): update auto-generated timestamp and enhance directory structure documentation
-		.docs/inventory.md
-
-10af66d:
-	feat(sidebar): refactor sidebar menu and styles; update key naming conventions
-		config/themes/ironman/main.css
-		config/themes/ironman/sideBar.css
-		src/eNuts/UI/navigation/__sideBarMenuBuilder.py
-		src/eNuts/UI/pages/__devicePage.py
-		src/eNuts/UI/pages/__pageKeys.py
-		src/eNuts/application/__shell.py
-		src/eNuts/application/device/__deviceManager.py
-		src/eNuts/application/workspace/__workSpace.py
-		src/jAGQt/widgets/SideBar/menu/__eSideBarMenuRole.py
-		src/jAGQt/widgets/SideBar/menu/__sideBarMenu.py
+8224256:
+	fix(SideBarMenuItem): guard setPointSize â€” skip when pt <= 0
 		src/jAGQt/widgets/SideBar/menu/__sideBarMenuItem.py
 
-e12d205:
-	feat(KGRecorder): stop non-selected emitters; flush capture image on start
-		src/eNuts/application/recorder/__kgRecorder.py
+a28ef05:
+	refactor(Image): use BACKGROUND_COLOR constant for default background in GLImage and Image classes
+		src/jAGQt/widgets/Image/__glImage.py
+		src/jAGQt/widgets/Image/__image.py
 
-672c5d1:
-	feat(deviceManager): stopExcept â€” stop all emitters except one serial
-		src/eNuts/application/device/__deviceManager.py
+329a75d:
+	refactor(ImageBase): use BACKGROUND_COLOR constant for default background
+		src/jAGQt/widgets/Image/__imageBase.py
 
-409ac29:
-	fix(AndroidAction): inherit only concrete Action to avoid Protocol MRO conflict
-		src/fluxCore/action/android/__androidAction.py
+2707dc3:
+	docs(Image): ImageBase mixin
+		.docs/jAGQt/widgets/Image/implementation.md
 
-a0c297a:
-	fix(AndroidAction): put concrete Action before Protocol in MRO so _name is initialized
-		src/fluxCore/action/android/__androidAction.py
+03d026d:
+	feat(Image): export ImageBase
 
-303b239:
-	fix: update class inheritance for AndroidAction and geometry classes to use Serializable
-		.docs/inventory.md
-		src/fluxCore/action/android/__androidAction.py
-		src/fluxCore/types/geometry/__circle.py
-		src/fluxCore/types/geometry/__point.py
-		src/fluxCore/types/geometry/__rectangle.py
-		src/fluxCore/types/interface/action/__androidAction.py
+1ab83bb:
+	refactor(GLImage): inherit ImageBase mixin
+		src/jAGQt/widgets/Image/__glImage.py
+
+b56527c:
+	refactor(Image): inherit ImageBase mixin
+		src/jAGQt/widgets/Image/__image.py
+
+9580331:
+	feat(Image): add ImageBase mixin for shared display state
+		src/jAGQt/widgets/Image/__imageBase.py
+
+fb64c78:
+	docs(Image): implementation â€” no Tensor
+		.docs/jAGQt/widgets/Image/implementation.md
+
+5d83d62:
+	docs(Image): requirement â€” no Tensor
+		.docs/jAGQt/widgets/Image/requirement.md
 
 ```

@@ -1,6 +1,4 @@
 # ==================================================================================
-# src/jAGQt/widgets/components/__componentBase.py
-# ==================================================================================
 from PySide6.QtCore import QMargins
 from PySide6.QtWidgets import QBoxLayout, QMainWindow, QWidget
 
