@@ -13,9 +13,8 @@ from jAGQt.widgets.image import Image
 class CaptureImage(Image):
     """Plain Image that additionally surfaces keyboard and mouse events.
 
-    Viewer pan / zoom is disabled (``interactionEnabled=False``) so pointer
-    gestures are not stolen by Image navigation. No recording state.
-    Controllers subscribe to the signals; this widget only displays and emits.
+    Image is display-only (no pan/zoom). Controllers subscribe to the signals;
+    this widget only displays and emits.
     """
 
     keyPressed: SignalInstance = Signal(object)   # QKeyEvent
@@ -29,8 +28,6 @@ class CaptureImage(Image):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.setObjectName(self.OBJECT_NAME)
-        # Root fix: Image pan/zoom must not collide with gesture capture.
-        self.interactionEnabled = False
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         self.keyPressed.emit(event)
