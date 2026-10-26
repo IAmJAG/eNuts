@@ -1,9 +1,10 @@
 # ==================================================================================
-from typing import Optional
+from typing import Optional, Union
 from uuid import UUID, uuid4
 
 # ==================================================================================
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
     QBoxLayout,
     QLayout,
@@ -24,7 +25,7 @@ from ...types.interface.widgets.commandBar import (
 from ...utilities import newLayout
 from ..commandBar import CommandBar
 from ..components import ComponentBase
-from ..header import Header
+from ..header import Header, HeaderIconPosition
 
 
 # ==================================================================================
@@ -32,24 +33,32 @@ from ..header import Header
 class Page(QWidget, ComponentBase):
     OBJECT_NAME = "W_PAGE"
     def __init__(
-        self, title: str, description: str = "",
-        commandBarOn: bool = False, id: Optional[str] = None,
-        *args, **kwargs,
+        self,
+        title: str,
+        description: str = "",
+        icon: Optional[Union[QIcon, QPixmap, str]] = None,
+        commandBarOn: bool = False,
+        id: Optional[str] = None,
+        *args,
+        **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
         self._id: str | UUID = uuid4() if id is None else id
         self._title = title
         self._description = description
+        self._icon = icon
         self._isCommandBarOn: bool = commandBarOn
 
     def _wInitializeUI(self) -> None:
         titleText: str = self._title
         descriptionText: str = self._description
+        iconData = self._icon
         isCommandBarOn: bool = self._isCommandBarOn
         OBJNAME: str = self.OBJECT_NAME
 
         del self._title
         del self._description
+        del self._icon
         del self._isCommandBarOn
 
         self.setObjectName(OBJNAME)
@@ -58,7 +67,11 @@ class Page(QWidget, ComponentBase):
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
 
-        pageHeader: Header = Header(title=titleText, description=descriptionText)
+        pageHeader: Header = Header(
+            title=titleText,
+            description=descriptionText,
+            icon=iconData,
+        )
         pageHeader.setObjectName(f"{OBJNAME}_HEADER")
 
         content: QWidget = QWidget()
@@ -178,6 +191,30 @@ class Page(QWidget, ComponentBase):
         if not self._assertWarnHeader():
             return
         self._header.Description = value
+
+    @property
+    def Icon(self) -> Optional[Union[QIcon, QPixmap]]:
+        if not self._assertWarnHeader():
+            return None
+        return self._header.Icon
+
+    @Icon.setter
+    def Icon(self, value: Optional[Union[QIcon, QPixmap, str]]) -> None:
+        if not self._assertWarnHeader():
+            return
+        self._header.Icon = value
+
+    @property
+    def IconPosition(self) -> HeaderIconPosition:
+        if not self._assertWarnHeader():
+            return HeaderIconPosition.TitleRow
+        return self._header.IconPosition
+
+    @IconPosition.setter
+    def IconPosition(self, value: HeaderIconPosition) -> None:
+        if not self._assertWarnHeader():
+            return
+        self._header.IconPosition = value
 
     @property
     def CommandBarState(self) -> bool:

@@ -35,10 +35,6 @@ class Header(QWidget, ComponentBase):
         title: str = "",
         description: Optional[str] = "",
         icon: Optional[Union[QIcon, QPixmap, str]] = None,
-        iconPosition: IconPosition = IconPosition.TitleRow,
-        iconSize: int = 24,
-        iconBG: Optional[Union[str, QColor]] = None,
-        iconFG: Optional[Union[str, QColor]] = None,
         *args,
         **kwargs,
     ) -> None:
@@ -48,28 +44,27 @@ class Header(QWidget, ComponentBase):
         self._titleText: str = title
         self._descriptionText: str = description or ""
         self._iconData: Optional[Union[QIcon, QPixmap, str]] = icon
-        self._iconPosition: IconPosition = iconPosition
-        self._iconBG: Optional[Union[str, QColor]] = iconBG or QColor(
-            Qt.GlobalColor.transparent
-        )
-        self._iconFG: Optional[Union[str, QColor]] = iconFG or Qt.GlobalColor.darkGray
-        self._iconSize: int = iconSize
+        # Defaults — settable after construction via properties
+        self._iconPosition: IconPosition = IconPosition.TitleRow
+        self._iconSize: int = 24
+        self._iconBG: QColor = QColor(Qt.GlobalColor.transparent)
+        self._iconFG: QColor = QColor(Qt.GlobalColor.darkGray)
 
     def _wInitializeUI(self, rebuild: bool = True) -> None:
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         title: Title = Title(self._titleText)
         description: Description = Description(self._descriptionText)
 
-        iconBG: QColor = QColor(self._iconBG)
-        iconFG: QColor = QColor(self._iconFG)
-        icon: Icon = Icon(self._iconData, background=iconBG, foreground=iconFG)
+        icon: Icon = Icon(
+            self._iconData,
+            background=self._iconBG,
+            foreground=self._iconFG,
+        )
         icon.setSizePolicy(QPolicy.Fixed, QPolicy.Fixed)
 
         del self._titleText
         del self._descriptionText
         del self._iconData
-        del self._iconBG
-        del self._iconFG
 
         self._title = title
         self._description = description
@@ -108,7 +103,7 @@ class Header(QWidget, ComponentBase):
         description: Description = self._description
         iconPosition: IconPosition = self._iconPosition
 
-        hasIcon: bool = icon is not None and isinstance(icon, Icon)
+        hasIcon: bool = icon is not None and isinstance(icon, Icon) and icon.icon is not None
         rowLayout: QBoxLayout = newLayout(
             QBoxLayout,
             spacing=8,
@@ -216,23 +211,91 @@ class Header(QWidget, ComponentBase):
             self._description.setVisible(bool(value))
             self._rebuildLayout()
 
+    # ---- Icon & layout properties ------------------------------------------------
     @property
-    def icon(self) -> Optional[Union[QIcon, QPixmap]]:
+    def Icon(self) -> Optional[Union[QIcon, QPixmap]]:
         return self._icon.icon if self._icon and isinstance(self._icon, Icon) else None
 
-    @icon.setter
-    def icon(self, value: Optional[Union[QIcon, QPixmap, str]]) -> None:
+    @Icon.setter
+    def Icon(self, value: Optional[Union[QIcon, QPixmap, str]]) -> None:
         if self._icon:
             self._icon.setIcon(value)
             self._rebuildLayout()
 
     @property
-    def iconPosition(self) -> IconPosition:
+    def icon(self) -> Optional[Union[QIcon, QPixmap]]:
+        return self.Icon
+
+    @icon.setter
+    def icon(self, value: Optional[Union[QIcon, QPixmap, str]]) -> None:
+        self.Icon = value
+
+    @property
+    def IconPosition(self) -> IconPosition:
         return self._iconPosition
 
-    @iconPosition.setter
-    def iconPosition(self, value: IconPosition) -> None:
+    @IconPosition.setter
+    def IconPosition(self, value: IconPosition) -> None:
         if value is self._iconPosition:
             return
         self._iconPosition = value
         self._rebuildLayout()
+
+    @property
+    def iconPosition(self) -> IconPosition:
+        return self.IconPosition
+
+    @iconPosition.setter
+    def iconPosition(self, value: IconPosition) -> None:
+        self.IconPosition = value
+
+    @property
+    def IconSize(self) -> int:
+        return self._iconSize
+
+    @IconSize.setter
+    def IconSize(self, value: int) -> None:
+        if value == self._iconSize:
+            return
+        self._iconSize = max(1, int(value))
+        self._rebuildLayout()
+
+    @property
+    def iconSize(self) -> int:
+        return self.IconSize
+
+    @iconSize.setter
+    def iconSize(self, value: int) -> None:
+        self.IconSize = value
+
+    @property
+    def IconBackground(self) -> QColor:
+        return self._iconBG
+
+    @IconBackground.setter
+    def IconBackground(self, value: Optional[Union[str, QColor]]) -> None:
+        if isinstance(value, str):
+            self._iconBG = QColor(value)
+        elif isinstance(value, QColor):
+            self._iconBG = value
+        else:
+            self._iconBG = QColor(Qt.GlobalColor.transparent)
+        if self._icon:
+            self._icon.setBackground(self._iconBG)
+            self._rebuildLayout()
+
+    @property
+    def IconForeground(self) -> QColor:
+        return self._iconFG
+
+    @IconForeground.setter
+    def IconForeground(self, value: Optional[Union[str, QColor]]) -> None:
+        if isinstance(value, str):
+            self._iconFG = QColor(value)
+        elif isinstance(value, QColor):
+            self._iconFG = value
+        else:
+            self._iconFG = QColor(Qt.GlobalColor.darkGray)
+        if self._icon:
+            self._icon.setForeground(self._iconFG)
+            self._rebuildLayout()
