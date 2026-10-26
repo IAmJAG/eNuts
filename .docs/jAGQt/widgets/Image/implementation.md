@@ -3,6 +3,7 @@
 ## 1. Architecture Overview
 - `ImageFitMode` enum: Scale, Fill, Crop.
 - `Image` / `GLImage`: hold image + fitMode; on dirty (set image / resize / change mode) recompute draw pixmap/image and rect; paint only.
+- Image input: QPixmap, QImage, path str, or None. No Tensor.
 
 ## 2. Directory & Module Mapping
 | Source Path | Documentation Path | Primary Responsibility |
