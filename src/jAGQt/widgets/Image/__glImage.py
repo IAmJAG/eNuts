@@ -5,14 +5,8 @@ import os
 from typing import Optional, Union
 
 # ==================================================================================
-from PySide6.QtCore import QPointF, QSize, Qt, Signal
-from PySide6.QtGui import (
-    QColor,
-    QImage,
-    QPainter,
-    QPixmap,
-    QResizeEvent,
-)
+from PySide6.QtCore import QPointF, Qt
+from PySide6.QtGui import QColor, QImage, QPainter, QPixmap
 from PySide6.QtOpenGL import QOpenGLTexture
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from torch import Tensor
@@ -23,12 +17,7 @@ from ..components import ComponentBase
 
 # ==================================================================================
 class GLImage(QOpenGLWidget, ComponentBase):
-    """OpenGL image display. Display only — no pan, zoom, or mouse interaction.
-
-    GPU-backed via QOpenGLWidget + QPainter over the GL context.
-    """
-
-    onResize: Signal = Signal(QSize)
+    """OpenGL image display. Display only — paint the image, nothing else."""
 
     # ------------------------------------------------------------------
     def __init__(
@@ -196,7 +185,7 @@ class GLImage(QOpenGLWidget, ComponentBase):
         return QPixmap.fromImage(qimg)
 
     # ------------------------------------------------------------------
-    # GL
+    # GL (paint only)
     # ------------------------------------------------------------------
     def initializeGL(self) -> None:
         self.gl = self.context().functions()
@@ -241,12 +230,3 @@ class GLImage(QOpenGLWidget, ComponentBase):
         )
         painter.drawImage(QPointF(x, y), scaled)
         painter.end()
-
-    # ------------------------------------------------------------------
-    # EVENTS
-    # ------------------------------------------------------------------
-    def resizeEvent(self, event: QResizeEvent) -> None:
-        self.onResize.emit(event.size())
-        if self._image is not None and not self._image.isNull():
-            self.resetView()
-        super().resizeEvent(event)
