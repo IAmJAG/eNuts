@@ -66,29 +66,7 @@ PAGE_AND_MENU: Dict[str, Dict[str, Any]] = {
 
 
 # ==================================================================================
-<<<<<<< HEAD
 def buildBlankPage(key: str, title: str, description: str = "", icon: str = "") -> Page:
-=======
-def resolvePageClass(typePath: str) -> Type[Page]:
-    """Import and return a Page subclass from a full dotted class path."""
-    path = (typePath or "").strip() or C_DEFAULT_PAGE_TYPE
-    if "." not in path:
-        raise ValueError(
-            f"page type must be a full namespace (module.Class), got {path!r}"
-        )
-    modulePath, _, className = path.rpartition(".")
-    module = import_module(modulePath)
-    cls = getattr(module, className, None)
-    if cls is None:
-        raise AttributeError(f"module {modulePath!r} has no attribute {className!r}")
-    if not isinstance(cls, type):
-        raise TypeError(f"page type {path!r} is not a class")
-    return cls  # type: ignore[return-value]
-
-
-# ==================================================================================
-def buildBlankPage(key: str, title: str, description: str = "") -> Page:
->>>>>>> 835145b95a505ac016e28555ebcd0cdbaa1beb02
     page = Page(title=title, description=description, id=key)
     verbose(f"[pages] blank page key={key!r} title={title!r}")
     return page
@@ -149,7 +127,6 @@ def buildNavigationPages() -> dict[str, Page]:
     for sectionName in ("CONTENT", "FOOTER"):
         section = PAGE_AND_MENU.get(sectionName) or {}
         for pageId, entry in _flattenEntries(section):
-<<<<<<< HEAD
             if pageId in pages: continue
             title = str(entry.get("title") or pageId)
             description = str(entry.get("description") or "")
@@ -158,11 +135,6 @@ def buildNavigationPages() -> dict[str, Page]:
                 pages[pageId] = builder(pageId)
             else:
                 pages[pageId] = buildBlankPage(pageId, title, description)
-=======
-            if pageId in pages:
-                continue
-            pages[pageId] = _instantiatePage(pageId, entry)
->>>>>>> 835145b95a505ac016e28555ebcd0cdbaa1beb02
 
     # Devices header page is still registered for stack lookup; leaves are dynamic.
     if PAGE_DEVICES not in pages:
