@@ -1,20 +1,18 @@
 # Implementation Details
 
 ## 1. Architecture Overview
-- `Image` (QWidget + ComponentBase): software paint path, dirty-flag scaled pixmap cache. Display only.
-- `GLImage` (QOpenGLWidget + ComponentBase): texture upload + QPainter draw in paintGL. Display only.
-- No interaction handlers in either class.
+- `Image`: QWidget paint path only.
+- `GLImage`: QOpenGLWidget paintGL path only.
+- No event handlers, no signals on either class.
 
 ## 2. Directory & Module Mapping
 | Source Path | Documentation Path | Primary Responsibility |
 | :--- | :--- | :--- |
 | `src/jAGQt/widgets/Image/__image.py` | `.docs/jAGQt/widgets/Image/image.md` | Software image display |
 | `src/jAGQt/widgets/Image/__glImage.py` | `.docs/jAGQt/widgets/Image/glImage.md` | OpenGL image display |
-| `src/jAGQt/widgets/Image/__init__.py` | — | Exports Image, GLImage |
 
-## 3. Core Workflows & Data Flow
-1. Caller sets `view.image = value` (path / QImage / QPixmap / Tensor / None).
-2. Value is normalized to QPixmap; view resets to fit-to-widget and centers.
-3. Image: marks dirty, rebuilds scaled pixmap on paint, draws at offset.
-4. GLImage: uploads RGBA texture / keeps fallback QImage, draws scaled in paintGL.
-5. On resize: re-fit and center.
+## 3. Core Workflows
+1. Set `view.image`.
+2. Normalized to QPixmap; `resetView()` fits and centers.
+3. Image: dirty flag → rebuild scaled pixmap → paintEvent draws it.
+4. GLImage: upload texture / fallback QImage → paintGL draws it.
