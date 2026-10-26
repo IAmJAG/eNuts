@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-26 04:52:23 UTC*
+*Auto-generated on: 2026-10-26 05:27:51 UTC*
 
 ## Current Directory Structure
 
@@ -1556,6 +1556,11 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+59f28c2:
+	docs(inventory): update auto-generated timestamp and enhance directory structure
+		.docs/inventory.md
+		src/jAGQt/widgets/components/__componentBase.py
+
 8224256:
 	fix(SideBarMenuItem): guard setPointSize â€” skip when pt <= 0
 		src/jAGQt/widgets/SideBar/menu/__sideBarMenuItem.py
@@ -1591,9 +1596,5 @@ b56527c:
 fb64c78:
 	docs(Image): implementation â€” no Tensor
 		.docs/jAGQt/widgets/Image/implementation.md
-
-5d83d62:
-	docs(Image): requirement â€” no Tensor
-		.docs/jAGQt/widgets/Image/requirement.md
 
 ```
