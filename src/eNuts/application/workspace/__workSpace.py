@@ -21,18 +21,19 @@ from jAGQt.widgets.sideBar import SideBar, SideBarMenuItem, eSideBarState
 from utilities.io import getICONPath
 
 # ==================================================================================
-from ...UI.navigation import buildSideBarMenu, pageKeyOf, setPageKey
-from ...UI.pages import (
+from ...UI.navigation import (
     G_DEVICE_KEY_PREFIX,
     G_DEVICE_NONE,
     PAGE_DASHBOARD,
     PAGE_DEVICES,
-    buildDevicePage,
-    buildNavigationPages,
+    buildSideBarMenu,
     devicePageKeyFromId,
+    pageKeyOf,
+    serialFromPageKey,
+    setPageKey,
 )
+from ...UI.pages import buildDevicePage, buildNavigationPages
 from ...UI.pages.__devicePage import DeviceFrameBridge
-from ...UI.pages.__pageKeys import serialFromPageKey
 from ..device import (
     DEVICE_ADDED_EVENT,
     DEVICE_INITIALIZED_EVENT,
@@ -293,6 +294,12 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             vf = decode(codec, toGPU=False)
             if vf is None:
                 return None
+            if hasattr(vf, "to_image"):
+                pil = vf.to_image()
+                data = pil.convert("RGB").tobytes()
+                w, h = pil.size
+                qimg = QImage(data, w, h, 3 * w, QImage.Format.Format_RGB888)
+                return qimg.copy()
             if hasattr(vf, "to_ndarray"):
                 import numpy as np
 
@@ -303,12 +310,6 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
                 qimg = QImage(
                     arr.data, w, h, 3 * w, QImage.Format.Format_RGB888
                 )
-                return qimg.copy()
-            if hasattr(vf, "to_image"):
-                pil = vf.to_image()
-                data = pil.convert("RGB").tobytes()
-                w, h = pil.size
-                qimg = QImage(data, w, h, 3 * w, QImage.Format.Format_RGB888)
                 return qimg.copy()
         except Exception:
             return None
@@ -417,10 +418,10 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
         if serial is None:
             serial = serialFromPageKey(key) or title
 
-        if key.startswith(C_DEVICE_KEY_PREFIX) and serial:
+        if key.startswith(G_DEVICE_KEY_PREFIX) and serial:
             page = buildDevicePage(key, title, serial)
         else:
-            from ...UI.pages import buildBlankPage
+            from ...UI.navigation import buildBlankPage
 
             page = buildBlankPage(key, title, "Device")
 
@@ -430,7 +431,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
         debug(f"[WorkSpace] registered device page key={key!r} index={idx}")
 
     def _unregisterDevicePage(self, key: str) -> None:
-        if key == C_DEVICE_NONE or key not in self._pages:
+        if key == G_DEVICE_NONE or key not in self._pages:
             self._devicePageKeys.discard(key)
             return
         stack = self._stack
