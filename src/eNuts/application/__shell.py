@@ -24,24 +24,36 @@ class Shell(ApplicationInformation):
     def _wInitializeUI(self: iMainWindowBase) -> None:
         verbose(f"[{self.__class__.__name__}] _wInitializeUI ENTER")
         try:
-            mgr = deviceManager(self._shutdownEvent)            
-            
+            mgr = deviceManager(self._shutdownEvent)
+
             central: WorkSpace = WorkSpace(deviceMgr=mgr, title=self.title)
             self.setCentralWidget(central)
+            self._workSpace = central
+            self._deviceManager = mgr
 
-            self._deviceManager = mgr            
+            # Controller persists across page strip — bind still runs so
+            # bindPage/command wiring can be inspected against a basic Page.
+            recorder = KGRecorder(self)
+            recorder.setDeviceManager(mgr)
+            self._kgRecorder = recorder
+            self._bindKGRecorder(central, recorder)
+
+            mgr.runDiscovery()
             verbose("[Shell] deviceManager.runDiscovery started")
 
         except Exception as ex:
             error(f"[{self.__class__.__name__}] _wInitializeUI FAIL", ex)
+            error(f"[{self.__class__.__name__}] traceback:\n{format_exc()}")
 
         finally:
-            verbose("f[{self.__class__.__name__}] _wInitializeUI EXIT")
+            verbose(f"[{self.__class__.__name__}] _wInitializeUI EXIT")
 
     def _bindKGRecorder(self, workSpace: WorkSpace, recorder: KGRecorder) -> None:
         """Attach KGRecorder to the kg-recorder page view (minimal Shell logic)."""
         try:
             pages = getattr(workSpace, "Pages", None) or {}
+            if not pages:
+                pages = getattr(workSpace, "_pages", None) or {}
             page = pages.get(PAGE_KG_RECORDER)
             if page is None:
                 warning("[Shell] kg-recorder page not found; recorder unbound")
@@ -101,6 +113,7 @@ class Shell(ApplicationInformation):
 
         deviceCombo = getattr(page, "_deviceCombo", None)
         if deviceCombo is not None:
+
             def _onDeviceChanged(index: int) -> None:
                 data = deviceCombo.itemData(index)
                 serial = str(data) if data is not None else None
@@ -116,6 +129,7 @@ class Shell(ApplicationInformation):
         eventList = getattr(page, "_eventList", None)
 
         if statusLabel is not None:
+
             def _onStatus(text: str) -> None:
                 try:
                     statusLabel.setText(text)
@@ -125,6 +139,7 @@ class Shell(ApplicationInformation):
             recorder.statusTextChanged.connect(_onStatus)
 
         if eventList is not None:
+
             def _onEvents(events: object) -> None:
                 try:
                     eventList.clear()

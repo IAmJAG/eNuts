@@ -1,5 +1,11 @@
 # ==================================================================================
-from .__navigation import PAGE_AND_MENU, buildBlankPage, buildNavigationPages
+from .__navigation import (
+    C_DEFAULT_PAGE_TYPE,
+    PAGE_AND_MENU,
+    buildBlankPage,
+    buildNavigationPages,
+    resolvePageClass,
+)
 from .__pageKeys import (
     G_DEVICE_KEY_PREFIX,
     G_DEVICE_NONE,
@@ -17,6 +23,7 @@ from .__sideBarMenuBuilder import buildSideBarMenu, pageKeyOf, setPageKey
 
 # ==================================================================================
 __all__ = [
+    "C_DEFAULT_PAGE_TYPE",
     "PAGE_AND_MENU",
     "PAGE_ANNOTATOR",
     "PAGE_DASHBOARD",
@@ -32,6 +39,7 @@ __all__ = [
     "devicePageKey",
     "devicePageKeyFromId",
     "pageKeyOf",
+    "resolvePageClass",
     "serialFromPageKey",
     "setPageKey",
 ]
