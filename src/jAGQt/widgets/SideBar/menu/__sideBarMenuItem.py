@@ -59,8 +59,8 @@ class SideBarMenuItem(SideBarItem):
         self._role: eSideBarMenuRole = role
         self._rootIconSize: int = int(rootIconSize)
         self._childIconSize: int = int(childIconSize)
-        self._rootFontPt: int = int(rootFontPt)
-        self._childFontPt: int = int(childFontPt)
+        self._rootFontPt: int = int(rootFontPt) if int(rootFontPt) > 0 else C_ROOT_FONT_PT
+        self._childFontPt: int = int(childFontPt) if int(childFontPt) > 0 else C_CHILD_FONT_PT
         self._itemMargins: Tuple[int, int, int, int] = tuple(itemMargins)  # type: ignore
         self._childIndent: int = int(childIndent)
         self._collapsedWidth: int = int(collapsedWidth)
@@ -142,12 +142,10 @@ class SideBarMenuItem(SideBarItem):
 
         if self._titleWidget is not None:
             font: QFont = self._titleWidget.font()
-            if self._isChild():
-                font.setPointSize(self._childFontPt)
-                font.setBold(False)
-            else:
-                font.setPointSize(self._rootFontPt)
-                font.setBold(True)
+            pt = self._childFontPt if self._isChild() else self._rootFontPt
+            if pt > 0:
+                font.setPointSize(pt)
+            font.setBold(not self._isChild())
             self._titleWidget.setFont(font)
 
     def _hierarchyMargins(self) -> Tuple[int, int, int, int]:
@@ -229,9 +227,11 @@ class SideBarMenuItem(SideBarItem):
         if childIconSize is not None:
             self._childIconSize = int(childIconSize)
         if rootFontPt is not None:
-            self._rootFontPt = int(rootFontPt)
+            pt = int(rootFontPt)
+            self._rootFontPt = pt if pt > 0 else C_ROOT_FONT_PT
         if childFontPt is not None:
-            self._childFontPt = int(childFontPt)
+            pt = int(childFontPt)
+            self._childFontPt = pt if pt > 0 else C_CHILD_FONT_PT
         if itemMargins is not None:
             self._itemMargins = tuple(itemMargins)  # type: ignore
         if childIndent is not None:
