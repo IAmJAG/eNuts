@@ -60,7 +60,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
     _sigDeviceRemoved: SignalInstance = Signal(object)
 
     def __init__(
-        self, deviceMgr: Optional[deviceManager] = None, 
+        self, deviceMgr: Optional[deviceManager] = None,
         title: str = "eNuts",
         *args, **kwargs
     ) -> None:
@@ -88,15 +88,19 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             objName: str = f"{self.objectName()!r}"
             debug(f"[{self.__class__.__name__}] __init__ EXIT objectName={objName}")
 
-    def _buildSideBar(self) -> None:
-        # SideBar
+    # --------------------------------------------------------------------------
+    # SideBar *base* only — chrome, options, animation. No menu, no pages.
+    # --------------------------------------------------------------------------
+    def _buildSideBar(self) -> SideBar:
         expandPath: str = getICONPath("expand.png")
         collapsePath: str = getICONPath("collapse.png")
 
         sideBarOptions = SideBarOptions(animation=C_SIDEBAR_ANIMATION_TYPE)
-        animationOptions = AnimationOptions(name="RubberBand", durationMs=C_SIDEBAR_ANIMATION_MS)
+        animationOptions = AnimationOptions(
+            name="RubberBand", durationMs=C_SIDEBAR_ANIMATION_MS
+        )
 
-        sideBar: SideBar = SideBar(
+        return SideBar(
             icons={
                 eSideBarState.Expanded: collapsePath,
                 eSideBarState.Collapsed: expandPath,
@@ -107,59 +111,83 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             animationOptions=animationOptions,
         )
 
-        return sideBar
-
-        pages = buildNavigationPages()
-        pageIndex: Dict[str, int] = {}
-        for key, page in pages.items():
-            idx = stack.addWidget(page)
-            pageIndex[key] = idx
-
-        if PAGE_DASHBOARD in pageIndex:
-            stack.setCurrentIndex(pageIndex[PAGE_DASHBOARD])
-
-        # menu, settings = buildSideBarMenu()
-        
-                    # menu.itemClicked.connect(self._onNavItemClicked)
-                    # settings.clicked.connect(self._onNavItemClicked)
-
-        self._sigDevicesReady.connect(self._onDevicesReadyUi)
-        self._sigDeviceAdded.connect(self._onDeviceAddedUi)
-        self._sigDeviceRemoved.connect(self._onDeviceRemovedUi)
-        self._bindDeviceManager(self._deviceManager)
-
+    # --------------------------------------------------------------------------
+    # Menu only — attach content/footer produced by navigation builder.
+    # Invoked by @workflow("BuildMenu") after InitializeUI.
+    # --------------------------------------------------------------------------
     def _wBuildMenu(self) -> None:
-        sideBar: SideBar = self._sideBar
-        menu, settings = buildSideBarMenu()        
-        sideBar.setContent(menu)
-        sideBar.setFooter(settings)
+        sideBar = self._sideBar
+        if sideBar is None:
+            warning("[WorkSpace] _wBuildMenu skipped: SideBar not built")
+            return
 
-    def _wInitializeUI(self) -> None:                
+        menu, footer = buildSideBarMenu()
+        sideBar.setContent(menu)
+        sideBar.setFooter(footer)
+
+        try:
+            menu.itemClicked.connect(self._onNavItemClicked)
+        except Exception as ex:
+            warning(f"[WorkSpace] menu.itemClicked connect failed: {ex}")
+
+        if footer is not None:
+            try:
+                footer.selectionRequested.connect(self._onNavItemClicked)
+            except Exception as ex:
+                warning(f"[WorkSpace] footer.selectionRequested connect failed: {ex}")
+
+        debug("[WorkSpace] _wBuildMenu attached content+footer")
+
+    def _wInitializeUI(self) -> None:
         debug("[WorkSpace] _wInitializeUI ENTER")
         super()._wInitializeUI()
         try:
             sideBar = self._buildSideBar()
 
             stack: QStackedWidget = QStackedWidget()
-            stack.setSizePolicy(QSPolicy.Expanding, QSPolicy.Expanding)           
-            
+            stack.setSizePolicy(QSPolicy.Expanding, QSPolicy.Expanding)
+
             layout: QBoxLayout = QBoxLayout(QBoxLayout.Direction.LeftToRight)
             layout.setSpacing(0)
-            layout.setContentsMargins(0, 0, 0, 0)            
+            layout.setContentsMargins(0, 0, 0, 0)
             layout.addWidget(sideBar)
             layout.addWidget(stack, 1)
 
-            if hasattr(self, "_layout"): 
+            if hasattr(self, "_layout"):
                 self._layout = layout
-                
+
             self.setLayout(layout)
-            
+
             self._sideBar = sideBar
             self._stack = stack
-            debug("[WorkSpace] _wInitializeUI EXIT ")
+
+            self._registerNavigationPages()
+            self._sigDevicesReady.connect(self._onDevicesReadyUi)
+            self._sigDeviceAdded.connect(self._onDeviceAddedUi)
+            self._sigDeviceRemoved.connect(self._onDeviceRemovedUi)
+            self._bindDeviceManager(self._deviceManager)
+
+            debug("[WorkSpace] _wInitializeUI EXIT")
 
         except Exception as ex:
             error("[WorkSpace] _wInitializeUI FAIL", ex)
+
+    def _registerNavigationPages(self) -> None:
+        """Populate the stack from navigation page registry (not menu)."""
+        stack = self._stack
+        if stack is None:
+            return
+
+        pages = buildNavigationPages()
+        for key, page in pages.items():
+            idx = stack.addWidget(page)
+            self._pages[key] = page
+            self._pageIndex[key] = idx
+
+        if PAGE_DASHBOARD in self._pageIndex:
+            stack.setCurrentIndex(self._pageIndex[PAGE_DASHBOARD])
+
+        debug(f"[WorkSpace] registered {len(pages)} navigation page(s)")
 
     def _onNavItemClicked(self, item: object) -> None:
         key = pageKeyOf(item)
@@ -349,7 +377,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             debug(f"[WorkSpace] device added id={device.id!r} name={device.name!r}")
             self._registerDevice(device)
             self._rebuildDevicesMenuLeaves()
-            
+
         except Exception as ex:
             error("[WorkSpace] _onDeviceAddedUi FAIL", ex)
             error(f"[WorkSpace] traceback:\n{format_exc()}")
