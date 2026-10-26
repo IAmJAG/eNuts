@@ -1,21 +1,18 @@
 ## Overview & Design Context
-Software-only image display widget. Renders via QWidget + cached scaled QPixmap. Display only — no pan, zoom, or mouse interaction.
-* **Design Decision / Deviation Notes:** Split from the previous combined Image. Image is purely software and display-only; OpenGL lives in GLImage. All interaction code removed.
+Software-only image display. Paint the image. Nothing else.
+* **Design Decision / Deviation Notes:** No event handlers. No signals. Display only.
 
 ---
 
 ## Classes
 
 ### `Image`
-- **Purpose:** Display an image. Accepts QPixmap, QImage, path string, or torch Tensor. Fits and centers on set/resize.
+- **Purpose:** Display an image. Accepts QPixmap, QImage, path string, or torch Tensor.
 - **Methods:**
-  - `setupUI()` -> Configure paint attributes and background.
-  - `setBackgroundColor(color)` -> Set fill color.
+  - `setupUI()` -> Paint attributes and background.
+  - `setBackgroundColor(color)` -> Fill color.
   - `resetView()` -> Fit image to widget (aspect-preserving) and center.
-  - `_rebuildScaled()` -> Rebuild the cached scaled pixmap from current zoom.
-  - `_tensorToPixmap(tensor)` -> Convert torch Tensor to QPixmap.
-  - `paintEvent(event)` -> Fill background and draw the scaled image at current offset.
-  - `resizeEvent(event)` -> Emit onResize and re-fit.
+  - `paintEvent(event)` -> Draw background + scaled image.
 
 ---
 
