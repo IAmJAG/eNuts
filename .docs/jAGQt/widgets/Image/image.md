@@ -8,7 +8,7 @@ Software image display. Shows the image and handles resize via ``fitMode``.
 ### `Image`
 - **Purpose:** Display an image. Resize behaviour controlled by ``fitMode``.
 - **Properties:**
-  - `image` — QPixmap | QImage | str | Tensor | None
+  - `image` — QPixmap | QImage | str | None
   - `fitMode` — ImageFitMode (Scale | Fill | Crop)
 - **Methods:**
   - `setBackgroundColor(color)`
