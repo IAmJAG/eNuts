@@ -1,13 +1,3 @@
-/* eNuts — Page widget (W_PAGE tree)
- *
- * Hierarchy:
- *   W_PAGE
- *   ├── W_PAGE_HEADER   (Header; children keep W_TITLE / W_DESCRIPTION / W_ICON)
- *   ├── W_PAGE_CONTENT
- *   └── W_COMMANDBAR    (optional)
- */
-
-/* ---------- Root ---------- */
 QWidget#W_PAGE {
     background: $bg;
     color: $text;

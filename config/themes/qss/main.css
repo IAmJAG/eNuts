@@ -1,5 +1,3 @@
-/* eNuts theme — main.css (shared; tokens from palette) */
-
 QMainWindow,
 QWidget {
     background: $bg;
