@@ -8,7 +8,6 @@ from typing import Any, Callable, Dict
 from jAGQt.widgets.page import Page
 
 # ==================================================================================
-from ..pages.__kgRecorderPage import buildKGRecorderPage
 from .__pageKeys import (
     PAGE_ANNOTATOR,
     PAGE_DASHBOARD,
@@ -54,11 +53,6 @@ PAGE_AND_MENU: Dict[str, Dict[str, Any]] = {
     },
 }
 
-# Optional specialised builders keyed by the same page ids.
-_PAGE_BUILDERS: Dict[str, Callable[[str], Page]] = {
-    PAGE_KG_RECORDER: buildKGRecorderPage,
-}
-
 
 # ==================================================================================
 def buildBlankPage(key: str, title: str, description: str = "") -> Page:
@@ -82,8 +76,19 @@ def _flattenEntries(section: Dict[str, Any]) -> list[tuple[str, Dict[str, Any]]]
 
 
 # ==================================================================================
+def _pageBuilders() -> Dict[str, Callable[[str], Page]]:
+    """Lazy map of specialised builders (avoids navigation <-> pages import cycle)."""
+    from ..pages.__kgRecorderPage import buildKGRecorderPage
+
+    return {
+        PAGE_KG_RECORDER: buildKGRecorderPage,
+    }
+
+
+# ==================================================================================
 def buildNavigationPages() -> dict[str, Page]:
     pages: dict[str, Page] = {}
+    builders = _pageBuilders()
 
     for sectionName in ("CONTENT", "FOOTER"):
         section = PAGE_AND_MENU.get(sectionName) or {}
@@ -92,7 +97,7 @@ def buildNavigationPages() -> dict[str, Page]:
                 continue
             title = str(entry.get("title") or pageId)
             description = str(entry.get("description") or "")
-            builder = _PAGE_BUILDERS.get(pageId)
+            builder = builders.get(pageId)
             if builder is not None:
                 pages[pageId] = builder(pageId)
             else:

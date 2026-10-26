@@ -10,7 +10,7 @@ from PySide6.QtCore import QRect, QSettings, Qt
 # ==================================================================================
 from jAGQt.types.interface.window import iMainWindowBase
 
-from ..UI.navigation import PAGE_KG_RECORDER
+from ..UI.navigation.__pageKeys import PAGE_KG_RECORDER
 
 # ==================================================================================
 from .__applicationInformation import ApplicationInformation
