@@ -1,17 +1,18 @@
 # ==================================================================================
-# Retired — use buildNavigationPages / __pageKeys instead.
+# Retired — use buildNavigationPages / navigation page keys instead.
 # ==================================================================================
-from ..navigation.__navigation import buildBlankPage, buildNavigationPages
-from .__pageKeys import (
-    C_DEVICE_NONE,
+from ..navigation import (
     PAGE_ANNOTATOR,
     PAGE_DASHBOARD,
     PAGE_DEVICES,
     PAGE_KG_RECORDER,
     PAGE_SETTINGS,
     PAGE_TOOLS,
+    buildBlankPage,
+    buildNavigationPages,
     devicePageKey,
 )
+from ..navigation import G_DEVICE_NONE as C_DEVICE_NONE  # legacy alias
 
 # Legacy alias
 PAGE_KEYS = (
@@ -23,5 +24,6 @@ PAGE_KEYS = (
     PAGE_SETTINGS,
 )
 
+
 def buildSmokeTestPages(deviceNames: list[str] | None = None):
-    return buildNavigationPages(deviceNames)
+    return buildNavigationPages()

@@ -20,8 +20,8 @@ from jAGQt.utilities import newLayout
 from jAGQt.widgets.page import Page
 
 # ==================================================================================
+from ..navigation import PAGE_KG_RECORDER
 from ..widgets import CaptureImage
-from .__pageKeys import PAGE_KG_RECORDER
 
 
 # ==================================================================================

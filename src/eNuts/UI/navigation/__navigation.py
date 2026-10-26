@@ -2,14 +2,14 @@
 from __future__ import annotations
 
 # ==================================================================================
-from typing import Dict
+from typing import Any, Callable, Dict
 
 # ==================================================================================
 from jAGQt.widgets.page import Page
 
 # ==================================================================================
 from ..pages.__kgRecorderPage import buildKGRecorderPage
-from ..pages.__pageKeys import (
+from .__pageKeys import (
     PAGE_ANNOTATOR,
     PAGE_DASHBOARD,
     PAGE_DEVICES,
@@ -18,44 +18,47 @@ from ..pages.__pageKeys import (
     PAGE_TOOLS,
 )
 
-PAGE_AND_MENU: Dict = {
+# ==================================================================================
+# Keys are page ids only. Captions live in title. Devices stay out of this table.
+PAGE_AND_MENU: Dict[str, Dict[str, Any]] = {
     "CONTENT": {
-        "Dashboard": {
+        PAGE_DASHBOARD: {
             "title": "Dashboard",
             "description": "Overview and status",
             "icon": "dashboard.png",
         },
-        "Tools":{
+        PAGE_TOOLS: {
             "title": "Tools",
             "description": "Dataset gathering tools",
             "icon": "tools.png",
-            "MENU": [
-                {
-                    "K&G Recorder": {
-                        "title": "K&G Recorder",
-                        "description": "Keyboard and Gesture Recorder",
-                        "icon": "KGRecorder.png",
-                    },
+            "MENU": {
+                PAGE_KG_RECORDER: {
+                    "title": "K&G Recorder",
+                    "description": "Keyboard and Gesture Recorder",
+                    "icon": "KGRecorder.png",
                 },
-                {
-                    "Annotator": {
-                        "title": "Annotator",
-                        "description": "Video/Image Annotator",
-                        "icon": "annotation.png",
-                    }
-                }
-            ]
-        }
+                PAGE_ANNOTATOR: {
+                    "title": "Annotator",
+                    "description": "Video/Image Annotator",
+                    "icon": "annotation.png",
+                },
+            },
+        },
     },
     "FOOTER": {
-        "Settings": {
+        PAGE_SETTINGS: {
             "title": "Settings",
             "description": "System settings",
             "icon": "settings.png",
-        }
-    }
+        },
+    },
 }
-# ==================================================================================
+
+# Optional specialised builders keyed by the same page ids.
+_PAGE_BUILDERS: Dict[str, Callable[[str], Page]] = {
+    PAGE_KG_RECORDER: buildKGRecorderPage,
+}
+
 
 # ==================================================================================
 def buildBlankPage(key: str, title: str, description: str = "") -> Page:
@@ -63,26 +66,42 @@ def buildBlankPage(key: str, title: str, description: str = "") -> Page:
     verbose(f"[pages] blank page key={key!r} title={title!r}")
     return page
 
+
+# ==================================================================================
+def _flattenEntries(section: Dict[str, Any]) -> list[tuple[str, Dict[str, Any]]]:
+    """Yield (pageId, entry) depth-first; nested MENU is also keyed by page id."""
+    out: list[tuple[str, Dict[str, Any]]] = []
+    for pageId, entry in section.items():
+        if not isinstance(entry, dict):
+            continue
+        out.append((pageId, entry))
+        nested = entry.get("MENU")
+        if isinstance(nested, dict):
+            out.extend(_flattenEntries(nested))
+    return out
+
+
 # ==================================================================================
 def buildNavigationPages() -> dict[str, Page]:
     pages: dict[str, Page] = {}
 
-    pages[PAGE_DASHBOARD] = buildBlankPage(
-        PAGE_DASHBOARD, "Dashboard", "Overview and status"
-    )
+    for sectionName in ("CONTENT", "FOOTER"):
+        section = PAGE_AND_MENU.get(sectionName) or {}
+        for pageId, entry in _flattenEntries(section):
+            if pageId in pages:
+                continue
+            title = str(entry.get("title") or pageId)
+            description = str(entry.get("description") or "")
+            builder = _PAGE_BUILDERS.get(pageId)
+            if builder is not None:
+                pages[pageId] = builder(pageId)
+            else:
+                pages[pageId] = buildBlankPage(pageId, title, description)
 
-    pages[PAGE_DEVICES] = buildBlankPage(
-        PAGE_DEVICES, "Devices", "Device summary"
-    )
-    pages[PAGE_TOOLS] = buildBlankPage(
-        PAGE_TOOLS, "Tools", "Tools summary"
-    )
-    pages[PAGE_ANNOTATOR] = buildBlankPage(
-        PAGE_ANNOTATOR, "Annotator", "Annotation tools"
-    )
-    pages[PAGE_KG_RECORDER] = buildKGRecorderPage(PAGE_KG_RECORDER)
-    pages[PAGE_SETTINGS] = buildBlankPage(
-        PAGE_SETTINGS, "Settings", "Application preferences"
-    )
+    # Devices header page is still registered for stack lookup; leaves are dynamic.
+    if PAGE_DEVICES not in pages:
+        pages[PAGE_DEVICES] = buildBlankPage(
+            PAGE_DEVICES, "Devices", "Device summary"
+        )
 
     return pages

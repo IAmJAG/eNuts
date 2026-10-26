@@ -2,78 +2,103 @@
 from __future__ import annotations
 
 # ==================================================================================
-from typing import Dict
+from typing import Any, Dict, Optional
 
 # ==================================================================================
 from jAGQt.widgets.sideBar import SideBarMenu, SideBarMenuItem, eSideBarMenuRole
 from utilities.io import getICONPath
 
 # ==================================================================================
-from ..pages import (
-    PAGE_ANNOTATOR,
-    PAGE_DASHBOARD,
-    PAGE_KG_RECORDER,
-    PAGE_SETTINGS,
-    PAGE_TOOLS,
-)
 from .__navigation import PAGE_AND_MENU
 
 # ==================================================================================
 G_PAGE_KEY_PROP = "pageKey"
 
+
 # ==================================================================================
 def setPageKey(item: SideBarMenuItem, key: str) -> None:
     item.setProperty(G_PAGE_KEY_PROP, key)
 
+
 # ==================================================================================
 def pageKeyOf(item: object) -> str | None:
     """Read the navigation key attached to a SideBarMenuItem, if any."""
-    if not isinstance(item, SideBarMenuItem): return None
+    if not isinstance(item, SideBarMenuItem):
+        return None
     value = item.property(G_PAGE_KEY_PROP)
-
-    if value is None: return None
-    
+    if value is None:
+        return None
     key = str(value).strip()
     return key or None
 
 
 # ==================================================================================
-def buildSideBarMenu() -> tuple[SideBarMenu, SideBarMenuItem]:
-    menu: SideBarMenu = SideBarMenu()
+def _iconOf(entry: Dict[str, Any]) -> Optional[str]:
+    name = entry.get("icon")
+    if not name:
+        return None
+    return getICONPath(str(name))
 
-    # Dashboard
-    dashboard = menu.addItem(
-        "Dashboard", 
-        role=eSideBarMenuRole.Header, 
-        icon=getICONPath("dashboard.png")
-    )
 
-    # Tools
-    tools = menu.addItem(
-        "Tools", 
-        role=eSideBarMenuRole.Header,
-        icon=getICONPath("tools.png")
-    )    
-    recorder = tools.addChild("K&G Recorder", icon=getICONPath("KGRecorder.png"),)
-    annotator = tools.addChild("Annotator", icon=getICONPath("annotation.png"),)
+# ==================================================================================
+def _addEntry(
+    parent: SideBarMenu | SideBarMenuItem,
+    pageId: str,
+    entry: Dict[str, Any],
+    *,
+    asHeader: bool,
+) -> SideBarMenuItem:
+    title = str(entry.get("title") or pageId)
+    icon = _iconOf(entry)
+    role = eSideBarMenuRole.Header if asHeader else eSideBarMenuRole.Item
 
-    # Settings
-    settings = SideBarMenuItem(
-        caption="Settings",
-        role=eSideBarMenuRole.Header,
-        icon=getICONPath("settings.png"),
-    )
+    if isinstance(parent, SideBarMenu):
+        item = parent.addItem(title, role=role, icon=icon)
+    else:
+        item = parent.addChild(title, icon=icon)
 
-    setPageKey(dashboard, PAGE_DASHBOARD)
+    setPageKey(item, pageId)
 
-    setPageKey(tools, PAGE_TOOLS)
-    setPageKey(recorder, PAGE_KG_RECORDER)
-    setPageKey(annotator, PAGE_ANNOTATOR)
-    
-    setPageKey(settings, PAGE_SETTINGS)
-    
-    settings.selectionRequested.connect(
-        lambda item: menu.selectItem(item) if menu.SelectOnClick else None
-    )
+    nested = entry.get("MENU")
+    if isinstance(nested, dict):
+        for childId, childEntry in nested.items():
+            if isinstance(childEntry, dict):
+                _addEntry(item, childId, childEntry, asHeader=False)
 
-    return menu, settings
+    return item
+
+
+# ==================================================================================
+def buildSideBarMenu(
+    structure: Optional[Dict[str, Dict[str, Any]]] = None,
+) -> tuple[SideBarMenu, Optional[SideBarMenuItem]]:
+    """Build content + footer from PAGE_AND_MENU (or an injected structure).
+
+    Returns (contentMenu, footerItem). Footer is the last FOOTER entry when
+    present; callers may wire selectionRequested on it.
+    """
+    data = structure if structure is not None else PAGE_AND_MENU
+    menu = SideBarMenu()
+
+    content = data.get("CONTENT") or {}
+    for pageId, entry in content.items():
+        if isinstance(entry, dict):
+            _addEntry(menu, pageId, entry, asHeader=True)
+
+    footerItem: Optional[SideBarMenuItem] = None
+    footer = data.get("FOOTER") or {}
+    for pageId, entry in footer.items():
+        if not isinstance(entry, dict):
+            continue
+        title = str(entry.get("title") or pageId)
+        footerItem = SideBarMenuItem(
+            caption=title,
+            role=eSideBarMenuRole.Header,
+            icon=_iconOf(entry),
+        )
+        setPageKey(footerItem, pageId)
+        footerItem.selectionRequested.connect(
+            lambda item, m=menu: m.selectItem(item) if m.SelectOnClick else None
+        )
+
+    return menu, footerItem
