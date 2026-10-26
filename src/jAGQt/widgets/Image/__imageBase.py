@@ -11,6 +11,9 @@ from PySide6.QtGui import QColor, QImage, QPixmap
 # ==================================================================================
 from .__fitMode import ImageFitMode
 
+# ==================================================================================
+BACKGROUND_COLOR = QColor("lightgray")
+# ==================================================================================
 
 # ==================================================================================
 class ImageBase:
@@ -22,8 +25,7 @@ class ImageBase:
 
     # ------------------------------------------------------------------
     def _initImageBase(
-        self,
-        bg: Union[str, QColor] = "lightgray",
+        self, bg: Union[str, QColor] = BACKGROUND_COLOR,
         fitMode: ImageFitMode = ImageFitMode.Scale,
     ) -> None:
         self._image: Optional[QPixmap] = None
