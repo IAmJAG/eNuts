@@ -1,26 +1,26 @@
 ## Overview & Design Context
-OpenGL image display. Paint the image. Nothing else.
-* **Design Decision / Deviation Notes:** No event handlers. No signals. Display only.
+OpenGL image display. Shows the image and handles resize via ``fitMode``.
 
 ---
 
 ## Classes
 
 ### `GLImage`
-- **Purpose:** GPU-backed image display.
+- **Purpose:** GPU-backed image display. Same fit modes as Image.
+- **Properties:**
+  - `image` — QPixmap | QImage | str | Tensor | None
+  - `fitMode` — ImageFitMode (Scale | Fill | Crop)
 - **Methods:**
-  - `setupUI()` -> Background.
-  - `setBackgroundColor(color)` -> Clear color.
-  - `resetView()` -> Fit and center.
-  - `initializeGL` / `resizeGL` / `paintGL` -> Clear and draw.
+  - `setBackgroundColor(color)`
+  - `initializeGL` / `resizeGL` / `paintGL` / `resizeEvent`
 
 ---
 
 ## Sample Usage
 
 ```python
-from jAGQt.widgets.image import GLImage
+from jAGQt.widgets.image import GLImage, ImageFitMode
 
-view = GLImage(bg="#1e1e1e")
+view = GLImage(fitMode=ImageFitMode.Fill)
 view.image = some_qpixmap
 ```
