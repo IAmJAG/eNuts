@@ -51,7 +51,7 @@ C_ON_FRAME = "ON_FRAME"
 
 
 # ==================================================================================
-@workflow("InitializeUI", "BuildMenu")
+@workflow("InitializeUI", "RegisterPages", "BuildMenu")
 class WorkSpace(ComponentBase, ObjectName, QWidget):
     OBJECT_NAME = "W_WORKSPACE"
 
@@ -112,32 +112,8 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
         )
 
     # --------------------------------------------------------------------------
-    # Menu only — attach content/footer produced by navigation builder.
-    # Invoked by @workflow("BuildMenu") after InitializeUI.
+    # Workflow stage 1: shell only (SideBar base + stack + layout + device signals).
     # --------------------------------------------------------------------------
-    def _wBuildMenu(self) -> None:
-        sideBar = self._sideBar
-        if sideBar is None:
-            warning("[WorkSpace] _wBuildMenu skipped: SideBar not built")
-            return
-
-        menu, footer = buildSideBarMenu()
-        sideBar.setContent(menu)
-        sideBar.setFooter(footer)
-
-        try:
-            menu.itemClicked.connect(self._onNavItemClicked)
-        except Exception as ex:
-            warning(f"[WorkSpace] menu.itemClicked connect failed: {ex}")
-
-        if footer is not None:
-            try:
-                footer.selectionRequested.connect(self._onNavItemClicked)
-            except Exception as ex:
-                warning(f"[WorkSpace] footer.selectionRequested connect failed: {ex}")
-
-        debug("[WorkSpace] _wBuildMenu attached content+footer")
-
     def _wInitializeUI(self) -> None:
         debug("[WorkSpace] _wInitializeUI ENTER")
         super()._wInitializeUI()
@@ -161,7 +137,6 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             self._sideBar = sideBar
             self._stack = stack
 
-            self._registerNavigationPages()
             self._sigDevicesReady.connect(self._onDevicesReadyUi)
             self._sigDeviceAdded.connect(self._onDeviceAddedUi)
             self._sigDeviceRemoved.connect(self._onDeviceRemovedUi)
@@ -172,10 +147,14 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
         except Exception as ex:
             error("[WorkSpace] _wInitializeUI FAIL", ex)
 
-    def _registerNavigationPages(self) -> None:
-        """Populate the stack from navigation page registry (not menu)."""
+    # --------------------------------------------------------------------------
+    # Workflow stage 2: page stack only — from navigation registry. No menu.
+    # --------------------------------------------------------------------------
+    def _wRegisterPages(self) -> None:
+        debug("[WorkSpace] _wRegisterPages ENTER")
         stack = self._stack
         if stack is None:
+            warning("[WorkSpace] _wRegisterPages skipped: stack not built")
             return
 
         pages = buildNavigationPages()
@@ -187,7 +166,33 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
         if PAGE_DASHBOARD in self._pageIndex:
             stack.setCurrentIndex(self._pageIndex[PAGE_DASHBOARD])
 
-        debug(f"[WorkSpace] registered {len(pages)} navigation page(s)")
+        debug(f"[WorkSpace] _wRegisterPages EXIT count={len(pages)}")
+
+    # --------------------------------------------------------------------------
+    # Workflow stage 3: menu only — attach content/footer from navigation builder.
+    # --------------------------------------------------------------------------
+    def _wBuildMenu(self) -> None:
+        sideBar = self._sideBar
+        if sideBar is None:
+            warning("[WorkSpace] _wBuildMenu skipped: SideBar not built")
+            return
+
+        menu, footer = buildSideBarMenu()
+        sideBar.setContent(menu)
+        sideBar.setFooter(footer)
+
+        try:
+            menu.itemClicked.connect(self._onNavItemClicked)
+        except Exception as ex:
+            warning(f"[WorkSpace] menu.itemClicked connect failed: {ex}")
+
+        if footer is not None:
+            try:
+                footer.selectionRequested.connect(self._onNavItemClicked)
+            except Exception as ex:
+                warning(f"[WorkSpace] footer.selectionRequested connect failed: {ex}")
+
+        debug("[WorkSpace] _wBuildMenu attached content+footer")
 
     def _onNavItemClicked(self, item: object) -> None:
         key = pageKeyOf(item)
