@@ -18,7 +18,7 @@ C_THEMES_SUBDIR: str = "themes"
 class OptionsBase(Serializable):
     """Named serializable settings blob. Apply once to a host, then drop.
 
-    Persist under ``config/themes/<themeName>/options/<Name>.json`` via
+    Persist under ``config/themes/options/<themeName>/<Name>.json`` via
     :meth:`resolvePath`. Load/save I/O is owned by a theme handler (or caller);
     this type only encodes/decodes and resolves paths.
     """
@@ -62,15 +62,15 @@ class OptionsBase(Serializable):
 
     # ==================================================================================
     def resolvePath(self, themeName: str) -> str:
-        """Return absolute path for this named option under a theme directory."""
+        """Return absolute path for this named option under themes/options/<theme>/."""
         if not self._name:
             raise ValueError("OptionsBase.Name must be non-empty to resolve a path")
         if not themeName or not str(themeName).strip():
             raise ValueError("themeName must be non-empty")
         relative = os.path.join(
             C_THEMES_SUBDIR,
-            str(themeName).strip(),
             C_OPTIONS_SUBDIR,
+            str(themeName).strip(),
             f"{self._name}.json",
         )
         return getConfigPath(relative)
