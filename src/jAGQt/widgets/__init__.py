@@ -1,8 +1,9 @@
 # ==================================================================================
-from .image import Image, GLImage
+from .image import Image, GLImage, ImageFitMode
 
 # ==================================================================================
 __all__ = [
     "Image",
     "GLImage",
+    "ImageFitMode",
 ]
