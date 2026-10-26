@@ -5,16 +5,14 @@ import os
 from typing import Optional, Union
 
 # ==================================================================================
-from PySide6.QtCore import QPoint, QPointF, QSize, Qt, Signal
+from PySide6.QtCore import QPointF, QSize, Qt, Signal
 from PySide6.QtGui import (
     QColor,
     QImage,
-    QMouseEvent,
     QPainter,
     QPaintEvent,
     QPixmap,
     QResizeEvent,
-    QWheelEvent,
 )
 from PySide6.QtWidgets import QWidget
 from torch import Tensor
@@ -25,15 +23,9 @@ from ..components import ComponentBase
 
 # ==================================================================================
 class Image(QWidget, ComponentBase):
-    """Software image viewer that only displays the image.
-
-    Pure QWidget + cached scaled QPixmap. Optional pan / zoom when
-    ``interactionEnabled`` is True. When False (default), pointer gestures
-    pass through so the surface can be used for gesture capture.
-    """
+    """Software image display. Display only — no pan, zoom, or mouse interaction."""
 
     onResize: Signal = Signal(QSize)
-    onZoomChanged: Signal = Signal(float)
 
     # ------------------------------------------------------------------
     def __init__(
@@ -52,39 +44,17 @@ class Image(QWidget, ComponentBase):
         self._scaled: Optional[QPixmap] = None
         self._dirty: bool = True
 
-        self._lastMousePos: Optional[QPoint] = None
-        self._panning: bool = False
-        self._interactionEnabled: bool = False
-
         self.setupUI()
 
     # ------------------------------------------------------------------
     def setupUI(self) -> None:
         self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, True)
         self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground, True)
-        self.setMouseTracking(True)
-        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setBackgroundColor(self._backgroundColor)
 
     # ------------------------------------------------------------------
     # PROPERTIES
     # ------------------------------------------------------------------
-    @property
-    def interactionEnabled(self) -> bool:
-        """When False, pan / zoom / double-click reset are disabled."""
-        return self._interactionEnabled
-
-    @interactionEnabled.setter
-    def interactionEnabled(self, value: bool) -> None:
-        enabled = bool(value)
-        if enabled == self._interactionEnabled:
-            return
-        self._interactionEnabled = enabled
-        if not enabled:
-            self._panning = False
-            self._lastMousePos = None
-            self.setCursor(Qt.CursorShape.ArrowCursor)
-
     @property
     def zoom(self) -> float:
         return self._zoom
@@ -96,7 +66,6 @@ class Image(QWidget, ComponentBase):
             return
         self._zoom = lNew
         self._dirty = True
-        self.onZoomChanged.emit(self._zoom)
         self.update()
 
     @property
@@ -104,9 +73,9 @@ class Image(QWidget, ComponentBase):
         return self._offset
 
     @offset.setter
-    def offset(self, value: Union[QPoint, QPointF]) -> None:
-        if isinstance(value, QPoint):
-            value = QPointF(value)
+    def offset(self, value: Union[QPointF, tuple]) -> None:
+        if not isinstance(value, QPointF):
+            value = QPointF(*value)
         if value == self._offset:
             return
         self._offset = value
@@ -158,6 +127,7 @@ class Image(QWidget, ComponentBase):
     # LOGIC
     # ------------------------------------------------------------------
     def resetView(self) -> None:
+        """Fit image to widget (aspect-preserving) and center."""
         if self._image is None or self._image.isNull() or self.width() <= 0 or self.height() <= 0:
             self._zoom = 100.0
             self._offset = QPointF(0.0, 0.0)
@@ -176,7 +146,6 @@ class Image(QWidget, ComponentBase):
             (self.height() - lScaledH) * 0.5,
         )
         self._dirty = True
-        self.onZoomChanged.emit(self._zoom)
 
     def _rebuildScaled(self) -> None:
         if self._image is None or self._image.isNull():
@@ -227,6 +196,8 @@ class Image(QWidget, ComponentBase):
     # ------------------------------------------------------------------
     def resizeEvent(self, event: QResizeEvent) -> None:
         self.onResize.emit(event.size())
+        if self._image is not None and not self._image.isNull():
+            self.resetView()
         super().resizeEvent(event)
 
     def paintEvent(self, event: QPaintEvent) -> None:
@@ -245,68 +216,3 @@ class Image(QWidget, ComponentBase):
             painter.drawPixmap(self._offset.toPoint(), self._scaled)
 
         painter.end()
-
-    def wheelEvent(self, event: QWheelEvent) -> None:
-        if not self._interactionEnabled or self._image is None:
-            event.ignore()
-            return
-
-        lDelta = event.angleDelta().y()
-        lFactor = 1.15 if lDelta > 0 else 1.0 / 1.15
-        lOldZoom = self._zoom
-        self.zoom = self._zoom * lFactor
-
-        lPos = event.position()
-        lRatio = self._zoom / lOldZoom
-        self._offset = lPos - (lPos - self._offset) * lRatio
-        self.update()
-        event.accept()
-
-    def mousePressEvent(self, event: QMouseEvent) -> None:
-        if not self._interactionEnabled:
-            super().mousePressEvent(event)
-            return
-
-        if event.button() == Qt.MouseButton.LeftButton:
-            self._panning = True
-            self._lastMousePos = event.position().toPoint()
-            self.setCursor(Qt.CursorShape.ClosedHandCursor)
-            event.accept()
-        else:
-            super().mousePressEvent(event)
-
-    def mouseMoveEvent(self, event: QMouseEvent) -> None:
-        if not self._interactionEnabled:
-            super().mouseMoveEvent(event)
-            return
-
-        if self._panning and self._lastMousePos is not None:
-            lDelta = event.position().toPoint() - self._lastMousePos
-            self._offset += QPointF(lDelta)
-            self._lastMousePos = event.position().toPoint()
-            self.update()
-            event.accept()
-        else:
-            super().mouseMoveEvent(event)
-
-    def mouseReleaseEvent(self, event: QMouseEvent) -> None:
-        if not self._interactionEnabled:
-            super().mouseReleaseEvent(event)
-            return
-
-        if event.button() == Qt.MouseButton.LeftButton and self._panning:
-            self._panning = False
-            self._lastMousePos = None
-            self.setCursor(Qt.CursorShape.ArrowCursor)
-            event.accept()
-        else:
-            super().mouseReleaseEvent(event)
-
-    def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:
-        if not self._interactionEnabled:
-            super().mouseDoubleClickEvent(event)
-            return
-
-        self.resetView()
-        self.update()
-        event.accept()
