@@ -50,7 +50,7 @@ def _addEntry(
 ) -> SideBarMenuItem:
     title = str(entry.get("title") or pageId)
     icon = _iconOf(entry)
-    role = eSideBarMenuRole.Header if asHeader else eSideBarMenuRole.Item
+    role = eSideBarMenuRole.Header if asHeader else eSideBarMenuRole.Leaf
 
     if isinstance(parent, SideBarMenu):
         item = parent.addItem(title, role=role, icon=icon)
