@@ -2,7 +2,7 @@
 # src/jAGQt/widgets/Image/__image.py
 # ==================================================================================
 import os
-from typing import Literal, Optional, Union
+from typing import Optional, Union
 
 # ==================================================================================
 from PySide6.QtCore import QPoint, QPointF, QSize, Qt, Signal
@@ -16,28 +16,20 @@ from PySide6.QtGui import (
     QResizeEvent,
     QWheelEvent,
 )
-from PySide6.QtOpenGL import QOpenGLTexture
-from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from PySide6.QtWidgets import QWidget
 from torch import Tensor
 
 # ==================================================================================
 from ..components import ComponentBase
 
-# ==================================================================================
-Backend = Literal["software", "opengl"]
-
 
 # ==================================================================================
 class Image(QWidget, ComponentBase):
-    """Fast image viewer with optional zoom / pan.
+    """Software image viewer that only displays the image.
 
-    backend="software"  → pure QWidget + cached scaled QPixmap (default)
-    backend="opengl"    → QOpenGLWidget child (GPU-backed)
-
-    When ``interactionEnabled`` is False, mouse drag, wheel zoom, and
-    double-click reset are disabled so the surface can be used for
-    gesture capture without colliding with viewer navigation.
+    Pure QWidget + cached scaled QPixmap. Optional pan / zoom when
+    ``interactionEnabled`` is True. When False (default), pointer gestures
+    pass through so the surface can be used for gesture capture.
     """
 
     onResize: Signal = Signal(QSize)
@@ -45,28 +37,24 @@ class Image(QWidget, ComponentBase):
 
     # ------------------------------------------------------------------
     def __init__(
-        self, bg: Union[str, QColor] = "lightgray",
-        backend: Backend = "software", *args, **kwargs,
+        self,
+        bg: Union[str, QColor] = "lightgray",
+        *args,
+        **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
 
-        self._backend: Backend = backend
         self._image: Optional[QPixmap] = None
         self._zoom: float = 100.0
         self._offset: QPointF = QPointF(0.0, 0.0)
         self._backgroundColor: QColor = QColor(bg) if isinstance(bg, str) else bg
 
-        # software path state
         self._scaled: Optional[QPixmap] = None
         self._dirty: bool = True
 
-        # shared interaction state
         self._lastMousePos: Optional[QPoint] = None
         self._panning: bool = False
         self._interactionEnabled: bool = False
-
-        # OpenGL child (created only when needed)
-        self._gl: Optional["_GLView"] = None
 
         self.setupUI()
 
@@ -78,18 +66,9 @@ class Image(QWidget, ComponentBase):
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setBackgroundColor(self._backgroundColor)
 
-        if self._backend == "opengl":
-            self._gl = _GLView(self)
-            self._gl.setGeometry(self.rect())
-            self._gl.show()
-
     # ------------------------------------------------------------------
     # PROPERTIES
     # ------------------------------------------------------------------
-    @property
-    def backend(self) -> Backend:
-        return self._backend
-
     @property
     def interactionEnabled(self) -> bool:
         """When False, pan / zoom / double-click reset are disabled."""
@@ -118,7 +97,7 @@ class Image(QWidget, ComponentBase):
         self._zoom = lNew
         self._dirty = True
         self.onZoomChanged.emit(self._zoom)
-        self._requestUpdate()
+        self.update()
 
     @property
     def offset(self) -> QPointF:
@@ -131,7 +110,7 @@ class Image(QWidget, ComponentBase):
         if value == self._offset:
             return
         self._offset = value
-        self._requestUpdate()
+        self.update()
 
     @property
     def image(self) -> Optional[QPixmap]:
@@ -144,7 +123,7 @@ class Image(QWidget, ComponentBase):
             self._scaled = None
             self._dirty = True
             self.resetView()
-            self._requestUpdate()
+            self.update()
             return
 
         lPixmap: Optional[QPixmap] = None
@@ -168,17 +147,12 @@ class Image(QWidget, ComponentBase):
         self._image = lPixmap.copy()
         self._dirty = True
         self.resetView()
-        self._requestUpdate()
-
-        if self._gl is not None:
-            self._gl.setImage(self._image)
+        self.update()
 
     # ------------------------------------------------------------------
     def setBackgroundColor(self, color: Union[str, QColor]) -> None:
         self._backgroundColor = QColor(color) if isinstance(color, str) else color
-        if self._gl is not None:
-            self._gl.setBackgroundColor(self._backgroundColor)
-        self._requestUpdate()
+        self.update()
 
     # ------------------------------------------------------------------
     # LOGIC
@@ -204,9 +178,6 @@ class Image(QWidget, ComponentBase):
         self._dirty = True
         self.onZoomChanged.emit(self._zoom)
 
-        if self._gl is not None:
-            self._gl.setTransform(self._zoom, self._offset)
-
     def _rebuildScaled(self) -> None:
         if self._image is None or self._image.isNull():
             self._scaled = None
@@ -224,13 +195,6 @@ class Image(QWidget, ComponentBase):
             Qt.TransformationMode.SmoothTransformation,
         )
         self._dirty = False
-
-    def _requestUpdate(self) -> None:
-        if self._gl is not None:
-            self._gl.setTransform(self._zoom, self._offset)
-            self._gl.update()
-        else:
-            self.update()
 
     @staticmethod
     def _tensorToPixmap(tensor: Tensor) -> QPixmap:
@@ -263,14 +227,9 @@ class Image(QWidget, ComponentBase):
     # ------------------------------------------------------------------
     def resizeEvent(self, event: QResizeEvent) -> None:
         self.onResize.emit(event.size())
-        if self._gl is not None:
-            self._gl.setGeometry(self.rect())
         super().resizeEvent(event)
 
     def paintEvent(self, event: QPaintEvent) -> None:
-        if self._backend == "opengl":
-            return  # child does the work
-
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
         painter.fillRect(self.rect(), self._backgroundColor)
@@ -300,7 +259,7 @@ class Image(QWidget, ComponentBase):
         lPos = event.position()
         lRatio = self._zoom / lOldZoom
         self._offset = lPos - (lPos - self._offset) * lRatio
-        self._requestUpdate()
+        self.update()
         event.accept()
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
@@ -325,7 +284,7 @@ class Image(QWidget, ComponentBase):
             lDelta = event.position().toPoint() - self._lastMousePos
             self._offset += QPointF(lDelta)
             self._lastMousePos = event.position().toPoint()
-            self._requestUpdate()
+            self.update()
             event.accept()
         else:
             super().mouseMoveEvent(event)
@@ -349,97 +308,5 @@ class Image(QWidget, ComponentBase):
             return
 
         self.resetView()
-        self._requestUpdate()
-        event.accept()
-
-
-# ==================================================================================
-# OpenGL renderer (private)
-# ==================================================================================
-class _GLView(QOpenGLWidget):
-    """GPU-backed view used when Image(backend="opengl").
-
-    Uses QPainter over the GL context for maximum cross-platform reliability
-    with pure PySide6 (no fixed-function pipeline / no PyOpenGL dependency).
-    """
-
-    def __init__(self, parent: Image) -> None:
-        super().__init__(parent)
-        self._owner = parent
-        self._texture: Optional[QOpenGLTexture] = None
-        self._imageFallback: Optional[QImage] = None
-        self._bg = QColor("lightgray")
-        self._zoom = 100.0
-        self._offset = QPointF(0.0, 0.0)
-        self._imgW = 0
-        self._imgH = 0
-
-    def setBackgroundColor(self, color: QColor) -> None:
-        self._bg = color
-
-    def setImage(self, pixmap: QPixmap) -> None:
-        if pixmap is None or pixmap.isNull():
-            self._imageFallback = None
-            self._imgW = 0
-            self._imgH = 0
-            if self._texture is not None:
-                self._texture.destroy()
-                self._texture = None
-            self.update()
-            return
-
-        qimg = pixmap.toImage().convertToFormat(QImage.Format.Format_RGBA8888)
-        self._imgW = qimg.width()
-        self._imgH = qimg.height()
-        self._imageFallback = qimg
-
-        if self._texture is not None:
-            self._texture.destroy()
-
-        self._texture = QOpenGLTexture(QOpenGLTexture.Target.Target2D)
-        self._texture.setData(qimg)
-        self._texture.setMinificationFilter(QOpenGLTexture.Filter.Linear)
-        self._texture.setMagnificationFilter(QOpenGLTexture.Filter.Linear)
-        self._texture.setWrapMode(QOpenGLTexture.WrapMode.ClampToEdge)
         self.update()
-
-    def setTransform(self, zoom: float, offset: QPointF) -> None:
-        self._zoom = zoom
-        self._offset = offset
-
-    def initializeGL(self) -> None:
-        self.gl = self.context().functions()
-        self.gl.glClearColor(
-            self._bg.redF(), self._bg.greenF(), self._bg.blueF(), 1.0
-        )
-
-    def resizeGL(self, w: int, h: int) -> None:
-        if hasattr(self, "gl") and self.gl is not None:
-            self.gl.glViewport(0, 0, w, h)
-
-    def paintGL(self) -> None:
-        if hasattr(self, "gl") and self.gl is not None:
-            self.gl.glClearColor(
-                self._bg.redF(), self._bg.greenF(), self._bg.blueF(), 1.0
-            )
-            self.gl.glClear(0x00004000)  # GL_COLOR_BUFFER_BIT
-
-        if self._imageFallback is None:
-            return
-
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
-
-        scale = self._zoom / 100.0
-        x = self._offset.x()
-        y = self._offset.y()
-        w = max(1, int(self._imgW * scale))
-        h = max(1, int(self._imgH * scale))
-
-        scaled = self._imageFallback.scaled(
-            w, h,
-            Qt.AspectRatioMode.IgnoreAspectRatio,
-            Qt.TransformationMode.SmoothTransformation,
-        )
-        painter.drawImage(QPointF(x, y), scaled)
-        painter.end()
+        event.accept()
