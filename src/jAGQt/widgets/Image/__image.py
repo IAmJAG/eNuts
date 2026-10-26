@@ -11,7 +11,7 @@ from PySide6.QtWidgets import QWidget
 # ==================================================================================
 from ..components import ComponentBase
 from .__fitMode import ImageFitMode
-from .__imageBase import ImageBase
+from .__imageBase import BACKGROUND_COLOR, ImageBase
 
 
 # ==================================================================================
@@ -28,10 +28,9 @@ class Image(QWidget, ComponentBase, ImageBase):
     # ------------------------------------------------------------------
     def __init__(
         self,
-        bg: Union[str, QColor] = "lightgray",
+        bg: Union[str, QColor] = BACKGROUND_COLOR,
         fitMode: ImageFitMode = ImageFitMode.Scale,
-        *args,
-        **kwargs,
+        *args, **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
         self._initImageBase(bg=bg, fitMode=fitMode)
