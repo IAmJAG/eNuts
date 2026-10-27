@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 # ==================================================================================
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, Mapping, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Awaitable, Callable, Mapping, Protocol, Type, runtime_checkable
 from uuid import UUID
 
 # ==================================================================================
@@ -14,7 +14,9 @@ if TYPE_CHECKING:
 @runtime_checkable
 class iBridge(Protocol):
     @property
-    def messageHandlers(self) -> Mapping[str, Callable[..., Awaitable[None] | None]]: ...
+    def messageHandlers(
+        self,
+    ) -> Mapping[Type[iMessage], Callable[[iMessage], Awaitable[None] | None]]: ...
 
     def attachEndpoint(self, endpoint: iEndpoint) -> None: ...
     def detachEndpoint(self) -> None: ...
