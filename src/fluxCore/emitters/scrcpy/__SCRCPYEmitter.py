@@ -46,8 +46,8 @@ BITRATE = 4000000
 class SCRCPYEmitter(AsyncService, SCRCPY):
     """Async video/control emitter. Satisfies iSCRCPYEmitter structurally.
 
-    Events never pass the emitter as the conceptual payload:
-    - ON_METADATA_UPDATE → SCRCPY (via toScrcpy)
+    Events never pass the emitter instance:
+    - ON_METADATA_UPDATE → base SCRCPY snapshot via toScrcpy (not a descendant)
     - ON_FRAME → iFrame (in-process only)
     - ON_ERROR → ScrcpyErrorFootprint
     plus AsyncService lifecycle events (no args).
@@ -66,8 +66,18 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
     # ==================================================================================
     @classmethod
     def toScrcpy(cls, emitter: SCRCPYEmitter) -> SCRCPY:
-        """Return the SCRCPY facet of an emitter (same object; does not create a new SCRCPY)."""
-        return emitter
+        """Build a base SCRCPY snapshot from an emitter.
+
+        Returns a plain SCRCPY (not SCRCPYEmitter / not a descendant). Attributes are
+        copied from the emitter; this is the metadata footprint for events and IPC.
+        """
+        scrcpy = SCRCPY(serial=str(emitter.id), name=emitter.name)
+        scrcpy.update(
+            codecId=emitter.codecId,
+            width=emitter.width,
+            height=emitter.height,
+        )
+        return scrcpy
 
     # ==================================================================================
     @property
