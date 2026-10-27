@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-27 10:07:30 UTC*
+*Auto-generated on: 2026-10-27 11:47:39 UTC*
 
 ## Current Directory Structure
 
@@ -30,10 +30,15 @@ eNuts/
 │   ├── README.md
 │   ├── conftest.py
 │   ├── fixtures/
+│   │   ├── ipc/
+│   │   │   └── payloads.py
 │   │   └── policy/
 │   │       ├── builders.py
 │   │       └── seeds.py
 │   └── smoke/
+│       ├── ipc/
+│       │   ├── test_endpoint_bridge.py
+│       │   └── test_message_roundtrip.py
 │       └── policy/
 │           ├── test_policy_forward_predict.py
 │           ├── test_policy_options_roundtrip.py
@@ -166,7 +171,8 @@ eNuts/
 │   │   │   └── __scrcpy.py
 │   │   ├── emitters/
 │   │   │   └── scrcpy/
-│   │   │       └── __SCRCPYEmitter.py
+│   │   │       ├── __SCRCPYEmitter.py
+│   │   │       └── __footprint.py
 │   │   ├── policy/
 │   │   │   ├── __dcPolicy.py
 │   │   │   ├── __policyOptions.py
@@ -440,6 +446,11 @@ eNuts/
 			_REPO_ROOT -> : _repo_root
 			_SRC -> : _src
 
+.test/fixtures/ipc:
+	payloads.py - 
+		CLASSE(S):
+			SmokePayload -> : smokepayload
+
 .test/fixtures/policy:
 	builders.py - 
 		FUNCTION(S):
@@ -449,6 +460,28 @@ eNuts/
 			SEED_ACTIONS -> : seed_actions
 			SEED_ARGUMENT_KINDS -> : seed_argument_kinds
 			SEED_INTENTS -> : seed_intents
+
+.test/smoke/ipc:
+	test_endpoint_bridge.py - 
+		CLASSE(S):
+			PingMessage -> : pingmessage
+			RecordingBridge -> : recordingbridge
+		FUNCTION(S):
+			_withEndpoints -> : _withendpoints
+			_waitFor -> : _waitfor
+			test_endpoint_bridge_type_dispatch -> : test_endpoint_bridge_type_dispatch
+			test_endpoint_terminal_clears_correlation -> : test_endpoint_terminal_clears_correlation
+			test_register_bridge_rejects_duplicate_type -> : test_register_bridge_rejects_duplicate_type
+			test_unknown_message_type_is_ignored -> : test_unknown_message_type_is_ignored
+		CONSTANTS(S)/GLOBAL(S)
+			_TEST_ROOT -> : _test_root
+	test_message_roundtrip.py - 
+		FUNCTION(S):
+			test_message_roundtrip -> : test_message_roundtrip
+			test_message_terminal_roundtrip -> : test_message_terminal_roundtrip
+			test_ioqueue_send_receive -> : test_ioqueue_send_receive
+		CONSTANTS(S)/GLOBAL(S)
+			_TEST_ROOT -> : _test_root
 
 .test/smoke/policy:
 	test_policy_forward_predict.py - 
@@ -760,6 +793,9 @@ src/fluxCore/emitters/scrcpy:
 			MAX_SIZE -> : max_size
 			MAX_FPS -> : max_fps
 			BITRATE -> : bitrate
+	__footprint.py - 
+		CLASSE(S):
+			SCRCPYErrorFootprint -> : scrcpyerrorfootprint
 
 src/fluxCore/policy:
 	__dcPolicy.py - 
@@ -1584,42 +1620,41 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-ce70636:
-	docs(IPC): Phase 5 â€” requirements reflect implemented Endpoint/Bridge
-		.docs/jAGFx/IPC/requirement.md
+6b30036:
+	refactor(scrcpy): remove footprint documentation and streamline error handling in SCRCPYEmitter
 
-ae11a08:
-	docs(IPC): mark phases 1â€“5 complete in implementation plan
-		.docs/jAGFx/IPC/implementationPlan.md
+a6e9b5c:
+	docs(scrcpy): add detailed documentation for SCRCPYEmitter, footprint, and implementation plan
 
-df9dd41:
-	docs(IPC): Phase 5 â€” mark phases 1â€“4 implemented
-		.docs/jAGFx/IPC/implementation.md
+e0be22e:
+	docs(scrcpy): delete footprint.md
+		.docs/fluxCore/emitters/scrcpy/footprint.md
 
-8e030d3:
-	docs(IPC): Phase 5 â€” mark Endpoint and Bridge as implemented
-		.docs/jAGFx/IPC/IPC.md
+5adab1b:
+	docs(scrcpy): plan without footprint module
+		.docs/fluxCore/emitters/scrcpy/implementationPlan.md
 
-d64b4d2:
-	feat(IPC): Phase 5 â€” export Bridge from jAGFx.IPC
+61e8dfd:
+	docs(scrcpy): drop footprint from implementation map
+		.docs/fluxCore/emitters/scrcpy/implementation.md
 
-8e54b62:
-	feat(IPC): Phase 5 â€” export iBridge and iEndpoint from communication interfaces
+9b10405:
+	docs(scrcpy): ON_ERROR args without footprint class
+		.docs/fluxCore/emitters/scrcpy/scrcpyEmitter.md
 
-1262e60:
-	feat(IPC): Phase 3â€“4 â€” bridge registration, kind dispatch, correlation and terminal lifecycle
-		src/jAGFx/IPC/__endpoint.py
+75c2861:
+	docs(scrcpy): remove footprint; ON_ERROR is phase, message, serial
+		.docs/fluxCore/emitters/scrcpy/requirement.md
 
-640ba28:
-	feat(IPC): Phase 3 â€” extend iEndpoint with bridge registration
-		src/jAGFx/types/interface/communication/__endpoint.py
+eb9d274:
+	refactor(scrcpy): ON_ERROR uses phase, message, serial â€” no footprint class
+		src/fluxCore/emitters/scrcpy/__SCRCPYEmitter.py
 
-7c5ee8e:
-	feat(IPC): Phase 3 â€” Bridge base with handlers and processors
-		src/jAGFx/IPC/__bridge.py
+990e9b2:
+	refactor(scrcpy): drop ScrcpyErrorFootprint export
 
-96d367c:
-	feat(IPC): Phase 3 â€” iBridge protocol
-		src/jAGFx/types/interface/communication/__bridge.py
+5dd2b00:
+	refactor(scrcpy): remove ScrcpyErrorFootprint module
+		src/fluxCore/emitters/scrcpy/__footprint.py
 
 ```
