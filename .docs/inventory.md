@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-26 05:27:51 UTC*
+*Auto-generated on: 2026-10-27 04:50:49 UTC*
 
 ## Current Directory Structure
 
@@ -72,6 +72,7 @@ eNuts/
 │       │       └── SideBar.json
 │       ├── qss/
 │       │   ├── main.css
+│       │   ├── page.css
 │       │   └── sideBar.css
 │       └── superman/
 ├── src/
@@ -582,11 +583,13 @@ src/eNuts/types/interface/UI/windows:
 src/eNuts/UI/navigation:
 	__navigation.py - 
 		FUNCTION(S):
+			resolvePageClass -> : resolvepageclass
 			buildBlankPage -> : buildblankpage
 			_flattenEntries -> : _flattenentries
-			_pageBuilders -> : _pagebuilders
+			_instantiatePage -> : _instantiatepage
 			buildNavigationPages -> : buildnavigationpages
 		CONSTANTS(S)/GLOBAL(S)
+			C_DEFAULT_PAGE_TYPE -> : c_default_page_type
 			PAGE_AND_MENU -> : page_and_menu
 	__pageKeys.py - 
 		FUNCTION(S):
@@ -620,8 +623,6 @@ src/eNuts/UI/pages:
 			buildDevicePage -> : builddevicepage
 			_applyFrame -> : _applyframe
 	__kgRecorderPage.py - 
-		FUNCTION(S):
-			buildKGRecorderPage -> : buildkgrecorderpage
 	__pageKeys.py - 
 	__smokePages.py - 
 		FUNCTION(S):
@@ -1503,6 +1504,7 @@ src/utilities:
 		FUNCTION(S):
 			getRunningLoop -> : getrunningloop
 			getEventLoop -> : geteventloop
+			_getCoroutine -> : _getcoroutine
 			createTask -> : createtask
 	__cacheClean.py - 
 		FUNCTION(S):
@@ -1556,45 +1558,44 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-59f28c2:
-	docs(inventory): update auto-generated timestamp and enhance directory structure
-		.docs/inventory.md
-		src/jAGQt/widgets/components/__componentBase.py
+3c7f349:
+	feat(async): add ON_METADATA_UPDATE event and improve createTask function non-async function create task compatibility
+		src/fluxCore/emitters/scrcpy/__SCRCPYEmitter.py
+		src/jAGFx/services/__subscription.py
+		src/utilities/__asyncio.py
 
-8224256:
-	fix(SideBarMenuItem): guard setPointSize â€” skip when pt <= 0
-		src/jAGQt/widgets/SideBar/menu/__sideBarMenuItem.py
+0fd4b68:
+	fix(navigation): restore resolvePageClass and type-based buildNavigationPages
+		src/eNuts/UI/navigation/__navigation.py
 
-a28ef05:
-	refactor(Image): use BACKGROUND_COLOR constant for default background in GLImage and Image classes
-		src/jAGQt/widgets/Image/__glImage.py
-		src/jAGQt/widgets/Image/__image.py
+afff5c8:
+	refactor(navigation): remove resolvePageClass function and clean up buildBlankPage
+		src/eNuts/UI/navigation/__navigation.py
 
-329a75d:
-	refactor(ImageBase): use BACKGROUND_COLOR constant for default background
-		src/jAGQt/widgets/Image/__imageBase.py
+a16b4ce:
+	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
 
-2707dc3:
-	docs(Image): ImageBase mixin
-		.docs/jAGQt/widgets/Image/implementation.md
+a14188b:
+	refactor(navigation, workspace): enhance buildBlankPage function and remove commented sections
+		src/eNuts/UI/navigation/__navigation.py
+		src/eNuts/application/workspace/__workSpace.py
 
-03d026d:
-	feat(Image): export ImageBase
+835145b:
+	chore(navigation): export resolvePageClass and C_DEFAULT_PAGE_TYPE
 
-1ab83bb:
-	refactor(GLImage): inherit ImageBase mixin
-		src/jAGQt/widgets/Image/__glImage.py
+f3441bb:
+	chore(pages): remove buildKGRecorderPage export after strip
 
-b56527c:
-	refactor(Image): inherit ImageBase mixin
-		src/jAGQt/widgets/Image/__image.py
+df432c0:
+	fix(Shell): restore KGRecorder create/bind wiring after page strip
+		src/eNuts/application/__shell.py
 
-9580331:
-	feat(Image): add ImageBase mixin for shared display state
-		src/jAGQt/widgets/Image/__imageBase.py
+ffcfc04:
+	refactor(kg-recorder): strip factory page; placeholder until KGRecorderPage subclass
+		src/eNuts/UI/pages/__kgRecorderPage.py
 
-fb64c78:
-	docs(Image): implementation â€” no Tensor
-		.docs/jAGQt/widgets/Image/implementation.md
+0edfd92:
+	feat(navigation): resolve PAGE_AND_MENU type as full class namespace; drop page builders
+		src/eNuts/UI/navigation/__navigation.py
 
 ```
