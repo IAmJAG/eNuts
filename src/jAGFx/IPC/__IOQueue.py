@@ -4,7 +4,6 @@ from __future__ import annotations
 # ==================================================================================
 from json import dumps, loads
 from multiprocessing import Queue
-from queue import Empty
 from typing import Any, Dict
 
 # ==================================================================================
@@ -19,13 +18,23 @@ class IOQueue(iIOQueue):
         self._ou: Queue = outboundQueue
 
     @classmethod
-    def createPair(cls) -> tuple[IOQueue, IOQueue]:
-        queueA, queueB = Queue(), Queue()
-        return (cls(queueA, queueB), cls(queueB, queueA))
+    def createPair(cls) -> tuple[Queue, Queue]:
+        """Create the underlying bidirectional queue pair.
+
+        Returns the two multiprocessing.Queue objects only. Each process must
+        construct its own IOQueue adapter; never pass an IOQueue across the
+        process boundary.
+
+        Orientation convention (caller decides which end is local):
+            left, right = IOQueue.createPair()
+            local  = IOQueue(outboundQueue=left,  inboundQueue=right)
+            remote = IOQueue(outboundQueue=right, inboundQueue=left)
+        """
+        return Queue(), Queue()
 
     def send(self, message: iMessage) -> None:
         dictMsg: Dict = message.encode()
-        jsonMsg: str = dumps(dictMsg) 
+        jsonMsg: str = dumps(dictMsg)
         self._ou.put(jsonMsg)
 
     def receive(self, timeout: float | None = None) -> Any:
