@@ -15,11 +15,13 @@ def getRunningLoop() -> AbstractEventLoop:
     except Exception as ex:
         raise ex
 
+
 # ==================================================================================================
 def getEventLoop() -> AbstractEventLoop:
     try:
         loop: AbstractEventLoop = get_event_loop()
-        if loop is None: raise Exception("No event loop")
+        if loop is None:
+            raise Exception("No event loop")
         return loop
 
     except RuntimeError:
@@ -40,16 +42,16 @@ def _getCoroutine(func: Callable) -> Callable[..., Any]:
     return _task
 
 # ==================================================================================================
-def createTask(func: Callable[[...], Awaitable], *args, **kwargs) -> Task:
+def createTask(func: Callable[..., Any], *args, **kwargs) -> Task:
     try:
         loop: AbstractEventLoop = getRunningLoop()
         if loop is None: raise Exception("No running loop")
 
-        asyncFunc: Callable[[...], Awaitable] = func
+        runner: Callable[[...], Awaitable] = func
         if not iscoroutinefunction(func):
-            asyncFunc = _getCoroutine(asyncFunc)
-            
-        return loop.create_task(asyncFunc, *args, **kwargs)
+            runner = _getCoroutine(func)
+
+        return loop.create_task(runner(*args, **kwargs))
 
     except Exception as ex:
         raise ex
