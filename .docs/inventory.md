@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-27 11:47:39 UTC*
+*Auto-generated on: 2026-10-27 11:56:01 UTC*
 
 ## Current Directory Structure
 
@@ -795,7 +795,7 @@ src/fluxCore/emitters/scrcpy:
 			BITRATE -> : bitrate
 	__footprint.py - 
 		CLASSE(S):
-			SCRCPYErrorFootprint -> : scrcpyerrorfootprint
+			SCRCPYError -> : scrcpyerror
 
 src/fluxCore/policy:
 	__dcPolicy.py - 
@@ -1620,41 +1620,41 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-6b30036:
-	refactor(scrcpy): remove footprint documentation and streamline error handling in SCRCPYEmitter
+3f2d1c9:
+	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
 
-a6e9b5c:
-	docs(scrcpy): add detailed documentation for SCRCPYEmitter, footprint, and implementation plan
+41abe35:
+	docs(scrcpy): update documentation for SCRCPYEmitter and error handling
 
-e0be22e:
-	docs(scrcpy): delete footprint.md
-		.docs/fluxCore/emitters/scrcpy/footprint.md
-
-5adab1b:
-	docs(scrcpy): plan without footprint module
-		.docs/fluxCore/emitters/scrcpy/implementationPlan.md
-
-61e8dfd:
-	docs(scrcpy): drop footprint from implementation map
-		.docs/fluxCore/emitters/scrcpy/implementation.md
-
-9b10405:
-	docs(scrcpy): ON_ERROR args without footprint class
-		.docs/fluxCore/emitters/scrcpy/scrcpyEmitter.md
-
-75c2861:
-	docs(scrcpy): remove footprint; ON_ERROR is phase, message, serial
-		.docs/fluxCore/emitters/scrcpy/requirement.md
-
-eb9d274:
-	refactor(scrcpy): ON_ERROR uses phase, message, serial â€” no footprint class
+c7c4aa0:
+	refactor(scrcpy): use asyncRaiseEvent for all emitter events
 		src/fluxCore/emitters/scrcpy/__SCRCPYEmitter.py
 
-990e9b2:
-	refactor(scrcpy): drop ScrcpyErrorFootprint export
+a13934c:
+	refactor(scrcpy): streamline constructor parameters in SCRCPYErrorFootprint
+		src/fluxCore/emitters/scrcpy/__footprint.py
 
-5dd2b00:
-	refactor(scrcpy): remove ScrcpyErrorFootprint module
+f2525aa:
+	docs(scrcpy): document SCRCPYError for ON_ERROR
+		.docs/fluxCore/emitters/scrcpy/scrcpyEmitter.md
+
+5402728:
+	docs(scrcpy): SCRCPYError is the error type in __footprint
+		.docs/fluxCore/emitters/scrcpy/requirement.md
+
+32d62fe:
+	feat(scrcpy): export SCRCPYError
+
+c2fe312:
+	fix(scrcpy): use SCRCPYError from footprint; sync raiseEvent for ON_ERROR
+		src/fluxCore/emitters/scrcpy/__SCRCPYEmitter.py
+
+317257f:
+	feat(scrcpy): restore __footprint with SCRCPYError (valid name)
+		src/fluxCore/emitters/scrcpy/__footprint.py
+
+c51d80c:
+	refactor(scrcpy): remove SCRCPYErrorFootprint (no footprint types)
 		src/fluxCore/emitters/scrcpy/__footprint.py
 
 ```
