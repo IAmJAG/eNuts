@@ -48,7 +48,7 @@ PAGE_AND_MENU: Dict[str, Dict[str, Any]] = {
                     "title": "Annotator",
                     "description": "Video/Image Annotator",
                     "icon": "annotation.png",
-                    "type": "jAGQt.widgets.page.Page",
+                    "type": "eNuts.UI.pages.Annotator",
                 },
             },
         },
