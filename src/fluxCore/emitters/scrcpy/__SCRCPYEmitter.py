@@ -1,6 +1,9 @@
 # ==================================================================================
 # src/fluxCore/emitters/scrcpy/__SCRCPYEmitter.py
 # ==================================================================================
+from __future__ import annotations
+
+# ==================================================================================
 import os
 
 # ==================================================================================
@@ -8,6 +11,7 @@ from asyncio import AbstractEventLoop, CancelledError, get_running_loop
 from socket import socket
 from threading import Event as ThreadEvent
 from threading import Thread
+from typing import TYPE_CHECKING
 
 # ==================================================================================
 from adbutils import AdbConnection, AdbDevice, adb
@@ -27,6 +31,11 @@ from ...utilities.scrcpy import (
     deployServer,
     getSCRCPYADBSocket,
 )
+from .__footprint import ScrcpyErrorFootprint
+
+# ==================================================================================
+if TYPE_CHECKING:
+    pass
 
 # ==================================================================================
 JAR_NAME = "scrcpy-server.jar"
@@ -40,7 +49,14 @@ BITRATE = 4000000
 
 # ==================================================================================
 class SCRCPYEmitter(AsyncService, SCRCPY):
-    """Async video/control emitter. Satisfies iSCRCPYEmitter structurally."""
+    """Async video/control emitter. Satisfies iSCRCPYEmitter structurally.
+
+    Events never pass the emitter as the conceptual payload:
+    - ON_METADATA_UPDATE → SCRCPY (via toScrcpy)
+    - ON_FRAME → iFrame (in-process only)
+    - ON_ERROR → ScrcpyErrorFootprint
+    plus AsyncService lifecycle events (no args).
+    """
 
     def __init__(self, serial: str, name: str | None = None) -> None:
         SCRCPY.__init__(self, serial=serial, name=name)
@@ -53,12 +69,24 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         self._serverLogThread: Thread | None = None
 
     # ==================================================================================
+    @classmethod
+    def toScrcpy(cls, emitter: SCRCPYEmitter) -> SCRCPY:
+        """Return the SCRCPY facet of an emitter (same object; does not create a new SCRCPY)."""
+        return emitter
+
+    # ==================================================================================
     @property
     def ControlSocket(self) -> iControlSocket | None:
         """Public control-channel accessor. Returns None when unavailable."""
         if not hasattr(self, "_cSocket"):
             return None
         return self._cSocket
+
+    def _raiseError(self, phase: str, message: str) -> None:
+        self.raiseEvent(
+            "ON_ERROR",
+            ScrcpyErrorFootprint(phase=phase, message=message, serial=str(self.id)),
+        )
 
     # ==================================================================================
     def _startServerLogDrain(self, streamServer: AdbConnection) -> None:
@@ -73,13 +101,16 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
                     except Exception:
                         break
 
-                    if not lChunk: break
+                    if not lChunk:
+                        break
 
             finally:
                 pass
 
         self._serverLogStop.clear()
-        self._serverLogThread = Thread(target=_drain, name=f"scrcpy-log-{self.id}", daemon=True)
+        self._serverLogThread = Thread(
+            target=_drain, name=f"scrcpy-log-{self.id}", daemon=True
+        )
         self._serverLogThread.start()
 
     def _stopServerLogDrain(self) -> None:
@@ -92,7 +123,8 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
     async def work(self, *args, **kwargs):
         """Drain the video socket continuously until the service is stopped."""
         sckt: iVideoSocket = self._vSocket
-        if sckt is None: return
+        if sckt is None:
+            return
 
         try:
             while self.isRunning:
@@ -106,6 +138,10 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
                 except InvalidDataError:
                     await asyncWait(0)
                     continue
+
+                except Exception as ex:
+                    self._raiseError("work", str(ex))
+                    raise
 
                 # qasync + Windows IOCP: yield so overlapped reads can complete
                 await asyncWait(0)
@@ -132,40 +168,63 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
 
         self._name = lName
         self.update(codecId=lCodecId, width=lWidth, height=lHeight)
-        self.raiseEvent("ON_METADATA_UPDATE", self)
+        self.raiseEvent("ON_METADATA_UPDATE", SCRCPYEmitter.toScrcpy(self))
 
     async def initialize(self, GPUID: int = 0, GPUReady: bool = True) -> None:
-        device: AdbDevice = adb.device(serial=self.id)
+        try:
+            device: AdbDevice = adb.device(serial=self.id)
 
-        cfg: SCRCPYServerConfig = SCRCPYServerConfig(
-            androidPath=ANDROID_PATH,
-            jarName=JAR_NAME,
-            maxSize=MAX_SIZE,
-            maxFps=MAX_FPS,
-            bitrate=BITRATE,
-            logLevel="warn",
-        )
+            cfg: SCRCPYServerConfig = SCRCPYServerConfig(
+                androidPath=ANDROID_PATH,
+                jarName=JAR_NAME,
+                maxSize=MAX_SIZE,
+                maxFps=MAX_FPS,
+                bitrate=BITRATE,
+                logLevel="warn",
+            )
 
-        streamServer: AdbConnection = deployServer(
-            device, cfg=cfg, serverPath=SERVER_PATH, timeout=3000
-        )
-        if streamServer is None:
-            raise RuntimeError("Failed to deploy scrcpy server")
+            streamServer: AdbConnection = deployServer(
+                device, cfg=cfg, serverPath=SERVER_PATH, timeout=3000
+            )
+            if streamServer is None:
+                raise RuntimeError("Failed to deploy scrcpy server")
 
-        self._streamServer = streamServer
-        self._startServerLogDrain(streamServer)
+            self._streamServer = streamServer
+            self._startServerLogDrain(streamServer)
 
-        asyncLoop: AbstractEventLoop = get_running_loop()
+            asyncLoop: AbstractEventLoop = get_running_loop()
 
-        # scrcpy accepts video first, then control; only then sends device metadata
-        vSCKT: socket = getSCRCPYADBSocket(device, scid=cfg.Scid, timeout=3000)
-        self._vSocket = VideoSocket(vSCKT, loop=asyncLoop)
+            # scrcpy accepts video first, then control; only then sends device metadata
+            try:
+                vSCKT: socket = getSCRCPYADBSocket(device, scid=cfg.Scid, timeout=3000)
+                self._vSocket = VideoSocket(vSCKT, loop=asyncLoop)
 
-        cSCKT: socket = getSCRCPYADBSocket(device, scid=cfg.Scid, timeout=3000)
-        self._cSocket = ControlSocket(cSCKT, loop=asyncLoop)
+                cSCKT: socket = getSCRCPYADBSocket(device, scid=cfg.Scid, timeout=3000)
+                self._cSocket = ControlSocket(cSCKT, loop=asyncLoop)
+            except Exception as ex:
+                self._raiseError("initialize.socket", str(ex))
+                raise
 
-        await self._updateMetadata(self._vSocket)
+            try:
+                await self._updateMetadata(self._vSocket)
+            except Exception as ex:
+                self._raiseError("initialize.metadata", str(ex))
+                raise
 
-        self._codecContext = createCodecContext(
-            self.codecId, GPUID=GPUID, GPUReady=GPUReady
-        )
+            try:
+                self._codecContext = createCodecContext(
+                    self.codecId, GPUID=GPUID, GPUReady=GPUReady
+                )
+            except Exception as ex:
+                self._raiseError("initialize.codec", str(ex))
+                raise
+
+        except Exception as ex:
+            # Deploy / outer failures not already tagged with a phase
+            if not isinstance(ex, CancelledError):
+                phase = getattr(ex, "_scrcpyPhase", None)
+                if phase is None and "deploy" in str(ex).lower():
+                    self._raiseError("initialize.deploy", str(ex))
+                elif "Failed to deploy" in str(ex):
+                    self._raiseError("initialize.deploy", str(ex))
+            raise
