@@ -15,11 +15,13 @@ def getRunningLoop() -> AbstractEventLoop:
     except Exception as ex:
         raise ex
 
+
 # ==================================================================================================
 def getEventLoop() -> AbstractEventLoop:
     try:
         loop: AbstractEventLoop = get_event_loop()
-        if loop is None: raise Exception("No event loop")
+        if loop is None:
+            raise Exception("No event loop")
         return loop
 
     except RuntimeError:
@@ -28,28 +30,29 @@ def getEventLoop() -> AbstractEventLoop:
     except Exception as ex:
         raise ex
 
-# ==================================================================================================
-def _getCoroutine(func: Callable) -> Callable[..., Any]:    
-    def _task(*args, **kwargs) -> Any:
-        try:
-            return func(*args, **kwargs)
-            
-        except Exception as ex:
-            raise ex
-
-    return _task
 
 # ==================================================================================================
-def createTask(func: Callable[[...], Awaitable], *args, **kwargs) -> Task:
+def createTask(func: Callable[..., Any], *args, **kwargs) -> Task:
+    """Schedule ``func`` on the running loop.
+
+    ``loop.create_task`` requires a **coroutine object**, not a coroutine function
+    or a plain callable. This helper:
+
+    - coroutine function → ``create_task(func(*args, **kwargs))``
+    - plain callable     → wrap in a one-shot coroutine, then schedule
+    """
     try:
         loop: AbstractEventLoop = getRunningLoop()
-        if loop is None: raise Exception("No running loop")
+        if loop is None:
+            raise Exception("No running loop")
 
-        asyncFunc: Callable[[...], Awaitable] = func
-        if not iscoroutinefunction(func):
-            asyncFunc = _getCoroutine(asyncFunc)
-            
-        return loop.create_task(asyncFunc, *args, **kwargs)
+        if iscoroutinefunction(func):
+            return loop.create_task(func(*args, **kwargs))
+
+        async def _runner() -> Any:
+            return func(*args, **kwargs)
+
+        return loop.create_task(_runner())
 
     except Exception as ex:
         raise ex
