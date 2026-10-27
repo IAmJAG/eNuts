@@ -6,7 +6,7 @@
 Bridge(s)  →  Endpoint  →  IOQueue  →  multiprocessing.Queue pair
 ```
 
-Transport is implemented. `Endpoint` and `Bridge` follow the phased plan in `implementationPlan.md`.
+Phases 1–4 of `implementationPlan.md` are implemented. Concrete domain bridges remain application work.
 
 ## 2. Directory & Module Mapping
 
@@ -14,10 +14,10 @@ Transport is implemented. `Endpoint` and `Bridge` follow the phased plan in `imp
 | :--- | :--- | :--- |
 | `src/jAGFx/IPC/__IOQueue.py` | `.docs/jAGFx/IPC/` | Queue adapter + `createPair` |
 | `src/jAGFx/IPC/__message.py` | `.docs/jAGFx/IPC/` | Message envelope |
-| `src/jAGFx/IPC/__endpoint.py` | `.docs/jAGFx/IPC/` | Endpoint (proposed — Phase 2+) |
-| `src/jAGFx/IPC/__bridge.py` | `.docs/jAGFx/IPC/` | Bridge base (proposed — Phase 3+) |
+| `src/jAGFx/IPC/__endpoint.py` | `.docs/jAGFx/IPC/` | Endpoint |
+| `src/jAGFx/IPC/__bridge.py` | `.docs/jAGFx/IPC/` | Bridge base |
 | `src/jAGFx/types/interface/communication/` | `.docs/jAGFx/IPC/` | `iIOQueue`, `iMessage`, `iEndpoint`, `iBridge` |
-| `.docs/jAGFx/IPC/implementationPlan.md` | — | Phased build order and file-level changes |
+| `.docs/jAGFx/IPC/implementationPlan.md` | — | Phased plan (1–4 done) |
 
 ## 3. Core workflows
 
@@ -29,13 +29,27 @@ ioA = IOQueue(outboundQueue=left, inboundQueue=right)
 ioB = IOQueue(outboundQueue=right, inboundQueue=left)
 ```
 
-### Send / receive / correlation
+### Send
 
-See `IPC.md` and `implementationPlan.md` Phase 4 for terminal unmap-then-push and two-level maps.
+```text
+Non-terminal: bridge registerProcessor + endpoint.bindCorrelation → await send
+Terminal:     endpoint unmap if present → await send (still pushed)
+```
 
-## 4. Current code notes
+### Receive
 
-- `IOQueue.receive` default timeout: `0.01` s.
-- `Message` today: payload, correlationId, messageId — Phase 1 adds `timestamp`, `isTerminal`.
-- `jAGFx.IPC.__init__` currently exports `IOQueue` only.
-- `iIOQueue` matches implementation (`createPair → tuple[Queue, Queue]`, `send(iMessage)`, `receive(timeout=...)`).
+```text
+IOQueue.receive → decode → resolve bridge (correlationId or kind)
+→ bridge.handleMessage → if isTerminal: unmap if present
+```
+
+### Kind resolution (provisional)
+
+`getattr(payload, "kind", None)` if str, else `type(payload).__name__`.
+
+## 4. Public exports
+
+```python
+from jAGFx.IPC import IOQueue, Message, Endpoint, Bridge
+from jAGFx.types.interface.communication import iIOQueue, iMessage, iEndpoint, iBridge
+```
