@@ -183,8 +183,7 @@ class Endpoint(iEndpoint):
             self._unmapCorrelation(message.correlationId)
             
         else:
-            self.bindCorrelation(message.correlationId, bridge)
-        
+            self.bindCorrelation(message.correlationId, bridge)        
 
     def _resolveBridge(self, message: iMessage) -> iBridge | None:
         correlationId = message.correlationId
@@ -193,11 +192,8 @@ class Endpoint(iEndpoint):
             if bridge is not None:
                 return bridge
 
-        kind = self._kindFromMessage(message)
-        if kind is None:
-            return None
-
-        return self._kindToBridge.get(kind)
+        kind = type(message)
+        return self._kindToBridge.get(kind, None)
     
 # ==================================================================================
 __all__ = ["Endpoint"]
