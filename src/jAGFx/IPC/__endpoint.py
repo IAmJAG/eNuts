@@ -5,15 +5,11 @@ from __future__ import annotations
 from asyncio import CancelledError, Event, Task, create_task, to_thread
 from asyncio import Queue as AsyncQueue
 from queue import Empty
-from typing import TYPE_CHECKING, Any, Callable
+from typing import Any, Callable, Type
 from uuid import UUID
 
 # ==================================================================================
 from ..types.interface.communication import iBridge, iEndpoint, iIOQueue, iMessage
-
-# ==================================================================================
-if TYPE_CHECKING:
-    pass
 
 
 # ==================================================================================
@@ -28,8 +24,8 @@ class Endpoint(iEndpoint):
         self._stopping: Event = Event()
         self._started: bool = False
 
-        self._kindToBridge: dict[str, iBridge] = {}
-        self._bridgeKinds: dict[iBridge, set[str]] = {}
+        self._kindToBridge: dict[Any, iBridge] = {}
+        self._bridgeKinds: dict[iBridge, set[Any]] = {}
         self._correlations: dict[UUID, iBridge] = {}
 
     @property
@@ -81,7 +77,6 @@ class Endpoint(iEndpoint):
         kinds = set(bridge.messageHandlers.keys())
         for kind in kinds:
             if kind in self._kindToBridge:
-                owner = self._kindToBridge[kind]
                 raise ValueError(
                     f"Message kind '{kind}' is already registered by another bridge"
                 )
@@ -110,6 +105,9 @@ class Endpoint(iEndpoint):
     def unbindCorrelation(self, correlationId: UUID) -> None:
         self._correlations.pop(correlationId, None)
 
+    def hasCorrelation(self, correlationId: UUID) -> bool:
+        return correlationId in self._correlations
+
     def _unmapCorrelation(self, correlationId: UUID | None) -> None:
         if correlationId is None:
             return
@@ -119,45 +117,42 @@ class Endpoint(iEndpoint):
             bridge.unregisterProcessor(correlationId)
 
     async def _pollInbound(self) -> None:
-        # cache the method, to avoid lookup on every iteration
-        
         timeOut: float = self.C_RECEIVE_TIMEOUT
-        receive: Callable[[float | None], Any] = self._ioQueue.receive        
-        
+        receive: Callable[[float | None], Any] = self._ioQueue.receive
         isSet: Callable[[], bool] = self._stopping.is_set
 
-        def isStopping() -> bool:
-            return isSet()
-
-        while not isStopping():
+        while not isSet():
             try:
                 message = await to_thread(receive, timeOut)
 
-            except Empty: continue
-            except CancelledError: break
+            except Empty:
+                continue
+            except CancelledError:
+                break
             except Exception:
-                if isStopping(): break                
+                if isSet():
+                    break
                 continue
 
             try:
                 await self._onInbound(message)
 
-            except CancelledError: break
-            except Exception: continue
+            except CancelledError:
+                break
+            except Exception:
+                continue
 
     async def _drainOutbound(self) -> None:
-        # cache the method, to avoid lookup on every iteration
-        async def getOutbound() -> iMessage: ...
-        getOutbound: Callable[[...], iMessage] = self._outbound.get
-        send: Callable[[float | None], Any] = self._ioQueue.send        
+        outbound = self._outbound
+        if outbound is None:
+            return
+
+        send: Callable[[iMessage], None] = self._ioQueue.send
         isSet: Callable[[], bool] = self._stopping.is_set
 
-        def isStopping() -> bool:
-            return isSet()
-
-        while not isStopping():
+        while not isSet():
             try:
-                message = await getOutbound()
+                message = await outbound.get()
 
             except CancelledError:
                 break
@@ -165,16 +160,17 @@ class Endpoint(iEndpoint):
             try:
                 await to_thread(send, message)
 
-            except CancelledError: break
+            except CancelledError:
+                break
 
             except Exception:
-                if isStopping(): break
+                if isSet():
+                    break
                 continue
 
     async def _onInbound(self, message: iMessage) -> None:
         bridge = self._resolveBridge(message)
         if bridge is None:
-            warning(f"Unrecognized correlationId: {message.correlationId} or bridge is None")
             return
 
         await bridge.handleMessage(message)
@@ -182,8 +178,8 @@ class Endpoint(iEndpoint):
         if message.isTerminal:
             self._unmapCorrelation(message.correlationId)
             
-        else:
-            self.bindCorrelation(message.correlationId, bridge)        
+        elif message.correlationId is not None:
+            self.bindCorrelation(message.correlationId, bridge)
 
     def _resolveBridge(self, message: iMessage) -> iBridge | None:
         correlationId = message.correlationId
@@ -192,8 +188,10 @@ class Endpoint(iEndpoint):
             if bridge is not None:
                 return bridge
 
-        kind = type(message)
-        return self._kindToBridge.get(kind, None)
-    
+        # Handlers are keyed by message type (see Bridge.messageHandlers).
+        kind: Type[iMessage] | type = type(message)
+        return self._kindToBridge.get(kind)
+
+
 # ==================================================================================
 __all__ = ["Endpoint"]
