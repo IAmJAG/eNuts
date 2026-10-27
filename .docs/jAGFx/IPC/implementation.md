@@ -2,66 +2,56 @@
 
 ## 1. Architecture Overview
 
-Transport is implemented. Higher layers (CommunicationManager, Bridge) are specified but not yet present as concrete classes.
-
 ```text
-Application / domain code
-        │
-        ▼
-Bridge (proposed)  ────────── commands / events / requests
-        │
-        ▼
-CommunicationManager (proposed)
-  inbound task · outbound task · correlation · handlers
-        │
-        ▼
-IOQueue (implemented)
-        │
-        ▼
-multiprocessing.Queue pair (implemented via createPair)
+Bridge(s)  →  Endpoint  →  IOQueue  →  multiprocessing.Queue pair
 ```
+
+Transport is implemented. `Endpoint` and `Bridge` are specified, not yet concrete classes.
 
 ## 2. Directory & Module Mapping
 
-| Source Path | Documentation Path | Primary Responsibility |
+| Source Path | Documentation Path | Responsibility |
 | :--- | :--- | :--- |
-| `src/jAGFx/IPC/__IOQueue.py` | `.docs/jAGFx/IPC/IPC.md` | Queue adapter + `createPair` |
-| `src/jAGFx/IPC/__message.py` | `.docs/jAGFx/IPC/IPC.md` | Message envelope |
-| `src/jAGFx/types/interface/communication/__IOQueue.py` | `.docs/jAGFx/IPC/IPC.md` | `iIOQueue` contract |
-| `src/jAGFx/types/interface/communication/__message.py` | `.docs/jAGFx/IPC/IPC.md` | `iMessage` contract |
-| (proposed) CommunicationManager | `.docs/jAGFx/IPC/IPC.md` | Symmetric inbound/outbound + correlation |
-| (proposed) Bridge | `.docs/jAGFx/IPC/IPC.md` | Entity ↔ IPC binding (real + proxy roles) |
+| `src/jAGFx/IPC/__IOQueue.py` | `.docs/jAGFx/IPC/` | Queue adapter + `createPair` |
+| `src/jAGFx/IPC/__message.py` | `.docs/jAGFx/IPC/` | Message envelope (extend: timestamp, isTerminal) |
+| `src/jAGFx/types/interface/communication/` | `.docs/jAGFx/IPC/` | `iIOQueue`, `iMessage` |
+| (proposed) `src/jAGFx/IPC/` Endpoint | `.docs/jAGFx/IPC/` | Symmetric endpoint |
+| (proposed) Bridge | `.docs/jAGFx/IPC/` | Entity binding + processors |
 
-## 3. Core Workflows & Data Flow
+## 3. Core workflows
 
-### Pair creation and orientation
+### Pair + orientation
 
 ```python
 left, right = IOQueue.createPair()
-# Process A
 ioA = IOQueue(outboundQueue=left, inboundQueue=right)
-# Process B (receives right, left)
 ioB = IOQueue(outboundQueue=right, inboundQueue=left)
 ```
 
-### Send path (either side)
+### Send
 
 ```text
-Message(payload, correlationId?) → IOQueue.send → encode → JSON → outbound Queue.put
+Non-terminal: register correlation → await endpoint.send → outbound task → IOQueue.send
+Terminal:     unmap if present     → await endpoint.send → outbound task → IOQueue.send
 ```
 
-### Receive path (either side)
+### Receive
 
 ```text
-inbound Queue.get → JSON → dictDecode → Message (or payload type) → manager dispatch / bridge
+IOQueue.receive → decode → resolve bridge (correlationId or kind) → deliver
+→ if isTerminal: unmap if present
 ```
 
-### Correlation
+### Correlation maps
 
-Either side may allocate a `correlationId` when sending a request. The peer’s response reuses that ID. Each manager keeps its own pending-request map; there is no cross-process shared correlator object.
+```text
+Endpoint._correlations: correlationId → Bridge
+Bridge._processors:     correlationId → Callable
+```
 
 ## 4. Current code notes
 
-- `IOQueue.receive` default timeout is `0.01` seconds.
-- `Message` is not yet re-exported from `jAGFx.IPC.__init__` (only `IOQueue` is).
-- Interface signatures for `iIOQueue` are aligned with the implementation (`createPair → tuple[Queue, Queue]`, `send(iMessage)`, `receive(timeout=...)`).
+- `IOQueue.receive` default timeout: `0.01` s.
+- `Message` today: payload, correlationId, messageId — still needs `timestamp` and `isTerminal`.
+- `jAGFx.IPC.__init__` currently exports `IOQueue` only.
+- `iIOQueue` signatures match implementation (`createPair → tuple[Queue, Queue]`, `send(iMessage)`, `receive(timeout=...)`).
