@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-27 04:50:49 UTC*
+*Auto-generated on: 2026-10-27 05:20:47 UTC*
 
 ## Current Directory Structure
 
@@ -87,7 +87,7 @@ eNuts/
 │   │   │   │   └── __sideBarMenuBuilder.py
 │   │   │   ├── pages/
 │   │   │   │   ├── __devicePage.py
-│   │   │   │   ├── __kgRecorderPage.py
+│   │   │   │   ├── __kgRecorder.py
 │   │   │   │   ├── __pageKeys.py
 │   │   │   │   └── __smokePages.py
 │   │   │   ├── widgets/
@@ -622,7 +622,9 @@ src/eNuts/UI/pages:
 		FUNCTION(S):
 			buildDevicePage -> : builddevicepage
 			_applyFrame -> : _applyframe
-	__kgRecorderPage.py - 
+	__kgRecorder.py - 
+		CLASSE(S):
+			KGRecorder -> : kgrecorder
 	__pageKeys.py - 
 	__smokePages.py - 
 		FUNCTION(S):
@@ -1558,44 +1560,41 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-3c7f349:
-	feat(async): add ON_METADATA_UPDATE event and improve createTask function non-async function create task compatibility
-		src/fluxCore/emitters/scrcpy/__SCRCPYEmitter.py
-		src/jAGFx/services/__subscription.py
+a801dac:
+	refactor(asyncio): improve code readability and consistency in exception handling
+
+3115afd:
+	fix(asyncio): change _task function to async for proper coroutine handling
 		src/utilities/__asyncio.py
 
-0fd4b68:
-	fix(navigation): restore resolvePageClass and type-based buildNavigationPages
-		src/eNuts/UI/navigation/__navigation.py
+312ee31:
+	fix(createTask): schedule coroutine objects, not bare coroutine functions
+		src/utilities/__asyncio.py
 
-afff5c8:
-	refactor(navigation): remove resolvePageClass function and clean up buildBlankPage
-		src/eNuts/UI/navigation/__navigation.py
-
-a16b4ce:
+247e164:
 	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
 
-a14188b:
-	refactor(navigation, workspace): enhance buildBlankPage function and remove commented sections
-		src/eNuts/UI/navigation/__navigation.py
-		src/eNuts/application/workspace/__workSpace.py
+6e1268e:
+	docs(inventory): update auto-generated timestamp and enhance directory structure
+		.docs/inventory.md
 
-835145b:
-	chore(navigation): export resolvePageClass and C_DEFAULT_PAGE_TYPE
+abe0ee6:
+	fix(pages): import GLImage from jAGQt.widgets public package path
+		src/eNuts/UI/pages/__kgRecorder.py
 
-f3441bb:
-	chore(pages): remove buildKGRecorderPage export after strip
-
-df432c0:
-	fix(Shell): restore KGRecorder create/bind wiring after page strip
-		src/eNuts/application/__shell.py
-
-ffcfc04:
-	refactor(kg-recorder): strip factory page; placeholder until KGRecorderPage subclass
+77a09a9:
+	chore: remove obsolete kgRecorderPage factory placeholder
 		src/eNuts/UI/pages/__kgRecorderPage.py
 
-0edfd92:
-	feat(navigation): resolve PAGE_AND_MENU type as full class namespace; drop page builders
+0723a16:
+	feat(navigation): PAGE_KG_RECORDER type â†’ eNuts.UI.pages.KGRecorder
 		src/eNuts/UI/navigation/__navigation.py
+
+2611875:
+	feat(pages): export KGRecorder for PAGE_AND_MENU type resolution
+
+090bb68:
+	feat(pages): KGRecorder page base with GLImage stream placeholder (phase 1-2)
+		src/eNuts/UI/pages/__kgRecorder.py
 
 ```
