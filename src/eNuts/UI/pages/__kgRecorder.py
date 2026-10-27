@@ -9,7 +9,7 @@ from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import QSizePolicy
 
 # ==================================================================================
-from jAGQt.widgets.Image import GLImage
+from jAGQt.widgets import GLImage
 from jAGQt.widgets.page import Page
 
 
