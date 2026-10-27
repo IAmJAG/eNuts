@@ -12,8 +12,10 @@ from ..navigation.__pageKeys import (
     devicePageKey,
     devicePageKeyFromId,
 )
+from .__annotator import Annotator
 from .__devicePage import DeviceFrameBridge, buildDevicePage
 from .__kgRecorder import KGRecorder
+from .__playbackBase import PlaybackBase
 
 # ==================================================================================
 __all__ = [
@@ -25,8 +27,10 @@ __all__ = [
     "PAGE_KG_RECORDER",
     "PAGE_SETTINGS",
     "PAGE_TOOLS",
+    "Annotator",
     "DeviceFrameBridge",
     "KGRecorder",
+    "PlaybackBase",
     "buildBlankPage",
     "buildDevicePage",
     "buildNavigationPages",
