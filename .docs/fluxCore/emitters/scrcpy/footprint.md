@@ -1,6 +1,21 @@
 ## Overview & Design Context
 
-Error snapshot for `ON_ERROR`. Metadata uses `SCRCPY` via `SCRCPYEmitter.toScrcpy`, not a separate metadata footprint type.
+**Metadata footprint** is a base `SCRCPY` produced by `SCRCPYEmitter.toScrcpy` — construct `SCRCPY`, copy attributes, return it. There is no separate metadata footprint class.
+
+**Error footprint** remains `ScrcpyErrorFootprint` for `ON_ERROR` (errors are not a SCRCPY).
+
+---
+
+## Metadata — base `SCRCPY`
+
+| Field | Source on emitter |
+|-------|-------------------|
+| `id` / `serial` | `emitter.id` |
+| `name` | `emitter.name` |
+| `codecId` | `emitter.codecId` |
+| `width` / `height` | `emitter.width` / `height` |
+
+`type(toScrcpy(emitter)) is SCRCPY` — never `SCRCPYEmitter`.
 
 ---
 
@@ -8,7 +23,7 @@ Error snapshot for `ON_ERROR`. Metadata uses `SCRCPY` via `SCRCPYEmitter.toScrcp
 
 ### `ScrcpyErrorFootprint`
 
-- **Purpose:** Serializable error detail for IPC-ready event args.
+- **Purpose:** Serializable error detail for `ON_ERROR`.
 - **Properties:** `phase`, `message`, `serial`
 
 | Phase | When |
