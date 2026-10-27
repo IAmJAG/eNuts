@@ -1,8 +1,7 @@
 # ==================================================================================================
-# src/utilities/__asyncio.py
-# ==================================================================================================
 from asyncio import AbstractEventLoop, Task, get_event_loop, get_running_loop
-from typing import Awaitable, Callable
+from inspect import iscoroutinefunction
+from typing import Any, Awaitable, Callable
 
 
 # ==================================================================================================
@@ -30,11 +29,27 @@ def getEventLoop() -> AbstractEventLoop:
         raise ex
 
 # ==================================================================================================
-def createTask(asyncFunc: Callable[[...], Awaitable], *args, **kwargs) -> Task:
+def _getCoroutine(func: Callable) -> Callable[..., Any]:    
+    def _task(*args, **kwargs) -> Any:
+        try:
+            return func(*args, **kwargs)
+            
+        except Exception as ex:
+            raise ex
+
+    return _task
+
+# ==================================================================================================
+def createTask(func: Callable[[...], Awaitable], *args, **kwargs) -> Task:
     try:
         loop: AbstractEventLoop = getRunningLoop()
         if loop is None: raise Exception("No running loop")
-        return loop.create_task(asyncFunc(*args, **kwargs))
+
+        asyncFunc: Callable[[...], Awaitable] = func
+        if not iscoroutinefunction(func):
+            asyncFunc = _getCoroutine(asyncFunc)
+            
+        return loop.create_task(asyncFunc, *args, **kwargs)
 
     except Exception as ex:
         raise ex

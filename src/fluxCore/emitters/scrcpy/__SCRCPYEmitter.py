@@ -132,6 +132,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
 
         self._name = lName
         self.update(codecId=lCodecId, width=lWidth, height=lHeight)
+        self.raiseEvent("ON_METADATA_UPDATE", self)
 
     async def initialize(self, GPUID: int = 0, GPUReady: bool = True) -> None:
         device: AdbDevice = adb.device(serial=self.id)

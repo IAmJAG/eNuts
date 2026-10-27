@@ -43,10 +43,9 @@ class AsyncSubscription(Subscription):
         super().unsubscribe(event, callback)
 
     def raiseEvent(self, event: str, *args, **kwargs) -> None:
-        if event not in self._callbacks:
-            return
-        if self._suppressEvent:
-            return
+        if event not in self._callbacks: return
+
+        if self._suppressEvent: return
 
         for callback in self._callbacks[event]:
             if not callable(callback):
@@ -73,7 +72,7 @@ class AsyncSubscription(Subscription):
                 await callback(*args, **kwargs)
 
             else:
-                callback(*args, **kwargs)
+                createTask(callback, *args, **kwargs)
 
 
 # ==================================================================================
