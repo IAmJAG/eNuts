@@ -28,6 +28,7 @@ from ...utilities.scrcpy import (
     deployServer,
     getSCRCPYADBSocket,
 )
+from .__footprint import SCRCPYError
 
 # ==================================================================================
 JAR_NAME = "scrcpy-server.jar"
@@ -46,7 +47,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
     Events never pass the emitter instance:
     - ON_METADATA_UPDATE → base SCRCPY via toScrcpy
     - ON_FRAME → iFrame (in-process only)
-    - ON_ERROR → phase, message, serial (str args)
+    - ON_ERROR → SCRCPYError
     plus AsyncService lifecycle events (no args).
     """
 
@@ -79,18 +80,20 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
     @property
     def ControlSocket(self) -> iControlSocket | None:
         """Public control-channel accessor. Returns None when unavailable."""
-        if not hasattr(self, "_cSocket"): return None
+        if not hasattr(self, "_cSocket"):
+            return None
         return self._cSocket
 
     def _raiseError(self, phase: str, message: str) -> None:
-        self.asyncRaiseEvent(
+        self.raiseEvent(
             "ON_ERROR",
-            SCRCPYErrorFootprint(phase=phase, message=message, serial=str(self.id)),
+            SCRCPYError(phase=phase, message=message, serial=str(self.id)),
         )
 
     # ==================================================================================
     def _startServerLogDrain(self, streamServer: AdbConnection) -> None:
         """Prevent scrcpy-server from blocking on a full stdout pipe."""
+
         def _drain() -> None:
             try:
                 while not self._serverLogStop.is_set():
@@ -122,8 +125,9 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
     async def work(self, *args, **kwargs):
         """Drain the video socket continuously until the service is stopped."""
         sckt: iVideoSocket = self._vSocket
-        if sckt is None: return
-        
+        if sckt is None:
+            return
+
         try:
             while self.isRunning:
                 try:
@@ -170,7 +174,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         self.raiseEvent("ON_METADATA_UPDATE", me)
 
     async def initialize(self, GPUID: int = 0, GPUReady: bool = True) -> None:
-        self.setSuppressEvent()
+        self.setSuppressEvent(True)
         device: AdbDevice = adb.device(serial=self.id)
         cfg: SCRCPYServerConfig = SCRCPYServerConfig(
             androidPath=ANDROID_PATH,
@@ -219,7 +223,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
             self._codecContext = createCodecContext(
                 self.codecId, GPUID=GPUID, GPUReady=GPUReady
             )
-            self.asyncRaiseEvent("ON_INITIALIZED", self._codecContext)            
+            await self.asyncRaiseEvent("ON_INITIALIZED", self._codecContext)
         except Exception as ex:
             self._raiseError("initialize.codec", str(ex))
             raise
