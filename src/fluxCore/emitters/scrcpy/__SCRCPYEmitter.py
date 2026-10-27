@@ -1,6 +1,9 @@
 # ==================================================================================
 # src/fluxCore/emitters/scrcpy/__SCRCPYEmitter.py
 # ==================================================================================
+from __future__ import annotations
+
+# ==================================================================================
 import os
 
 # ==================================================================================
@@ -27,6 +30,7 @@ from ...utilities.scrcpy import (
     deployServer,
     getSCRCPYADBSocket,
 )
+from .__footprint import ScrcpyErrorFootprint
 
 # ==================================================================================
 JAR_NAME = "scrcpy-server.jar"
@@ -40,7 +44,14 @@ BITRATE = 4000000
 
 # ==================================================================================
 class SCRCPYEmitter(AsyncService, SCRCPY):
-    """Async video/control emitter. Satisfies iSCRCPYEmitter structurally."""
+    """Async video/control emitter. Satisfies iSCRCPYEmitter structurally.
+
+    Events never pass the emitter instance:
+    - ON_METADATA_UPDATE → base SCRCPY snapshot via toScrcpy (not a descendant)
+    - ON_FRAME → iFrame (in-process only)
+    - ON_ERROR → ScrcpyErrorFootprint
+    plus AsyncService lifecycle events (no args).
+    """
 
     def __init__(self, serial: str, name: str | None = None) -> None:
         SCRCPY.__init__(self, serial=serial, name=name)
@@ -53,11 +64,28 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         self._serverLogThread: Thread | None = None
 
     # ==================================================================================
+    @classmethod
+    def toScrcpy(cls, emitter: SCRCPYEmitter) -> SCRCPY:
+        scrcpy = SCRCPY(serial=str(emitter.id), name=emitter.name)
+        scrcpy.update(
+            codecId=emitter.codecId,
+            width=emitter.width,
+            height=emitter.height,
+        )
+        return scrcpy
+
+    # ==================================================================================
     @property
     def ControlSocket(self) -> iControlSocket | None:
         """Public control-channel accessor. Returns None when unavailable."""
         if not hasattr(self, "_cSocket"): return None
         return self._cSocket
+
+    def _raiseError(self, phase: str, message: str) -> None:
+        self.asyncRaiseEvent(
+            "ON_ERROR",
+            ScrcpyErrorFootprint(phase=phase, message=message, serial=str(self.id)),
+        )
 
     # ==================================================================================
     def _startServerLogDrain(self, streamServer: AdbConnection) -> None:
@@ -71,13 +99,16 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
                     except Exception:
                         break
 
-                    if not lChunk: break
+                    if not lChunk:
+                        break
 
             finally:
                 pass
 
         self._serverLogStop.clear()
-        self._serverLogThread = Thread(target=_drain, name=f"scrcpy-log-{self.id}", daemon=True)
+        self._serverLogThread = Thread(
+            target=_drain, name=f"scrcpy-log-{self.id}", daemon=True
+        )
         self._serverLogThread.start()
 
     def _stopServerLogDrain(self) -> None:
@@ -105,6 +136,10 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
                     await asyncWait(0)
                     continue
 
+                except Exception as ex:
+                    self._raiseError("work", str(ex))
+                    raise
+
                 # qasync + Windows IOCP: yield so overlapped reads can complete
                 await asyncWait(0)
 
@@ -129,11 +164,10 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         lName: str = deviceName.split(b"\x00", 1)[0].decode("utf-8", errors="replace")
 
         self._name = lName
-        self.update(codecId=lCodecId, width=lWidth, height=lHeight)        
+        self.update(codecId=lCodecId, width=lWidth, height=lHeight)
 
-    def update(self, codecId: str, width: int, height: int) -> None:
-        super().update(codecId=codecId, width=width, height=height)
-        self.raiseEvent("ON_METADATA_UPDATE", self)
+        me: SCRCPY = self.toScrcpy(self)
+        self.raiseEvent("ON_METADATA_UPDATE", me)
 
     async def initialize(self, GPUID: int = 0, GPUReady: bool = True) -> None:
         self.setSuppressEvent()
@@ -147,10 +181,18 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
             logLevel="warn",
         )
 
-        streamServer: AdbConnection = deployServer(
-            device, cfg=cfg, serverPath=SERVER_PATH, timeout=3000
-        )
+        try:
+            streamServer: AdbConnection = deployServer(
+                device, cfg=cfg, serverPath=SERVER_PATH, timeout=3000
+            )
+        except Exception as ex:
+            self._raiseError("initialize.deploy", str(ex))
+            raise
+
         if streamServer is None:
+            self._raiseError(
+                "initialize.deploy", "Failed to deploy scrcpy server"
+            )
             raise RuntimeError("Failed to deploy scrcpy server")
 
         self._streamServer = streamServer
@@ -158,18 +200,28 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
 
         asyncLoop: AbstractEventLoop = get_running_loop()
 
-        # scrcpy accepts video first, then control; only then sends device metadata
-        vSCKT: socket = getSCRCPYADBSocket(device, scid=cfg.Scid, timeout=3000)
-        self._vSocket = VideoSocket(vSCKT, loop=asyncLoop)
+        try:
+            vSCKT: socket = getSCRCPYADBSocket(device, scid=cfg.Scid, timeout=3000)
+            self._vSocket = VideoSocket(vSCKT, loop=asyncLoop)
 
-        cSCKT: socket = getSCRCPYADBSocket(device, scid=cfg.Scid, timeout=3000)
-        self._cSocket = ControlSocket(cSCKT, loop=asyncLoop)
+            cSCKT: socket = getSCRCPYADBSocket(device, scid=cfg.Scid, timeout=3000)
+            self._cSocket = ControlSocket(cSCKT, loop=asyncLoop)
 
-        await self._updateMetadata(self._vSocket)
+        except Exception as ex:
+            self._raiseError("initialize.socket", str(ex))
+            raise
 
-        self._codecContext = createCodecContext(
-            self.codecId, GPUID=GPUID, GPUReady=GPUReady
-        )
+        try:
+            await self._updateMetadata(self._vSocket)
+        except Exception as ex:
+            self._raiseError("initialize.metadata", str(ex))
+            raise
 
-        self.setSuppressEvent(False)
-        self.raiseEvent("ON_INITIALIZED", self)
+        try:
+            self._codecContext = createCodecContext(
+                self.codecId, GPUID=GPUID, GPUReady=GPUReady
+            )
+            self.asyncRaiseEvent("ON_INITIALIZED", self._codecContext)            
+        except Exception as ex:
+            self._raiseError("initialize.codec", str(ex))
+            raise
