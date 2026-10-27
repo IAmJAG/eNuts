@@ -49,6 +49,8 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
     - ON_FRAME → iFrame (in-process only)
     - ON_ERROR → SCRCPYError
     plus AsyncService lifecycle events (no args).
+
+    All SCRCPYEmitter-raised events use asyncRaiseEvent (same as AsyncSubscription).
     """
 
     def __init__(self, serial: str, name: str | None = None) -> None:
@@ -84,8 +86,8 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
             return None
         return self._cSocket
 
-    def _raiseError(self, phase: str, message: str) -> None:
-        self.raiseEvent(
+    async def _raiseError(self, phase: str, message: str) -> None:
+        await self.asyncRaiseEvent(
             "ON_ERROR",
             SCRCPYError(phase=phase, message=message, serial=str(self.id)),
         )
@@ -132,7 +134,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
             while self.isRunning:
                 try:
                     frame: iFrame = await sckt.asyncReceiveSingleFrame()
-                    self.raiseEvent("ON_FRAME", frame)
+                    await self.asyncRaiseEvent("ON_FRAME", frame)
 
                 except CancelledError:
                     raise
@@ -142,7 +144,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
                     continue
 
                 except Exception as ex:
-                    self._raiseError("work", str(ex))
+                    await self._raiseError("work", str(ex))
                     raise
 
                 await asyncWait(0)
@@ -171,7 +173,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         self.update(codecId=lCodecId, width=lWidth, height=lHeight)
 
         me: SCRCPY = self.toScrcpy(self)
-        self.raiseEvent("ON_METADATA_UPDATE", me)
+        await self.asyncRaiseEvent("ON_METADATA_UPDATE", me)
 
     async def initialize(self, GPUID: int = 0, GPUReady: bool = True) -> None:
         self.setSuppressEvent(True)
@@ -190,11 +192,13 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
                 device, cfg=cfg, serverPath=SERVER_PATH, timeout=3000
             )
         except Exception as ex:
-            self._raiseError("initialize.deploy", str(ex))
+            await self._raiseError("initialize.deploy", str(ex))
             raise
 
         if streamServer is None:
-            self._raiseError("initialize.deploy", "Failed to deploy scrcpy server")
+            await self._raiseError(
+                "initialize.deploy", "Failed to deploy scrcpy server"
+            )
             raise RuntimeError("Failed to deploy scrcpy server")
 
         self._streamServer = streamServer
@@ -210,13 +214,13 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
             self._cSocket = ControlSocket(cSCKT, loop=asyncLoop)
 
         except Exception as ex:
-            self._raiseError("initialize.socket", str(ex))
+            await self._raiseError("initialize.socket", str(ex))
             raise
 
         try:
             await self._updateMetadata(self._vSocket)
         except Exception as ex:
-            self._raiseError("initialize.metadata", str(ex))
+            await self._raiseError("initialize.metadata", str(ex))
             raise
 
         try:
@@ -225,5 +229,5 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
             )
             await self.asyncRaiseEvent("ON_INITIALIZED", self._codecContext)
         except Exception as ex:
-            self._raiseError("initialize.codec", str(ex))
+            await self._raiseError("initialize.codec", str(ex))
             raise
