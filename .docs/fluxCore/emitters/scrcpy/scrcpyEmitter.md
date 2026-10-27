@@ -1,20 +1,9 @@
 ## Overview & Design Context
 
-`SCRCPYEmitter` streams device video/control via scrcpy. It is `AsyncService` + `SCRCPY`.
+`SCRCPYEmitter` is `AsyncService` + `SCRCPY`.
 
-**Metadata:** `SCRCPYEmitter.toScrcpy(emitter)` constructs a **base** `SCRCPY` and copies attributes. That is the only metadata snapshot type.
-
-**Errors:** `ON_ERROR` raises with `(phase, message, serial)` strings — no dedicated error type.
-
----
-
-## Classes
-
-### `SCRCPYEmitter`
-
-- **Methods:**
-  - `toScrcpy(emitter)` (classmethod) → base `SCRCPY` with copied attributes.
-  - `initialize` / `work` / `start` / `stop` as before.
+- **Metadata:** `toScrcpy` → base `SCRCPY` (construct + copy attrs).
+- **Errors:** `ON_ERROR` → `SCRCPYError` (`__footprint.py`).
 
 ---
 
@@ -22,22 +11,19 @@
 
 | Event | Payload |
 |-------|---------|
-| Lifecycle (`ON_STARTED`, …) | — |
-| `ON_METADATA_UPDATE` | base `SCRCPY` via `toScrcpy` |
+| Lifecycle | — |
+| `ON_METADATA_UPDATE` | base `SCRCPY` |
 | `ON_FRAME` | `iFrame` |
-| `ON_ERROR` | `phase: str`, `message: str`, `serial: str` |
+| `ON_ERROR` | `SCRCPYError` |
+| `ON_INITIALIZED` | codec context (local) |
 
 ---
 
-## Sample Usage
+## Sample
 
 ```python
-def onMeta(scrcpy):
-    print(scrcpy.width, scrcpy.height)
+from fluxCore.emitters.scrcpy import SCRCPYEmitter, SCRCPYError
 
-def onError(phase, message, serial):
-    print(phase, message, serial)
-
-emitter.subscribe("ON_METADATA_UPDATE", onMeta)
-emitter.subscribe("ON_ERROR", onError)
+def onError(err: SCRCPYError) -> None:
+    print(err.phase, err.message, err.serial)
 ```

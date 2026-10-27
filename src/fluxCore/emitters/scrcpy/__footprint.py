@@ -6,7 +6,9 @@ from jAGFx.serializer import Serializable
 
 
 # ==================================================================================
-class SCRCPYErrorFootprint(Serializable):
+class SCRCPYError(Serializable):
+    """Serializable error payload for ON_ERROR."""
+
     def __init__(
         self, phase: str = "", message: str = "", serial: str | None = None,
     ) -> None:
@@ -30,4 +32,4 @@ class SCRCPYErrorFootprint(Serializable):
 
 
 # ==================================================================================
-__all__ = ["SCRCPYErrorFootprint"]
+__all__ = ["SCRCPYError"]
