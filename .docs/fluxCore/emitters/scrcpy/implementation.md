@@ -4,10 +4,10 @@
 
 ```text
 SCRCPYEmitter (AsyncService + SCRCPY)
-  toScrcpy(emitter) → SCRCPY   # same object
+  toScrcpy(emitter) → base SCRCPY   # construct + copy attrs
   ON_METADATA_UPDATE(SCRCPY)
-  ON_ERROR(ScrcpyErrorFootprint)
-  ON_FRAME(iFrame)             # local only
+  ON_ERROR(phase, message, serial)
+  ON_FRAME(iFrame)                  # local only
 ```
 
 ## 2. Module mapping
@@ -15,12 +15,13 @@ SCRCPYEmitter (AsyncService + SCRCPY)
 | Source | Docs |
 |--------|------|
 | `src/fluxCore/emitters/scrcpy/__SCRCPYEmitter.py` | `scrcpyEmitter.md` |
-| `src/fluxCore/emitters/scrcpy/__footprint.py` | `footprint.md` |
+
+No `__footprint.py`.
 
 ## 3. Phase status
 
 | Phase | Status |
 |-------|--------|
-| A — events / toScrcpy / ON_ERROR | **Done** |
+| A — toScrcpy, events, ON_ERROR | **Done** |
 | B — IPC messages | Pending |
 | C — Bridge | Pending |

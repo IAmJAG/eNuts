@@ -35,4 +35,4 @@ class SCRCPYErrorFootprint(Serializable):
 
 
 # ==================================================================================
-__all__ = ["ScrcpyErrorFootprint"]
+__all__ = ["SCRCPYErrorFootprint"]

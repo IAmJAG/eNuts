@@ -2,7 +2,9 @@
 
 `SCRCPYEmitter` streams device video/control via scrcpy. It is `AsyncService` + `SCRCPY`.
 
-**Metadata footprint:** `SCRCPYEmitter.toScrcpy(emitter)` constructs a **base** `SCRCPY` (not the emitter, not a subclass), copies `id`/`name`/`codecId`/`width`/`height`, and returns that instance. No separate footprint type.
+**Metadata:** `SCRCPYEmitter.toScrcpy(emitter)` constructs a **base** `SCRCPY` and copies attributes. That is the only metadata snapshot type.
+
+**Errors:** `ON_ERROR` raises with `(phase, message, serial)` strings — no dedicated error type.
 
 ---
 
@@ -10,12 +12,9 @@
 
 ### `SCRCPYEmitter`
 
-- **Purpose:** Async scrcpy session: initialize sockets/codec, emit frames and metadata.
 - **Methods:**
-  - `toScrcpy(emitter)` (classmethod) → **new** base `SCRCPY` with attributes copied from the emitter.
-  - `initialize(GPUID, GPUReady)` → deploy, sockets, metadata, codec; may raise after `ON_ERROR`.
-  - `work` → frame loop; `ON_FRAME` / `ON_ERROR`.
-  - `start` / `stop` — inherited `AsyncService` lifecycle events.
+  - `toScrcpy(emitter)` (classmethod) → base `SCRCPY` with copied attributes.
+  - `initialize` / `work` / `start` / `stop` as before.
 
 ---
 
@@ -23,28 +22,21 @@
 
 | Event | Payload |
 |-------|---------|
-| `ON_STARTING` / `ON_STARTED` / `ON_STOPPING` / `ON_STOPPED` | — |
-| `ON_PAUSED` / `ON_RESUMED` | — |
+| Lifecycle (`ON_STARTED`, …) | — |
 | `ON_METADATA_UPDATE` | base `SCRCPY` via `toScrcpy` |
 | `ON_FRAME` | `iFrame` |
-| `ON_ERROR` | `ScrcpyErrorFootprint` |
+| `ON_ERROR` | `phase: str`, `message: str`, `serial: str` |
 
 ---
 
 ## Sample Usage
 
 ```python
-from fluxCore.emitters.scrcpy import SCRCPYEmitter
-from fluxCore.devices import SCRCPY
+def onMeta(scrcpy):
+    print(scrcpy.width, scrcpy.height)
 
-emitter = SCRCPYEmitter(serial="...")
-
-def onMeta(scrcpy: SCRCPY) -> None:
-    assert type(scrcpy) is SCRCPY  # not SCRCPYEmitter
-    print(scrcpy.width, scrcpy.height, scrcpy.codecId)
-
-def onError(err) -> None:
-    print(err.phase, err.message, err.serial)
+def onError(phase, message, serial):
+    print(phase, message, serial)
 
 emitter.subscribe("ON_METADATA_UPDATE", onMeta)
 emitter.subscribe("ON_ERROR", onError)

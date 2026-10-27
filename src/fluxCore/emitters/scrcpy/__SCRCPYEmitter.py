@@ -1,6 +1,4 @@
 # ==================================================================================
-# src/fluxCore/emitters/scrcpy/__SCRCPYEmitter.py
-# ==================================================================================
 from __future__ import annotations
 
 # ==================================================================================
@@ -30,7 +28,6 @@ from ...utilities.scrcpy import (
     deployServer,
     getSCRCPYADBSocket,
 )
-from .__footprint import ScrcpyErrorFootprint
 
 # ==================================================================================
 JAR_NAME = "scrcpy-server.jar"
@@ -47,9 +44,9 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
     """Async video/control emitter. Satisfies iSCRCPYEmitter structurally.
 
     Events never pass the emitter instance:
-    - ON_METADATA_UPDATE → base SCRCPY snapshot via toScrcpy (not a descendant)
+    - ON_METADATA_UPDATE → base SCRCPY via toScrcpy
     - ON_FRAME → iFrame (in-process only)
-    - ON_ERROR → ScrcpyErrorFootprint
+    - ON_ERROR → phase, message, serial (str args)
     plus AsyncService lifecycle events (no args).
     """
 
@@ -66,6 +63,10 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
     # ==================================================================================
     @classmethod
     def toScrcpy(cls, emitter: SCRCPYEmitter) -> SCRCPY:
+        """Build a base SCRCPY snapshot from an emitter.
+
+        Constructs a plain SCRCPY (not SCRCPYEmitter). Copies id/name/codec/size.
+        """
         scrcpy = SCRCPY(serial=str(emitter.id), name=emitter.name)
         scrcpy.update(
             codecId=emitter.codecId,
@@ -84,7 +85,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
     def _raiseError(self, phase: str, message: str) -> None:
         self.asyncRaiseEvent(
             "ON_ERROR",
-            ScrcpyErrorFootprint(phase=phase, message=message, serial=str(self.id)),
+            SCRCPYErrorFootprint(phase=phase, message=message, serial=str(self.id)),
         )
 
     # ==================================================================================
@@ -140,7 +141,6 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
                     self._raiseError("work", str(ex))
                     raise
 
-                # qasync + Windows IOCP: yield so overlapped reads can complete
                 await asyncWait(0)
 
         finally:
@@ -190,9 +190,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
             raise
 
         if streamServer is None:
-            self._raiseError(
-                "initialize.deploy", "Failed to deploy scrcpy server"
-            )
+            self._raiseError("initialize.deploy", "Failed to deploy scrcpy server")
             raise RuntimeError("Failed to deploy scrcpy server")
 
         self._streamServer = streamServer
