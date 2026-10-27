@@ -106,6 +106,7 @@ class AsyncService(iService, AsyncSubscription):
 
         try:
             lLoop = get_running_loop()
+            
         except RuntimeError:
             # Loop already stopped (e.g. finally after run_until_complete) — cancel now
             self._cancelIfRunning(lTask)

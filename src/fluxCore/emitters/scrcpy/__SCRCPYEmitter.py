@@ -56,14 +56,12 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
     @property
     def ControlSocket(self) -> iControlSocket | None:
         """Public control-channel accessor. Returns None when unavailable."""
-        if not hasattr(self, "_cSocket"):
-            return None
+        if not hasattr(self, "_cSocket"): return None
         return self._cSocket
 
     # ==================================================================================
     def _startServerLogDrain(self, streamServer: AdbConnection) -> None:
         """Prevent scrcpy-server from blocking on a full stdout pipe."""
-
         def _drain() -> None:
             try:
                 while not self._serverLogStop.is_set():
@@ -93,7 +91,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         """Drain the video socket continuously until the service is stopped."""
         sckt: iVideoSocket = self._vSocket
         if sckt is None: return
-
+        
         try:
             while self.isRunning:
                 try:
@@ -131,12 +129,15 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         lName: str = deviceName.split(b"\x00", 1)[0].decode("utf-8", errors="replace")
 
         self._name = lName
-        self.update(codecId=lCodecId, width=lWidth, height=lHeight)
+        self.update(codecId=lCodecId, width=lWidth, height=lHeight)        
+
+    def update(self, codecId: str, width: int, height: int) -> None:
+        super().update(codecId=codecId, width=width, height=height)
         self.raiseEvent("ON_METADATA_UPDATE", self)
 
     async def initialize(self, GPUID: int = 0, GPUReady: bool = True) -> None:
+        self.setSuppressEvent()
         device: AdbDevice = adb.device(serial=self.id)
-
         cfg: SCRCPYServerConfig = SCRCPYServerConfig(
             androidPath=ANDROID_PATH,
             jarName=JAR_NAME,
@@ -169,3 +170,6 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         self._codecContext = createCodecContext(
             self.codecId, GPUID=GPUID, GPUReady=GPUReady
         )
+
+        self.setSuppressEvent(False)
+        self.raiseEvent("ON_INITIALIZED", self)

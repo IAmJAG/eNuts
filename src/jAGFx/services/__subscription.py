@@ -26,7 +26,7 @@ class Subscription(iSubscription):
             for callback in self._callbacks[event]:
                 callback(*args, **kwargs)
 
-    def setSuppressEvent(self, value: bool) -> None:
+    def setSuppressEvent(self, value: bool = True) -> None:
         self._suppressEvent = value
 
 
