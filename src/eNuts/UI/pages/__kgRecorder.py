@@ -6,20 +6,18 @@ from typing import Optional, Union
 
 # ==================================================================================
 from PySide6.QtGui import QIcon, QPixmap
-from PySide6.QtWidgets import QSizePolicy
 
 # ==================================================================================
-from jAGQt.widgets import GLImage
-from jAGQt.widgets.page import Page
+from .__playbackBase import PlaybackBase
 
 
 # ==================================================================================
-class KGRecorder(Page):
+class KGRecorder(PlaybackBase):
     """Key & Gesture Recorder page (view only).
 
-    Phase 1–2: Page shell + GLImage stream surface placeholder.
-    Emitter / controller wiring is deferred (pipeline refactor).
-    Application controller remains eNuts.application.recorder.KGRecorder.
+    Inherits playback layout (Page chrome + GLImage). Emitter / controller
+    wiring is deferred. Application controller remains
+    eNuts.application.recorder.KGRecorder.
     """
 
     OBJECT_NAME = "W_KG_RECORDER"
@@ -46,19 +44,6 @@ class KGRecorder(Page):
 
     def _wInitializeUI(self) -> None:
         super()._wInitializeUI()
-
-        streamView = GLImage(bg="#1a1a1a")
-        streamView.setObjectName(f"{self.OBJECT_NAME}_STREAM")
-        streamView.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
-        )
-        streamView.setMinimumSize(320, 240)
-        self.addWidget(streamView, stretch=1)
-
-        # Stable handle for later emitter attach (same name as device pages).
-        self._streamView = streamView
-
-        verbose(
-            f"[pages] KGRecorder page id={self.Id!r} "
-            f"stream={streamView.objectName()!r}"
-        )
+        # Stream surface comes from PlaybackBase (_streamView).
+        # Recorder-specific chrome (command bar, device strip) added later.
+        verbose(f"[pages] KGRecorder page id={self.Id!r}")
