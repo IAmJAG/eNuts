@@ -13,6 +13,7 @@ from ..navigation.__pageKeys import (
     devicePageKeyFromId,
 )
 from .__devicePage import DeviceFrameBridge, buildDevicePage
+from .__kgRecorder import KGRecorder
 
 # ==================================================================================
 __all__ = [
@@ -25,6 +26,7 @@ __all__ = [
     "PAGE_SETTINGS",
     "PAGE_TOOLS",
     "DeviceFrameBridge",
+    "KGRecorder",
     "buildBlankPage",
     "buildDevicePage",
     "buildNavigationPages",

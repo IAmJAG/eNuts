@@ -42,8 +42,7 @@ PAGE_AND_MENU: Dict[str, Dict[str, Any]] = {
                     "title": "K&G Recorder",
                     "description": "Keyboard and Gesture Recorder",
                     "icon": "KGRecorder.png",
-                    # Stripped to base Page; later → eNuts…KGRecorderPage
-                    "type": "jAGQt.widgets.page.Page",
+                    "type": "eNuts.UI.pages.KGRecorder",
                 },
                 PAGE_ANNOTATOR: {
                     "title": "Annotator",
