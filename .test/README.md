@@ -2,7 +2,7 @@
 
 All automated checks live here — **not** under `src/` and **not** under `.scripts/`.
 
-Production types (`Policy`, `Vocabulary`, `PolicyOptions`) do not own seed data or fixtures. Tests supply them.
+Production types do not own seed data or fixtures. Tests supply them.
 
 ## Layout
 
@@ -14,10 +14,16 @@ Production types (`Policy`, `Vocabulary`, `PolicyOptions`) do not own seed data 
     policy/
       seeds.py
       builders.py
+    ipc/
+      payloads.py
   smoke/
     policy/
       test_policy_forward_predict.py
       test_policy_options_roundtrip.py
+      test_policy_persist.py
+    ipc/
+      test_message_roundtrip.py
+      test_endpoint_bridge.py
   unit/            (reserved)
   integration/     (reserved)
 ```
@@ -26,7 +32,7 @@ Production types (`Policy`, `Vocabulary`, `PolicyOptions`) do not own seed data 
 
 | Folder | Purpose |
 |--------|---------|
-| `smoke/` | Construct, shapes, serialize round-trip, predict contract |
+| `smoke/` | Construct, shapes, serialize round-trip, predict / IPC contract |
 | `unit/` | Isolated class behavior (future) |
 | `integration/` | Policy + stream/emitter (future) |
 
@@ -35,6 +41,7 @@ Production types (`Policy`, `Vocabulary`, `PolicyOptions`) do not own seed data 
 ```bash
 PYTHONPATH=src python -m pytest .test/smoke -q
 PYTHONPATH=src python -m pytest .test/smoke/policy -q
+PYTHONPATH=src python -m pytest .test/smoke/ipc -q
 PYTHONPATH=src python -m pytest .test -q
 ```
 
@@ -43,5 +50,6 @@ PYTHONPATH=src python -m pytest .test -q
 | Concern | Owner |
 |---------|--------|
 | Labels, vocabularies, options, model | `src/fluxCore/policy/` |
-| Seed maps, builders, fake tensors | `.test/fixtures/` |
+| IPC transport, endpoint, bridge | `src/jAGFx/IPC/` |
+| Seed maps, builders, smoke payloads | `.test/fixtures/` |
 | Smoke / unit / integration cases | `.test/<category>/` |

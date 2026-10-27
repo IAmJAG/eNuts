@@ -14,13 +14,14 @@ from ..types.interface.communication import iMessage
 class Message(iMessage, Serializable):
     def __init__(
         self,
-        payload: iSerializable,
+        payload: iSerializable | None = None,
         correlationId: UUID | None = None,
         isTerminal: bool = False,
         timestamp: float | None = None,
     ) -> None:
         super().__init__()
-        self._payload: iSerializable = payload
+        # payload may be None only for serializer decode (Message() then decode)
+        self._payload: iSerializable | None = payload
         self._correlationId: UUID | None = correlationId or uuid4()
         self._messageId: UUID = uuid4()
         self._isTerminal: bool = isTerminal
@@ -30,7 +31,7 @@ class Message(iMessage, Serializable):
         )
 
     @property
-    def payload(self) -> iSerializable:
+    def payload(self) -> iSerializable | None:
         return self._payload
 
     @payload.setter
