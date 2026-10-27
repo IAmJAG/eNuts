@@ -17,22 +17,13 @@ BACKGROUND_COLOR = QColor("lightgray")
 
 # ==================================================================================
 class ImageBase:
-    """Shared state and API for Image / GLImage.
-
-    Owns image data, fit mode, background, dirty flag, and draw rect.
-    Subclasses implement layout recompute and paint.
-    """
-
-    # ------------------------------------------------------------------
-    def _initImageBase(
-        self, bg: Union[str, QColor] = BACKGROUND_COLOR,
-        fitMode: ImageFitMode = ImageFitMode.Scale,
-    ) -> None:
+    def _wInitializeBase(self) -> None:
         self._image: Optional[QPixmap] = None
-        self._backgroundColor: QColor = QColor(bg) if isinstance(bg, str) else bg
-        self._fitMode: ImageFitMode = fitMode
         self._drawRect: QRect = QRect()
         self._dirty: bool = True
+        
+        bg: Union[str, QColor] = self._backgroundColor        
+        self.setBackgroundColor(bg)
 
     # ------------------------------------------------------------------
     # PROPERTIES
@@ -43,8 +34,7 @@ class ImageBase:
 
     @fitMode.setter
     def fitMode(self, value: ImageFitMode) -> None:
-        if value is self._fitMode:
-            return
+        if value is self._fitMode: return
         self._fitMode = value
         self._markDirty()
 

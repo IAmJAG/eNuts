@@ -112,6 +112,7 @@ def _instantiatePage(pageId: str, entry: Dict[str, Any]) -> Page:
     typePath = str(entry.get("type") or C_DEFAULT_PAGE_TYPE)
     try:
         cls = resolvePageClass(typePath)
+
     except Exception as ex:
         warning(
             f"[pages] resolve type={typePath!r} for key={pageId!r} failed: {ex}; "
@@ -122,11 +123,10 @@ def _instantiatePage(pageId: str, entry: Dict[str, Any]) -> Page:
     commandBarOn = bool(entry.get("commandBar", False))
     try:
         page = cls(
-            title=title,
-            description=description,
-            commandBarOn=commandBarOn,
-            id=pageId,
+            title=title, description=description,
+            commandBarOn=commandBarOn, id=pageId,
         )
+
     except TypeError:
         page = cls(title=title, description=description, id=pageId)
 
@@ -144,8 +144,7 @@ def buildNavigationPages() -> dict[str, Page]:
     for sectionName in ("CONTENT", "FOOTER"):
         section = PAGE_AND_MENU.get(sectionName) or {}
         for pageId, entry in _flattenEntries(section):
-            if pageId in pages:
-                continue
+            if pageId in pages: continue
             pages[pageId] = _instantiatePage(pageId, entry)
 
     # Devices header page is still registered for stack lookup; leaves are dynamic.

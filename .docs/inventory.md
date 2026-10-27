@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-27 05:20:47 UTC*
+*Auto-generated on: 2026-10-27 07:28:56 UTC*
 
 ## Current Directory Structure
 
@@ -86,9 +86,11 @@ eNuts/
 │   │   │   │   ├── __pageKeys.py
 │   │   │   │   └── __sideBarMenuBuilder.py
 │   │   │   ├── pages/
+│   │   │   │   ├── __annotator.py
 │   │   │   │   ├── __devicePage.py
 │   │   │   │   ├── __kgRecorder.py
 │   │   │   │   ├── __pageKeys.py
+│   │   │   │   ├── __playbackBase.py
 │   │   │   │   └── __smokePages.py
 │   │   │   ├── widgets/
 │   │   │   │   ├── __captureImage.py
@@ -616,6 +618,9 @@ src/eNuts/UI/navigation:
 			G_PAGE_KEY_PROP -> : g_page_key_prop
 
 src/eNuts/UI/pages:
+	__annotator.py - 
+		CLASSE(S):
+			Annotator -> : annotator
 	__devicePage.py - 
 		CLASSE(S):
 			DeviceFrameBridge -> : deviceframebridge
@@ -626,6 +631,9 @@ src/eNuts/UI/pages:
 		CLASSE(S):
 			KGRecorder -> : kgrecorder
 	__pageKeys.py - 
+	__playbackBase.py - 
+		CLASSE(S):
+			PlaybackBase -> : playbackbase
 	__smokePages.py - 
 		FUNCTION(S):
 			buildSmokeTestPages -> : buildsmoketestpages
@@ -1560,6 +1568,29 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+0d7ffac:
+	feat(navigation): Annotator type â†’ eNuts.UI.pages.Annotator
+		src/eNuts/UI/navigation/__navigation.py
+
+5efecd1:
+	feat(pages): export PlaybackBase, Annotator; keep KGRecorder
+
+b194654:
+	feat(pages): Annotator page inherits PlaybackBase
+		src/eNuts/UI/pages/__annotator.py
+
+ae32eee:
+	refactor(pages): KGRecorder inherits PlaybackBase
+		src/eNuts/UI/pages/__kgRecorder.py
+
+2354851:
+	feat(pages): PlaybackBase â€” shared Page + GLImage layout for stream tools
+		src/eNuts/UI/pages/__playbackBase.py
+
+8694d9a:
+	docs(inventory): update auto-generated timestamp and correct kgRecorder page filename
+		.docs/inventory.md
+
 a801dac:
 	refactor(asyncio): improve code readability and consistency in exception handling
 
@@ -1573,28 +1604,5 @@ a801dac:
 
 247e164:
 	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
-
-6e1268e:
-	docs(inventory): update auto-generated timestamp and enhance directory structure
-		.docs/inventory.md
-
-abe0ee6:
-	fix(pages): import GLImage from jAGQt.widgets public package path
-		src/eNuts/UI/pages/__kgRecorder.py
-
-77a09a9:
-	chore: remove obsolete kgRecorderPage factory placeholder
-		src/eNuts/UI/pages/__kgRecorderPage.py
-
-0723a16:
-	feat(navigation): PAGE_KG_RECORDER type â†’ eNuts.UI.pages.KGRecorder
-		src/eNuts/UI/navigation/__navigation.py
-
-2611875:
-	feat(pages): export KGRecorder for PAGE_AND_MENU type resolution
-
-090bb68:
-	feat(pages): KGRecorder page base with GLImage stream placeholder (phase 1-2)
-		src/eNuts/UI/pages/__kgRecorder.py
 
 ```

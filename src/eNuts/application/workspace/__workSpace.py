@@ -204,8 +204,10 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
         if stack is None or index is None:
             warning(f"[WorkSpace] unknown page key={key!r}")
             return False
+        
         stack.setCurrentIndex(index)
         page = self._pages.get(key)
+        
         title = page.Title if page is not None else key
         debug(f"[WorkSpace] showPage key={key!r} title={title!r} index={index}")
 

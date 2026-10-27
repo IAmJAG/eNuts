@@ -1,6 +1,4 @@
 # ==================================================================================
-# src/jAGQt/widgets/Image/__glImage.py
-# ==================================================================================
 from typing import Optional, Union
 
 # ==================================================================================
@@ -9,43 +7,41 @@ from PySide6.QtGui import QColor, QImage, QPainter, QResizeEvent
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 
 # ==================================================================================
+from jAGFx.workflow import workflow
+
+# ==================================================================================
 from ..components import ComponentBase
 from .__fitMode import ImageFitMode
 from .__imageBase import BACKGROUND_COLOR, ImageBase
 
 
 # ==================================================================================
+@workflow("InitializeBase")
 class GLImage(QOpenGLWidget, ComponentBase, ImageBase):
-    """OpenGL image display.
-
-    Displays an image. Handles resize via ``fitMode``:
-
-    - Scale — scale proportionally to fit inside the widget.
-    - Fill  — stretch to fill the entire widget (aspect ignored).
-    - Crop  — scale proportionally to cover, center, crop to viewport.
-    """
-
-    # ------------------------------------------------------------------
     def __init__(
         self, bg: Union[str, QColor] = BACKGROUND_COLOR,
         fitMode: ImageFitMode = ImageFitMode.Scale,
         *args, **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
-        self._initImageBase(bg=bg, fitMode=fitMode)
+        self._backgroundColor = QColor(bg) if isinstance(bg, str) else bg
+        self._fitMode: ImageFitMode = fitMode
         self._drawImage: Optional[QImage] = None
-        self.setupUI()
+        self._glIntialized: bool = False
 
-    # ------------------------------------------------------------------
-    def setupUI(self) -> None:
-        self.setBackgroundColor(self._backgroundColor)
+    def _initializeGL(self) -> None:
+        self.gl = self.context().functions()
+        self.gl.glClearColor(
+            self._backgroundColor.redF(),
+            self._backgroundColor.greenF(),
+            self._backgroundColor.blueF(),
+            1.0,
+        )
 
-    # ------------------------------------------------------------------
     def _onImageCleared(self) -> None:
         self._drawImage = None
         self._drawRect = QRect()
 
-    # ------------------------------------------------------------------
     def _recompute(self) -> None:
         self._dirty = False
         self._drawImage = None
@@ -100,17 +96,8 @@ class GLImage(QOpenGLWidget, ComponentBase, ImageBase):
         self._drawImage = scaled.copy((tw - w) // 2, (th - h) // 2, w, h)
         self._drawRect = QRect(0, 0, w, h)
 
-    # ------------------------------------------------------------------
-    def initializeGL(self) -> None:
-        self.gl = self.context().functions()
-        self.gl.glClearColor(
-            self._backgroundColor.redF(),
-            self._backgroundColor.greenF(),
-            self._backgroundColor.blueF(),
-            1.0,
-        )
-
     def resizeGL(self, w: int, h: int) -> None:
+        if not self._glIntialized: self._initializeGL()
         if hasattr(self, "gl") and self.gl is not None:
             self.gl.glViewport(0, 0, w, h)
         self._dirty = True
@@ -120,8 +107,9 @@ class GLImage(QOpenGLWidget, ComponentBase, ImageBase):
         super().resizeEvent(event)
 
     def paintGL(self) -> None:
-        if self._dirty:
-            self._recompute()
+        if not self._glIntialized: self._initializeGL()
+
+        if self._dirty: self._recompute()
 
         if hasattr(self, "gl") and self.gl is not None:
             self.gl.glClearColor(

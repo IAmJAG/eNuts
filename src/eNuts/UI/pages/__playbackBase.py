@@ -15,35 +15,17 @@ from jAGQt.widgets.page import Page
 
 # ==================================================================================
 class PlaybackBase(Page):
-    """Shared layout for pages that stream or render into a GL surface.
-
-    Builds the standard Page chrome then places a ``GLImage`` in the content
-    slot. Subclasses call ``super()._wInitializeUI()`` first, then add their
-    own chrome (command bar groups, side panels, etc.).
-
-    ``_streamView`` is the stable handle for later emitter attach.
-    """
-
     OBJECT_NAME = "W_PLAYBACK"
 
     def __init__(
-        self,
-        title: str,
-        description: str = "",
+        self, title: str, description: str = "",
         icon: Optional[Union[QIcon, QPixmap, str]] = None,
-        commandBarOn: bool = False,
-        id: Optional[str] = None,
-        *args,
-        **kwargs,
+        commandBarOn: bool = False, id: Optional[str] = None,
+        *args, **kwargs,
     ) -> None:
         super().__init__(
-            title=title,
-            description=description,
-            icon=icon,
-            commandBarOn=commandBarOn,
-            id=id,
-            *args,
-            **kwargs,
+            title=title, description=description, icon=icon,
+            commandBarOn=commandBarOn, id=id, *args, **kwargs,
         )
 
     def _wInitializeUI(self) -> None:

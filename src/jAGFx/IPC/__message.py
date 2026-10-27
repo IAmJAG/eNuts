@@ -10,7 +10,7 @@ from ..types.interface.communication import iMessage
 
 
 # ==================================================================================
-class Message(Serializable, iMessage):
+class Message(iMessage, Serializable):
     def __init__(self, payload: iSerializable, correlationId: UUID | None = None) -> None:
         super().__init__()
         self._payload: iSerializable = payload

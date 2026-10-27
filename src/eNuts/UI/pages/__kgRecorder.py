@@ -13,13 +13,6 @@ from .__playbackBase import PlaybackBase
 
 # ==================================================================================
 class KGRecorder(PlaybackBase):
-    """Key & Gesture Recorder page (view only).
-
-    Inherits playback layout (Page chrome + GLImage). Emitter / controller
-    wiring is deferred. Application controller remains
-    eNuts.application.recorder.KGRecorder.
-    """
-
     OBJECT_NAME = "W_KG_RECORDER"
 
     def __init__(
@@ -33,13 +26,9 @@ class KGRecorder(PlaybackBase):
         **kwargs,
     ) -> None:
         super().__init__(
-            title=title,
-            description=description,
-            icon=icon,
-            commandBarOn=commandBarOn,
-            id=id,
-            *args,
-            **kwargs,
+            title=title, description=description, icon=icon,
+            commandBarOn=commandBarOn, id=id,
+            *args, **kwargs,
         )
 
     def _wInitializeUI(self) -> None:

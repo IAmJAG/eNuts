@@ -1,6 +1,4 @@
 # ==================================================================================
-# src/jAGQt/widgets/Image/__image.py
-# ==================================================================================
 from typing import Optional, Union
 
 # ==================================================================================
@@ -9,46 +7,34 @@ from PySide6.QtGui import QColor, QPainter, QPaintEvent, QPixmap, QResizeEvent
 from PySide6.QtWidgets import QWidget
 
 # ==================================================================================
+from jAGFx.workflow import workflow
+
+# ==================================================================================
 from ..components import ComponentBase
 from .__fitMode import ImageFitMode
 from .__imageBase import BACKGROUND_COLOR, ImageBase
 
 
 # ==================================================================================
+@workflow("InitializeUI", "InitializeBase")
 class Image(QWidget, ComponentBase, ImageBase):
-    """Software image display.
-
-    Displays an image. Handles resize via ``fitMode``:
-
-    - Scale — scale proportionally to fit inside the widget.
-    - Fill  — stretch to fill the entire widget (aspect ignored).
-    - Crop  — scale proportionally to cover, center, crop to viewport.
-    """
-
-    # ------------------------------------------------------------------
     def __init__(
-        self,
-        bg: Union[str, QColor] = BACKGROUND_COLOR,
-        fitMode: ImageFitMode = ImageFitMode.Scale,
-        *args, **kwargs,
+        self, bg: Union[str, QColor] = BACKGROUND_COLOR,
+        fitMode: ImageFitMode = ImageFitMode.Scale, *args, **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
-        self._initImageBase(bg=bg, fitMode=fitMode)
+        self._backgroundColor = QColor(bg) if isinstance(bg, str) else bg
+        self._fitMode: ImageFitMode = fitMode
         self._scaled: Optional[QPixmap] = None
-        self.setupUI()
 
-    # ------------------------------------------------------------------
-    def setupUI(self) -> None:
+    def _wInitializeUI(self) -> None:
         self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, True)
-        self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground, True)
-        self.setBackgroundColor(self._backgroundColor)
+        self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground, True)        
 
-    # ------------------------------------------------------------------
     def _onImageCleared(self) -> None:
         self._scaled = None
         self._drawRect = QRect()
 
-    # ------------------------------------------------------------------
     def _recompute(self) -> None:
         self._dirty = False
         self._scaled = None
@@ -102,7 +88,6 @@ class Image(QWidget, ComponentBase, ImageBase):
         self._scaled = scaled.copy((tw - w) // 2, (th - h) // 2, w, h)
         self._drawRect = QRect(0, 0, w, h)
 
-    # ------------------------------------------------------------------
     def resizeEvent(self, event: QResizeEvent) -> None:
         self._dirty = True
         super().resizeEvent(event)
