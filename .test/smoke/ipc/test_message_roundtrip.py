@@ -1,5 +1,5 @@
 # ==================================================================================
-"""Smoke: Message fields serialize; IOQueue transports a Message in-process."""
+"""Smoke: Message serialize round-trip; IOQueue transports a Message in-process."""
 # ==================================================================================
 from __future__ import annotations
 
@@ -27,20 +27,17 @@ def test_message_roundtrip() -> None:
         payload=SmokePayload(text="hello", kind="ping"),
         isTerminal=False,
     )
-    correlationId = original.correlationId
-    messageId = original.messageId
-    timestamp = original.timestamp
 
-    payload = json.loads(json.dumps(original.encode()))
-    restored = jsonDecode(payload)
+    encoded = json.loads(json.dumps(original.encode()))
+    restored = jsonDecode(encoded)
 
     assert isinstance(restored, Message)
     assert isinstance(restored.payload, SmokePayload)
     assert restored.payload.text == "hello"
     assert restored.payload.kind == "ping"
-    assert restored.correlationId == correlationId
-    assert restored.messageId == messageId
-    assert abs(restored.timestamp - timestamp) < 1e-9
+    assert restored.correlationId == original.correlationId
+    assert restored.messageId == original.messageId
+    assert abs(restored.timestamp - original.timestamp) < 1e-9
     assert restored.isTerminal is False
 
 
@@ -49,8 +46,9 @@ def test_message_terminal_roundtrip() -> None:
         payload=SmokePayload(text="bye", kind="done"),
         isTerminal=True,
     )
-    payload = json.loads(json.dumps(original.encode()))
-    restored = jsonDecode(payload)
+
+    encoded = json.loads(json.dumps(original.encode()))
+    restored = jsonDecode(encoded)
 
     assert isinstance(restored, Message)
     assert restored.isTerminal is True
@@ -70,6 +68,7 @@ def test_ioqueue_send_receive() -> None:
     sender.send(message)
 
     received = receiver.receive(timeout=1.0)
+
     assert isinstance(received, Message)
     assert received.payload.text == "queue"
     assert received.payload.kind == "ping"
