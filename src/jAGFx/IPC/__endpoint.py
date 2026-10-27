@@ -5,9 +5,10 @@ from __future__ import annotations
 from asyncio import CancelledError, Event, Queue as AsyncQueue, Task, create_task, to_thread
 from queue import Empty
 from typing import TYPE_CHECKING
+from uuid import UUID
 
 # ==================================================================================
-from ..types.interface.communication import iEndpoint, iIOQueue, iMessage
+from ..types.interface.communication import iBridge, iEndpoint, iIOQueue, iMessage
 
 # ==================================================================================
 if TYPE_CHECKING:
@@ -25,6 +26,10 @@ class Endpoint(iEndpoint):
         self._outboundTask: Task | None = None
         self._stopping: Event = Event()
         self._started: bool = False
+
+        self._kindToBridge: dict[str, iBridge] = {}
+        self._bridgeKinds: dict[iBridge, set[str]] = {}
+        self._correlations: dict[UUID, iBridge] = {}
 
     @property
     def isStarted(self) -> bool:
@@ -66,7 +71,51 @@ class Endpoint(iEndpoint):
         if not self._started or self._outbound is None:
             raise RuntimeError("Endpoint is not started")
 
+        if message.isTerminal:
+            self._unmapCorrelation(message.correlationId)
+
         await self._outbound.put(message)
+
+    def registerBridge(self, bridge: iBridge) -> None:
+        kinds = set(bridge.messageHandlers.keys())
+        for kind in kinds:
+            if kind in self._kindToBridge:
+                owner = self._kindToBridge[kind]
+                raise ValueError(
+                    f"Message kind '{kind}' is already registered by another bridge"
+                )
+
+        for kind in kinds:
+            self._kindToBridge[kind] = bridge
+
+        self._bridgeKinds[bridge] = kinds
+        bridge.attachEndpoint(self)
+
+    def unregisterBridge(self, bridge: iBridge) -> None:
+        kinds = self._bridgeKinds.pop(bridge, set())
+        for kind in kinds:
+            if self._kindToBridge.get(kind) is bridge:
+                del self._kindToBridge[kind]
+
+        stale = [cid for cid, b in self._correlations.items() if b is bridge]
+        for cid in stale:
+            del self._correlations[cid]
+
+        bridge.detachEndpoint()
+
+    def bindCorrelation(self, correlationId: UUID, bridge: iBridge) -> None:
+        self._correlations[correlationId] = bridge
+
+    def unbindCorrelation(self, correlationId: UUID) -> None:
+        self._correlations.pop(correlationId, None)
+
+    def _unmapCorrelation(self, correlationId: UUID | None) -> None:
+        if correlationId is None:
+            return
+
+        bridge = self._correlations.pop(correlationId, None)
+        if bridge is not None:
+            bridge.unregisterProcessor(correlationId)
 
     async def _pollInbound(self) -> None:
         while not self._stopping.is_set():
@@ -111,8 +160,35 @@ class Endpoint(iEndpoint):
                 continue
 
     async def _onInbound(self, message: iMessage) -> None:
-        """Phase 2: receive only. Dispatch is added in Phase 3+."""
-        return
+        bridge = self._resolveBridge(message)
+        if bridge is None:
+            return
+
+        await bridge.handleMessage(message)
+
+        if message.isTerminal:
+            self._unmapCorrelation(message.correlationId)
+
+    def _resolveBridge(self, message: iMessage) -> iBridge | None:
+        correlationId = message.correlationId
+        if correlationId is not None:
+            bridge = self._correlations.get(correlationId)
+            if bridge is not None:
+                return bridge
+
+        kind = self._kindFromMessage(message)
+        if kind is None:
+            return None
+
+        return self._kindToBridge.get(kind)
+
+    @staticmethod
+    def _kindFromMessage(message: iMessage) -> str | None:
+        payload = message.payload
+        kind = getattr(payload, "kind", None)
+        if isinstance(kind, str) and kind:
+            return kind
+        return type(payload).__name__
 
 
 # ==================================================================================
