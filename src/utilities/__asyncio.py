@@ -30,7 +30,7 @@ def getEventLoop() -> AbstractEventLoop:
 
 # ==================================================================================================
 def _getCoroutine(func: Callable) -> Callable[..., Any]:    
-    def _task(*args, **kwargs) -> Any:
+    async def _task(*args, **kwargs) -> Any:
         try:
             return func(*args, **kwargs)
             
