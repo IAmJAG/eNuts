@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-27 07:28:56 UTC*
+*Auto-generated on: 2026-10-27 10:07:30 UTC*
 
 ## Current Directory Structure
 
@@ -231,6 +231,8 @@ eNuts/
 │   │   ├── .fff
 │   │   ├── IPC/
 │   │   │   ├── __IOQueue.py
+│   │   │   ├── __bridge.py
+│   │   │   ├── __endpoint.py
 │   │   │   └── __message.py
 │   │   ├── collections/
 │   │   │   ├── __tsDictionary.py
@@ -274,6 +276,8 @@ eNuts/
 │   │   │       ├── .fff
 │   │   │       ├── communication/
 │   │   │       │   ├── __IOQueue.py
+│   │   │       │   ├── __bridge.py
+│   │   │       │   ├── __endpoint.py
 │   │   │       │   └── __message.py
 │   │   │       ├── configuration/
 │   │   │       │   ├── __applicationConfiguration.py
@@ -975,6 +979,12 @@ src/jAGFx/IPC:
 	__IOQueue.py - 
 		CLASSE(S):
 			IOQueue -> : ioqueue
+	__bridge.py - 
+		CLASSE(S):
+			Bridge -> : bridge
+	__endpoint.py - 
+		CLASSE(S):
+			Endpoint -> : endpoint
 	__message.py - 
 		CLASSE(S):
 			Message -> : message
@@ -1122,6 +1132,12 @@ src/jAGFx/types/interface/communication:
 	__IOQueue.py - 
 		CLASSE(S):
 			iIOQueue -> : iioqueue
+	__bridge.py - 
+		CLASSE(S):
+			iBridge -> : ibridge
+	__endpoint.py - 
+		CLASSE(S):
+			iEndpoint -> : iendpoint
 	__message.py - 
 		CLASSE(S):
 			iMessage -> : imessage
@@ -1568,41 +1584,42 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-0d7ffac:
-	feat(navigation): Annotator type â†’ eNuts.UI.pages.Annotator
-		src/eNuts/UI/navigation/__navigation.py
+ce70636:
+	docs(IPC): Phase 5 â€” requirements reflect implemented Endpoint/Bridge
+		.docs/jAGFx/IPC/requirement.md
 
-5efecd1:
-	feat(pages): export PlaybackBase, Annotator; keep KGRecorder
+ae11a08:
+	docs(IPC): mark phases 1â€“5 complete in implementation plan
+		.docs/jAGFx/IPC/implementationPlan.md
 
-b194654:
-	feat(pages): Annotator page inherits PlaybackBase
-		src/eNuts/UI/pages/__annotator.py
+df9dd41:
+	docs(IPC): Phase 5 â€” mark phases 1â€“4 implemented
+		.docs/jAGFx/IPC/implementation.md
 
-ae32eee:
-	refactor(pages): KGRecorder inherits PlaybackBase
-		src/eNuts/UI/pages/__kgRecorder.py
+8e030d3:
+	docs(IPC): Phase 5 â€” mark Endpoint and Bridge as implemented
+		.docs/jAGFx/IPC/IPC.md
 
-2354851:
-	feat(pages): PlaybackBase â€” shared Page + GLImage layout for stream tools
-		src/eNuts/UI/pages/__playbackBase.py
+d64b4d2:
+	feat(IPC): Phase 5 â€” export Bridge from jAGFx.IPC
 
-8694d9a:
-	docs(inventory): update auto-generated timestamp and correct kgRecorder page filename
-		.docs/inventory.md
+8e54b62:
+	feat(IPC): Phase 5 â€” export iBridge and iEndpoint from communication interfaces
 
-a801dac:
-	refactor(asyncio): improve code readability and consistency in exception handling
+1262e60:
+	feat(IPC): Phase 3â€“4 â€” bridge registration, kind dispatch, correlation and terminal lifecycle
+		src/jAGFx/IPC/__endpoint.py
 
-3115afd:
-	fix(asyncio): change _task function to async for proper coroutine handling
-		src/utilities/__asyncio.py
+640ba28:
+	feat(IPC): Phase 3 â€” extend iEndpoint with bridge registration
+		src/jAGFx/types/interface/communication/__endpoint.py
 
-312ee31:
-	fix(createTask): schedule coroutine objects, not bare coroutine functions
-		src/utilities/__asyncio.py
+7c5ee8e:
+	feat(IPC): Phase 3 â€” Bridge base with handlers and processors
+		src/jAGFx/IPC/__bridge.py
 
-247e164:
-	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
+96d367c:
+	feat(IPC): Phase 3 â€” iBridge protocol
+		src/jAGFx/types/interface/communication/__bridge.py
 
 ```

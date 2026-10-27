@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 # ==================================================================================
-from asyncio import CancelledError, Event, Queue as AsyncQueue, Task, create_task, to_thread
+from asyncio import CancelledError, Event, Task, create_task, to_thread
+from asyncio import Queue as AsyncQueue
 from queue import Empty
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Callable
 from uuid import UUID
 
 # ==================================================================================
@@ -118,56 +119,72 @@ class Endpoint(iEndpoint):
             bridge.unregisterProcessor(correlationId)
 
     async def _pollInbound(self) -> None:
-        while not self._stopping.is_set():
+        # cache the method, to avoid lookup on every iteration
+        
+        timeOut: float = self.C_RECEIVE_TIMEOUT
+        receive: Callable[[float | None], Any] = self._ioQueue.receive        
+        
+        isSet: Callable[[], bool] = self._stopping.is_set
+
+        def isStopping() -> bool:
+            return isSet()
+
+        while not isStopping():
             try:
-                message = await to_thread(
-                    self._ioQueue.receive,
-                    self.C_RECEIVE_TIMEOUT,
-                )
-            except Empty:
-                continue
-            except CancelledError:
-                break
+                message = await to_thread(receive, timeOut)
+
+            except Empty: continue
+            except CancelledError: break
             except Exception:
-                if self._stopping.is_set():
-                    break
+                if isStopping(): break                
                 continue
 
             try:
                 await self._onInbound(message)
-            except CancelledError:
-                break
-            except Exception:
-                continue
+
+            except CancelledError: break
+            except Exception: continue
 
     async def _drainOutbound(self) -> None:
-        while not self._stopping.is_set():
-            if self._outbound is None:
-                break
+        # cache the method, to avoid lookup on every iteration
+        async def getOutbound() -> iMessage: ...
+        getOutbound: Callable[[...], iMessage] = self._outbound.get
+        send: Callable[[float | None], Any] = self._ioQueue.send        
+        isSet: Callable[[], bool] = self._stopping.is_set
 
+        def isStopping() -> bool:
+            return isSet()
+
+        while not isStopping():
             try:
-                message = await self._outbound.get()
+                message = await getOutbound()
+
             except CancelledError:
                 break
 
             try:
-                await to_thread(self._ioQueue.send, message)
-            except CancelledError:
-                break
+                await to_thread(send, message)
+
+            except CancelledError: break
+
             except Exception:
-                if self._stopping.is_set():
-                    break
+                if isStopping(): break
                 continue
 
     async def _onInbound(self, message: iMessage) -> None:
         bridge = self._resolveBridge(message)
         if bridge is None:
+            warning(f"Unrecognized correlationId: {message.correlationId} or bridge is None")
             return
 
         await bridge.handleMessage(message)
 
         if message.isTerminal:
             self._unmapCorrelation(message.correlationId)
+            
+        else:
+            self.bindCorrelation(message.correlationId, bridge)
+        
 
     def _resolveBridge(self, message: iMessage) -> iBridge | None:
         correlationId = message.correlationId
@@ -181,15 +198,6 @@ class Endpoint(iEndpoint):
             return None
 
         return self._kindToBridge.get(kind)
-
-    @staticmethod
-    def _kindFromMessage(message: iMessage) -> str | None:
-        payload = message.payload
-        kind = getattr(payload, "kind", None)
-        if isinstance(kind, str) and kind:
-            return kind
-        return type(payload).__name__
-
-
+    
 # ==================================================================================
 __all__ = ["Endpoint"]

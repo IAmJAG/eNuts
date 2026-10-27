@@ -4,7 +4,7 @@ from __future__ import annotations
 # ==================================================================================
 from json import dumps, loads
 from multiprocessing import Queue
-from typing import Any, Dict
+from typing import Any, Callable, Dict
 
 # ==================================================================================
 from ..serializer import jsonDecode as dictDecode
@@ -30,7 +30,7 @@ class IOQueue(iIOQueue):
             local  = IOQueue(outboundQueue=left,  inboundQueue=right)
             remote = IOQueue(outboundQueue=right, inboundQueue=left)
         """
-        return Queue(), Queue()
+        return Queue(), Queue()            
 
     def send(self, message: iMessage) -> None:
         dictMsg: Dict = message.encode()

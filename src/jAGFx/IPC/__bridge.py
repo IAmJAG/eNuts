@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 # ==================================================================================
-from typing import Any, Awaitable, Callable, Mapping
+from typing import Awaitable, Callable, Dict, Mapping, Type
 from uuid import UUID
 
 # ==================================================================================
@@ -19,11 +19,11 @@ class Bridge(iBridge):
 
     def __init__(self) -> None:
         self._endpoint: iEndpoint | None = None
-        self._processors: dict[UUID, Callable[[iMessage], Awaitable[None] | None]] = {}
-        self._messageHandlers: dict[str, Callable[..., Awaitable[None] | None]] = {}
+        self._processors: Dict[UUID, Callable[[iMessage], Awaitable[...]]] = {}
+        self._messageHandlers: Dict[Type[iMessage], Callable[[iMessage], Awaitable[...]]] = {}
 
     @property
-    def messageHandlers(self) -> Mapping[str, Callable[..., Awaitable[None] | None]]:
+    def messageHandlers(self) -> Mapping[Type[iMessage], Callable[[iMessage], Awaitable[...]]]:
         return self._messageHandlers
 
     @property
@@ -40,7 +40,7 @@ class Bridge(iBridge):
     def registerProcessor(
         self,
         correlationId: UUID,
-        processor: Callable[[iMessage], Awaitable[None] | None],
+        processor: Callable[[UUID], Awaitable[None] | None],
     ) -> None:
         self._processors[correlationId] = processor
 
@@ -51,30 +51,20 @@ class Bridge(iBridge):
         processor = self._processors.get(message.correlationId)
         if processor is not None:
             result = processor(message)
-            if result is not None:
-                await result
+            if result is not None: await result
             return
 
-        kind = self._kindFromMessage(message)
-        handler = self._messageHandlers.get(kind) if kind is not None else None
-        if handler is None:
-            return
+        kind = type(message)
+        handler = self._messageHandlers.get(kind, None) if kind is not None else None
+        if handler is None: return
 
         result = handler(message)
-        if result is not None:
-            await result
-
-    @staticmethod
-    def _kindFromMessage(message: iMessage) -> str | None:
-        payload = message.payload
-        kind = getattr(payload, "kind", None)
-        if isinstance(kind, str) and kind:
-            return kind
-        return type(payload).__name__
+        if result is not None: await result    
 
     async def send(self, message: iMessage) -> None:
         if self._endpoint is None:
             raise RuntimeError("Bridge has no attached Endpoint")
+        
         await self._endpoint.send(message)
 
 
