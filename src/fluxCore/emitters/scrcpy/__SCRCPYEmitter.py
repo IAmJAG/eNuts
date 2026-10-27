@@ -11,7 +11,6 @@ from asyncio import AbstractEventLoop, CancelledError, get_running_loop
 from socket import socket
 from threading import Event as ThreadEvent
 from threading import Thread
-from typing import TYPE_CHECKING
 
 # ==================================================================================
 from adbutils import AdbConnection, AdbDevice, adb
@@ -32,10 +31,6 @@ from ...utilities.scrcpy import (
     getSCRCPYADBSocket,
 )
 from .__footprint import ScrcpyErrorFootprint
-
-# ==================================================================================
-if TYPE_CHECKING:
-    pass
 
 # ==================================================================================
 JAR_NAME = "scrcpy-server.jar"
@@ -171,60 +166,56 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         self.raiseEvent("ON_METADATA_UPDATE", SCRCPYEmitter.toScrcpy(self))
 
     async def initialize(self, GPUID: int = 0, GPUReady: bool = True) -> None:
+        device: AdbDevice = adb.device(serial=self.id)
+
+        cfg: SCRCPYServerConfig = SCRCPYServerConfig(
+            androidPath=ANDROID_PATH,
+            jarName=JAR_NAME,
+            maxSize=MAX_SIZE,
+            maxFps=MAX_FPS,
+            bitrate=BITRATE,
+            logLevel="warn",
+        )
+
         try:
-            device: AdbDevice = adb.device(serial=self.id)
-
-            cfg: SCRCPYServerConfig = SCRCPYServerConfig(
-                androidPath=ANDROID_PATH,
-                jarName=JAR_NAME,
-                maxSize=MAX_SIZE,
-                maxFps=MAX_FPS,
-                bitrate=BITRATE,
-                logLevel="warn",
-            )
-
             streamServer: AdbConnection = deployServer(
                 device, cfg=cfg, serverPath=SERVER_PATH, timeout=3000
             )
-            if streamServer is None:
-                raise RuntimeError("Failed to deploy scrcpy server")
-
-            self._streamServer = streamServer
-            self._startServerLogDrain(streamServer)
-
-            asyncLoop: AbstractEventLoop = get_running_loop()
-
-            # scrcpy accepts video first, then control; only then sends device metadata
-            try:
-                vSCKT: socket = getSCRCPYADBSocket(device, scid=cfg.Scid, timeout=3000)
-                self._vSocket = VideoSocket(vSCKT, loop=asyncLoop)
-
-                cSCKT: socket = getSCRCPYADBSocket(device, scid=cfg.Scid, timeout=3000)
-                self._cSocket = ControlSocket(cSCKT, loop=asyncLoop)
-            except Exception as ex:
-                self._raiseError("initialize.socket", str(ex))
-                raise
-
-            try:
-                await self._updateMetadata(self._vSocket)
-            except Exception as ex:
-                self._raiseError("initialize.metadata", str(ex))
-                raise
-
-            try:
-                self._codecContext = createCodecContext(
-                    self.codecId, GPUID=GPUID, GPUReady=GPUReady
-                )
-            except Exception as ex:
-                self._raiseError("initialize.codec", str(ex))
-                raise
-
         except Exception as ex:
-            # Deploy / outer failures not already tagged with a phase
-            if not isinstance(ex, CancelledError):
-                phase = getattr(ex, "_scrcpyPhase", None)
-                if phase is None and "deploy" in str(ex).lower():
-                    self._raiseError("initialize.deploy", str(ex))
-                elif "Failed to deploy" in str(ex):
-                    self._raiseError("initialize.deploy", str(ex))
+            self._raiseError("initialize.deploy", str(ex))
+            raise
+
+        if streamServer is None:
+            self._raiseError(
+                "initialize.deploy", "Failed to deploy scrcpy server"
+            )
+            raise RuntimeError("Failed to deploy scrcpy server")
+
+        self._streamServer = streamServer
+        self._startServerLogDrain(streamServer)
+
+        asyncLoop: AbstractEventLoop = get_running_loop()
+
+        try:
+            vSCKT: socket = getSCRCPYADBSocket(device, scid=cfg.Scid, timeout=3000)
+            self._vSocket = VideoSocket(vSCKT, loop=asyncLoop)
+
+            cSCKT: socket = getSCRCPYADBSocket(device, scid=cfg.Scid, timeout=3000)
+            self._cSocket = ControlSocket(cSCKT, loop=asyncLoop)
+        except Exception as ex:
+            self._raiseError("initialize.socket", str(ex))
+            raise
+
+        try:
+            await self._updateMetadata(self._vSocket)
+        except Exception as ex:
+            self._raiseError("initialize.metadata", str(ex))
+            raise
+
+        try:
+            self._codecContext = createCodecContext(
+                self.codecId, GPUID=GPUID, GPUReady=GPUReady
+            )
+        except Exception as ex:
+            self._raiseError("initialize.codec", str(ex))
             raise
