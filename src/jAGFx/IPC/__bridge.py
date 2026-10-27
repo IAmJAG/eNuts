@@ -37,11 +37,7 @@ class Bridge(iBridge):
         self._endpoint = None
         self._processors.clear()
 
-    def registerProcessor(
-        self,
-        correlationId: UUID,
-        processor: Callable[[UUID], Awaitable[None] | None],
-    ) -> None:
+    def registerProcessor(self, correlationId: UUID, processor: Callable[[UUID], Awaitable[None] | None]) -> None:
         self._processors[correlationId] = processor
 
     def unregisterProcessor(self, correlationId: UUID) -> None:
