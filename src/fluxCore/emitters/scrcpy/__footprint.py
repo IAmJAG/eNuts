@@ -7,13 +7,8 @@ from jAGFx.serializer import Serializable
 
 # ==================================================================================
 class SCRCPYErrorFootprint(Serializable):
-    """Serializable error snapshot for ON_ERROR (never pass the emitter instance)."""
-
     def __init__(
-        self,
-        phase: str = "",
-        message: str = "",
-        serial: str | None = None,
+        self, phase: str = "", message: str = "", serial: str | None = None,
     ) -> None:
         super().__init__()
         self._phase: str = phase
