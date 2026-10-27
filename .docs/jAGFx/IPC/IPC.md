@@ -87,16 +87,16 @@ Request is a subtype of command (logical). No Future API on Endpoint.
 - `await send(message)` — if terminal, unmap then enqueue
 - `registerBridge` / `unregisterBridge`
 - `bindCorrelation` / `unbindCorrelation`
-- Maps: kind → bridge, correlationId → bridge
+- Maps: message type → bridge, correlationId → bridge
 
 ### 3.5 Bridge — `jAGFx.IPC.Bridge`
 
 `src/jAGFx/IPC/__bridge.py`
 
-- `messageHandlers` (kind → callable)
+- `messageHandlers` (message **type** → callable)
 - `attachEndpoint` / `detachEndpoint`
 - `registerProcessor` / `unregisterProcessor`
-- `handleMessage` (processor else kind handler)
+- `handleMessage` (processor else type handler)
 - `await send(message)` via attached endpoint
 
 ---
@@ -137,7 +137,7 @@ Bridge:    correlationId → processor
 
 **Receive**
 
-- Resolve by correlationId else by kind → `bridge.handleMessage`.
+- Resolve by correlationId else by message type → `bridge.handleMessage`.
 - If terminal: unmap if present after deliver.
 
 Register correlation only when not terminal.
@@ -172,8 +172,10 @@ def processEntry(right, left, config):  # module-level, spawn-safe
 | `Message` (+ timestamp, isTerminal) | Implemented |
 | `Endpoint` | Implemented |
 | `Bridge` base | Implemented |
-| Concrete domain bridges | Application layer |
+| Domain messages / bridges | **First target: SCRCPY** — see `.docs/fluxCore/emitters/scrcpy/implementationPlan.md` |
 | Shared-memory / large binary path | Not in scope yet |
+
+Domain message types and footprints live under `src/fluxCore/emitters/scrcpy/`, not under `jAGFx.IPC`.
 
 ---
 
