@@ -18,6 +18,7 @@ class Message(iMessage, Serializable):
         correlationId: UUID | None = None,
         isTerminal: bool = False,
         timestamp: float | None = None,
+        ownerId: UUID | None = None,
     ) -> None:
         super().__init__()
         # payload may be None only for serializer decode (Message() then decode)
@@ -26,8 +27,16 @@ class Message(iMessage, Serializable):
         self._messageId: UUID = uuid4()
         self._isTerminal: bool = isTerminal
         self._timestamp: float = timestamp if timestamp is not None else time()
+        self._ownerId: UUID | None = ownerId
         self.Properties.extend(
-            ["payload", "correlationId", "messageId", "timestamp", "isTerminal"]
+            [
+                "payload",
+                "correlationId",
+                "messageId",
+                "timestamp",
+                "isTerminal",
+                "ownerId",
+            ]
         )
 
     @property
@@ -53,6 +62,14 @@ class Message(iMessage, Serializable):
     @property
     def isTerminal(self) -> bool:
         return self._isTerminal
+
+    @property
+    def ownerId(self) -> UUID | None:
+        return self._ownerId
+
+    @ownerId.setter
+    def ownerId(self, value: UUID | None) -> None:
+        self._ownerId = value
 
 
 __all__ = ["Message"]

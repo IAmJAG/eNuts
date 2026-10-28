@@ -5,7 +5,7 @@ from __future__ import annotations
 from asyncio import CancelledError, Event, Task, create_task, to_thread
 from asyncio import Queue as AsyncQueue
 from queue import Empty
-from typing import Any, Callable, Type
+from typing import Any, Callable
 from uuid import UUID
 
 # ==================================================================================
@@ -14,6 +14,12 @@ from ..types.interface.communication import iBridge, iEndpoint, iIOQueue, iMessa
 
 # ==================================================================================
 class Endpoint(iEndpoint):
+    """Process-local IPC endpoint.
+
+    Owns the IOQueue adapter and routes inbound messages to Bridges by
+    ``message.ownerId``. Correlation lifecycle is entirely Bridge-owned.
+    """
+
     C_RECEIVE_TIMEOUT: float = 0.01
 
     def __init__(self, ioQueue: iIOQueue) -> None:
@@ -24,13 +30,16 @@ class Endpoint(iEndpoint):
         self._stopping: Event = Event()
         self._started: bool = False
 
-        self._kindToBridge: dict[Any, iBridge] = {}
-        self._bridgeKinds: dict[iBridge, set[Any]] = {}
-        self._correlations: dict[UUID, iBridge] = {}
+        self._bridges: dict[UUID, iBridge] = {}
+        self._defaultBridgeId: UUID | None = None
 
     @property
     def isStarted(self) -> bool:
         return self._started
+
+    @property
+    def defaultBridgeId(self) -> UUID | None:
+        return self._defaultBridgeId
 
     async def start(self) -> None:
         if self._started:
@@ -68,53 +77,38 @@ class Endpoint(iEndpoint):
         if not self._started or self._outbound is None:
             raise RuntimeError("Endpoint is not started")
 
-        if message.isTerminal:
-            self._unmapCorrelation(message.correlationId)
-
         await self._outbound.put(message)
 
-    def registerBridge(self, bridge: iBridge) -> None:
-        kinds = set(bridge.messageHandlers.keys())
-        for kind in kinds:
-            if kind in self._kindToBridge:
-                raise ValueError(
-                    f"Message kind '{kind}' is already registered by another bridge"
-                )
+    def registerBridge(self, bridge: iBridge, *, asDefault: bool = False) -> None:
+        bridgeId = bridge.bridgeId
+        if bridgeId in self._bridges:
+            raise ValueError(f"Bridge ID '{bridgeId}' is already registered")
 
-        for kind in kinds:
-            self._kindToBridge[kind] = bridge
-
-        self._bridgeKinds[bridge] = kinds
+        self._bridges[bridgeId] = bridge
         bridge.attachEndpoint(self)
 
-    def unregisterBridge(self, bridge: iBridge) -> None:
-        kinds = self._bridgeKinds.pop(bridge, set())
-        for kind in kinds:
-            if self._kindToBridge.get(kind) is bridge:
-                del self._kindToBridge[kind]
+        if asDefault:
+            self._defaultBridgeId = bridgeId
 
-        stale = [cid for cid, b in self._correlations.items() if b is bridge]
-        for cid in stale:
-            del self._correlations[cid]
+    def unregisterBridge(self, bridge: iBridge) -> None:
+        bridgeId = bridge.bridgeId
+        if self._bridges.get(bridgeId) is not bridge:
+            return
+
+        del self._bridges[bridgeId]
+        if self._defaultBridgeId == bridgeId:
+            self._defaultBridgeId = None
 
         bridge.detachEndpoint()
 
-    def bindCorrelation(self, correlationId: UUID, bridge: iBridge) -> None:
-        self._correlations[correlationId] = bridge
+    def _resolveBridge(self, message: iMessage) -> iBridge | None:
+        ownerId = message.ownerId
+        if ownerId is None:
+            if self._defaultBridgeId is None:
+                return None
+            return self._bridges.get(self._defaultBridgeId)
 
-    def unbindCorrelation(self, correlationId: UUID) -> None:
-        self._correlations.pop(correlationId, None)
-
-    def hasCorrelation(self, correlationId: UUID) -> bool:
-        return correlationId in self._correlations
-
-    def _unmapCorrelation(self, correlationId: UUID | None) -> None:
-        if correlationId is None:
-            return
-
-        bridge = self._correlations.pop(correlationId, None)
-        if bridge is not None:
-            bridge.unregisterProcessor(correlationId)
+        return self._bridges.get(ownerId)
 
     async def _pollInbound(self) -> None:
         timeOut: float = self.C_RECEIVE_TIMEOUT
@@ -171,26 +165,10 @@ class Endpoint(iEndpoint):
     async def _onInbound(self, message: iMessage) -> None:
         bridge = self._resolveBridge(message)
         if bridge is None:
+            # Unknown owner or missing default — drop (routing error).
             return
 
         await bridge.handleMessage(message)
-
-        if message.isTerminal:
-            self._unmapCorrelation(message.correlationId)
-            
-        elif message.correlationId is not None:
-            self.bindCorrelation(message.correlationId, bridge)
-
-    def _resolveBridge(self, message: iMessage) -> iBridge | None:
-        correlationId = message.correlationId
-        if correlationId is not None:
-            bridge = self._correlations.get(correlationId)
-            if bridge is not None:
-                return bridge
-
-        # Handlers are keyed by message type (see Bridge.messageHandlers).
-        kind: Type[iMessage] | type = type(message)
-        return self._kindToBridge.get(kind)
 
 
 # ==================================================================================

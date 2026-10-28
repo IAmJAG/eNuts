@@ -1,7 +1,7 @@
 # eNuts IPC Architecture
 ## Mental Model, Technical Structure, and Usage
 
-**Status:** Transport, Message, Endpoint, and Bridge base implemented  
+**Status:** Transport, Message, Endpoint, and Bridge base implemented (IPC-01 lifecycle remediation applied)  
 **Scope:** Symmetric inter-process communication between two processes  
 **Repository:** `IAmJAG/eNuts`, branch `development`
 
@@ -27,9 +27,7 @@ The design is **symmetric**:
 
 A **Bridge** binds a domain entity to the local endpoint. On the owner process it drives the real entity; on the peer it acts as a proxy. The machinery is the same.
 
-The architecture is entity-agnostic. Concrete resources are examples of bridges, not the center of the design.
-
-All IPC message traffic is **async**. There is no cross-process call that blocks for an immediate reply. A reply is always another message on the channel. Synchronous results exist only for local (same-process) calls.
+All IPC message traffic is **async**. There is no cross-process call that blocks for an immediate reply. A reply is always another message on the channel.
 
 ---
 
@@ -40,17 +38,6 @@ left, right = IOQueue.createPair()
 
 ioA = IOQueue(outboundQueue=left,  inboundQueue=right)  # Process A
 ioB = IOQueue(outboundQueue=right, inboundQueue=left)  # Process B
-```
-
-```text
-PROCESS A                                         PROCESS B
--------------                                     -------------
-IOQueue                                           IOQueue
-  outbound = left                                   outbound = right
-  inbound  = right                                  inbound  = left
-        |                                                 |
-        +---- left  (A → B) ------------------------------+
-        +----------------------------- right (B → A) ----+
 ```
 
 ---
@@ -73,74 +60,56 @@ Carries encoded data. No application objects.
 |-------|------|
 | `payload` | `iSerializable` body |
 | `messageId` | Unique id |
-| `correlationId` | Conversation id |
-| `timestamp` | Epoch seconds (float), chronologically sortable |
-| `isTerminal` | Ends correlation after unmap |
+| `correlationId` | Conversation id (always present) |
+| `ownerId` | Optional Bridge ID for routing (`None` → default Bridge) |
+| `timestamp` | Epoch seconds (float) |
+| `isTerminal` | Ends correlation (Bridge policy) |
 
-Request is a subtype of command (logical). No Future API on Endpoint.
-
-### 3.4 Endpoint — `jAGFx.IPC.Endpoint`
+### 3.4 Endpoint — pure router
 
 `src/jAGFx/IPC/__endpoint.py`
 
 - Owns local `IOQueue`, inbound/outbound tasks
-- `await send(message)` — if terminal, unmap then enqueue
-- `registerBridge` / `unregisterBridge`
-- `bindCorrelation` / `unbindCorrelation`
-- Maps: message type → bridge, correlationId → bridge
+- `registerBridge(bridge, asDefault=False)` / `unregisterBridge`
+- Routes solely by `message.ownerId` → `_bridges[ownerId]` or `_defaultBridgeId`
+- **No** correlation-to-Bridge map
+- **No** message-type Bridge selection
 
-### 3.5 Bridge — `jAGFx.IPC.Bridge`
+`_defaultBridgeId` is a `UUID | None` that indexes into `_bridges`.
+
+### 3.5 Bridge — correlation owner
 
 `src/jAGFx/IPC/__bridge.py`
 
-- `messageHandlers` (message **type** → callable)
-- `attachEndpoint` / `detachEndpoint`
-- `registerProcessor` / `unregisterProcessor`
-- `handleMessage` (processor else type handler)
-- `await send(message)` via attached endpoint
+- `bridgeId: UUID` (identity; used as `ownerId` on outbound messages)
+- `messageHandlers` (message type → callable) — used *after* Bridge selection
+- AMTT / DMTT + active/dormant processor maps
+- Terminal policy: immediate full cleanup
+- Active → dormant → permanent expiry via `AsyncService` timeout loops
+- `attachEndpoint` / `detachEndpoint` start/stop timeout services
 
 ---
 
-## 4. Simple diagram
+## 4. Routing rules
 
-```text
-PROCESS A                              PROCESS B
-─────────                              ─────────
+1. `ownerId is None` → default Bridge (`_defaultBridgeId`)
+2. `ownerId` registered → that Bridge
+3. unknown non-null `ownerId` → drop (routing error)
 
-  Bridge(s)                              Bridge(s)
-     │                                      │
-     │  handlers + await send               │  handlers + await send
-     ▼                                      ▼
-  Endpoint                               Endpoint
-     correlationId → bridge                 correlationId → bridge
-     inbound / outbound                     inbound / outbound
-     │                                      │
-     ▼                                      ▼
-  IOQueue(left, right)                   IOQueue(right, left)
-     │                                      │
-     └────────── process boundary ──────────┘
-```
+Message type never overrides Bridge selection.
 
 ---
 
-## 5. Correlation and terminal lifecycle
+## 5. Correlation lifecycle (Bridge-owned)
 
 ```text
-Endpoint:  correlationId → Bridge
-Bridge:    correlationId → processor
+registerProcessor → AMTT + _processors   (active)
+active timeout    → DMTT + _dprocessors  (dormant)
+terminal message  → immediate full removal
+dormant timeout   → permanent removal
 ```
 
-**Send**
-
-- Non-terminal: bridge registers processor + `endpoint.bindCorrelation`, then `await send`.
-- Terminal: endpoint unmaps correlation (and bridge processor) if present, **then** pushes.
-
-**Receive**
-
-- Resolve by correlationId else by message type → `bridge.handleMessage`.
-- If terminal: unmap if present after deliver.
-
-Register correlation only when not terminal.
+Validation of correlation existence uses the trackers (`amtt` / `dmtt`), not the processor maps alone.
 
 ---
 
@@ -151,38 +120,18 @@ left, right = IOQueue.createPair()
 ioA = IOQueue(outboundQueue=left, inboundQueue=right)
 endpoint = Endpoint(ioA)
 await endpoint.start()
-endpoint.registerBridge(someBridge)
+endpoint.registerBridge(someBridge, asDefault=True)
 
 Process(target=processEntry, args=(right, left, config)).start()
 ```
 
-```python
-def processEntry(right, left, config):  # module-level, spawn-safe
-    ioB = IOQueue(outboundQueue=right, inboundQueue=left)
-    asyncio.run(processMain(ioB, config))
-```
-
 ---
 
-## 7. Existing components
-
-| Component | Status |
-|-----------|--------|
-| `IOQueue` + `createPair() → (Queue, Queue)` | Implemented |
-| `Message` (+ timestamp, isTerminal) | Implemented |
-| `Endpoint` | Implemented |
-| `Bridge` base | Implemented |
-| Domain messages / bridges | **First target: SCRCPY** — see `.docs/fluxCore/emitters/scrcpy/implementationPlan.md` |
-| Shared-memory / large binary path | Not in scope yet |
-
-Domain message types and footprints live under `src/fluxCore/emitters/scrcpy/`, not under `jAGFx.IPC`.
-
----
-
-## 8. Final mental model
+## 7. Final mental model
 
 **Queue pair = connection.**  
 **Each process builds its own `IOQueue` and one `Endpoint`.**  
-**Bridges register on the endpoint, expose handlers, and `await endpoint.send`.**  
-**Correlation is two-level; terminal messages unmap then still flow.**  
-**Request ⊂ command; all IPC is async.**
+**Endpoint routes by Bridge ID (`ownerId`) or default.**  
+**Bridge owns all correlation state and lifecycle policies.**  
+**Terminal = immediate cleanup on the Bridge.**  
+**All IPC is async.**

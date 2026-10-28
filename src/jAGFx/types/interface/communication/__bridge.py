@@ -14,6 +14,9 @@ if TYPE_CHECKING:
 @runtime_checkable
 class iBridge(Protocol):
     @property
+    def bridgeId(self) -> UUID: ...
+
+    @property
     def messageHandlers(
         self,
     ) -> Mapping[Type[iMessage], Callable[[iMessage], Awaitable[None] | None]]: ...
@@ -25,9 +28,13 @@ class iBridge(Protocol):
         self,
         correlationId: UUID,
         processor: Callable[[iMessage], Awaitable[None] | None],
+        *,
+        activeTimeoutNs: int | None = None,
     ) -> None: ...
 
     def unregisterProcessor(self, correlationId: UUID) -> None: ...
+
+    def hasProcessor(self, correlationId: UUID) -> bool: ...
 
     async def handleMessage(self, message: iMessage) -> None: ...
 

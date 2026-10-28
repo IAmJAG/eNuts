@@ -7,7 +7,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 import sys
-from uuid import UUID
+from uuid import UUID, uuid4
 
 # ==================================================================================
 from jAGFx.IPC import IOQueue, Message
@@ -39,6 +39,22 @@ def test_message_roundtrip() -> None:
     assert restored.messageId == original.messageId
     assert abs(restored.timestamp - original.timestamp) < 1e-9
     assert restored.isTerminal is False
+    assert restored.ownerId is None
+
+
+def test_message_with_owner_roundtrip() -> None:
+    owner = uuid4()
+    original = Message(
+        payload=SmokePayload(text="owned", kind="ping"),
+        ownerId=owner,
+    )
+
+    encoded = json.loads(json.dumps(original.encode()))
+    restored = jsonDecode(encoded)
+
+    assert isinstance(restored, Message)
+    assert restored.ownerId == owner
+    assert restored.payload.text == "owned"
 
 
 def test_message_terminal_roundtrip() -> None:
@@ -61,9 +77,11 @@ def test_ioqueue_send_receive() -> None:
     receiver = IOQueue(outboundQueue=right, inboundQueue=left)
 
     correlationId = UUID("12345678-1234-5678-1234-567812345678")
+    ownerId = uuid4()
     message = Message(
         payload=SmokePayload(text="queue", kind="ping"),
         correlationId=correlationId,
+        ownerId=ownerId,
     )
     sender.send(message)
 
@@ -73,4 +91,5 @@ def test_ioqueue_send_receive() -> None:
     assert received.payload.text == "queue"
     assert received.payload.kind == "ping"
     assert received.correlationId == correlationId
+    assert received.ownerId == ownerId
     assert received.isTerminal is False
