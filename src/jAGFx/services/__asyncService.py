@@ -185,28 +185,24 @@ class AsyncService(iService, AsyncSubscription):
         if isNoOpMethod(self.work):
             return
 
-        # Intentionally left as a stub for IntelliSense / type-checker signature        
+        # Intentionally left as stubs for IntelliSense / type-checker signature
         async def pause(): ...
         async def work(*args, **kwargs): ...
-        async def throttleClear(): ...        
+        def throttleClear(): ...
         async def wakeWait(): ...
-
-        wakeWait = self._wakeEvent.wait
-
-        async def throttle(): 
-            wait_for(wakeWait(), timeout=timeout)
 
         # cache the methods for performance
         pause = self._pauseEvent.wait
         work = self.work
         throttleClear = self._wakeEvent.clear
+        wakeWait = self._wakeEvent.wait
 
 
         await self.asyncRaiseEvent("ON_STARTED")
-        try:
-            while self._isRunning:
-                await pause()
 
+        try:
+            while self._isRunning: 
+                await pause()
                 if not self._isRunning: break
 
                 await work(*args, **kwargs)
@@ -215,10 +211,8 @@ class AsyncService(iService, AsyncSubscription):
                 if timeout > 0.0:
                     throttleClear()
                     try:
-                        await throttle()
-
+                        await wait_for(wakeWait(), timeout=timeout)
                     except AsyncTimeoutError:
-                        # Normal throttle expiry.
                         pass
 
         except CancelledError:
