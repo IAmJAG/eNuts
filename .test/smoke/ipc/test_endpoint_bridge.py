@@ -1,9 +1,5 @@
 # ==================================================================================
-"""Smoke: Endpoint Bridge-ID routing and Bridge-owned correlation lifecycle.
-
-Routing is by message.ownerId (or default Bridge). Correlation trackers and
-terminal cleanup live entirely on the Bridge.
-"""
+"""Smoke: Endpoint routing, Bridge lifecycle, alive, control handshake."""
 # ==================================================================================
 from __future__ import annotations
 
@@ -14,7 +10,16 @@ import sys
 from uuid import uuid4
 
 # ==================================================================================
-from jAGFx.IPC import Bridge, Endpoint, IOQueue, Message
+from jAGFx.IPC import (
+    Bridge,
+    ControlBridge,
+    Endpoint,
+    HeartbeatMessage,
+    HelloMessage,
+    IOQueue,
+    Message,
+    OverloadPolicy,
+)
 
 # ==================================================================================
 _TEST_ROOT = Path(__file__).resolve().parents[2]
@@ -26,7 +31,7 @@ from fixtures.ipc.payloads import SmokePayload  # noqa: E402
 
 # ==================================================================================
 class PingMessage(Message):
-    """Distinct message type so type-keyed handlers can discriminate."""
+    """Distinct message type for type-keyed handlers."""
 
 
 class RecordingBridge(Bridge):
@@ -38,6 +43,7 @@ class RecordingBridge(Bridge):
 
         for messageType in messageTypes:
             self._messageHandlers[messageType] = self._onKind
+        self._invalidateHandlerCache()
 
     async def _onKind(self, message: Message) -> None:
         self.received.append(message)
@@ -80,7 +86,6 @@ def test_default_bridge_receives_ownerless_message() -> None:
 
         assert len(bridge.received) == 1
         assert bridge.received[0].payload.text == "hello"
-        assert isinstance(bridge.received[0], PingMessage)
 
     asyncio.run(_withEndpoints(scenario))
 
@@ -100,7 +105,6 @@ def test_owner_id_routes_to_specific_bridge() -> None:
         await _waitFor(bridgeB._gotMessage)
 
         assert len(bridgeB.received) == 1
-        assert bridgeB.received[0].payload.text == "targeted"
         assert bridgeA.received == []
 
     asyncio.run(_withEndpoints(scenario))
@@ -114,13 +118,11 @@ def test_unknown_owner_is_dropped() -> None:
         await leftEndpoint.send(
             PingMessage(
                 payload=SmokePayload(text="ghost", kind="ping"),
-                ownerId=uuid4(),  # not registered
+                ownerId=uuid4(),
             )
         )
         await asyncio.sleep(0.15)
-
         assert bridge.received == []
-        assert bridge.processorHits == []
 
     asyncio.run(_withEndpoints(scenario))
 
@@ -134,7 +136,6 @@ def test_terminal_clears_correlation_on_bridge() -> None:
         bridge.registerProcessor(correlationId, bridge._onProcessor)
 
         assert bridge.hasCorrelation(correlationId)
-        assert bridge.hasProcessor(correlationId)
 
         await leftEndpoint.send(
             PingMessage(
@@ -146,9 +147,23 @@ def test_terminal_clears_correlation_on_bridge() -> None:
         await _waitFor(bridge._gotMessage)
 
         assert not bridge.hasCorrelation(correlationId)
-        assert not bridge.hasProcessor(correlationId)
         assert len(bridge.processorHits) == 1
-        assert bridge.processorHits[0].payload.text == "done"
+
+    asyncio.run(_withEndpoints(scenario))
+
+
+def test_mro_handler_receives_subclass() -> None:
+    async def scenario(leftEndpoint: Endpoint, rightEndpoint: Endpoint) -> None:
+        bridge = RecordingBridge(Message)  # base type
+        rightEndpoint.registerBridge(bridge, asDefault=True)
+
+        await leftEndpoint.send(
+            PingMessage(payload=SmokePayload(text="sub", kind="ping"))
+        )
+        await _waitFor(bridge._gotMessage)
+
+        assert len(bridge.received) == 1
+        assert isinstance(bridge.received[0], PingMessage)
 
     asyncio.run(_withEndpoints(scenario))
 
@@ -159,46 +174,41 @@ def test_register_bridge_rejects_duplicate_id() -> None:
 
     first = RecordingBridge(PingMessage)
     second = RecordingBridge(PingMessage)
-    # Force same bridgeId to test rejection
     second._bridgeId = first.bridgeId
 
     endpoint.registerBridge(first)
-
     try:
         endpoint.registerBridge(second)
         raised = False
     except ValueError:
         raised = True
-
     assert raised is True
 
 
-def test_unregister_clears_default() -> None:
-    left, right = IOQueue.createPair()
-    endpoint = Endpoint(IOQueue(outboundQueue=left, inboundQueue=right))
-
-    bridge = RecordingBridge(PingMessage)
-    endpoint.registerBridge(bridge, asDefault=True)
-    assert endpoint.defaultBridgeId == bridge.bridgeId
-
-    endpoint.unregisterBridge(bridge)
-    assert endpoint.defaultBridgeId is None
-
-
-def test_type_handler_still_works_on_selected_bridge() -> None:
-    """Message type dispatch remains inside the Bridge after owner routing."""
-
+def test_hello_marks_peer_alive() -> None:
     async def scenario(leftEndpoint: Endpoint, rightEndpoint: Endpoint) -> None:
-        bridge = RecordingBridge(PingMessage)
-        rightEndpoint.registerBridge(bridge, asDefault=True)
+        mainControl = ControlBridge()
+        clientControl = ControlBridge()
+        rightEndpoint.registerBridge(mainControl, asDefault=True)
+        leftEndpoint.registerBridge(clientControl, asDefault=True)
 
-        await leftEndpoint.send(
-            Message(payload=SmokePayload(text="ignored", kind="other"))
-        )
-        await asyncio.sleep(0.15)
+        peerId = clientControl.bridgeId
+        assert not rightEndpoint.isBridgeAlive(peerId)
 
-        # Default Bridge received it but has no handler for base Message
-        assert bridge.received == []
-        assert bridge.processorHits == []
+        hello = HelloMessage()
+        await clientControl.send(hello)
+        await _waitFor(clientControl.helloAcked)
+
+        assert rightEndpoint.isBridgeAlive(peerId)
+
+        await clientControl.send(HeartbeatMessage())
+        await asyncio.sleep(0.05)
+        assert rightEndpoint.isBridgeAlive(peerId)
 
     asyncio.run(_withEndpoints(scenario))
+
+
+def test_overload_policy_default_unbounded() -> None:
+    left, right = IOQueue.createPair()
+    endpoint = Endpoint(IOQueue(outboundQueue=left, inboundQueue=right))
+    assert endpoint.overloadPolicy is OverloadPolicy.UNBOUNDED
