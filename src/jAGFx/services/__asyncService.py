@@ -1,6 +1,9 @@
 # ==================================================================================
-from asyncio import CancelledError, Event, Task, get_running_loop
-from asyncio import sleep as asyncSleep
+from __future__ import annotations
+
+# ==================================================================================
+from asyncio import CancelledError, Event, Task, get_running_loop, wait_for
+from asyncio import TimeoutError as AsyncTimeoutError
 from inspect import iscoroutinefunction
 from typing import Awaitable, Callable
 
@@ -14,6 +17,22 @@ from .__subscription import AsyncSubscription
 
 # ==================================================================================
 class AsyncService(iService, AsyncSubscription):
+    """Async work loop with optional throttle and interruptible wait.
+
+    Two distinct events control the loop:
+
+    - ``_pauseEvent`` (pause / resume)
+      Cleared by ``pause()``, set by ``resume()`` / ``start()`` / ``stop()``.
+      While cleared the service cooperatively suspends *before* running work.
+      This is a long-lived control signal for external pause/resume.
+
+    - ``_wakeEvent`` (throttle / deadline)
+      Used only for the post-work wait. Cleared immediately before waiting,
+      set by ``wake()`` or by the throttle property setter. Allows the current
+      throttle sleep to end early so a newly computed deadline is observed.
+      This is a short-lived signal for dynamic scheduling, not for pause.
+    """
+
     C_DEFAULT_FORCE_AFTER: float = 0.1
 
     def __init__(
@@ -38,9 +57,14 @@ class AsyncService(iService, AsyncSubscription):
         self._isStopping: bool = False
         self._pauseEvent: Event = Event()
         self._pauseEvent.set()
+        self._wakeEvent: Event = Event()
+        self._wakeEvent.set()
         self._task: Task[None] | None = None
         self._throttle: float = throttle
 
+    # ------------------------------------------------------------------
+    # Properties
+    # ------------------------------------------------------------------
     @property
     def name(self) -> str:
         return self._name
@@ -57,8 +81,31 @@ class AsyncService(iService, AsyncSubscription):
     def task(self) -> Task[None] | None:
         return self._task
 
+    @property
+    def throttle(self) -> float:
+        """Seconds to wait after each work iteration. 0.0 means no wait."""
+        return self._throttle
+
+    @throttle.setter
+    def throttle(self, value: float) -> None:
+        if value < 0.0:
+            raise ValueError("throttle must be greater than or equal to zero")
+        self._throttle = value
+        # Ensure a pending wait observes the new duration promptly.
+        self.wake()
+
     # Intentionally left as a stub for IntelliSense / type-checker signature
     async def work(self, *args, **kwargs): ...
+
+    # ------------------------------------------------------------------
+    # Control
+    # ------------------------------------------------------------------
+    def wake(self) -> None:
+        """End the current throttle wait early so the loop re-evaluates.
+
+        Safe to call at any time. Has no effect on the pause/resume state.
+        """
+        self._wakeEvent.set()
 
     def _assertStartReady(self) -> None:
         if self._isRunning:
@@ -85,6 +132,7 @@ class AsyncService(iService, AsyncSubscription):
         lLoop = get_running_loop()
         self._isRunning = True
         self._pauseEvent.set()
+        self._wakeEvent.set()
 
         self._task = lLoop.create_task(
             self._serviceLoop(*args, **kwargs),
@@ -98,6 +146,7 @@ class AsyncService(iService, AsyncSubscription):
         self._isStopping = True
         self._isRunning = False
         self._pauseEvent.set()
+        self._wakeEvent.set()
 
         lTask = self._task
         if lTask is None:
@@ -106,7 +155,7 @@ class AsyncService(iService, AsyncSubscription):
 
         try:
             lLoop = get_running_loop()
-            
+
         except RuntimeError:
             # Loop already stopped (e.g. finally after run_until_complete) — cancel now
             self._cancelIfRunning(lTask)
@@ -145,8 +194,14 @@ class AsyncService(iService, AsyncSubscription):
 
                 await self.work(*args, **kwargs)
 
-                if self._throttle:
-                    await asyncSleep(self._throttle)
+                timeout = self._throttle
+                if timeout > 0.0:
+                    self._wakeEvent.clear()
+                    try:
+                        await wait_for(self._wakeEvent.wait(), timeout=timeout)
+                    except AsyncTimeoutError:
+                        # Normal throttle expiry.
+                        pass
 
         except CancelledError:
             pass
@@ -155,6 +210,7 @@ class AsyncService(iService, AsyncSubscription):
             self._isRunning = False
             self._isStopping = False
             self._pauseEvent.set()
+            self._wakeEvent.set()
             self._task = None
             await self.asyncRaiseEvent("ON_STOPPED")
 
