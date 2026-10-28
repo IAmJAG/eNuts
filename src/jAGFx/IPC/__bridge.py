@@ -28,14 +28,13 @@ class Bridge(iBridge):
     - Terminal policy (immediate full cleanup)
     - Active → dormant → permanent expiry via AsyncService timeout loops
 
-    Subclasses populate messageHandlers keyed by message type and implement
-    domain behavior. Concrete bridges may subclass Message for distinct kinds.
+    Type handlers are resolved via MRO (most-specific first) with an exact-type
+    cache. Subclasses populate messageHandlers and implement domain behavior.
     """
 
-    # Default timeouts (nanoseconds)
-    C_DEFAULT_ACTIVE_TIMEOUT_NS: int = 30_000_000_000          # 30 s
-    C_DEFAULT_DORMANT_TIMEOUT_NS: int = 60_000_000_000         # 60 s
-    C_MAX_SERVICE_THROTTLE_S: float = 30.0                     # cap when idle
+    C_DEFAULT_ACTIVE_TIMEOUT_NS: int = 30_000_000_000  # 30 s
+    C_DEFAULT_DORMANT_TIMEOUT_NS: int = 60_000_000_000  # 60 s
+    C_MAX_SERVICE_THROTTLE_S: float = 30.0
 
     def __init__(self) -> None:
         self._bridgeId: UUID = uuid4()
@@ -46,9 +45,8 @@ class Bridge(iBridge):
         self._processors: Dict[UUID, MessageProcessor] = {}
         self._dprocessors: Dict[UUID, MessageProcessor] = {}
 
-        self._messageHandlers: Dict[
-            Type[iMessage], MessageProcessor
-        ] = {}
+        self._messageHandlers: Dict[Type[iMessage], MessageProcessor] = {}
+        self._handlerCache: Dict[Type[iMessage], MessageProcessor | None] = {}
 
         self._lastActiveTickNs: int = 0
         self._lastDormantTickNs: int = 0
@@ -72,14 +70,29 @@ class Bridge(iBridge):
         return self._bridgeId
 
     @property
-    def messageHandlers(
-        self,
-    ) -> Mapping[Type[iMessage], MessageProcessor]:
+    def messageHandlers(self) -> Mapping[Type[iMessage], MessageProcessor]:
         return self._messageHandlers
 
     @property
     def endpoint(self) -> iEndpoint | None:
         return self._endpoint
+
+    def _invalidateHandlerCache(self) -> None:
+        self._handlerCache.clear()
+
+    def _resolveHandler(self, message: iMessage) -> MessageProcessor | None:
+        exact = type(message)
+        if exact in self._handlerCache:
+            return self._handlerCache[exact]
+
+        for cls in exact.__mro__:
+            handler = self._messageHandlers.get(cls)
+            if handler is not None:
+                self._handlerCache[exact] = handler
+                return handler
+
+        self._handlerCache[exact] = None
+        return None
 
     # ------------------------------------------------------------------
     # Endpoint attachment
@@ -104,6 +117,7 @@ class Bridge(iBridge):
         self._dmtt.clear()
         self._processors.clear()
         self._dprocessors.clear()
+        self._handlerCache.clear()
 
     # ------------------------------------------------------------------
     # Correlation registration / validation
@@ -137,7 +151,6 @@ class Bridge(iBridge):
         return correlationId in self._processors or correlationId in self._dprocessors
 
     def hasCorrelation(self, correlationId: UUID) -> bool:
-        """True only when the correlation exists in a tracker."""
         return correlationId in self._amtt or correlationId in self._dmtt
 
     # ------------------------------------------------------------------
@@ -146,36 +159,39 @@ class Bridge(iBridge):
     async def handleMessage(self, message: iMessage) -> None:
         cid = message.correlationId
 
-        # Prefer active, then dormant processor
-        processor = self._processors.get(cid) or self._dprocessors.get(cid)
-        if processor is not None:
-            result = processor(message)
+        try:
+            processor = self._processors.get(cid) or self._dprocessors.get(cid)
+            if processor is not None:
+                result = processor(message)
+                if result is not None:
+                    await result
+                if message.isTerminal:
+                    self._applyTerminalPolicy(cid)
+                return
+
+            handler = self._resolveHandler(message)
+            if handler is None:
+                return
+
+            result = handler(message)
             if result is not None:
                 await result
 
-            if message.isTerminal:
+            if message.isTerminal and self.hasCorrelation(cid):
                 self._applyTerminalPolicy(cid)
-            return
 
-        # No correlation processor — fall through to type handler
-        handler = self._messageHandlers.get(type(message))
-        if handler is None:
-            return
+        except Exception as ex:
+            self._onHandlerError(ex, message)
 
-        result = handler(message)
-        if result is not None:
-            await result
-
-        if message.isTerminal and self.hasCorrelation(cid):
-            self._applyTerminalPolicy(cid)
+    def _onHandlerError(self, ex: BaseException, message: iMessage) -> None:
+        # Log when project logger is wired; do not auto-terminal.
+        _ = (ex, message, self._bridgeId)
 
     async def send(self, message: iMessage) -> None:
         if self._endpoint is None:
             raise RuntimeError("Bridge has no attached Endpoint")
 
-        # Stamp owner so the peer can route back to this Bridge
         if message.ownerId is None:
-            # Use a private setter path when available; Message exposes ownerId setter
             try:
                 message.ownerId = self._bridgeId  # type: ignore[attr-defined]
             except Exception:
@@ -187,7 +203,6 @@ class Bridge(iBridge):
     # Lifecycle policies
     # ------------------------------------------------------------------
     def _applyTerminalPolicy(self, correlationId: UUID) -> None:
-        """Immediate full removal — same semantics as the former Endpoint path."""
         self._amtt.pop(correlationId, None)
         self._dmtt.pop(correlationId, None)
         self._processors.pop(correlationId, None)
@@ -210,7 +225,6 @@ class Bridge(iBridge):
     def _expirePermanently(self, correlationId: UUID) -> None:
         self._dmtt.pop(correlationId, None)
         self._dprocessors.pop(correlationId, None)
-        # Defensive: also clear any stray active entries
         self._amtt.pop(correlationId, None)
         self._processors.pop(correlationId, None)
 
@@ -221,7 +235,6 @@ class Bridge(iBridge):
         now = monotonic_ns()
         elapsed = now - self._lastActiveTickNs
         self._lastActiveTickNs = now
-
         if elapsed < 0:
             elapsed = 0
 
@@ -241,7 +254,9 @@ class Bridge(iBridge):
             self._moveToDormant(cid)
 
         if minRemaining > 0:
-            self._activeTimeoutService.throttle = min(minRemaining / 1e9, self.C_MAX_SERVICE_THROTTLE_S)
+            self._activeTimeoutService.throttle = min(
+                minRemaining / 1e9, self.C_MAX_SERVICE_THROTTLE_S
+            )
         else:
             self._activeTimeoutService.throttle = self.C_MAX_SERVICE_THROTTLE_S
 
@@ -249,7 +264,6 @@ class Bridge(iBridge):
         now = monotonic_ns()
         elapsed = now - self._lastDormantTickNs
         self._lastDormantTickNs = now
-
         if elapsed < 0:
             elapsed = 0
 
@@ -269,7 +283,9 @@ class Bridge(iBridge):
             self._expirePermanently(cid)
 
         if minRemaining > 0:
-            self._dormantTimeoutService.throttle = min(minRemaining / 1e9, self.C_MAX_SERVICE_THROTTLE_S)
+            self._dormantTimeoutService.throttle = min(
+                minRemaining / 1e9, self.C_MAX_SERVICE_THROTTLE_S
+            )
         else:
             self._dormantTimeoutService.throttle = self.C_MAX_SERVICE_THROTTLE_S
 
