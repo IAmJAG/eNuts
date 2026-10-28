@@ -191,6 +191,9 @@ class AsyncService(iService, AsyncSubscription):
         def throttleClear(): ...
         async def wakeWait(): ...
 
+        async def throttle(timeout: float) -> None:
+            await wait_for(wakeWait(), timeout=timeout)
+
         # cache the methods for performance
         pause = self._pauseEvent.wait
         work = self.work
@@ -211,7 +214,7 @@ class AsyncService(iService, AsyncSubscription):
                 if timeout > 0.0:
                     throttleClear()
                     try:
-                        await wait_for(wakeWait(), timeout=timeout)
+                        await throttle(timeout)
                     except AsyncTimeoutError:
                         pass
 
