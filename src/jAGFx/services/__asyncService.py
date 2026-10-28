@@ -91,7 +91,6 @@ class AsyncService(iService, AsyncSubscription):
         if value < 0.0:
             raise ValueError("throttle must be greater than or equal to zero")
         self._throttle = value
-        # Ensure a pending wait observes the new duration promptly.
         self.wake()
 
     # Intentionally left as a stub for IntelliSense / type-checker signature
@@ -101,10 +100,6 @@ class AsyncService(iService, AsyncSubscription):
     # Control
     # ------------------------------------------------------------------
     def wake(self) -> None:
-        """End the current throttle wait early so the loop re-evaluates.
-
-        Safe to call at any time. Has no effect on the pause/resume state.
-        """
         self._wakeEvent.set()
 
     def _assertStartReady(self) -> None:

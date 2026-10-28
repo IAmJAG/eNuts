@@ -12,10 +12,8 @@ from jAGFx.services import AsyncService
 # ==================================================================================
 from ..types.interface.communication import iBridge, iEndpoint, iMessage
 
-
 # ==================================================================================
 MessageProcessor = Callable[[iMessage], Awaitable[None] | None]
-
 
 # ==================================================================================
 class Bridge(iBridge):
@@ -33,22 +31,20 @@ class Bridge(iBridge):
     """
 
     # Default timeouts (nanoseconds)
-    C_DEFAULT_ACTIVE_TIMEOUT_NS: int = 30_000_000_000          # 30 s
-    C_DEFAULT_DORMANT_TIMEOUT_NS: int = 60_000_000_000         # 60 s
-    C_MAX_SERVICE_THROTTLE_S: float = 30.0                     # cap when idle
+    C_DEFAULT_ACTIVE_TIMEOUT_NS: int = 30_000_000_000                       # 30 s
+    C_DEFAULT_DORMANT_TIMEOUT_NS: int = C_DEFAULT_ACTIVE_TIMEOUT_NS * 3     # 60 s
+    C_MAX_SERVICE_THROTTLE_S: float = 30.0                                  # cap when idle
 
     def __init__(self) -> None:
         self._bridgeId: UUID = uuid4()
-        self._endpoint: iEndpoint | None = None
+        self._endpoint: iEndpoint = None
 
         self._amtt: Dict[UUID, int] = {}
         self._dmtt: Dict[UUID, int] = {}
         self._processors: Dict[UUID, MessageProcessor] = {}
         self._dprocessors: Dict[UUID, MessageProcessor] = {}
 
-        self._messageHandlers: Dict[
-            Type[iMessage], MessageProcessor
-        ] = {}
+        self._messageHandlers: Dict[Type[iMessage], MessageProcessor] = {}
 
         self._lastActiveTickNs: int = 0
         self._lastDormantTickNs: int = 0
@@ -58,6 +54,7 @@ class Bridge(iBridge):
             name=f"Bridge[{self._bridgeId}].activeTimeout",
             throttle=0.0,
         )
+
         self._dormantTimeoutService = AsyncService(
             work=self._dormantTimeoutWork,
             name=f"Bridge[{self._bridgeId}].dormantTimeout",
@@ -72,9 +69,7 @@ class Bridge(iBridge):
         return self._bridgeId
 
     @property
-    def messageHandlers(
-        self,
-    ) -> Mapping[Type[iMessage], MessageProcessor]:
+    def messageHandlers(self) -> Mapping[Type[iMessage], MessageProcessor]:
         return self._messageHandlers
 
     @property
@@ -88,14 +83,17 @@ class Bridge(iBridge):
         self._endpoint = endpoint
         self._lastActiveTickNs = monotonic_ns()
         self._lastDormantTickNs = monotonic_ns()
+
         if not self._activeTimeoutService.isRunning:
             self._activeTimeoutService.start()
+
         if not self._dormantTimeoutService.isRunning:
             self._dormantTimeoutService.start()
 
     def detachEndpoint(self) -> None:
         if self._activeTimeoutService.isRunning:
             self._activeTimeoutService.stop()
+
         if self._dormantTimeoutService.isRunning:
             self._dormantTimeoutService.stop()
 
@@ -109,12 +107,10 @@ class Bridge(iBridge):
     # Correlation registration / validation
     # ------------------------------------------------------------------
     def registerProcessor(
-        self,
-        correlationId: UUID,
-        processor: MessageProcessor,
-        *,
-        activeTimeoutNs: int | None = None,
+        self, correlationId: UUID, 
+        processor: MessageProcessor, *, activeTimeoutNs: int  = C_DEFAULT_ACTIVE_TIMEOUT_NS
     ) -> None:
+        
         if correlationId in self._amtt or correlationId in self._dmtt:
             raise ValueError(f"Correlation '{correlationId}' is already registered")
 
