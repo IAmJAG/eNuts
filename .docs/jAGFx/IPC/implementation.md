@@ -4,20 +4,21 @@
 
 ```text
 Bridge(s)  →  Endpoint  →  IOQueue  →  multiprocessing.Queue pair
+   │              │
+   │              └─ routes by ownerId / defaultBridgeId (UUID)
+   │
+   └─ owns AMTT, DMTT, processors, terminal + timeout policies
 ```
-
-Phases 1–4 of `implementationPlan.md` are implemented. Concrete domain bridges remain application work.
 
 ## 2. Directory & Module Mapping
 
 | Source Path | Documentation Path | Responsibility |
 | :--- | :--- | :--- |
 | `src/jAGFx/IPC/__IOQueue.py` | `.docs/jAGFx/IPC/` | Queue adapter + `createPair` |
-| `src/jAGFx/IPC/__message.py` | `.docs/jAGFx/IPC/` | Message envelope |
-| `src/jAGFx/IPC/__endpoint.py` | `.docs/jAGFx/IPC/` | Endpoint |
-| `src/jAGFx/IPC/__bridge.py` | `.docs/jAGFx/IPC/` | Bridge base |
+| `src/jAGFx/IPC/__message.py` | `.docs/jAGFx/IPC/` | Message envelope (+ ownerId) |
+| `src/jAGFx/IPC/__endpoint.py` | `.docs/jAGFx/IPC/` | Pure Bridge-ID router |
+| `src/jAGFx/IPC/__bridge.py` | `.docs/jAGFx/IPC/` | Correlation lifecycle owner |
 | `src/jAGFx/types/interface/communication/` | `.docs/jAGFx/IPC/` | `iIOQueue`, `iMessage`, `iEndpoint`, `iBridge` |
-| `.docs/jAGFx/IPC/implementationPlan.md` | — | Phased plan (1–4 done) |
 
 ## 3. Core workflows
 
@@ -29,23 +30,43 @@ ioA = IOQueue(outboundQueue=left, inboundQueue=right)
 ioB = IOQueue(outboundQueue=right, inboundQueue=left)
 ```
 
+### Registration
+
+```python
+endpoint.registerBridge(bridge, asDefault=True)  # _defaultBridgeId = bridge.bridgeId
+endpoint.registerBridge(otherBridge)             # ownerId routing only
+```
+
 ### Send
 
 ```text
-Non-terminal: bridge registerProcessor + endpoint.bindCorrelation → await send
-Terminal:     endpoint unmap if present → await send (still pushed)
+bridge.send(message)
+  → stamps message.ownerId = bridge.bridgeId (if unset)
+  → endpoint.send → outbound queue
 ```
 
-### Receive
+### Receive / route
 
 ```text
-IOQueue.receive → decode → resolve bridge (correlationId or kind)
-→ bridge.handleMessage → if isTerminal: unmap if present
+IOQueue.receive → decode
+  → ownerId is None? → _bridges[_defaultBridgeId]
+  → ownerId registered? → _bridges[ownerId]
+  → else drop
+  → bridge.handleMessage
+       → processor (active then dormant) or type handler
+       → if isTerminal: Bridge terminal policy (immediate full cleanup)
 ```
 
-### Kind resolution (provisional)
+### Correlation lifecycle (Bridge)
 
-`getattr(payload, "kind", None)` if str, else `type(payload).__name__`.
+```text
+registerProcessor → amtt + _processors
+active timeout    → dmtt + _dprocessors
+terminal          → remove from all four collections
+dormant timeout   → permanent removal
+```
+
+Timeout services use monotonic_ns elapsed accounting and AsyncService.wake / live throttle.
 
 ## 4. Public exports
 
