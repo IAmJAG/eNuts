@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-27 11:56:01 UTC*
+*Auto-generated on: 2026-10-28 06:26:46 UTC*
 
 ## Current Directory Structure
 
@@ -1620,6 +1620,30 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+ce647a3:
+	feat(AsyncService): add throttle method for improved timeout handling
+		src/jAGFx/services/__asyncService.py
+
+388132e:
+	refactor(AsyncService): improve method caching and streamline throttle handling
+		src/jAGFx/services/__asyncService.py
+
+c5605ae:
+	refactor(AsyncService): optimize pause and throttle handling with cached methods
+		src/jAGFx/services/__asyncService.py
+
+c5fa6bb:
+	Scale AsyncService: expose throttle property and add interruptible wake support
+		.docs/jAGFx/services/asyncService.md
+		.docs/jAGFx/services/implementation.md
+		.docs/jAGFx/services/requirement.md
+		src/jAGFx/services/__asyncService.py
+		src/jAGFx/types/interface/services/__services.py
+
+223d01c:
+	docs(inventory): update auto-generated timestamp and change summary
+		.docs/inventory.md
+
 3f2d1c9:
 	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
 
@@ -1637,24 +1661,5 @@ a13934c:
 f2525aa:
 	docs(scrcpy): document SCRCPYError for ON_ERROR
 		.docs/fluxCore/emitters/scrcpy/scrcpyEmitter.md
-
-5402728:
-	docs(scrcpy): SCRCPYError is the error type in __footprint
-		.docs/fluxCore/emitters/scrcpy/requirement.md
-
-32d62fe:
-	feat(scrcpy): export SCRCPYError
-
-c2fe312:
-	fix(scrcpy): use SCRCPYError from footprint; sync raiseEvent for ON_ERROR
-		src/fluxCore/emitters/scrcpy/__SCRCPYEmitter.py
-
-317257f:
-	feat(scrcpy): restore __footprint with SCRCPYError (valid name)
-		src/fluxCore/emitters/scrcpy/__footprint.py
-
-c51d80c:
-	refactor(scrcpy): remove SCRCPYErrorFootprint (no footprint types)
-		src/fluxCore/emitters/scrcpy/__footprint.py
 
 ```
