@@ -1,76 +1,41 @@
 # Implementation Details
 
-## 1. Architecture Overview
+## 1. Architecture
 
 ```text
-Bridge(s)  →  Endpoint  →  IOQueue  →  multiprocessing.Queue pair
-   │              │
-   │              └─ routes by ownerId / defaultBridgeId (UUID)
-   │
-   └─ owns AMTT, DMTT, processors, terminal + timeout policies
+ControlBridge / domain Bridges
+        │
+     Endpoint  (_bridges, _defaultBridgeId, _bridgeAlive, overload, drain)
+        │
+     IOQueue
+        │
+  multiprocessing.Queue pair
 ```
 
-## 2. Directory & Module Mapping
+## 2. Module map
 
-| Source Path | Documentation Path | Responsibility |
-| :--- | :--- | :--- |
-| `src/jAGFx/IPC/__IOQueue.py` | `.docs/jAGFx/IPC/` | Queue adapter + `createPair` |
-| `src/jAGFx/IPC/__message.py` | `.docs/jAGFx/IPC/` | Message envelope (+ ownerId) |
-| `src/jAGFx/IPC/__endpoint.py` | `.docs/jAGFx/IPC/` | Pure Bridge-ID router |
-| `src/jAGFx/IPC/__bridge.py` | `.docs/jAGFx/IPC/` | Correlation lifecycle owner |
-| `src/jAGFx/types/interface/communication/` | `.docs/jAGFx/IPC/` | `iIOQueue`, `iMessage`, `iEndpoint`, `iBridge` |
+| Source | Role |
+|--------|------|
+| `IPC/__endpoint.py` | Router, alive, overload, errors, stop drain |
+| `IPC/__bridge.py` | Correlation + MRO handlers |
+| `IPC/__overload.py` | `OverloadPolicy` |
+| `IPC/control/__messages.py` | Hello, HelloAck, Heartbeat |
+| `IPC/control/__bridge.py` | ControlBridge |
+| `IPC/__IOQueue.py` | Transport adapter |
+| `IPC/__message.py` | Envelope + ownerId |
 
-## 3. Core workflows
+## 3. Shutdown sequence
 
-### Pair + orientation
+stop → drain outbound (deadline) → cancel tasks → ioQueue.close/cancelJoinThread → clear
+
+## 4. Alive API
 
 ```python
-left, right = IOQueue.createPair()
-ioA = IOQueue(outboundQueue=left, inboundQueue=right)
-ioB = IOQueue(outboundQueue=right, inboundQueue=left)
+endpoint.markBridgeAlive(peerBridgeId, ttlS)
+endpoint.isBridgeAlive(peerBridgeId)
+endpoint.sweepDeadBridges()
 ```
 
-### Registration
+## 5. Overload
 
-```python
-endpoint.registerBridge(bridge, asDefault=True)  # _defaultBridgeId = bridge.bridgeId
-endpoint.registerBridge(otherBridge)             # ownerId routing only
-```
-
-### Send
-
-```text
-bridge.send(message)
-  → stamps message.ownerId = bridge.bridgeId (if unset)
-  → endpoint.send → outbound queue
-```
-
-### Receive / route
-
-```text
-IOQueue.receive → decode
-  → ownerId is None? → _bridges[_defaultBridgeId]
-  → ownerId registered? → _bridges[ownerId]
-  → else drop
-  → bridge.handleMessage
-       → processor (active then dormant) or type handler
-       → if isTerminal: Bridge terminal policy (immediate full cleanup)
-```
-
-### Correlation lifecycle (Bridge)
-
-```text
-registerProcessor → amtt + _processors
-active timeout    → dmtt + _dprocessors
-terminal          → remove from all four collections
-dormant timeout   → permanent removal
-```
-
-Timeout services use monotonic_ns elapsed accounting and AsyncService.wake / live throttle.
-
-## 4. Public exports
-
-```python
-from jAGFx.IPC import IOQueue, Message, Endpoint, Bridge
-from jAGFx.types.interface.communication import iIOQueue, iMessage, iEndpoint, iBridge
-```
+Configured at construction / via property. Capacity used when policy ≠ UNBOUNDED.
