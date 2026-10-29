@@ -3,6 +3,7 @@ from __future__ import annotations
 
 # ==================================================================================
 from asyncio import Event
+from importlib import import_module
 from typing import TYPE_CHECKING, Any, Awaitable, Callable
 from uuid import UUID
 
@@ -31,6 +32,11 @@ MetadataCallback = Callable[[SCRCPY], Awaitable[None] | None]
 ErrorCallback = Callable[[SCRCPYError], Awaitable[None] | None]
 
 
+def _loadSCRCPYEmitter():
+    """Import SCRCPYEmitter without triggering class private-name mangling."""
+    return import_module("fluxCore.emitters.scrcpy.__SCRCPYEmitter").SCRCPYEmitter
+
+
 # ==================================================================================
 class _ScrcpyBridgeBase(Bridge):
     """Shared send: leave ownerId unset so the peer routes to its default bridge."""
@@ -38,8 +44,6 @@ class _ScrcpyBridgeBase(Bridge):
     async def send(self, message: iMessage) -> None:
         if self._endpoint is None:
             raise RuntimeError("Bridge has no attached Endpoint")
-        # Do not stamp ownerId with local bridgeId (parent Bridge.send does).
-        # Scrcpy traffic uses asDefault registration on both ends.
         await self._endpoint.send(message)
 
 
@@ -77,8 +81,7 @@ class ScrcpyRealBridge(_ScrcpyBridgeBase):
         await self.send(ScrcpyErrorMessage(payload=err))
 
     def _snapshot(self, params: ScrcpyInitParams) -> SCRCPY:
-        from .__SCRCPYEmitter import SCRCPYEmitter
-
+        SCRCPYEmitter = _loadSCRCPYEmitter()
         if isinstance(self._emitter, SCRCPYEmitter):
             return SCRCPYEmitter.toScrcpy(self._emitter)
         scrcpy = SCRCPY(serial=params.serial, name=getattr(self._emitter, "name", None))
@@ -106,8 +109,7 @@ class ScrcpyRealBridge(_ScrcpyBridgeBase):
 
         try:
             if self._emitter is None:
-                from .__SCRCPYEmitter import SCRCPYEmitter
-
+                SCRCPYEmitter = _loadSCRCPYEmitter()
                 self._emitter = SCRCPYEmitter(serial=params.serial)
                 self._wireEmitter(self._emitter)
 
