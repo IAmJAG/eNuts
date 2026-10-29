@@ -17,4 +17,13 @@ Main: ScrcpyProxyBridge  ⇄  Endpoint  ⇄  queues  ⇄  Endpoint  ⇄  ScrcpyR
 
 ## Phase status
 
-A–C **Done**.
+| Phase | Status |
+|-------|--------|
+| A–C | **Done** |
+| D — inventory / doc close-out | **Done** |
+
+## Notes
+
+- Domain `send` leaves `ownerId` unset (peer default bridge).
+- `Device` / `SCRCPY` expose `Properties` for Message encode/decode.
+- Proxy correlation processor forwards to type handlers.
