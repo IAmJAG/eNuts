@@ -37,6 +37,8 @@ Do not pass an `IOQueue` across a process boundary.
 
 `_defaultBridgeId` is a **UUID** indexing `_bridges`, not a live Bridge reference.
 
+Domain bridges that register with `asDefault=True` on both ends typically leave `ownerId` unset so traffic hits the peer default bridge (see SCRCPY bridges).
+
 ---
 
 ## 4. Peer alive (no second registry)
@@ -82,7 +84,7 @@ terminal          → immediate full removal
 dormant timeout   → permanent removal
 ```
 
-Type handlers: MRO walk, exact-type cache.
+Type handlers: MRO walk, exact-type cache. Processors take priority over type handlers; domain proxies that register a processor must forward to type handlers if both are needed.
 
 ---
 
@@ -105,7 +107,9 @@ Client                              Main
 
 Framework IPC is entity-agnostic. Domain message types and bridges live with the entity.
 
-**First domain target:** SCRCPY emitter — see `.docs/fluxCore/emitters/scrcpy/implementationPlan.md` (Phase A emitter events done; messages/bridge pending under `src/fluxCore/emitters/scrcpy/`).
+**SCRCPY (first domain bridge — done):**  
+`src/fluxCore/emitters/scrcpy/` — messages, `ScrcpyRealBridge`, `ScrcpyProxyBridge`.  
+Docs: `.docs/fluxCore/emitters/scrcpy/implementationPlan.md`.
 
 ---
 
