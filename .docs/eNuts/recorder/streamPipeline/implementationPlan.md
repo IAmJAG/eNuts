@@ -1,64 +1,38 @@
 # Stream Pipeline — Implementation Plan
 
-**Status:** P0–P1 done; P2–P7 pending  
-**Branch:** `development`  
-**Goal:** Client-process scrcpy → GPU frame plane → main `GLImage` on K&G Recorder (view-only).
-
-**Related:**  
-- Control IPC: `.docs/jAGFx/IPC/IPC.md`  
-- Scrcpy bridges: `.docs/fluxCore/emitters/scrcpy/` (A–D done)  
-- Display: `.docs/jAGQt/widgets/Image/`  
-- Slot contract: `frameSlot.md`
-
----
+**Status:** P0–P1 done; P2–P5 partial; **stopped — discuss GPU interop**  
+**Branch:** `development`
 
 ## Phase status
 
-| Phase | Name | Status |
-|-------|------|--------|
-| **P0** | Contracts & doc lock | **Done** |
-| **P1** | Slot / handle contract + meta header | **Done** |
-| **P2** | GLImage external present + shader fit | Pending |
-| **P3** | Client producer (decode → GPU slot) | Pending |
-| **P4** | Worker host + control IPC session open | Pending |
-| **P5** | Main consumer + stream service | Pending |
-| **P6** | K&G Recorder UI wire (GLImage) | Pending |
-| **P7** | Hardening, multi-device, fallback profile | Pending |
+| Phase | Status | Notes |
+|-------|--------|-------|
+| P0 | **Done** | |
+| P1 | **Done** | `__frameSlot.py` |
+| P2 | **Partial** | `GLImage.presentExternal`; resize refit; still CPU scale transitional |
+| P3 | **Partial** | `FrameRing` (headers + opaque payload) |
+| P4 | **Blocked** | Worker needs exportable GPU handles |
+| P5 | **Partial** | `LocalDeviceStream` in-process; `IpcDeviceStream` → NotImplementedError |
+| P6 | **Blocked** | Needs IPC path + view vs input surface decision |
+| P7 | Pending | |
 
----
+## STOP — conflicts for discussion
 
-## P1 deliverables (done)
+1. **Cross-process GPU interop (plane E)** cannot be finished in pure Python/Qt (DMABUF / EGLImage / IOSurface / D3D shared handles need platform native code). Without it, multi-process zero-copy present is incomplete.
+2. **Shader fit** is not yet true GLSL sampling — transitional path still CPU-scales into a draw QImage.
+3. **KGRecorder** expects CaptureImage input signals; **PlaybackBase** already uses **GLImage** `_streamView` (display only).
+
+## Landed code
 
 | Path | Role |
 |------|------|
-| `src/fluxCore/emitters/scrcpy/__frameSlot.py` | Header pack/unpack, format/flags, ring helpers, `pts` |
-| `.test/smoke/scrcpy/test_frame_slot.py` | Round-trip + ring rules |
-| `.docs/eNuts/recorder/streamPipeline/frameSlot.md` | Contract doc |
+| `src/jAGQt/widgets/Image/__glImage.py` | `presentExternal` / `clearPresent` |
+| `src/fluxCore/emitters/scrcpy/__frameRing.py` | Ring publish / latest / display |
+| `src/eNuts/application/stream/` | `LocalDeviceStream`, stub `IpcDeviceStream` |
+| `.test/smoke/scrcpy/test_frame_ring.py` | Ring smoke |
 
-Header fields: `magic`, `seq`, `pts`, `w`, `h`, `stride`, `format`, `flags` (40 bytes LE).
+## Resume options
 
----
-
-## Architecture (locked)
-
-```text
-CLIENT                              MAIN
-SCRCPY → HW decode (prefer)
-      → agreed present format
-      → GPU ring [2..4] + slot header
-      → publish seq
-RealBridge + Endpoint ──IPC──► Proxy + Endpoint
-      GPU interop handles ──► GLImage.presentExternal + shader fit
-                              KG Recorder surface
-```
-
-- **IPC:** control + session + optional `FrameReady(seq)`.
-- **Pixels:** never on `Message` JSON.
-- **Main:** shader fit only (including widget resize).
-- **Full frames** after decode; no dirty-rect protocol in v1.
-
----
-
-## Next: P2 — GLImage external present + shader fit
-
-See prior plan section for files and exit criteria.
+A. Add platform GPU importer/exporter (true E)  
+B. Temporary IPC frame plane via SHM RGB (design C fallback) to unblock P4–P6  
+C. Wire **local-only** P6 (`LocalDeviceStream` → `_streamView`) now; defer multi-process  
