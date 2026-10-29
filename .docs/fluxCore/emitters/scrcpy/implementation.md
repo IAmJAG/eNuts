@@ -1,35 +1,20 @@
 # Implementation Details — SCRCPY emitter / bridge
 
-## 1. Architecture Overview
+## Architecture
 
 ```text
-SCRCPYEmitter (AsyncService + SCRCPY)
-  toScrcpy → base SCRCPY
-  asyncRaiseEvent(ON_*)
-
-Messages (Phase B)
-  ScrcpyInitializeMessage(ScrcpyInitParams)
-  ScrcpyStartMessage / ScrcpyStopMessage
-  ScrcpyMetadataMessage(SCRCPY)
-  ScrcpyErrorMessage(SCRCPYError)
-
-[Phase C] Bridge real | proxy ⇄ Endpoint
+Main: ScrcpyProxyBridge  ⇄  Endpoint  ⇄  queues  ⇄  Endpoint  ⇄  ScrcpyRealBridge + emitter
 ```
 
-## 2. Directory & Module Mapping
+## Module mapping
 
-| Source Path | Documentation Path | Primary Responsibility |
-| :--- | :--- | :--- |
-| `src/fluxCore/emitters/scrcpy/__SCRCPYEmitter.py` | `scrcpyEmitter.md` | Emitter lifecycle, events, `toScrcpy` |
-| `src/fluxCore/emitters/scrcpy/__footprint.py` | `footprint.md` | `SCRCPYError` |
-| `src/fluxCore/emitters/scrcpy/__payloads.py` | `messages.md` | `ScrcpyInitParams` |
-| `src/fluxCore/emitters/scrcpy/__messages.py` | `messages.md` | IPC message subclasses |
-| `src/fluxCore/emitters/scrcpy/__bridge.py` | `bridge.md` | Real/proxy bridge — **pending** |
+| Source | Docs |
+|--------|------|
+| `__SCRCPYEmitter.py` | `scrcpyEmitter.md` |
+| `__footprint.py` | `footprint.md` |
+| `__payloads.py` / `__messages.py` | `messages.md` |
+| `__bridge.py` | `bridge.md` |
 
-## 3. Phase status
+## Phase status
 
-| Phase | Status |
-|-------|--------|
-| A | **Done** |
-| B | **Done** |
-| C | Pending |
+A–C **Done**.
