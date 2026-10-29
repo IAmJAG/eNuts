@@ -141,11 +141,17 @@ class SideBarMenuItem(SideBarItem):
             self._iconWidget.setFixedSize(QSize(iconSize, iconSize))
 
         if self._titleWidget is not None:
-            font: QFont = self._titleWidget.font()
+            # QSS often sets font-size in px → pointSize() is -1. Never re-apply
+            # a font with pointSize <= 0 (Qt warns: QFont::setPointSize Point size <= 0).
             pt = self._childFontPt if self._isChild() else self._rootFontPt
-            if pt > 0:
-                font.setPointSize(pt)
+            if pt <= 0:
+                pt = C_CHILD_FONT_PT if self._isChild() else C_ROOT_FONT_PT
+            base = self._titleWidget.font()
+            font = QFont(base.family() or "Segoe UI")
+            font.setPointSize(int(pt))
             font.setBold(not self._isChild())
+            if base.italic():
+                font.setItalic(True)
             self._titleWidget.setFont(font)
 
     def _hierarchyMargins(self) -> Tuple[int, int, int, int]:
@@ -326,7 +332,6 @@ class SideBarMenuItem(SideBarItem):
         return child
 
     def clearChildren(self) -> None:
-        """Remove and destroy all child menu items."""
         if self._bodyLayout is None:
             self._children.clear()
             return
