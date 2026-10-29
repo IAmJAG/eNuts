@@ -1,6 +1,7 @@
 # ==================================================================================
 from .__bridge import ScrcpyProxyBridge, ScrcpyRealBridge
 from .__footprint import SCRCPYError
+from .__frameRing import FrameRing
 from .__frameSlot import (
     C_DEFAULT_RING_SIZE,
     C_FRAME_SLOT_HEADER_SIZE,
@@ -54,6 +55,7 @@ __all__ = [
     "FramePresentFormat",
     "FrameSlotFlags",
     "FrameSlotHeader",
+    "FrameRing",
     "makeFrameSlotHeader",
     "clampRingSize",
     "nextRingIndex",
