@@ -15,6 +15,8 @@ IPC connects two processes so domain entities in one process can be driven and o
 
 Do not pass an `IOQueue` across a process boundary.
 
+**Frame pixels are not carried on `Message` queues.** Live video uses a separate GPU frame plane; see `.docs/eNuts/recorder/streamPipeline/`.
+
 ---
 
 ## 2. Layers
@@ -107,9 +109,12 @@ Client                              Main
 
 Framework IPC is entity-agnostic. Domain message types and bridges live with the entity.
 
-**SCRCPY (first domain bridge — done):**  
+**SCRCPY (control bridge — done):**  
 `src/fluxCore/emitters/scrcpy/` — messages, `ScrcpyRealBridge`, `ScrcpyProxyBridge`.  
 Docs: `.docs/fluxCore/emitters/scrcpy/implementationPlan.md`.
+
+**Live frames + GLImage (planned):**  
+`.docs/eNuts/recorder/streamPipeline/implementationPlan.md` — GPU ring + GLImage present; IPC remains control/session only.
 
 ---
 
