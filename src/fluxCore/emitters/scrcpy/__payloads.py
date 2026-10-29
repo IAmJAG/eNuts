@@ -13,7 +13,7 @@ class ScrcpyInitParams(Serializable):
         self,
         serial: str = "",
         gpuId: int = 0,
-        gpuReady: bool = True,
+        gpuReady: bool = False,
     ) -> None:
         super().__init__()
         self._serial: str = serial
