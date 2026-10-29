@@ -17,7 +17,13 @@ class Device(Serializable, iDevice):
             self._id: str = str(uuid4())
         else:
             self._id = str(ident)
-        self._name: str | None = name if name is not None else getRandomName()
+        if name is not None:
+            self._name: str | None = name
+        else:
+            try:
+                self._name = getRandomName()
+            except Exception:
+                self._name = ""
         self.Properties.extend(["id", "name"])
 
     @property
