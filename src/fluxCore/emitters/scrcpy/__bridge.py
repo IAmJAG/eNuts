@@ -3,7 +3,7 @@ from __future__ import annotations
 
 # ==================================================================================
 from asyncio import Event
-from typing import Awaitable, Callable
+from typing import Any, Awaitable, Callable
 from uuid import UUID
 
 # ==================================================================================
@@ -29,11 +29,15 @@ ErrorCallback = Callable[[SCRCPYError], Awaitable[None] | None]
 
 # ==================================================================================
 class ScrcpyRealBridge(Bridge):
-    """Client-side bridge: owns SCRCPYEmitter; handles Initialize / Start / Stop."""
+    """Client-side bridge: owns emitter; handles Initialize / Start / Stop.
 
-    def __init__(self, emitter: SCRCPYEmitter | None = None) -> None:
+    ``emitter`` is normally a ``SCRCPYEmitter``. Tests may inject a duck-typed
+    stand-in with ``initialize`` / ``start`` / ``stop`` / ``subscribe``.
+    """
+
+    def __init__(self, emitter: Any | None = None) -> None:
         super().__init__()
-        self._emitter: SCRCPYEmitter | None = emitter
+        self._emitter: Any | None = emitter
         self._messageHandlers[ScrcpyInitializeMessage] = self._onInitialize
         self._messageHandlers[ScrcpyStartMessage] = self._onStart
         self._messageHandlers[ScrcpyStopMessage] = self._onStop
@@ -42,22 +46,33 @@ class ScrcpyRealBridge(Bridge):
             self._wireEmitter(self._emitter)
 
     @property
-    def emitter(self) -> SCRCPYEmitter | None:
+    def emitter(self) -> Any | None:
         return self._emitter
 
-    def setEmitter(self, emitter: SCRCPYEmitter) -> None:
+    def setEmitter(self, emitter: Any) -> None:
         self._emitter = emitter
         self._wireEmitter(emitter)
 
-    def _wireEmitter(self, emitter: SCRCPYEmitter) -> None:
-        emitter.subscribe("ON_METADATA_UPDATE", self._onEmitterMetadata)
-        emitter.subscribe("ON_ERROR", self._onEmitterError)
+    def _wireEmitter(self, emitter: Any) -> None:
+        if hasattr(emitter, "subscribe"):
+            emitter.subscribe("ON_METADATA_UPDATE", self._onEmitterMetadata)
+            emitter.subscribe("ON_ERROR", self._onEmitterError)
 
     async def _onEmitterMetadata(self, scrcpy: SCRCPY) -> None:
         await self.send(ScrcpyMetadataMessage(payload=scrcpy))
 
     async def _onEmitterError(self, err: SCRCPYError) -> None:
         await self.send(ScrcpyErrorMessage(payload=err))
+
+    def _snapshot(self, params: ScrcpyInitParams) -> SCRCPY:
+        if isinstance(self._emitter, SCRCPYEmitter):
+            return SCRCPYEmitter.toScrcpy(self._emitter)
+        scrcpy = SCRCPY(serial=params.serial, name=getattr(self._emitter, "name", None))
+        codecId = getattr(self._emitter, "codecId", "h264")
+        width = int(getattr(self._emitter, "width", 0) or 0)
+        height = int(getattr(self._emitter, "height", 0) or 0)
+        scrcpy.update(codecId=codecId, width=width, height=height)
+        return scrcpy
 
     async def _onInitialize(self, message: ScrcpyInitializeMessage) -> None:
         params = message.payload
@@ -83,7 +98,7 @@ class ScrcpyRealBridge(Bridge):
             await self._emitter.initialize(
                 GPUID=params.gpuId, GPUReady=params.gpuReady
             )
-            snapshot = SCRCPYEmitter.toScrcpy(self._emitter)
+            snapshot = self._snapshot(params)
             await self.send(
                 ScrcpyMetadataMessage(
                     payload=snapshot,
@@ -160,12 +175,10 @@ class ScrcpyProxyBridge(Bridge):
         *,
         correlationId: UUID | None = None,
     ) -> ScrcpyInitializeMessage:
-        """Send initialize; register a no-op processor so terminal reply clears correlation."""
         msg = ScrcpyInitializeMessage(payload=params, correlationId=correlationId)
         assert msg.correlationId is not None
 
         async def _processor(reply) -> None:
-            # Type handlers already process Metadata/Error; processor keeps correlation alive.
             _ = reply
 
         self.registerProcessor(msg.correlationId, _processor)
