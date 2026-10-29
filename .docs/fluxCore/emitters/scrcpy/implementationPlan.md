@@ -18,13 +18,17 @@ src/fluxCore/emitters/scrcpy/
 
 ## Closed for this track
 
-IPC domain path for SCRCPY is complete: typed messages, bridges, default-route send, correlated initialize, smoke without ADB.
+IPC **control** path for SCRCPY is complete: typed messages, bridges, default-route send, correlated initialize, smoke without ADB.
 
-## Deferred (new tracks)
+## Follow-on track (frames + UI)
 
-| Track | Notes |
-|-------|--------|
-| Frame / shared-memory transport | Not on Message queues |
-| Process host / client spawn | Wire Endpoint pair into app process model |
-| eNuts UI integration | Proxy on main window / KG recorder |
-| Control injection over bridge | Optional later commands |
+Cross-process **GPU frame plane** and K&G Recorder `GLImage` presentation:
+
+→ **`.docs/eNuts/recorder/streamPipeline/implementationPlan.md`** (P0–P7)
+
+| Deferred item | Now owned by |
+|---------------|--------------|
+| Frame transport (not Message queues) | streamPipeline P1–P3 |
+| Process host / client spawn | streamPipeline P4 |
+| eNuts UI / KG Recorder | streamPipeline P5–P6 |
+| Control injection over bridge | Still later (optional) |
