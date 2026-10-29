@@ -8,6 +8,7 @@ from uuid import UUID
 
 # ==================================================================================
 from jAGFx.IPC import Bridge
+from jAGFx.types.interface.communication import iMessage
 
 # ==================================================================================
 from ...devices import SCRCPY
@@ -31,12 +32,20 @@ ErrorCallback = Callable[[SCRCPYError], Awaitable[None] | None]
 
 
 # ==================================================================================
-class ScrcpyRealBridge(Bridge):
-    """Client-side bridge: owns emitter; handles Initialize / Start / Stop.
+class _ScrcpyBridgeBase(Bridge):
+    """Shared send: leave ownerId unset so the peer routes to its default bridge."""
 
-    ``emitter`` is normally a ``SCRCPYEmitter``. Tests may inject a duck-typed
-    stand-in with ``initialize`` / ``start`` / ``stop`` / ``subscribe``.
-    """
+    async def send(self, message: iMessage) -> None:
+        if self._endpoint is None:
+            raise RuntimeError("Bridge has no attached Endpoint")
+        # Do not stamp ownerId with local bridgeId (parent Bridge.send does).
+        # Scrcpy traffic uses asDefault registration on both ends.
+        await self._endpoint.send(message)
+
+
+# ==================================================================================
+class ScrcpyRealBridge(_ScrcpyBridgeBase):
+    """Client-side bridge: owns emitter; handles Initialize / Start / Stop."""
 
     def __init__(self, emitter: Any | None = None) -> None:
         super().__init__()
@@ -138,7 +147,7 @@ class ScrcpyRealBridge(Bridge):
 
 
 # ==================================================================================
-class ScrcpyProxyBridge(Bridge):
+class ScrcpyProxyBridge(_ScrcpyBridgeBase):
     """Main-side bridge: sends commands; receives Metadata / Error."""
 
     def __init__(self) -> None:
