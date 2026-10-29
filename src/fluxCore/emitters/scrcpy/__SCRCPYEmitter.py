@@ -175,7 +175,8 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         me: SCRCPY = self.toScrcpy(self)
         await self.asyncRaiseEvent("ON_METADATA_UPDATE", me)
 
-    async def initialize(self, GPUID: int = 0, GPUReady: bool = True) -> None:
+    async def initialize(self, GPUID: int = 0, GPUReady: bool = False) -> None:
+        """Deploy scrcpy server and open sockets. Default SW decode (GPUReady=False)."""
         self.setSuppressEvent(True)
         device: AdbDevice = adb.device(serial=self.id)
         cfg: SCRCPYServerConfig = SCRCPYServerConfig(
