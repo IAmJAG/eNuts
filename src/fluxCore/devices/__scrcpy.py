@@ -1,6 +1,4 @@
 # ==================================================================================
-# src/fluxCore/types/interface/__scrcpy.py
-# ==================================================================================
 from ..device import Device
 
 # ==================================================================================
@@ -9,11 +7,13 @@ from ..types.interface.devices import iSCRCPY
 
 # ==================================================================================
 class SCRCPY(Device, iSCRCPY):
-    def __init__(self, serial: str, name: str | None = None) -> None:        
-        super().__init__(serial, name)
+    def __init__(self, serial: str = "", name: str | None = None) -> None:
+        # serial="" supports serializer decode (lType() then decode)
+        super().__init__(serial if serial else None, name)
         self._codecId: str = "h264"
         self._width: int = 0
         self._height: int = 0
+        self.Properties.extend(["codecId", "width", "height"])
 
     @property
     def serial(self) -> str | None:
@@ -22,13 +22,13 @@ class SCRCPY(Device, iSCRCPY):
     @property
     def codecId(self) -> str:
         return self._codecId
-    
+
     @property
-    def width(self) -> int: 
+    def width(self) -> int:
         return self._width
-    
+
     @property
-    def height(self) -> int: 
+    def height(self) -> int:
         return self._height
 
     def update(self, codecId: str, width: int, height: int) -> None:
