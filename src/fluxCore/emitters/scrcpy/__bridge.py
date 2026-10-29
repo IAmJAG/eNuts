@@ -81,9 +81,14 @@ class ScrcpyRealBridge(_ScrcpyBridgeBase):
         await self.send(ScrcpyErrorMessage(payload=err))
 
     def _snapshot(self, params: ScrcpyInitParams) -> SCRCPY:
-        SCRCPYEmitter = _loadSCRCPYEmitter()
-        if isinstance(self._emitter, SCRCPYEmitter):
-            return SCRCPYEmitter.toScrcpy(self._emitter)
+        # Prefer duck attributes so stubs work without importing SCRCPYEmitter (adbutils).
+        toScrcpy = getattr(type(self._emitter), "toScrcpy", None)
+        if callable(toScrcpy) and self._emitter is not None:
+            try:
+                return toScrcpy(self._emitter)
+            except Exception:
+                pass
+
         scrcpy = SCRCPY(serial=params.serial, name=getattr(self._emitter, "name", None))
         codecId = getattr(self._emitter, "codecId", "h264")
         width = int(getattr(self._emitter, "width", 0) or 0)
@@ -197,8 +202,6 @@ class ScrcpyProxyBridge(_ScrcpyBridgeBase):
         assert msg.correlationId is not None
 
         async def _processor(reply: iMessage) -> None:
-            # Bridge prioritizes processors over type handlers; forward so
-            # Metadata/Error handlers still run for this correlation.
             handler = self._resolveHandler(reply)
             if handler is not None:
                 result = handler(reply)
