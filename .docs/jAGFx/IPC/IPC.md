@@ -101,7 +101,15 @@ Client                              Main
 
 ---
 
-## 9. Public exports
+## 9. Domain bridges
+
+Framework IPC is entity-agnostic. Domain message types and bridges live with the entity.
+
+**First domain target:** SCRCPY emitter — see `.docs/fluxCore/emitters/scrcpy/implementationPlan.md` (Phase A emitter events done; messages/bridge pending under `src/fluxCore/emitters/scrcpy/`).
+
+---
+
+## 10. Public exports
 
 ```python
 from jAGFx.IPC import (
