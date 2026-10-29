@@ -61,7 +61,8 @@ class deviceManager(AsyncSubscription):
 
         if not self._streamReady.get(deviceId, False):
             verbose(f"[{self.__class__.__name__}] ensureRunning initialize id={deviceId!r}")
-            await emitter.initialize()
+            # Windows stack: software decode (PyAV). GPU decode is opt-in later.
+            await emitter.initialize(GPUReady=False)
             self._streamReady[deviceId] = True
 
         if not emitter.isRunning:
