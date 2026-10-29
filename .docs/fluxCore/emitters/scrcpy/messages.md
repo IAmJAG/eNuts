@@ -1,38 +1,58 @@
 ## Overview & Design Context
 
-**Status:** Planned (Phase B — not implemented in source yet).
+IPC message types for the SCRCPY domain bridge. Implemented under `src/fluxCore/emitters/scrcpy/` (not under `jAGFx.IPC`).
 
-IPC message types for the first domain bridge. Live under `src/fluxCore/emitters/scrcpy/`, not under `jAGFx.IPC`.
-
----
-
-## Planned payloads
-
-### `ScrcpyInitParams`
-
-- **Fields:** `serial: str`, `gpuId: int = 0`, `gpuReady: bool = True`
+Handlers on `Bridge` key off **message type** (`type(message)`).
 
 ---
 
-## Planned message classes
+## Classes
 
-| Class | Direction | Payload | Correlation |
-|-------|-----------|---------|-------------|
-| `ScrcpyInitializeMessage` | main → client | `ScrcpyInitParams` | yes |
-| `ScrcpyStartMessage` | main → client | none | no |
-| `ScrcpyStopMessage` | main → client | none | no |
-| `ScrcpyMetadataMessage` | client → main | base `SCRCPY` | optional |
-| `ScrcpyErrorMessage` | client → main | `SCRCPYError` | optional; terminal when ending init |
+### `ScrcpyInitParams` (`__payloads.py`)
 
-Initialize completion: terminal metadata on success, or terminal error on failure (same `correlationId`).
+- **Purpose:** Body for `ScrcpyInitializeMessage`.
+- **Properties:** `serial`, `gpuId`, `gpuReady`
 
-**Out of v1:** frame messages, pause/resume commands, control injection.
+### `ScrcpyInitializeMessage`
+
+- **Direction:** main → client  
+- **Payload:** `ScrcpyInitParams`  
+- **Correlation:** yes; complete with terminal metadata or terminal error
+
+### `ScrcpyStartMessage` / `ScrcpyStopMessage`
+
+- **Direction:** main → client  
+- **Payload:** none  
+- **Correlation:** fire-and-forget
+
+### `ScrcpyMetadataMessage`
+
+- **Direction:** client → main  
+- **Payload:** base `SCRCPY` (from `toScrcpy`)  
+- **Terminal:** set when ending a successful initialize conversation
+
+### `ScrcpyErrorMessage`
+
+- **Direction:** client → main  
+- **Payload:** `SCRCPYError`  
+- **Terminal:** set when ending a failed initialize conversation
 
 ---
 
-## Files (when implemented)
+## Sample Usage
 
-| Source | Role |
-|--------|------|
-| `__payloads.py` | `ScrcpyInitParams` |
-| `__messages.py` | five `Message` subclasses |
+```python
+from fluxCore.emitters.scrcpy import (
+    ScrcpyInitParams,
+    ScrcpyInitializeMessage,
+    ScrcpyMetadataMessage,
+    ScrcpyErrorMessage,
+    SCRCPYError,
+)
+
+params = ScrcpyInitParams(serial="DEVICE", gpuId=0, gpuReady=True)
+msg = ScrcpyInitializeMessage(payload=params)
+
+# success: ScrcpyMetadataMessage(..., correlationId=msg.correlationId, isTerminal=True)
+# failure: ScrcpyErrorMessage(payload=SCRCPYError(...), correlationId=..., isTerminal=True)
+```
