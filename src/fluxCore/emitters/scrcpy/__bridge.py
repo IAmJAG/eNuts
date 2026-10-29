@@ -196,8 +196,14 @@ class ScrcpyProxyBridge(_ScrcpyBridgeBase):
         msg = ScrcpyInitializeMessage(payload=params, correlationId=correlationId)
         assert msg.correlationId is not None
 
-        async def _processor(reply) -> None:
-            _ = reply
+        async def _processor(reply: iMessage) -> None:
+            # Bridge prioritizes processors over type handlers; forward so
+            # Metadata/Error handlers still run for this correlation.
+            handler = self._resolveHandler(reply)
+            if handler is not None:
+                result = handler(reply)
+                if result is not None:
+                    await result
 
         self.registerProcessor(msg.correlationId, _processor)
         await self.send(msg)
