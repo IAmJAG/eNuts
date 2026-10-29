@@ -1,22 +1,34 @@
 ## Overview & Design Context
 
-**Status:** Planned (Phase C — not implemented in source yet).
+`ScrcpyRealBridge` (client) owns the emitter; `ScrcpyProxyBridge` (main) sends commands and receives metadata/errors. Both subclass `jAGFx.IPC.Bridge`.
 
-Bridge binds `SCRCPYEmitter` to a local `jAGFx.IPC.Endpoint`.
-
-| Role | Process | Responsibility |
-|------|---------|----------------|
-| Real | client | Owns emitter; handles Initialize/Start/Stop; emits Metadata/Error messages |
-| Proxy | main | Sends commands; receives Metadata/Error; no live sockets |
-
-Machinery is the same (`Bridge` base + type-keyed handlers). Only ownership of the real emitter differs.
+Register with `asDefault=True` so application messages do not require `ownerId` routing.
 
 ---
 
-## Planned file
+## Classes
 
-| Source | Role |
-|--------|------|
-| `__bridge.py` | Real and/or proxy bridge class(es) |
+### `ScrcpyRealBridge`
 
-Smoke tests under `.test/smoke/scrcpy/` or `.test/smoke/ipc/` after implementation.
+- Handles `ScrcpyInitializeMessage` / `Start` / `Stop`.
+- Success → terminal `ScrcpyMetadataMessage`; failure → terminal `ScrcpyErrorMessage`.
+- Optional duck-typed emitter for tests (no ADB).
+
+### `ScrcpyProxyBridge`
+
+- `requestInitialize` / `requestStart` / `requestStop`.
+- `lastMetadata` / `lastError` / asyncio events for waiters.
+
+---
+
+## Sample
+
+```python
+from fluxCore.emitters.scrcpy import ScrcpyRealBridge, ScrcpyProxyBridge, ScrcpyInitParams
+
+real = ScrcpyRealBridge(emitter=stub_or_scrcpy_emitter)
+proxy = ScrcpyProxyBridge()
+clientEp.registerBridge(real, asDefault=True)
+mainEp.registerBridge(proxy, asDefault=True)
+await proxy.requestInitialize(ScrcpyInitParams(serial="..."))
+```
