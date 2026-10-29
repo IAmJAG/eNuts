@@ -63,13 +63,8 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         self._serverLogStop: ThreadEvent = ThreadEvent()
         self._serverLogThread: Thread | None = None
 
-    # ==================================================================================
     @classmethod
     def toScrcpy(cls, emitter: SCRCPYEmitter) -> SCRCPY:
-        """Build a base SCRCPY snapshot from an emitter.
-
-        Constructs a plain SCRCPY (not SCRCPYEmitter). Copies id/name/codec/size.
-        """
         scrcpy = SCRCPY(serial=str(emitter.id), name=emitter.name)
         scrcpy.update(
             codecId=emitter.codecId,
@@ -78,10 +73,8 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         )
         return scrcpy
 
-    # ==================================================================================
     @property
     def ControlSocket(self) -> iControlSocket | None:
-        """Public control-channel accessor. Returns None when unavailable."""
         if not hasattr(self, "_cSocket"):
             return None
         return self._cSocket
@@ -92,22 +85,16 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
             SCRCPYError(phase=phase, message=message, serial=str(self.id)),
         )
 
-    # ==================================================================================
     def _startServerLogDrain(self, streamServer: AdbConnection) -> None:
-        """Prevent scrcpy-server from blocking on a full stdout pipe."""
-
         def _drain() -> None:
             try:
                 while not self._serverLogStop.is_set():
                     try:
                         lChunk = streamServer.read(4096)
-
                     except Exception:
                         break
-
                     if not lChunk:
                         break
-
             finally:
                 pass
 
@@ -125,53 +112,41 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         self._serverLogThread = None
 
     async def work(self, *args, **kwargs):
-        """Drain the video socket continuously until the service is stopped."""
         sckt: iVideoSocket = self._vSocket
         if sckt is None:
             return
-
         try:
             while self.isRunning:
                 try:
                     frame: iFrame = await sckt.asyncReceiveSingleFrame()
                     await self.asyncRaiseEvent("ON_FRAME", frame)
-
                 except CancelledError:
                     raise
-
                 except InvalidDataError:
                     await asyncWait(0)
                     continue
-
                 except Exception as ex:
                     await self._raiseError("work", str(ex))
                     raise
-
                 await asyncWait(0)
-
         finally:
             self._stopServerLogDrain()
 
     async def _updateMetadata(self, sckt: iVideoSocket) -> None:
         deviceName: bytes = await sckt.receive(64)
-
         if deviceName and deviceName[0] == 0x00:
             deviceName = deviceName[1:] + await sckt.receive(1)
-
         codecIdRaw: bytes = await sckt.receive(4)
         widthRaw: bytes = await sckt.receive(4)
         heightRaw: bytes = await sckt.receive(4)
-
         lCodecId: str = (
             codecIdRaw.decode("ascii", errors="replace").strip("\x00") or "h264"
         )
         lWidth: int = int.from_bytes(widthRaw, "big")
         lHeight: int = int.from_bytes(heightRaw, "big")
         lName: str = deviceName.split(b"\x00", 1)[0].decode("utf-8", errors="replace")
-
         self._name = lName
         self.update(codecId=lCodecId, width=lWidth, height=lHeight)
-
         me: SCRCPY = self.toScrcpy(self)
         await self.asyncRaiseEvent("ON_METADATA_UPDATE", me)
 
@@ -187,7 +162,6 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
             bitrate=BITRATE,
             logLevel="warn",
         )
-
         try:
             streamServer: AdbConnection = deployServer(
                 device, cfg=cfg, serverPath=SERVER_PATH, timeout=3000
@@ -195,35 +169,27 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         except Exception as ex:
             await self._raiseError("initialize.deploy", str(ex))
             raise
-
         if streamServer is None:
             await self._raiseError(
                 "initialize.deploy", "Failed to deploy scrcpy server"
             )
             raise RuntimeError("Failed to deploy scrcpy server")
-
         self._streamServer = streamServer
         self._startServerLogDrain(streamServer)
-
         asyncLoop: AbstractEventLoop = get_running_loop()
-
         try:
             vSCKT: socket = getSCRCPYADBSocket(device, scid=cfg.Scid, timeout=3000)
             self._vSocket = VideoSocket(vSCKT, loop=asyncLoop)
-
             cSCKT: socket = getSCRCPYADBSocket(device, scid=cfg.Scid, timeout=3000)
             self._cSocket = ControlSocket(cSCKT, loop=asyncLoop)
-
         except Exception as ex:
             await self._raiseError("initialize.socket", str(ex))
             raise
-
         try:
             await self._updateMetadata(self._vSocket)
         except Exception as ex:
             await self._raiseError("initialize.metadata", str(ex))
             raise
-
         try:
             self._codecContext = createCodecContext(
                 self.codecId, GPUID=GPUID, GPUReady=GPUReady
@@ -232,3 +198,5 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         except Exception as ex:
             await self._raiseError("initialize.codec", str(ex))
             raise
+        # Re-enable events so ON_FRAME reaches LocalDeviceStream subscribers.
+        self.setSuppressEvent(False)
