@@ -1,4 +1,5 @@
 # ==================================================================================
+from .__bridge import ScrcpyProxyBridge, ScrcpyRealBridge
 from .__footprint import SCRCPYError
 from .__messages import (
     ScrcpyErrorMessage,
@@ -20,4 +21,6 @@ __all__ = [
     "ScrcpyStopMessage",
     "ScrcpyMetadataMessage",
     "ScrcpyErrorMessage",
+    "ScrcpyRealBridge",
+    "ScrcpyProxyBridge",
 ]
