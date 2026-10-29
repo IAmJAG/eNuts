@@ -22,32 +22,21 @@ from .__playbackBase import PlaybackBase
 
 # ==================================================================================
 class KGRecorder(PlaybackBase):
-    """K&G Recorder page: GLImage stream + device strip + command bar chrome.
-
+    """
+    K&G Recorder page: GLImage stream + device strip + command bar chrome.
     Controller binds via Shell to:
-    ``_streamView``, ``_deviceCombo``, ``_commandBar``, ``_statusLabel``, ``_eventList``.
+        ``_streamView``, ``_deviceCombo``, ``_commandBar``, ``_statusLabel``, ``_eventList``.
     """
 
     OBJECT_NAME = "W_KG_RECORDER"
-
     def __init__(
-        self,
-        title: str,
-        description: str = "",
-        icon: Optional[Union[QIcon, QPixmap, str]] = None,
-        commandBarOn: bool = True,
-        id: Optional[str] = None,
-        *args,
-        **kwargs,
+        self, title: str, description: str = "",
+        icon: Optional[Union[QIcon, QPixmap, str]] = None, commandBarOn: bool = True,
+        id: Optional[str] = None, *args, **kwargs
     ) -> None:
         super().__init__(
-            title=title,
-            description=description,
-            icon=icon,
-            commandBarOn=commandBarOn,
-            id=id,
-            *args,
-            **kwargs,
+            title=title, description=description, icon=icon, commandBarOn=commandBarOn,
+            id=id, *args, **kwargs
         )
 
     def _wInitializeUI(self) -> None:
@@ -113,6 +102,7 @@ class KGRecorder(PlaybackBase):
             for caption in ("Start", "Stop", "Clear", "Save", "Open"):
                 try:
                     self.addCommand(caption)
+
                 except Exception as ex:
                     warning(f"[pages] KG command button {caption!r} failed: {ex}")
 

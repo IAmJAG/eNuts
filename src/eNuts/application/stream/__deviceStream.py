@@ -15,7 +15,7 @@ from fluxCore.emitters.scrcpy import FrameRing, FrameSlotFlags, shouldSkipPresen
 
 # ==================================================================================
 C_ON_FRAME = "ON_FRAME"
-
+# ==================================================================================
 
 # ==================================================================================
 @runtime_checkable
@@ -25,21 +25,16 @@ class iDeviceStream(Protocol):
     def detachView(self) -> None: ...
     def stop(self) -> None: ...
 
-
 # ==================================================================================
 class StreamFrameBridge(QObject):
     """Qt-thread marshal for stream presents."""
-
     frameReady: SignalInstance = Signal(object, object)
-
-    def __init__(self, parent: QObject | None = None) -> None:
+    def __init__(self, parent: QObject = None) -> None:
         super().__init__(parent)
-
 
 # ==================================================================================
 class LocalDeviceStream:
     """In-process: emitter ON_FRAME → decode → QImage → GLImage.presentExternal."""
-
     def __init__(self, deviceManager: Any, parent: QObject | None = None) -> None:
         self._mgr = deviceManager
         self._view: Any = None
@@ -65,14 +60,16 @@ class LocalDeviceStream:
             if emitter is not None:
                 try:
                     emitter.unsubscribe(C_ON_FRAME, handler)
-                except Exception:
-                    pass
+
+                except Exception: pass
+
         self._handler = None
         self._serial = None
         view = self._view
         if view is not None and hasattr(view, "clearPresent"):
             try:
                 view.clearPresent()
+
             except Exception:
                 pass
 

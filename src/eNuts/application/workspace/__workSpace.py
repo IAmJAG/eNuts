@@ -61,8 +61,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
 
     def __init__(
         self, deviceMgr: Optional[deviceManager] = None,
-        title: str = "eNuts",
-        *args, **kwargs
+        title: str = "eNuts", *args, **kwargs
     ) -> None:
         debug(f"[{self.__class__.__name__}] __init__ ENTER")
         try:

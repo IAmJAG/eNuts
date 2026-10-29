@@ -82,6 +82,7 @@ class Shell(ApplicationInformation):
                     text = btn.text() if hasattr(btn, "text") else ""
                     if text:
                         found[text] = btn
+
                 groups = getattr(commandBar, "_groups", None) or {}
                 for group in groups.values():
                     gButtons = getattr(group, "_buttons", None) or []

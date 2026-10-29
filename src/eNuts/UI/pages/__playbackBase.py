@@ -20,8 +20,7 @@ class PlaybackBase(Page):
     def __init__(
         self, title: str, description: str = "",
         icon: Optional[Union[QIcon, QPixmap, str]] = None,
-        commandBarOn: bool = False, id: Optional[str] = None,
-        *args, **kwargs,
+        commandBarOn: bool = False, id: Optional[str] = None, *args, **kwargs
     ) -> None:
         super().__init__(
             title=title, description=description, icon=icon,
@@ -36,12 +35,13 @@ class PlaybackBase(Page):
         streamView.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
-        streamView.setMinimumSize(320, 240)
+        # streamView.setMinimumSize(320, 240)
         self.addWidget(streamView, stretch=1)
 
         self._streamView = streamView
 
+        clsName: str = type(self).__name__
         verbose(
-            f"[pages] PlaybackBase id={self.Id!r} "
-            f"class={type(self).__name__} stream={streamView.objectName()!r}"
+            f"[{clsName}] PlaybackBase id={self.Id!r} "
+            f"class={clsName} stream={streamView.objectName()!r}"
         )

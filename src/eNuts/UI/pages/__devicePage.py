@@ -24,8 +24,8 @@ class DeviceFrameBridge(QObject):
 
 # ==================================================================================
 def buildDevicePage(key: str, title: str, serial: str) -> Page:
-    """Device Page with Image stream host (content slot).
-
+    """
+    Device Page with Image stream host (content slot).
     Emitter is **not** owned here — resolve via deviceManager + ensureRunning.
     """
     page = buildBlankPage(key, title, f"Device {serial}")
@@ -51,9 +51,11 @@ def _applyFrame(view: Image, img: object) -> None:
     try:
         if isinstance(img, QImage):
             view.image = img
+
         elif isinstance(img, QPixmap):
             view.image = img
-        else:
-            return
+
+        else: return
+
     except Exception as ex:
         warning(f"[pages] applyFrame failed: {ex}")
