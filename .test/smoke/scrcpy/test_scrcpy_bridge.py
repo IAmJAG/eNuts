@@ -18,8 +18,8 @@ if str(_REPO_SRC) not in sys.path:
 
 from fluxCore.devices import SCRCPY  # noqa: E402
 from fluxCore.emitters.scrcpy import (  # noqa: E402
-    SCRCPYError,
     ScrcpyInitParams,
+    ScrcpyMetadataMessage,
     ScrcpyProxyBridge,
     ScrcpyRealBridge,
 )
@@ -135,8 +135,6 @@ def test_real_can_push_metadata_without_initialize() -> None:
 
         sc = SCRCPY(serial="push", name="n")
         sc.update(codecId="h265", width=10, height=20)
-        from fluxCore.emitters.scrcpy import ScrcpyMetadataMessage
-
         await real.send(ScrcpyMetadataMessage(payload=sc))
         await asyncio.wait_for(proxy.metadataEvent.wait(), timeout=2.0)
         assert proxy.lastMetadata is not None
