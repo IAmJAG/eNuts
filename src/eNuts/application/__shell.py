@@ -121,6 +121,7 @@ class Shell(ApplicationInformation):
 
             try:
                 deviceCombo.currentIndexChanged.connect(_onDeviceChanged)
+                
             except Exception as ex:
                 warning(f"[Shell] device combo connect failed: {ex}")
 

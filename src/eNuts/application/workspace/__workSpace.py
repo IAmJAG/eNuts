@@ -141,9 +141,6 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
         except Exception as ex:
             error("[WorkSpace] _wInitializeUI FAIL", ex)
 
-    # --------------------------------------------------------------------------
-    # Workflow stage 2: page stack only — from navigation registry. No menu.
-    # --------------------------------------------------------------------------
     def _wRegisterPages(self) -> None:
         debug("[WorkSpace] _wRegisterPages ENTER")
         stack = self._stack
@@ -162,9 +159,6 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
 
         debug(f"[WorkSpace] _wRegisterPages EXIT count={len(pages)}")
 
-    # --------------------------------------------------------------------------
-    # Workflow stage 3: menu only — attach content/footer from navigation builder.
-    # --------------------------------------------------------------------------
     def _wBuildMenu(self) -> None:
         sideBar = self._sideBar
         if sideBar is None:
