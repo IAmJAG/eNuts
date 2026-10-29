@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-28 06:26:46 UTC*
+*Auto-generated on: 2026-10-29 02:19:42 UTC*
 
 ## Current Directory Structure
 
@@ -39,10 +39,12 @@ eNuts/
 │       ├── ipc/
 │       │   ├── test_endpoint_bridge.py
 │       │   └── test_message_roundtrip.py
-│       └── policy/
-│           ├── test_policy_forward_predict.py
-│           ├── test_policy_options_roundtrip.py
-│           └── test_policy_persist.py
+│       ├── policy/
+│       │   ├── test_policy_forward_predict.py
+│       │   ├── test_policy_options_roundtrip.py
+│       │   └── test_policy_persist.py
+│       └── scrcpy/
+│           └── test_scrcpy_bridge.py
 ├── README.md
 ├── assets/
 │   ├── gameInfo.json
@@ -172,7 +174,10 @@ eNuts/
 │   │   ├── emitters/
 │   │   │   └── scrcpy/
 │   │   │       ├── __SCRCPYEmitter.py
-│   │   │       └── __footprint.py
+│   │   │       ├── __bridge.py
+│   │   │       ├── __footprint.py
+│   │   │       ├── __messages.py
+│   │   │       └── __payloads.py
 │   │   ├── policy/
 │   │   │   ├── __dcPolicy.py
 │   │   │   ├── __policyOptions.py
@@ -239,7 +244,11 @@ eNuts/
 │   │   │   ├── __IOQueue.py
 │   │   │   ├── __bridge.py
 │   │   │   ├── __endpoint.py
-│   │   │   └── __message.py
+│   │   │   ├── __message.py
+│   │   │   ├── __overload.py
+│   │   │   └── control/
+│   │   │       ├── __bridge.py
+│   │   │       └── __messages.py
 │   │   ├── collections/
 │   │   │   ├── __tsDictionary.py
 │   │   │   └── __tsList.py
@@ -469,15 +478,20 @@ eNuts/
 		FUNCTION(S):
 			_withEndpoints -> : _withendpoints
 			_waitFor -> : _waitfor
-			test_endpoint_bridge_type_dispatch -> : test_endpoint_bridge_type_dispatch
-			test_endpoint_terminal_clears_correlation -> : test_endpoint_terminal_clears_correlation
-			test_register_bridge_rejects_duplicate_type -> : test_register_bridge_rejects_duplicate_type
-			test_unknown_message_type_is_ignored -> : test_unknown_message_type_is_ignored
+			test_default_bridge_receives_ownerless_message -> : test_default_bridge_receives_ownerless_message
+			test_owner_id_routes_to_specific_bridge -> : test_owner_id_routes_to_specific_bridge
+			test_unknown_owner_is_dropped -> : test_unknown_owner_is_dropped
+			test_terminal_clears_correlation_on_bridge -> : test_terminal_clears_correlation_on_bridge
+			test_mro_handler_receives_subclass -> : test_mro_handler_receives_subclass
+			test_register_bridge_rejects_duplicate_id -> : test_register_bridge_rejects_duplicate_id
+			test_hello_marks_peer_alive -> : test_hello_marks_peer_alive
+			test_overload_policy_default_unbounded -> : test_overload_policy_default_unbounded
 		CONSTANTS(S)/GLOBAL(S)
 			_TEST_ROOT -> : _test_root
 	test_message_roundtrip.py - 
 		FUNCTION(S):
 			test_message_roundtrip -> : test_message_roundtrip
+			test_message_with_owner_roundtrip -> : test_message_with_owner_roundtrip
 			test_message_terminal_roundtrip -> : test_message_terminal_roundtrip
 			test_ioqueue_send_receive -> : test_ioqueue_send_receive
 		CONSTANTS(S)/GLOBAL(S)
@@ -511,6 +525,20 @@ eNuts/
 			test_load_rejects_bad_version -> : test_load_rejects_bad_version
 		CONSTANTS(S)/GLOBAL(S)
 			_TEST_ROOT -> : _test_root
+
+.test/smoke/scrcpy:
+	test_scrcpy_bridge.py - 
+		CLASSE(S):
+			StubEmitter -> : stubemitter
+			FailingEmitter -> : failingemitter
+		FUNCTION(S):
+			_withEndpoints -> : _withendpoints
+			test_initialize_success_delivers_metadata -> : test_initialize_success_delivers_metadata
+			test_initialize_failure_delivers_error -> : test_initialize_failure_delivers_error
+			test_start_stop_reach_emitter -> : test_start_stop_reach_emitter
+			test_real_can_push_metadata_without_initialize -> : test_real_can_push_metadata_without_initialize
+		CONSTANTS(S)/GLOBAL(S)
+			_REPO_SRC -> : _repo_src
 
 src:
 	__monkeyPatch.py - 
@@ -793,9 +821,29 @@ src/fluxCore/emitters/scrcpy:
 			MAX_SIZE -> : max_size
 			MAX_FPS -> : max_fps
 			BITRATE -> : bitrate
+	__bridge.py - 
+		CLASSE(S):
+			_ScrcpyBridgeBase -> : _scrcpybridgebase
+			ScrcpyRealBridge -> : scrcpyrealbridge
+			ScrcpyProxyBridge -> : scrcpyproxybridge
+		FUNCTION(S):
+			_loadSCRCPYEmitter -> : _loadscrcpyemitter
+		CONSTANTS(S)/GLOBAL(S)
+			MetadataCallback -> : metadatacallback
+			ErrorCallback -> : errorcallback
 	__footprint.py - 
 		CLASSE(S):
 			SCRCPYError -> : scrcpyerror
+	__messages.py - 
+		CLASSE(S):
+			ScrcpyInitializeMessage -> : scrcpyinitializemessage
+			ScrcpyStartMessage -> : scrcpystartmessage
+			ScrcpyStopMessage -> : scrcpystopmessage
+			ScrcpyMetadataMessage -> : scrcpymetadatamessage
+			ScrcpyErrorMessage -> : scrcpyerrormessage
+	__payloads.py - 
+		CLASSE(S):
+			ScrcpyInitParams -> : scrcpyinitparams
 
 src/fluxCore/policy:
 	__dcPolicy.py - 
@@ -1018,12 +1066,27 @@ src/jAGFx/IPC:
 	__bridge.py - 
 		CLASSE(S):
 			Bridge -> : bridge
+		CONSTANTS(S)/GLOBAL(S)
+			MessageProcessor -> : messageprocessor
 	__endpoint.py - 
 		CLASSE(S):
 			Endpoint -> : endpoint
 	__message.py - 
 		CLASSE(S):
 			Message -> : message
+	__overload.py - 
+		CLASSE(S):
+			OverloadPolicy -> : overloadpolicy
+
+src/jAGFx/IPC/control:
+	__bridge.py - 
+		CLASSE(S):
+			ControlBridge -> : controlbridge
+	__messages.py - 
+		CLASSE(S):
+			HelloMessage -> : hellomessage
+			HelloAckMessage -> : helloackmessage
+			HeartbeatMessage -> : heartbeatmessage
 
 src/jAGFx/logging:
 	__log.py - 
@@ -1620,46 +1683,43 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-ce647a3:
-	feat(AsyncService): add throttle method for improved timeout handling
-		src/jAGFx/services/__asyncService.py
+4e19cc0:
+	fix(scrcpy): snapshot without requiring adbutils when emitter is a stub
+		src/fluxCore/emitters/scrcpy/__bridge.py
 
-388132e:
-	refactor(AsyncService): improve method caching and streamline throttle handling
-		src/jAGFx/services/__asyncService.py
+d72d810:
+	fix(scrcpy): proxy processor dispatches to type handlers (no swallow)
+		src/fluxCore/emitters/scrcpy/__bridge.py
 
-c5605ae:
-	refactor(AsyncService): optimize pause and throttle handling with cached methods
-		src/jAGFx/services/__asyncService.py
+4df4b4a:
+	fix(device): safe default name when getRandomName builtins missing
+		src/fluxCore/device/__device.py
 
-c5fa6bb:
-	Scale AsyncService: expose throttle property and add interruptible wake support
-		.docs/jAGFx/services/asyncService.md
-		.docs/jAGFx/services/implementation.md
-		.docs/jAGFx/services/requirement.md
-		src/jAGFx/services/__asyncService.py
-		src/jAGFx/types/interface/services/__services.py
+6f27141:
+	fix(devices): SCRCPY serializable Properties + no-arg ctor for decode
+		src/fluxCore/devices/__scrcpy.py
 
-223d01c:
-	docs(inventory): update auto-generated timestamp and change summary
-		.docs/inventory.md
+cd9dc57:
+	fix(device): make Device Serializable with Properties for IPC encode
+		src/fluxCore/device/__device.py
 
-3f2d1c9:
-	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
+e092e97:
+	fix(scrcpy): avoid __ name-mangling on SCRCPYEmitter import inside class
+		src/fluxCore/emitters/scrcpy/__bridge.py
 
-41abe35:
-	docs(scrcpy): update documentation for SCRCPYEmitter and error handling
+47dc583:
+	fix(scrcpy): default-route send (ownerId None) so peer default bridge receives
+		src/fluxCore/emitters/scrcpy/__bridge.py
 
-c7c4aa0:
-	refactor(scrcpy): use asyncRaiseEvent for all emitter events
-		src/fluxCore/emitters/scrcpy/__SCRCPYEmitter.py
+9d146f4:
+	test(scrcpy): avoid importing SCRCPYEmitter in smoke (no adbutils)
+		.test/smoke/scrcpy/test_scrcpy_bridge.py
 
-a13934c:
-	refactor(scrcpy): streamline constructor parameters in SCRCPYErrorFootprint
-		src/fluxCore/emitters/scrcpy/__footprint.py
+9731491:
+	refactor(emitters): lazy SCRCPYEmitter export (no adbutils at import)
 
-f2525aa:
-	docs(scrcpy): document SCRCPYError for ON_ERROR
-		.docs/fluxCore/emitters/scrcpy/scrcpyEmitter.md
+fd3649c:
+	docs(scrcpy): requirements Phase C done
+		.docs/fluxCore/emitters/scrcpy/requirement.md
 
 ```
