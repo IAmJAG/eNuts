@@ -17,7 +17,7 @@ from typing import NamedTuple
 # magic u32 | seq u64 | pts u64 | w u32 | h u32 | stride u32 | format u32 | flags u32
 # ==================================================================================
 C_FRAME_SLOT_MAGIC: int = 0x534C4F54  # 'SLOT'
-C_FRAME_SLOT_HEADER_STRUCT: Struct = Struct("<IQQIIII I".replace(" ", ""))
+C_FRAME_SLOT_HEADER_STRUCT: Struct = Struct("<IQQIIIII")
 # I Q Q I I I I I  → 4+8+8+4+4+4+4+4 = 40 bytes
 C_FRAME_SLOT_HEADER_SIZE: int = C_FRAME_SLOT_HEADER_STRUCT.size
 
@@ -96,7 +96,7 @@ class FrameSlotHeader(NamedTuple):
 
     @property
     def slotFlags(self) -> FrameSlotFlags:
-        return FrameSlotFlags(self.flags & int(FrameSlotFlags.EOS) * 2 - 1) if False else FrameSlotFlags(self.flags)
+        return FrameSlotFlags(self.flags)
 
 
 def makeFrameSlotHeader(
@@ -112,7 +112,6 @@ def makeFrameSlotHeader(
     fmt = int(format)
     fl = int(flags)
     if stride <= 0 and width > 0:
-        # sensible default for packed 8-bit RGBA/BGRA; callers should set for NV12
         if fmt in (int(FramePresentFormat.RGBA8), int(FramePresentFormat.BGRA8)):
             stride = width * 4
         elif fmt == int(FramePresentFormat.RGB8):
@@ -132,8 +131,6 @@ def makeFrameSlotHeader(
 
 
 # ==================================================================================
-# Ring index helpers (collision-free triple-buffer style)
-# ==================================================================================
 def clampRingSize(n: int) -> int:
     if n < C_MIN_RING_SIZE or n > C_MAX_RING_SIZE:
         raise ValueError(
@@ -141,9 +138,11 @@ def clampRingSize(n: int) -> int:
         )
     return n
 
+
 def nextRingIndex(current: int, ringSize: int) -> int:
     ringSize = clampRingSize(ringSize)
     return (int(current) + 1) % ringSize
+
 
 def pickWriteIndex(*, displayIndex: int, ringSize: int, preferred: int | None = None) -> int:
     """Choose a write slot that is not the one main is displaying."""
@@ -153,9 +152,7 @@ def pickWriteIndex(*, displayIndex: int, ringSize: int, preferred: int | None = 
         p = int(preferred) % ringSize
         if p != displayIndex:
             return p
-    # advance from display until a different slot
-    idx = nextRingIndex(displayIndex, ringSize)
-    return idx
+    return nextRingIndex(displayIndex, ringSize)
 
 
 def shouldSkipPresent(*, slotSeq: int, lastPresentedSeq: int | None) -> bool:
