@@ -1,13 +1,12 @@
 # Requirements — SCRCPY emitter / bridge
 
-## Done (A–C)
+## Done (A–D)
 
 - **FR-A:** `toScrcpy`, `SCRCPYError`, `asyncRaiseEvent`.
 - **FR-B:** Message types under `emitters/scrcpy/`.
-- **FR-C1:** `ScrcpyRealBridge` owns emitter; Initialize/Start/Stop; Metadata/Error out.
-- **FR-C2:** `ScrcpyProxyBridge` commands + receive surface; correlated initialize.
-- **FR-C3:** Smoke under `.test/smoke/scrcpy/` with stub emitter (no ADB).
+- **FR-C1–C3:** Real/proxy bridges, correlated initialize, smoke without ADB.
+- **FR-D:** Inventory / documentation close-out for this track.
 
-## Deferred
+## Deferred (separate tracks)
 
-Frame transport, shared memory, process host, UI.
+Frame transport, shared memory, process host, UI integration, control injection.
