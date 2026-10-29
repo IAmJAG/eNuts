@@ -3,7 +3,7 @@ from __future__ import annotations
 
 # ==================================================================================
 from asyncio import Event
-from typing import Any, Awaitable, Callable
+from typing import TYPE_CHECKING, Any, Awaitable, Callable
 from uuid import UUID
 
 # ==================================================================================
@@ -20,7 +20,10 @@ from .__messages import (
     ScrcpyStopMessage,
 )
 from .__payloads import ScrcpyInitParams
-from .__SCRCPYEmitter import SCRCPYEmitter
+
+# ==================================================================================
+if TYPE_CHECKING:
+    from .__SCRCPYEmitter import SCRCPYEmitter
 
 # ==================================================================================
 MetadataCallback = Callable[[SCRCPY], Awaitable[None] | None]
@@ -65,6 +68,8 @@ class ScrcpyRealBridge(Bridge):
         await self.send(ScrcpyErrorMessage(payload=err))
 
     def _snapshot(self, params: ScrcpyInitParams) -> SCRCPY:
+        from .__SCRCPYEmitter import SCRCPYEmitter
+
         if isinstance(self._emitter, SCRCPYEmitter):
             return SCRCPYEmitter.toScrcpy(self._emitter)
         scrcpy = SCRCPY(serial=params.serial, name=getattr(self._emitter, "name", None))
@@ -92,6 +97,8 @@ class ScrcpyRealBridge(Bridge):
 
         try:
             if self._emitter is None:
+                from .__SCRCPYEmitter import SCRCPYEmitter
+
                 self._emitter = SCRCPYEmitter(serial=params.serial)
                 self._wireEmitter(self._emitter)
 
