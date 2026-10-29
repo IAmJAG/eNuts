@@ -30,7 +30,7 @@ class iDeviceStream(Protocol):
 class StreamFrameBridge(QObject):
     """Qt-thread marshal for stream presents."""
 
-    frameReady: SignalInstance = Signal(object, object)  # header-like dict, QImage|None
+    frameReady: SignalInstance = Signal(object, object)
 
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
@@ -38,19 +38,15 @@ class StreamFrameBridge(QObject):
 
 # ==================================================================================
 class LocalDeviceStream:
-    """In-process stream: deviceManager emitter → FrameRing → GLImage.presentExternal.
+    """In-process: emitter ON_FRAME → decode → QImage → GLImage.presentExternal."""
 
-    Transitional pixel path uses QImage from existing decode. GPU-handle path is
-    reserved on presentExternal(handle=...).
-    """
-
-    def __init__(self, deviceManager: Any) -> None:
+    def __init__(self, deviceManager: Any, parent: QObject | None = None) -> None:
         self._mgr = deviceManager
         self._view: Any = None
         self._serial: str | None = None
         self._handler: Callable | None = None
         self._ring = FrameRing()
-        self._bridge = StreamFrameBridge()
+        self._bridge = StreamFrameBridge(parent)
         self._lastSeq: int | None = None
         self._bridge.frameReady.connect(self._onQtFrame)
 
@@ -92,9 +88,16 @@ class LocalDeviceStream:
         def _onFrame(frame: object) -> None:
             try:
                 if getattr(frame, "isConfig", False):
+                    decode = getattr(frame, "decode", None)
+                    codec = getattr(emitter, "_codecContext", None)
+                    if decode is not None and codec is not None:
+                        try:
+                            decode(codec, toGPU=False)
+                        except Exception:
+                            pass
                     return
                 qimg = self._frameToQImage(frame, emitter)
-                if qimg is None:
+                if qimg is None or qimg.isNull():
                     return
                 hdr = self._ring.publish(
                     width=qimg.width(),
@@ -112,6 +115,7 @@ class LocalDeviceStream:
 
         emitter.subscribe(C_ON_FRAME, _onFrame)
         self._handler = _onFrame
+        verbose(f"[LocalDeviceStream] subscribed ON_FRAME serial={serial!r}")
 
     def _onQtFrame(self, meta: object, image: object) -> None:
         view = self._view
@@ -122,12 +126,14 @@ class LocalDeviceStream:
         seq = int(meta.get("seq", 0))
         if shouldSkipPresent(slotSeq=seq, lastPresentedSeq=self._lastSeq):
             return
+        if not isinstance(image, QImage) or image.isNull():
+            return
         ok = view.presentExternal(
             seq=seq,
-            width=int(meta.get("w", 0)),
-            height=int(meta.get("h", 0)),
+            width=int(meta.get("w", 0)) or image.width(),
+            height=int(meta.get("h", 0)) or image.height(),
             pts=int(meta.get("pts", 0)),
-            image=image if isinstance(image, QImage) else None,
+            image=image,
         )
         if ok:
             self._lastSeq = seq
@@ -170,16 +176,9 @@ class LocalDeviceStream:
 
 # ==================================================================================
 class IpcDeviceStream:
-    """Cross-process stream consumer — blocked on GPU handle interop (see plan).
-
-    Raises NotImplementedError until platform importer + worker export handles.
-    """
-
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError(
-            "IpcDeviceStream requires cross-process GPU interop (DMABUF/shared "
-            "texture). FrameSlotHeader + FrameRing are ready; implement platform "
-            "importer before enabling IPC stream mode."
+            "IpcDeviceStream deferred; use LocalDeviceStream (in-process SW path)."
         )
 
 
