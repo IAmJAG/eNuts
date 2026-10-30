@@ -99,8 +99,7 @@ def _wrap_init(cls: type, original_init: Callable) -> None:
             original_init(self, *init_args, **init_kwargs)
 
         except BaseException:
-            if outermost:
-                delattr(self, _WORKFLOW_GUARD)
+            if outermost: delattr(self, _WORKFLOW_GUARD)
             raise
 
         if outermost:
