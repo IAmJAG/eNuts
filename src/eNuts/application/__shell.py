@@ -6,6 +6,7 @@ from traceback import format_exc
 
 # ==================================================================================
 from PySide6.QtCore import QRect, QSettings, Qt
+from PySide6.QtWidgets import QMainWindow
 
 # ==================================================================================
 from jAGQt.types.interface.window import iMainWindowBase
@@ -21,26 +22,13 @@ from .workspace import WorkSpace
 
 # ==================================================================================
 class Shell(ApplicationInformation):
-    def _wInitializeUI(self: iMainWindowBase) -> None:
+    def _wInitializeUI(self: iMainWindowBase | QMainWindow) -> None:
         verbose(f"[{self.__class__.__name__}] _wInitializeUI ENTER")
         try:
-            mgr = deviceManager(self._shutdownEvent)
-
-            central: WorkSpace = WorkSpace(deviceMgr=mgr, title=self.title)
+            # parent are preset before setting the central widget
+            central: WorkSpace = WorkSpace(title=self.title, parent=self)
             self.setCentralWidget(central)
-            self._workSpace = central
-            self._deviceManager = mgr
-
-            # Controller persists across page strip — bind still runs so
-            # bindPage/command wiring can be inspected against a basic Page.
-            recorder = KGRecorder(self)
-            recorder.setDeviceManager(mgr)
-            self._kgRecorder = recorder
-            self._bindKGRecorder(central, recorder)
-
-            mgr.runDiscovery()
-            verbose("[Shell] deviceManager.runDiscovery started")
-
+            
         except Exception as ex:
             error(f"[{self.__class__.__name__}] _wInitializeUI FAIL", ex)
             error(f"[{self.__class__.__name__}] traceback:\n{format_exc()}")

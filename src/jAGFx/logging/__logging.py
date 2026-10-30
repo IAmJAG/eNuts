@@ -33,43 +33,43 @@ def _resolveErr(err: Exception | None) -> Exception | None:
     return None
 
 # ==================================================================================
-def trace(message: str | tuple | list | dict, err: Exception = None):
-    log(messages=message, level=TRACE, err=err)
+def trace(message: str | tuple | list | dict, err: Exception = None, *args, **kwargs):
+    log(messages=message, level=TRACE, err=err, *args, **kwargs)
 
 # ==================================================================================
-def verbose(message: str | tuple | list | dict, err: Exception = None):
-    log(messages=message, level=VERBOSE, err=err)
+def verbose(message: str | tuple | list | dict, err: Exception = None, *args, **kwargs):
+    log(messages=message, level=VERBOSE, err=err, *args, **kwargs)
 
 # ==================================================================================
-def debug(message: str | tuple | list | dict, err: Exception = None):
-    log(messages=message, level=DEBUG, err=err)
+def debug(message: str | tuple | list | dict, err: Exception = None, *args, **kwargs):
+    log(messages=message, level=DEBUG, err=err, *args, **kwargs)
 
 # ==================================================================================
-def info(message: str | tuple | list | dict, err: Exception = None):
-    log(messages=message, level=INFO, err=err)
+def info(message: str | tuple | list | dict, err: Exception = None, *args, **kwargs):
+    log(messages=message, level=INFO, err=err, *args, **kwargs)
 
 # ==================================================================================
-def warning(message: str | tuple | list | dict, err: Exception = None):
-    log(messages=message, level=WARNING, err=err)
+def warning(message: str | tuple | list | dict, err: Exception = None, *args, **kwargs):
+    log(messages=message, level=WARNING, err=err, *args, **kwargs)
 
 # ==================================================================================
-def error(message: str | tuple | list | dict, err: Exception = None):
+def error(message: str | tuple | list | dict, err: Exception = None, *args, **kwargs):
     lErr = _resolveErr(err)
     log(messages=message, level=ERROR, err=lErr)
     if err is not None:
         _exitOnError(err)
 
 # ==================================================================================
-def critical(message: str | tuple | list | dict, err: Exception = None):
+def critical(message: str | tuple | list | dict, err: Exception = None, *args, **kwargs):
     lErr = _resolveErr(err)
     log(messages=message, level=CRITICAL, err=lErr)
     if err is not None:
         _exitOnError(err)
 
 # ==================================================================================
-def fatal(message: str | tuple | list | dict, err: Exception = None):
+def fatal(message: str | tuple | list | dict, err: Exception = None, *args, **kwargs):
     lErr = _resolveErr(err)
-    log(messages=message, level=FATAL, err=lErr)
+    log(messages=message, level=FATAL, err=lErr, *args, **kwargs)
     if err is not None:
         _exitOnError(err)
 

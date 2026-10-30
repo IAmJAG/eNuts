@@ -62,7 +62,6 @@ PAGE_AND_MENU: Dict[str, Dict[str, Any]] = {
 }
 
 
-# ==================================================================================
 def resolvePageClass(typePath: str) -> Type[Page]:
     path = (typePath or "").strip() or C_DEFAULT_PAGE_TYPE
     if "." not in path:
@@ -72,28 +71,27 @@ def resolvePageClass(typePath: str) -> Type[Page]:
     modulePath, _, className = path.rpartition(".")
     module = import_module(modulePath)
     cls = getattr(module, className, None)
+
     if cls is None:
-        raise AttributeError(
-            f"module {modulePath!r} has no attribute {className!r}"
-        )
+        raise AttributeError(f"module {modulePath!r} has no attribute {className!r}")
+    
     if not isinstance(cls, type):
         raise TypeError(f"page type {path!r} is not a class")
-    return cls  # type: ignore[return-value]
+    
+    return cls
 
 
 # ==================================================================================
 def buildBlankPage(key: str, title: str, description: str = "") -> Page:
     page = Page(title=title, description=description, id=key)
-    verbose(f"[pages] blank page key={key!r} title={title!r}")
+    verbose(f"blank page key={key!r} title={title!r}")
     return page
-
 
 # ==================================================================================
 def _flattenEntries(section: Dict[str, Any]) -> list[tuple[str, Dict[str, Any]]]:
     out: list[tuple[str, Dict[str, Any]]] = []
     for pageId, entry in section.items():
-        if not isinstance(entry, dict):
-            continue
+        if not isinstance(entry, dict): continue
         out.append((pageId, entry))
         nested = entry.get("MENU")
         if isinstance(nested, dict):
@@ -102,17 +100,20 @@ def _flattenEntries(section: Dict[str, Any]) -> list[tuple[str, Dict[str, Any]]]
 
 
 # ==================================================================================
-def _instantiatePage(pageId: str, entry: Dict[str, Any]) -> Page:
+def instantiatePage(pageId: str, entry: Dict[str, Any]) -> Page:
+
     title = str(entry.get("title") or pageId)
     description = str(entry.get("description") or "")
     typePath = str(entry.get("type") or C_DEFAULT_PAGE_TYPE)
+    
     try:
         cls = resolvePageClass(typePath)
+
     except Exception as ex:
         warning(
-            f"[pages] resolve type={typePath!r} for key={pageId!r} failed: {ex}; "
+            f"resolve type={typePath!r} for key={pageId!r} failed: {ex}; "
             f"falling back to {C_DEFAULT_PAGE_TYPE}"
-        )
+        )        
         cls = Page
 
     commandBarOn = bool(entry.get("commandBar", False))
@@ -121,27 +122,19 @@ def _instantiatePage(pageId: str, entry: Dict[str, Any]) -> Page:
             title=title, description=description,
             commandBarOn=commandBarOn, id=pageId,
         )
+
     except TypeError:
         page = cls(title=title, description=description, id=pageId)
 
-    verbose(
-        f"[pages] page key={pageId!r} type={typePath!r} class={cls.__name__}"
-    )
+    verbose(f"page key={pageId!r} type={typePath!r} class={cls.__name__}")
     return page
 
-
-# ==================================================================================
+@managedCall
 def buildNavigationPages() -> dict[str, Page]:
     pages: dict[str, Page] = {}
     for sectionName in ("CONTENT", "FOOTER"):
         section = PAGE_AND_MENU.get(sectionName) or {}
         for pageId, entry in _flattenEntries(section):
-            if pageId in pages:
-                continue
-            pages[pageId] = _instantiatePage(pageId, entry)
-
-    if PAGE_DEVICES not in pages:
-        pages[PAGE_DEVICES] = buildBlankPage(
-            PAGE_DEVICES, "Devices", "Device summary"
-        )
-    return pages
+            if pageId in pages: continue
+            pages[pageId] = instantiatePage(pageId, entry)
+    

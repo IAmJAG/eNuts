@@ -4,18 +4,19 @@ from logging import Formatter
 # ==================================================================================
 import colorlog
 
+from .. import __utilities
+
 # ==================================================================================
 from ..data import CallerInformation
 
-fmtList = [
+G_LOG_FORMAT = [
     "%(light_black)s[%(asctime)s]%(reset)s",
     "%(log_color)s[%(levelname)-8s]%(reset)s ",
-    "%(log_color)s[%(name)-8s]%(reset)s ",
+    "%(message_log_color)s[%(domain)-8s]%(reset)s ",
+    "%(message_log_color)s[%(member)-8s]%(reset)s ",
     "%(message_log_color)s%(message)s%(reset)s",
 ]
-# "%(log_color)s[%(caller)-8s]%(reset)s ",
-# "%(log_color)s[%(name)-8s]%(reset)s ",
-C_LOG_FORMAT = "".join(fmtList)
+G_LOG_FORMAT = "".join(G_LOG_FORMAT)
 C_LOG_COLORS = {
     "DEBUG": "light_black",
     "INFO": "cyan",
@@ -42,7 +43,7 @@ class DefaultFormatter(Formatter):
     def __init__(self, fmt=None, datefmt=None, style="%", validate=True):
         super().__init__(fmt, datefmt, style, validate)
         lFormatter: colorlog.ColoredFormatter = colorlog.ColoredFormatter(
-            fmt=C_LOG_FORMAT,
+            fmt=G_LOG_FORMAT,
             datefmt="%Y%m%d %H%M%S",
             log_colors=C_LOG_COLORS,
             secondary_log_colors=C_SECONDARY_COLORS,
@@ -55,7 +56,7 @@ class DefaultFormatter(Formatter):
             lCaller = getattr(record, "caller", None)
             if lCaller is None:
                 lCaller = CallerInformation("", "", "NOT", "MINE", "", 0)
-                setattr(record, "caller", lCaller)
+                setattr(record, "caller", lCaller)                
 
             lOMsg = record.msg
             lLines = str(lOMsg).splitlines()

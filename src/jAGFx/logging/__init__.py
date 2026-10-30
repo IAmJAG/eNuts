@@ -13,6 +13,7 @@ from .__logging import (
 )
 from .__utilities import (
     addFileHandler,
+    managedCall,
     removeFileHandler,
     setNamespaceLevel,
     setupLogging,
@@ -26,6 +27,7 @@ __all__ = [
     "setNamespaceLevel",
     "setupLogging",
     "addFileHandler",
+    "managedCall",
     "VERBOSE",
     "verbose",
     "TRACE",

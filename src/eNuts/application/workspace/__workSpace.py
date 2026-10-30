@@ -3,15 +3,14 @@ from __future__ import annotations
 
 # ==================================================================================
 from traceback import format_exc
-from typing import Callable, Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set
 
 # ==================================================================================
-from PySide6.QtCore import Qt, Signal, SignalInstance
+from PySide6.QtCore import QSettings, Qt
 from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QStackedWidget, QWidget
 
 # ==================================================================================
-from fluxCore.emitters.scrcpy import SCRCPYEmitter
 from fluxCore.types.interface.device import iDevice
 from jAGFx.workflow import workflow
 from jAGQt.options import AnimationOptions, SideBarOptions
@@ -21,6 +20,7 @@ from jAGQt.widgets.sideBar import SideBar, SideBarMenuItem, eSideBarState
 from utilities.io import getICONPath
 
 # ==================================================================================
+from ...types.interface.UI.windows import iENUTSWindow
 from ...UI.navigation import (
     G_DEVICE_KEY_PREFIX,
     G_DEVICE_NONE,
@@ -54,40 +54,26 @@ C_ON_FRAME = "ON_FRAME"
 @workflow("InitializeUI", "RegisterPages", "BuildMenu")
 class WorkSpace(ComponentBase, ObjectName, QWidget):
     OBJECT_NAME = "W_WORKSPACE"
+    @managedCall
+    def __init__(self,title: str = "eNuts", *args, **kwargs) -> None:    
+        super().__init__(*args, **kwargs)
+        self._sideBar: Optional[SideBar] = None
+        self._stack: Optional[QStackedWidget] = None
+        self._pages: Dict[str, Page] = {}
+        self._pageIndex: Dict[str, int] = {}
+        self._title: str = title
+        self._settings: Optional[QSettings] = None
 
-    _sigDevicesReady: SignalInstance = Signal(object)
-    _sigDeviceAdded: SignalInstance = Signal(object)
-    _sigDeviceRemoved: SignalInstance = Signal(object)
+    @property
+    def settings(self) -> QSettings:
+        if self._settings is None: warning("Settings not yet initialized")
+        return self._settings
 
-    def __init__(
-        self, deviceMgr: Optional[deviceManager] = None,
-        title: str = "eNuts", *args, **kwargs
-    ) -> None:
-        debug(f"[{self.__class__.__name__}] __init__ ENTER")
-        try:
-            super().__init__(*args, **kwargs)
-            self._sideBar: Optional[SideBar] = None
-            self._stack: Optional[QStackedWidget] = None
-            self._pages: Dict[str, Page] = {}
-            self._pageIndex: Dict[str, int] = {}
-            self._title: str = title
+    @managedCall
+    def _buildSideBar(self) -> SideBar:                
+        verbose("building sideBar")
+        settings: QSettings = self.settings
 
-            self._devicesHeader: Optional[SideBarMenuItem] = None
-            self._deviceManager: Optional[deviceManager] = deviceMgr
-            self._devicePageKeys: Set[str] = set()
-            self._activeStreamSerial: Optional[str] = None
-            self._frameHandlerBySerial: Dict[str, Callable] = {}
-            # Long-lived bridges (survive page teardown order issues).
-            self._bridges: Dict[str, DeviceFrameBridge] = {}
-
-        except Exception as ex:
-            error(f"[{self.__class__.__name__}] __init__ FAIL", ex)
-
-        finally:
-            objName: str = f"{self.objectName()!r}"
-            debug(f"[{self.__class__.__name__}] __init__ EXIT objectName={objName}")
-
-    def _buildSideBar(self) -> SideBar:
         expandPath: str = getICONPath("expand.png")
         collapsePath: str = getICONPath("collapse.png")
 
@@ -96,55 +82,54 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             name="RubberBand", durationMs=C_SIDEBAR_ANIMATION_MS
         )
 
+        state: eSideBarState = settings.value("sideBarState", eSideBarState.Expanded)
         return SideBar(
             icons={
                 eSideBarState.Expanded: collapsePath,
                 eSideBarState.Collapsed: expandPath,
             },
-            title=self._title,
-            initialState=eSideBarState.Expanded,
-            options=sideBarOptions,
-            animationOptions=animationOptions,
+            title = self._title,
+            initialState = state,
+            options = sideBarOptions,
+            animationOptions = animationOptions,
         )
 
-    def _wInitializeUI(self) -> None:
-        debug("[WorkSpace] _wInitializeUI ENTER")
+    @managedCall
+    def _wInitializeUI(self) -> None:        
         super()._wInitializeUI()
-        try:
-            sideBar = self._buildSideBar()
 
-            stack: QStackedWidget = QStackedWidget()
-            stack.setSizePolicy(QSPolicy.Expanding, QSPolicy.Expanding)
+        parent: iENUTSWindow = self.Parent        
+        if parent is not None: 
+            qSettings = parent.settings
+            
+        if qSettings is None:
+            qSettings = QSettings()
+            warning("Settings invalid settings")
+        
+        self._settings: QSettings = qSettings
+        
+        sideBar = self._buildSideBar()
+        stack: QStackedWidget = QStackedWidget()
+        stack.setSizePolicy(QSPolicy.Expanding, QSPolicy.Expanding)
 
-            layout: QBoxLayout = QBoxLayout(QBoxLayout.Direction.LeftToRight)
-            layout.setSpacing(0)
-            layout.setContentsMargins(0, 0, 0, 0)
-            layout.addWidget(sideBar)
-            layout.addWidget(stack, 1)
+        layout: QBoxLayout = QBoxLayout(QBoxLayout.Direction.LeftToRight)
+        layout.setSpacing(0)
+        layout.setContentsMargins(0, 0, 0, 0)
 
-            if hasattr(self, "_layout"):
-                self._layout = layout
+        layout.addWidget(sideBar)
+        layout.addWidget(stack, 1)
 
-            self.setLayout(layout)
+        if hasattr(self, "_layout"): self._layout = layout
+        self.setLayout(layout)
 
-            self._sideBar = sideBar
-            self._stack = stack
+        self._sideBar = sideBar
+        self._stack = stack
 
-            self._sigDevicesReady.connect(self._onDevicesReadyUi)
-            self._sigDeviceAdded.connect(self._onDeviceAddedUi)
-            self._sigDeviceRemoved.connect(self._onDeviceRemovedUi)
-            self._bindDeviceManager(self._deviceManager)
-
-            debug("[WorkSpace] _wInitializeUI EXIT")
-
-        except Exception as ex:
-            error("[WorkSpace] _wInitializeUI FAIL", ex)
-
+    @managedCall
     def _wRegisterPages(self) -> None:
-        debug("[WorkSpace] _wRegisterPages ENTER")
         stack = self._stack
         if stack is None:
-            warning("[WorkSpace] _wRegisterPages skipped: stack not built")
+            warning("skipped: stack not built")
             return
 
         pages = buildNavigationPages()
@@ -152,11 +137,9 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             idx = stack.addWidget(page)
             self._pages[key] = page
             self._pageIndex[key] = idx
-
+        
         if PAGE_DASHBOARD in self._pageIndex:
             stack.setCurrentIndex(self._pageIndex[PAGE_DASHBOARD])
-
-        debug(f"[WorkSpace] _wRegisterPages EXIT count={len(pages)}")
 
     def _wBuildMenu(self) -> None:
         sideBar = self._sideBar
@@ -344,7 +327,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
         mgr.subscribe(DEVICE_INITIALIZED_EVENT, self._onDevicesReadyEvent)
         mgr.subscribe(DEVICE_ADDED_EVENT, self._onDeviceAddedEvent)
         mgr.subscribe(DEVICE_REMOVED_EVENT, self._onDeviceRemovedEvent)
-        debug("[WorkSpace] subscribed to deviceManager events")
+        debug("subscribed to deviceManager events")
 
     def _onDevicesReadyEvent(self, mgr: object) -> None:
         self._sigDevicesReady.emit(mgr)

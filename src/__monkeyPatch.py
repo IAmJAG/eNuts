@@ -13,6 +13,7 @@ from jAGFx.logging import (
     error,
     fatal,
     info,
+    managedCall,
     removeFileHandler,
     setNamespaceLevel,
     setupLogging,
@@ -92,6 +93,7 @@ setattr(builtins, "info", info)
 setattr(builtins, "warning", warning)
 setattr(builtins, "critical", critical)
 setattr(builtins, "fatal", fatal)
+setattr(builtins, "managedCall", managedCall)
 
 # ==================================================================================================
 # GLOBAL functions - string

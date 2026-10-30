@@ -5,7 +5,7 @@ from traceback import FrameSummary, format_exception
 
 # ==================================================================================================
 from types import FrameType, ModuleType
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List, Set, Type
 
 # ==================================================================================================
 IGNORE_MODULES = (
@@ -14,6 +14,7 @@ IGNORE_MODULES = (
     "importlib",
     "_frozen_importlib",
     "jAGFx.logging",
+    "jAGFx.workflow",
 )
 # ==================================================================================================
 
@@ -51,11 +52,27 @@ def FormatFrame(frame: FrameSummary, fullfilename: bool = False) -> str:
 
 # ==================================================================================================
 def getFrameInfo(frame: FrameType): 
+    module: str = ""
+
+    cls: Type = frame.f_locals.get("__class__", None)
+    if cls is None:
+        self = frame.f_locals.get("self", None)
+        if self is not None:
+            cls = type(self)
+
+        else:
+            cls = frame.f_locals.get("cls")
+
+    clsName: str = cls.__name__ if cls is not None else ""
+        
+    if "__name__" in frame.f_globals:
+        module = frame.f_globals["__name__"].split(".")[-1]
+
     return {
         "File": frame.f_code.co_filename or "",
         "Package": frame.f_globals["__package__"] or "",
-        "Module": frame.f_globals["__name__"] or "",
-        "Class": frame.f_locals.get("__class__", None).__name__ if frame.f_locals.get("__class__", None) else "" or "",
+        "Module": module,
+        "Class": clsName,
         "Member": frame.f_code.co_name or "",
         "LineNo": frame.f_lineno or -1,
     }

@@ -28,6 +28,10 @@ class BaseSourceInformation(iSourceInformation):
         return fqn
 
     @property
+    def sns(self) -> str:        
+        return f"{self.Package if not self.Class else self.Class}.{self.Member}"
+
+    @property
     def File(self) -> str:
         return self._file
     

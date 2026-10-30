@@ -9,7 +9,7 @@ from utilities import StripAnsi, formatTrace, getCallersFrame, getFrameInfo
 
 # ==================================================================================
 from ..types import isListOfT
-from .data import CallerInformation
+from .data import BaseSourceInformation, CallerInformation
 
 # ==================================================================================
 LOGLOCK: RLock = RLock()
@@ -42,16 +42,23 @@ def log(
     err: Exception = None,
     frame: FrameType = None,
 ) -> None:
-    if frame is None:
-        frame = getCallersFrame()
+    if frame is None: frame = getCallersFrame()
+
     if frame is None:
         raise ValueError("Could not determine caller's frame.")
 
     lFrameInfo = getFrameInfo(frame)
-    lCallerInfo = CallerInformation(**lFrameInfo)
+    lCallerInfo: BaseSourceInformation = CallerInformation(**lFrameInfo)    
 
-    lExtra: Dict[str, CallerInformation] = dict[str, CallerInformation](
-        {"caller": lCallerInfo}
+    lExtra: Dict[str, str] = dict[str, str](
+        {
+            "caller": lCallerInfo,
+            "sns": lCallerInfo.sns,
+            "domain": lCallerInfo.Module if not lCallerInfo.Class else lCallerInfo.Class,
+            "member": lCallerInfo.Member,
+            "file": lCallerInfo.File,
+            "package": lCallerInfo.Package,            
+        }        
     )
 
     if isinstance(messages, str):
