@@ -49,27 +49,28 @@ C_SIDEBAR_ANIMATION_MS: int = 280
 C_ON_FRAME = "ON_FRAME"
 # ==================================================================================
 
-
 # ==================================================================================
 @workflow("InitializeUI", "RegisterPages", "BuildMenu")
 class WorkSpace(ComponentBase, ObjectName, QWidget):
     OBJECT_NAME = "W_WORKSPACE"
-    @managedCall
-    def __init__(self,title: str = "eNuts", *args, **kwargs) -> None:    
-        super().__init__(*args, **kwargs)
+    def __init__(self,title: str = "eNuts", *args, **kwargs) -> None:        
+        super().__init__(*args, **kwargs)        
+
+        trace("ENTER")
         self._sideBar: Optional[SideBar] = None
         self._stack: Optional[QStackedWidget] = None
         self._pages: Dict[str, Page] = {}
-        self._pageIndex: Dict[str, int] = {}
-        self._title: str = title
+        self._pageIndex: Dict[str, int] = {}        
         self._settings: Optional[QSettings] = None
+
+        self._title: str = title
+        trace("EXIT")
 
     @property
     def settings(self) -> QSettings:
         if self._settings is None: warning("Settings not yet initialized")
         return self._settings
 
-    @managedCall
     def _buildSideBar(self) -> SideBar:                
         verbose("building sideBar")
         settings: QSettings = self.settings
@@ -94,7 +95,6 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             animationOptions = animationOptions,
         )
 
-    @managedCall
     def _wInitializeUI(self) -> None:        
         super()._wInitializeUI()
 
@@ -125,7 +125,6 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
         self._sideBar = sideBar
         self._stack = stack
 
-    @managedCall
     def _wRegisterPages(self) -> None:
         stack = self._stack
         if stack is None:

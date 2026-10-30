@@ -15,13 +15,10 @@ from logging import (
     getLogger,
 )
 from logging.handlers import QueueHandler, QueueListener
-from types import FrameType
 from typing import Any, Dict, List
 
 # ==================================================================================
 import colorlog
-
-from utilities import getCallersFrame
 
 # ==================================================================================
 from .filters import NamespaceFilter
@@ -54,7 +51,6 @@ DEF_FILE_FORMATTER: Dict[str, Any] = (
 )
 
 
-# ==================================================================================
 fmtList = [
     "%(light_black)s[%(asctime)s]%(reset)s",    
     "%(log_color)s[%(levelname)-8s]%(reset)s ",
@@ -157,10 +153,8 @@ def setupLogging(root: str, defaultLevel: int = G_DEFAULT_LEVEL) -> None:
 
 # ==================================================================================
 def addFileHandler(
-    name: str,
-    defaultLevel: int = G_DEFAULT_LEVEL,
-    formatter: Formatter = DEF_FILE_FORMATTER,
-    filter: Filter = None,
+    name: str, defaultLevel: int = G_DEFAULT_LEVEL,
+    formatter: Formatter = DEF_FILE_FORMATTER, filter: Filter = None,
 ) -> None:
     global G_ACTIVE_HANDLERS, G_DEFAULT_LEVEL
     G_DEFAULT_LEVEL = defaultLevel
@@ -217,39 +211,30 @@ def unsuppressedLogger(name: str | List[str]) -> None:
 # ==================================================================================
 def stopLogging():
     global G_LOG_LISTENER
-    if G_LOG_LISTENER is not None:
-        G_LOG_LISTENER.stop()
+    if G_LOG_LISTENER is not None: G_LOG_LISTENER.stop()
 
 def managedCall(func):
     if inspect.iscoroutinefunction(func):
         @wraps(func)        
-        async def _asyncWrapper(*args, **kwargs):
-            frame: FrameType = getCallersFrame()
-            try:
-                verbose("ENTER", frame=frame)                
+        async def _asyncWrapper(*args, **kwargs):            
+            try:                            
                 return await func(*args, **kwargs)
             
             except Exception as ex:
-                error("FAIL", err=ex, frame=frame)
+                error("FAIL", err=ex)
                 raise ex
 
             finally:
-                verbose("DONE", frame=frame)                
+                verbose("DONE")                
 
         return _asyncWrapper
 
     @wraps(func)
     def _syncWrapper(*args, **kwargs):
-        frame: FrameType = getCallersFrame()
         try:
-            verbose("ENTER", frame=frame)     
             return func(*args, **kwargs)
         
         except Exception as ex:
-            error("FAIL", err=ex, frame=frame)
             raise ex
-        
-        finally:
-            verbose("DONE", frame=frame)
 
     return _syncWrapper
