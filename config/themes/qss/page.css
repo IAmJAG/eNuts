@@ -1,36 +1,119 @@
-/* Page chrome — font-size in pt (not px) so QFont.pointSize() is never -1 under QSS. */
+/* ==================================================================================
+ * Page / Header / command-bar surface tokens (resolved $vars from theme).
+ * font-size uses pt so QFont.pointSize() is valid under QSS (px → pointSize -1).
+ * ================================================================================== */
 
+/* ---------- Page root ---------- */
 QWidget#W_PAGE {
-    background: $background;
+    background: $bg;
+    color: $text;
 }
 
+/* ---------- Page header strip ---------- */
+QWidget#W_PAGE > QWidget#W_PAGE_HEADER,
 QWidget#W_PAGE_HEADER {
     background: $surface;
     border-bottom: 1px solid $border;
+    padding: 12px 16px;
+    min-height: 40px;
 }
 
-QWidget#W_PAGE_HEADER QLabel#W_TITLE,
-QWidget#W_PAGE_HEADER QLabel#W_PAGE_HEADER_TITLE {
+/* Title / description live as W_TITLE / W_DESCRIPTION under the header */
+QWidget#W_PAGE_HEADER > QLabel#W_TITLE,
+QWidget#W_PAGE_HEADER QLabel#W_TITLE {
     color: $text;
-    font-weight: 700;
     font-size: 18pt;
+    font-weight: 600;
+    background: transparent;
+    padding-top: 7px;
+    padding-left: 7px;
 }
 
-QWidget#W_PAGE_HEADER QLabel#W_DESCRIPTION,
-QWidget#W_PAGE_HEADER QLabel#W_PAGE_HEADER_DESCRIPTION {
+QWidget#W_PAGE_HEADER > QLabel#W_DESCRIPTION,
+QWidget#W_PAGE_HEADER QLabel#W_DESCRIPTION {
     color: $textMuted;
     font-size: 12pt;
+    font-weight: 400;
+    background: transparent;
+    padding-left: 7px
 }
 
-QWidget#W_PAGE_CONTENT {
-    background: $background;
+QWidget#W_PAGE_HEADER QLabel#W_ICON,
+QWidget#W_PAGE_HEADER QWidget#W_ICON {
+    background: transparent;
 }
 
-QWidget#W_COMMAND_BAR {
+/* Standalone Header (non-page) — same tokens */
+QWidget#W_HEADER {
+    background: $surface;
+    border-bottom: 1px solid $border;
+    padding: 12px 16px;
+    color: $text;
+}
+
+QWidget#W_HEADER QLabel#W_TITLE {
+    color: $text;
+    font-size: 18pt;
+    font-weight: 600;
+    background: transparent;
+}
+
+QWidget#W_HEADER QLabel#W_DESCRIPTION {
+    color: $textMuted;
+    font-size: 12pt;
+    background: transparent;
+}
+
+/* ---------- Content host ---------- */
+QWidget#W_PAGE > QWidget#W_PAGE_CONTENT {
+    background: $bg;
+    color: $text;
+    padding: 12px 16px;
+}
+
+/* Content children should not force opaque panels unless themed */
+QWidget#W_PAGE_CONTENT > QWidget {
+    background: transparent;
+    color: $text;
+}
+
+/* ---------- Page command bar (footer of page) ---------- */
+QWidget#W_PAGE > QWidget#W_COMMANDBAR {
     background: $surface;
     border-top: 1px solid $border;
+    padding: 6px 12px;
+    min-height: 40px;
 }
 
-QWidget#W_COMMAND_BAR QLabel {
-    font-size: 12pt;
+QWidget#W_PAGE > QWidget#W_COMMANDBAR QPushButton,
+QWidget#W_PAGE QPushButton#C_COMMANDBAR_BUTTON {
+    background: $control;
+    color: $text;
+    border: 1px solid $border;
+    border-radius: 0px;
+    padding: 5px 12px;
+}
+
+QWidget#W_PAGE > QWidget#W_COMMANDBAR QPushButton:hover,
+QWidget#W_PAGE QPushButton#C_COMMANDBAR_BUTTON:hover {
+    background: $hover;
+    border-color: $accentAlt;
+    color: $text;
+}
+
+QWidget#W_PAGE > QWidget#W_COMMANDBAR QPushButton:pressed,
+QWidget#W_PAGE QPushButton#C_COMMANDBAR_BUTTON:pressed {
+    background: $selected;
+    border-color: $accent;
+}
+
+QWidget#W_PAGE > QWidget#W_COMMANDBAR QPushButton:disabled,
+QWidget#W_PAGE QPushButton#C_COMMANDBAR_BUTTON:disabled {
+    color: $disabled;
+    background: $surface;
+    border-color: $border;
+}
+
+QWidget#W_PAGE QWidget#C_COMMANDBAR_GROUP {
+    background: transparent;
 }
