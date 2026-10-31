@@ -6,7 +6,7 @@ from traceback import format_exc
 from typing import Optional
 
 # ==================================================================================
-from PySide6.QtCore import QRect, QSettings, Qt
+from PySide6.QtCore import QByteArray, QRect, QSettings, Qt
 from PySide6.QtWidgets import QMainWindow
 
 # ==================================================================================
@@ -78,18 +78,26 @@ class Shell(ApplicationInformation):
         self.restoreWindowsState()
 
     def saveWindowState(self) -> None:
-        self.settings.setValue("geometry", self.geometry())
+        # saveGeometry encodes normal size/pos + maximized/fullscreen.
+        # geometry() alone is the *current* frame (maximized rect) and loses normal size.
+        self.settings.setValue("geometry", self.saveGeometry())
         self.settings.setValue("windowState", int(self.windowState().value))
 
     def restoreWindowsState(self) -> None:
         if self.settings.contains("geometry"):
             geo = self.settings.value("geometry")
-            if isinstance(geo, QRect) and geo.isValid():
+            if isinstance(geo, QByteArray) and not geo.isEmpty():
+                self.restoreGeometry(geo)
+            elif isinstance(geo, (bytes, bytearray)) and len(geo) > 0:
+                self.restoreGeometry(QByteArray(geo))
+            elif isinstance(geo, QRect) and geo.isValid():
+                # Legacy: plain QRect from older builds (no normal-size memory).
                 self.setGeometry(geo)
 
         if self.settings.contains("windowState"):
             try:
                 state = int(self.settings.value("windowState"))
+                # Re-apply after geometry so maximized/minimized matches last close.
                 self.setWindowState(Qt.WindowState(state))
             except (TypeError, ValueError) as ex:
                 warning(
