@@ -16,6 +16,7 @@ from av import InvalidDataError, VideoCodecContext
 
 # ==================================================================================
 from jAGFx.services import AsyncService
+from jAGFx.services.__subscription import AsyncSubscription
 
 # ==================================================================================
 from ...devices import SCRCPY
@@ -54,8 +55,12 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
     """
 
     def __init__(self, serial: str, name: str | None = None) -> None:
-        SCRCPY.__init__(self, serial=serial, name=name)
+        # AsyncService first so AsyncSubscription._callbacks exists before any raiseEvent.
+        # SCRCPY second for device identity / codec metadata fields.
         AsyncService.__init__(self, work=self.work, name=name)
+        SCRCPY.__init__(self, serial=serial, name=name)
+        if not hasattr(self, "_callbacks"):
+            AsyncSubscription.__init__(self)
         self._vSocket: iVideoSocket | None = None
         self._cSocket: iControlSocket | None = None
         self._streamServer: AdbConnection | None = None

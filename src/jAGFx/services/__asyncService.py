@@ -16,9 +16,13 @@ from .__subscription import AsyncSubscription
 
 
 # ==================================================================================
-class AsyncService(iService, AsyncSubscription):
+class AsyncService(AsyncSubscription, iService):
     """
     Async work loop with optional throttle and interruptible wait.
+
+    Bases: ``AsyncSubscription`` before ``iService`` (Protocol). Protocol bases
+    short-circuit cooperative ``super().__init__()``; subscription must run first
+    so ``_callbacks`` / ``_suppressEvent`` exist for raiseEvent.
 
     Two distinct events control the loop:
 
