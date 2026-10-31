@@ -54,7 +54,8 @@ class SideBarMenuItem(SideBarItem):
     ) -> None:
         super().__init__(*args, **kwargs)
         self._captionText: str = caption
-        if icon is None: icon = getICONPath(C_DEFAULT_ICON)
+        if icon is None:
+            icon = getICONPath(C_DEFAULT_ICON)
         self._iconSource: Optional[Union[QIcon, QPixmap, str]] = icon
         self._role: eSideBarMenuRole = role
         self._rootIconSize: int = int(rootIconSize)
@@ -84,18 +85,31 @@ class SideBarMenuItem(SideBarItem):
         verbose(f"[SideBarMenuItem] _wInitializeUI role={self._role!r}")
         try:
             super()._wInitializeUI()
+
             caption = self._captionText
-            icon = self._iconSource
+            iconSrc = self._iconSource
             role = self._role
             del self._captionText
             del self._iconSource
 
-            iconWidget = Icon(icon, objectName=f"{self.OBJECT_NAME}_ICON")
+            iconSize = self._effectiveIconSize()
+            iconWidget = Icon(icon=iconSrc, objectName=f"{self.OBJECT_NAME}_ICON")
+            iconWidget.setFixedSize(QSize(iconSize, iconSize))
+            iconWidget.setSizePolicy(QSPolicy.Fixed, QSPolicy.Fixed)
+
             titleWidget = Title(caption, objectName=f"{self.OBJECT_NAME}_TITLE")
+
+            # Must parent into the row layout — otherwise Icon becomes a top-level
+            # window (W_SIDEBAR_MENU_ITEM_ICONWindow) and Win32 setGeometry warns.
+            self._addLeading(iconWidget)
+            self._addTextWidget(titleWidget)
+
             self._iconWidget = iconWidget
             self._titleWidget = titleWidget
 
             self._setRoleProperty(role)
+            self._setSelectedProperty(False)
+            self.setCursor(Qt.CursorShape.PointingHandCursor)
             self._applyHierarchyVisuals()
             self._applyExpandedChrome()
 
@@ -303,9 +317,8 @@ class SideBarMenuItem(SideBarItem):
                 w.deleteLater()
 
         self._children.clear()
-        if self._body is None:
-            return
-        self._body.hide()
+        if self._body is not None:
+            self._body.hide()
 
     def attachBodyTo(self, parentLayout: QBoxLayout) -> None:
         if self._role is not eSideBarMenuRole.Header:
