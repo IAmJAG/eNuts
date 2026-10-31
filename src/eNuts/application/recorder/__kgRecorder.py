@@ -20,6 +20,7 @@ from ..device import (
     DEVICE_REMOVED_EVENT,
     deviceManager,
 )
+from ..stream import LocalDeviceStream
 
 _C_QT_TO_ANDROID: Dict[int, eKeyCode] = {
     Qt.Key.Key_0: eKeyCode.KEYCODE_0, Qt.Key.Key_1: eKeyCode.KEYCODE_1,
@@ -191,7 +192,7 @@ class KGRecorder(QObject):
 
         async def _run() -> None:
             try:
-                stream = LocalDeviceStream(mgr)
+                stream = LocalDeviceStream(mgr, parent=self)
                 stream.attachView(view)
                 await stream.ensureRunning(serial)
                 self._deviceStream = stream
