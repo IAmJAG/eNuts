@@ -611,7 +611,8 @@ class KGRecorder(QObject):
             self._maybeLogPointer("down", event)
 
     def _onMouseMoved(self, event: QMouseEvent) -> None:
-        if int(event.buttons()) == 0:
+        # PySide6: buttons() is Qt.MouseButton (flag), not a plain int.
+        if event.buttons() == Qt.MouseButton.NoButton:
             return
         if self._injectPointer(eKeyState.MOVE, event):
             self._maybeLogPointer("move", event)
