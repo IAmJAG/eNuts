@@ -14,7 +14,7 @@ Two cooperating layers:
 | **L2** | **Policy Core** | Consumes the fixed-size tensor stack from L1 and produces the next discrete action + continuous arguments (hybrid output). |
 
 L1 is always stateful (owns the circular buffer).  
-L2 is **optionally stateful** via an explicit switch (see below).
+L2 is **optionally stateful** via an explicit switch (default **Off**).
 
 ---
 
@@ -23,7 +23,7 @@ L2 is **optionally stateful** via an explicit switch (see below).
 **Inputs on each step**
 
 - `image` — current raw frame  
-- `intent` — current intent (discrete label / id)  
+- `intent` — current intent (structured vocabulary item; see Vocabulary)  
 - `previous_action` — action that was last executed (or pad)  
 - `previous_parameters` — parameters that accompanied that action (or pad / empty)
 
@@ -33,7 +33,7 @@ L2 is **optionally stateful** via an explicit switch (see below).
    Own the visual transform pipeline (resize, normalize, etc.) so that what enters the buffer is already in the form the model expects.
 
 2. **Parameter / discrete encoding**  
-   Convert intent, action, and parameters into tensor-friendly representations (embeddings or packed feature vectors). Exact encoding schemes and vocabularies are deferred; placeholders are used for now.
+   Convert intent, action, and parameters into tensor-friendly representations using the vocabulary base format. Description fields are never included in computation.
 
 3. **Circular buffer**  
    Maintain a fixed-length history of length `stackSize`. On each accepted step:
@@ -60,9 +60,9 @@ Each historical entry is a 4-tuple:
 (intent_t, image_t_prepared, action_t, parameters_t)
 ```
 
-- `image_t_prepared` is the transformed visual.
-- `action_t` / `parameters_t` are the previous action/parameters relative to that image (or pads).  
-  Exact temporal alignment remains an open contract decision.
+**Slot temporal alignment (locked)**
+
+`action_t` / `parameters_t` mean **action taken from this image** (the decision associated with `image_t`), not the action that produced the image.
 
 **Buffer semantics**
 
@@ -94,6 +94,28 @@ L1 may keep modality arrays internally; conversion to these stacked tensors occu
 
 ---
 
+## Intent handling (blanket + mid-stack change)
+
+**Locked preference:** Intent is conceptually a **blanket** over the decision being made *now*.
+
+**Practical rule for the buffer**
+
+- L1 still records the intent that was active at each step into the per-slot history (so `intent_stack` is a real stack).
+- At prediction time, the **current** intent is the primary conditioning signal (blanket).
+- If intent changes in the middle of the stack:
+  - Older slots keep the intent that was active when they were written.
+  - The model can therefore *see* that a change occurred (via `intent_stack`).
+  - The decision itself is still framed as “under the **current** intent.”
+
+This avoids two failure modes:
+
+1. True single-value blanket with no history → intent changes are invisible; the model cannot learn “we just switched task.”
+2. Treating every past intent as equally important as the current one → dilutes the notion of “what am I doing right now.”
+
+So: **stack of intents exists; current intent is special.**
+
+---
+
 ## Layer 2 — Policy Core
 
 **Input**
@@ -109,15 +131,13 @@ L1 may keep modality arrays internally; conversion to these stacked tensors occu
 
 **Statefulness switch (locked)**
 
-L2 exposes an explicit switch:
-
 | Switch | Behaviour |
 |--------|-----------|
-| **Off** (default) | Pure feed-forward across calls. All history that influences the decision lives in the L1 stacks. Inside one forward pass, any temporal operator over the stack is allowed (attention, LSTM unrolled over `stackSize`, mean-pool, etc.). |
+| **Off** (**default**) | Pure feed-forward across calls. All history that influences the decision lives in the L1 stacks. Inside one forward pass, any temporal operator over the stack is allowed (attention, LSTM unrolled over `stackSize`, mean-pool, etc.). |
 | **On** | Stateful across calls. L2 may carry internal recurrent state (e.g. LSTM/GRU hidden state) that persists between forward passes, enabling context longer than `stackSize`. |
 
-When the switch is **Off**, the same stack always yields the same decision (given fixed weights).  
-When the switch is **On**, behaviour also depends on the carried internal state; reset of that state at episode / task boundaries is required for deterministic restarts.
+When **Off**, the same stack always yields the same decision (given fixed weights).  
+When **On**, behaviour also depends on the carried internal state; reset of that state at episode / task boundaries is required for deterministic restarts.
 
 **What L2 does *not* own**
 
@@ -125,9 +145,55 @@ When the switch is **On**, behaviour also depends on the carried internal state;
 - Raw image transforms (L1).  
 - Long-term persistence of the L1 carousel across process restarts (unless later decided).
 
-**Vocabularies**
+---
 
-Discrete vocabularies are **not static**. Placeholders are maintained; concrete sets will be supplied later. Design and interfaces must not assume fixed action / intent / argument-kind tables.
+## Vocabulary base format (locked)
+
+All discrete vocabulary items share this structure:
+
+```text
+{
+  Id:          <text> / <label> / <name>,     # stable identity
+  description: <human-readable text>,         # NEVER used in computation
+  options:     <array | dictionary>           # open-ended; may affect embedding
+}
+```
+
+### Action
+
+- **Id** — fixed text/label of the action. Immutable for a given entry. Used to compute the embedding **deterministically**.
+- **options** — open-ended; may describe parameter type or related hints. **Included** in embedding computation when present.
+- **description** — documentation only; excluded from computation.
+
+### Parameters
+
+- **Id** — type of the parameter (e.g. `Key`, `tap`, `box`).
+- **options** — the value(s) (e.g. `[ESCAPE]`, `[0.254, 0.586]`).
+- Both Id and options participate in encoding; description does not.
+
+### Intent
+
+Same base shape. Hierarchy (e.g. daily task → difficulty → dungeon) is expressed **inside** the intent item via `options` (and nested options if needed), **not** as an extra top-level argument alongside image / intent / action / parameters.
+
+**Recommendation (locked for now)**
+
+Prefer:
+
+```text
+Id: daily_task
+options: { difficulty: "nightmare", target: "dungeon_A" }
+```
+
+or flattened / hierarchical Ids such as `daily_task.nightmare.dungeon_A`, rather than introducing a fifth channel (e.g. “sub-intent”) into every L1/L2 call.
+
+Rationale:
+- Keeps the call signature stable (`image, intent, action, parameters`).
+- Allows arbitrary depth of specialization without changing the layer contracts.
+- Still leaves room to encode options into the intent embedding.
+
+If a future case truly needs an independent parallel signal, it can be added as an extension; it is not the base design.
+
+Vocabularies remain **injectable** (not static). Placeholders are used until concrete sets are supplied.
 
 ---
 
@@ -147,7 +213,8 @@ Discrete vocabularies are **not static**. Placeholders are maintained; concrete 
                                        ▼
                     ┌─────────────────────────────────────┐
                     │  L2  Policy Core                    │
-                    │   • stateful switch: off | on       │
+                    │   • stateful switch: off (default)  │
+                    │                      | on           │
                     │   • temporal / context fusion       │
                     │   • discrete head(s)                │
                     │   • continuous head(s)              │
@@ -166,20 +233,25 @@ After execution, the caller (or a thin wrapper) feeds the *executed* action + pa
 | Topic | Decision |
 |-------|----------|
 | L1 → L2 contract | **Tensor Layout 3** |
-| L1 internal storage | Arrays per modality, already final-ready (e.g. transformed images) |
+| L1 internal storage | Arrays per modality, already final-ready |
 | Warm-up | Pad with empty / zero tensors → always length `stackSize` |
 | `stackSize` | ∈ {2, 4, 8, 16, 32, 64, 128, 256} |
-| Discrete vocabularies | Not static; placeholders only for now |
-| L2 cross-call state | **Switch**: Off = pure feed-forward; On = stateful (internal recurrent state) |
+| Slot temporal alignment | **Action taken from this image** |
+| L2 stateful switch | **Off by default**; On = carry internal recurrent state |
+| Intent | Blanket for the *current* decision; per-slot history still stored in `intent_stack` so mid-stack changes are visible |
+| Vocabulary base | `{ Id, description, options }` — description never in computation |
+| Action Id | Fixed; drives deterministic embedding; options may affect embedding |
+| Parameters | Id = type, options = value(s) |
+| Intent specialization | Prefer nested/hierarchical **options** (or hierarchical Id), not a new top-level argument |
+| Discrete vocabularies | Injectable / not static; placeholders until supplied |
 
 ---
 
 ## Open decisions (still to settle)
 
-1. **Slot temporal alignment** — does `(image_t, action_t, params_t)` mean “action that led to this image” or “action taken from this image”?  
-2. **Exact continuous parameter packing** and discrete placeholder shapes.  
-3. **Default value of the L2 stateful switch** and reset policy when On.  
-4. **Whether intent is stored per-slot, as a blanket value, or both.**
+1. Exact continuous parameter packing and tensor dtypes/shapes for placeholders.  
+2. Reset policy for L2 internal state when the stateful switch is On.  
+3. Whether `options` on actions/intents are encoded as a separate vector or folded into the same embedding as Id.
 
 ---
 
@@ -187,7 +259,8 @@ After execution, the caller (or a thin wrapper) feeds the *executed* action + pa
 
 - Clear **separation of concerns**: L1 = history + tensorization; L2 = decision.  
 - **Circular buffer** of fixed, power-of-two-friendly `stackSize`.  
-- History contains **intent + prepared image + previous action + previous parameters**.  
+- History contains **intent + prepared image + action taken from image + parameters**.  
 - Hybrid output (discrete + continuous) lives in L2.  
-- L2 statefulness is an explicit, controllable switch, not an implicit default.  
-- Vocabularies remain injectable; no hard-coded closed sets in the core design.
+- L2 statefulness is an explicit switch (default Off).  
+- Vocabularies are structured, injectable, and free of hard-coded closed sets.  
+- Human-readable `description` never enters the computation graph.
