@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-29 02:19:42 UTC*
+*Auto-generated on: 2026-10-31 05:58:45 UTC*
 
 ## Current Directory Structure
 
@@ -44,6 +44,8 @@ eNuts/
 │       │   ├── test_policy_options_roundtrip.py
 │       │   └── test_policy_persist.py
 │       └── scrcpy/
+│           ├── test_frame_ring.py
+│           ├── test_frame_slot.py
 │           └── test_scrcpy_bridge.py
 ├── README.md
 ├── assets/
@@ -116,6 +118,8 @@ eNuts/
 │   │   │   │   └── __deviceManager.py
 │   │   │   ├── recorder/
 │   │   │   │   └── __kgRecorder.py
+│   │   │   ├── stream/
+│   │   │   │   └── __deviceStream.py
 │   │   │   ├── theme/
 │   │   │   │   └── __theme.py
 │   │   │   └── workspace/
@@ -176,6 +180,8 @@ eNuts/
 │   │   │       ├── __SCRCPYEmitter.py
 │   │   │       ├── __bridge.py
 │   │   │       ├── __footprint.py
+│   │   │       ├── __frameRing.py
+│   │   │       ├── __frameSlot.py
 │   │   │       ├── __messages.py
 │   │   │       └── __payloads.py
 │   │   ├── policy/
@@ -527,6 +533,23 @@ eNuts/
 			_TEST_ROOT -> : _test_root
 
 .test/smoke/scrcpy:
+	test_frame_ring.py - 
+		FUNCTION(S):
+			test_publish_advances_seq -> : test_publish_advances_seq
+			test_write_avoids_display_slot -> : test_write_avoids_display_slot
+		CONSTANTS(S)/GLOBAL(S)
+			_REPO_SRC -> : _repo_src
+	test_frame_slot.py - 
+		FUNCTION(S):
+			test_header_size_is_40 -> : test_header_size_is_40
+			test_pack_unpack_roundtrip -> : test_pack_unpack_roundtrip
+			test_bad_magic_raises -> : test_bad_magic_raises
+			test_ring_size_clamp -> : test_ring_size_clamp
+			test_pick_write_avoids_display -> : test_pick_write_avoids_display
+			test_next_ring_index -> : test_next_ring_index
+			test_should_skip_present -> : test_should_skip_present
+		CONSTANTS(S)/GLOBAL(S)
+			_REPO_SRC -> : _repo_src
 	test_scrcpy_bridge.py - 
 		CLASSE(S):
 			StubEmitter -> : stubemitter
@@ -579,8 +602,17 @@ src/eNuts/application/recorder:
 		CLASSE(S):
 			KGRecorder -> : kgrecorder
 		CONSTANTS(S)/GLOBAL(S)
-			C_ON_FRAME -> : c_on_frame
 			_C_QT_TO_ANDROID -> : _c_qt_to_android
+
+src/eNuts/application/stream:
+	__deviceStream.py - 
+		CLASSE(S):
+			iDeviceStream -> : idevicestream
+			StreamFrameBridge -> : streamframebridge
+			LocalDeviceStream -> : localdevicestream
+			IpcDeviceStream -> : ipcdevicestream
+		CONSTANTS(S)/GLOBAL(S)
+			C_ON_FRAME -> : c_on_frame
 
 src/eNuts/application/theme:
 	__theme.py - 
@@ -653,7 +685,7 @@ src/eNuts/UI/navigation:
 			resolvePageClass -> : resolvepageclass
 			buildBlankPage -> : buildblankpage
 			_flattenEntries -> : _flattenentries
-			_instantiatePage -> : _instantiatepage
+			instantiatePage -> : instantiatepage
 			buildNavigationPages -> : buildnavigationpages
 		CONSTANTS(S)/GLOBAL(S)
 			C_DEFAULT_PAGE_TYPE -> : c_default_page_type
@@ -834,6 +866,27 @@ src/fluxCore/emitters/scrcpy:
 	__footprint.py - 
 		CLASSE(S):
 			SCRCPYError -> : scrcpyerror
+	__frameRing.py - 
+		CLASSE(S):
+			FrameRing -> : framering
+	__frameSlot.py - 
+		CLASSE(S):
+			FramePresentFormat -> : framepresentformat
+			FrameSlotFlags -> : frameslotflags
+			FrameSlotHeader -> : frameslotheader
+		FUNCTION(S):
+			makeFrameSlotHeader -> : makeframeslotheader
+			clampRingSize -> : clampringsize
+			nextRingIndex -> : nextringindex
+			pickWriteIndex -> : pickwriteindex
+			shouldSkipPresent -> : shouldskippresent
+		CONSTANTS(S)/GLOBAL(S)
+			C_FRAME_SLOT_MAGIC -> : c_frame_slot_magic
+			C_FRAME_SLOT_HEADER_STRUCT -> : c_frame_slot_header_struct
+			C_FRAME_SLOT_HEADER_SIZE -> : c_frame_slot_header_size
+			C_DEFAULT_RING_SIZE -> : c_default_ring_size
+			C_MIN_RING_SIZE -> : c_min_ring_size
+			C_MAX_RING_SIZE -> : c_max_ring_size
 	__messages.py - 
 		CLASSE(S):
 			ScrcpyInitializeMessage -> : scrcpyinitializemessage
@@ -1117,6 +1170,7 @@ src/jAGFx/logging:
 			suppressedLogger -> : suppressedlogger
 			unsuppressedLogger -> : unsuppressedlogger
 			stopLogging -> : stoplogging
+			managedCall -> : managedcall
 		CONSTANTS(S)/GLOBAL(S)
 			DEF_FILE_HANDLER -> : def_file_handler
 			DEF_FILE_FORMATTER -> : def_file_formatter
@@ -1149,10 +1203,10 @@ src/jAGFx/logging/formatters:
 		CLASSE(S):
 			DefaultFormatter -> : defaultformatter
 		CONSTANTS(S)/GLOBAL(S)
-			C_LOG_FORMAT -> : c_log_format
+			G_LOG_FORMAT -> : g_log_format
+			G_LOG_FORMAT -> : g_log_format
 			C_LOG_COLORS -> : c_log_colors
 			C_SECONDARY_COLORS -> : c_secondary_colors
-			fmtList -> : fmtlist
 
 src/jAGFx/logging/handlers:
 	__dateRotatingFileHandler.py - 
@@ -1683,43 +1737,64 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-4e19cc0:
-	fix(scrcpy): snapshot without requiring adbutils when emitter is a stub
-		src/fluxCore/emitters/scrcpy/__bridge.py
+7dc009b:
+	refactor: streamline error handling in _wrap_init by condensing conditional statements
+		src/jAGFx/workflow/__workflow.py
 
-d72d810:
-	fix(scrcpy): proxy processor dispatches to type handlers (no swallow)
-		src/fluxCore/emitters/scrcpy/__bridge.py
+201f787:
+	refactor: clean up constructor parameters and remove unnecessary decorators in WorkSpace and iENUTSWindow classes
+		src/eNuts/UI/windows/__mainWindow.py
+		src/eNuts/application/workspace/__workSpace.py
+		src/eNuts/types/interface/UI/windows/__mainWindow.py
+		src/jAGFx/logging/__utilities.py
 
-4df4b4a:
-	fix(device): safe default name when getRandomName builtins missing
-		src/fluxCore/device/__device.py
+7f75c63:
+	feat(logging): introduce managedCall decorator for enhanced error handling refactor(navigation): streamline page class resolution and improve readability refactor(workspace): simplify UI initialization and sidebar construction fix(logging): enhance logging functions to support additional arguments
+		src/__monkeyPatch.py
+		src/eNuts/UI/navigation/__navigation.py
+		src/eNuts/application/__shell.py
+		src/eNuts/application/workspace/__workSpace.py
+		src/jAGFx/logging/__log.py
+		src/jAGFx/logging/__logging.py
+		src/jAGFx/logging/__utilities.py
+		src/jAGFx/logging/data/__baseSourceInformation.py
+		src/jAGFx/logging/filters/__namespaceFilter.py
+		src/jAGFx/logging/formatters/__defaultFormatter.py
+		src/utilities/__frame.py
+		typings/__builtins__.pyi
 
-6f27141:
-	fix(devices): SCRCPY serializable Properties + no-arg ctor for decode
-		src/fluxCore/devices/__scrcpy.py
+f6b2567:
+	fix(SideBar): avoid QFont setPointSize(-1) when QSS uses pixel fonts
+		src/jAGQt/widgets/SideBar/menu/__sideBarMenuItem.py
 
-cd9dc57:
-	fix(device): make Device Serializable with Properties for IPC encode
-		src/fluxCore/device/__device.py
+76ea86b:
+	refactor: clean up code formatting and improve docstrings across multiple files
+		src/eNuts/UI/pages/__devicePage.py
+		src/eNuts/UI/pages/__kgRecorder.py
+		src/eNuts/UI/pages/__playbackBase.py
+		src/eNuts/UI/windows/__mainWindow.py
+		src/eNuts/application/__shell.py
+		src/eNuts/application/stream/__deviceStream.py
+		src/eNuts/application/workspace/__workSpace.py
 
-e092e97:
-	fix(scrcpy): avoid __ name-mangling on SCRCPYEmitter import inside class
-		src/fluxCore/emitters/scrcpy/__bridge.py
+2b006ac:
+	fix(scrcpy): clear event suppress after initialize so ON_FRAME fires
+		src/fluxCore/emitters/scrcpy/__SCRCPYEmitter.py
 
-47dc583:
-	fix(scrcpy): default-route send (ownerId None) so peer default bridge receives
-		src/fluxCore/emitters/scrcpy/__bridge.py
+a14a98c:
+	fix(stream): config SPS/PPS feed + UI-thread bridge parent; clear event suppress after scrcpy init
+		src/eNuts/application/stream/__deviceStream.py
 
-9d146f4:
-	test(scrcpy): avoid importing SCRCPYEmitter in smoke (no adbutils)
-		.test/smoke/scrcpy/test_scrcpy_bridge.py
+6db89f8:
+	feat(KG): page device combo, status, events, command bar buttons
+		src/eNuts/UI/pages/__kgRecorder.py
 
-9731491:
-	refactor(emitters): lazy SCRCPYEmitter export (no adbutils at import)
+e95171e:
+	fix(nav): restore navigation + enable KG commandBar
+		src/eNuts/UI/navigation/__navigation.py
 
-fd3649c:
-	docs(scrcpy): requirements Phase C done
-		.docs/fluxCore/emitters/scrcpy/requirement.md
+14fdac2:
+	feat(KG): wire page chrome (device combo, command bar, status, events) + frame path fixes
+		src/eNuts/UI/navigation/__navigation.py
 
 ```

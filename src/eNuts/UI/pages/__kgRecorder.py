@@ -27,8 +27,6 @@ class KGRecorder(PlaybackBase):
     Controller binds via Shell to:
         ``_streamView``, ``_deviceCombo``, ``_commandBar``, ``_statusLabel``, ``_eventList``.
     """
-
-    OBJECT_NAME = "W_KG_RECORDER"
     def __init__(
         self, title: str, description: str = "",
         icon: Optional[Union[QIcon, QPixmap, str]] = None, commandBarOn: bool = True,

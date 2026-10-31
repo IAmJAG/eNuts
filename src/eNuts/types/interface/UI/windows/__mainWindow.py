@@ -16,10 +16,5 @@ from .....types.interface.configuration import iENUTSConfiguration
 
 # ==================================================================================
 class iENUTSWindow(iWindowBase):
-    def __init__(
-            self, shutdownEvent: asyncEvent, cfg: iApplicationConfiguration,
-            *args, **kwargs
-        ) -> None: ...
-
     @property
     def config(self) -> iENUTSConfiguration: ...

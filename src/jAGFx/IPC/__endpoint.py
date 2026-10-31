@@ -8,10 +8,12 @@ from asyncio import (
     Task,
     create_task,
     get_running_loop,
-    sleep as asyncSleep,
     to_thread,
 )
 from asyncio import Queue as AsyncQueue
+from asyncio import (
+    sleep as asyncSleep,
+)
 from queue import Empty
 from time import monotonic
 from typing import Any, Callable

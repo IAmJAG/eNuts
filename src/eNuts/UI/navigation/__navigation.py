@@ -12,7 +12,6 @@ from jAGQt.widgets.page import Page
 from .__pageKeys import (
     PAGE_ANNOTATOR,
     PAGE_DASHBOARD,
-    PAGE_DEVICES,
     PAGE_KG_RECORDER,
     PAGE_SETTINGS,
     PAGE_TOOLS,
@@ -61,25 +60,24 @@ PAGE_AND_MENU: Dict[str, Dict[str, Any]] = {
     },
 }
 
-
 def resolvePageClass(typePath: str) -> Type[Page]:
     path = (typePath or "").strip() or C_DEFAULT_PAGE_TYPE
     if "." not in path:
         raise ValueError(
             f"page type must be a full namespace (module.Class), got {path!r}"
         )
+
     modulePath, _, className = path.rpartition(".")
     module = import_module(modulePath)
     cls = getattr(module, className, None)
 
     if cls is None:
-        raise AttributeError(f"module {modulePath!r} has no attribute {className!r}")
+        raise AttributeError(f"module {modulePath!r} has no attribute {className!r}.")
     
     if not isinstance(cls, type):
-        raise TypeError(f"page type {path!r} is not a class")
+        raise TypeError(f"page type {path!r} is not a class.")
     
     return cls
-
 
 # ==================================================================================
 def buildBlankPage(key: str, title: str, description: str = "") -> Page:
@@ -101,35 +99,39 @@ def _flattenEntries(section: Dict[str, Any]) -> list[tuple[str, Dict[str, Any]]]
 
 # ==================================================================================
 def instantiatePage(pageId: str, entry: Dict[str, Any]) -> Page:
-
-    title = str(entry.get("title") or pageId)
-    description = str(entry.get("description") or "")
-    typePath = str(entry.get("type") or C_DEFAULT_PAGE_TYPE)
-    
     try:
-        cls = resolvePageClass(typePath)
+        title = str(entry.get("title") or pageId)
+        description = str(entry.get("description") or "")
+        typePath = str(entry.get("type") or C_DEFAULT_PAGE_TYPE)
+        
+        try:
+            cls = resolvePageClass(typePath)
+
+        except Exception as ex:
+            error(
+                f"resolve type={typePath!r} for key={pageId!r} failed: {ex}; "
+                f"falling back to {C_DEFAULT_PAGE_TYPE}", ex
+            )        
+            cls = Page
+
+        commandBarOn = bool(entry.get("commandBar", False))
+        try:
+            page = cls(
+                title = title, description = description,
+                commandBarOn = commandBarOn, id = pageId
+            )
+
+        except TypeError:
+            page = cls(title=title, description=description, id=pageId)
+
+        verbose(f"page key={pageId!r} type={typePath!r} class={cls.__name__}")
 
     except Exception as ex:
-        warning(
-            f"resolve type={typePath!r} for key={pageId!r} failed: {ex}; "
-            f"falling back to {C_DEFAULT_PAGE_TYPE}"
-        )        
-        cls = Page
+        error(f"build page key={pageId!r} failed", ex)
 
-    commandBarOn = bool(entry.get("commandBar", False))
-    try:
-        page = cls(
-            title=title, description=description,
-            commandBarOn=commandBarOn, id=pageId,
-        )
+    finally:
+        return page
 
-    except TypeError:
-        page = cls(title=title, description=description, id=pageId)
-
-    verbose(f"page key={pageId!r} type={typePath!r} class={cls.__name__}")
-    return page
-
-@managedCall
 def buildNavigationPages() -> dict[str, Page]:
     pages: dict[str, Page] = {}
     for sectionName in ("CONTENT", "FOOTER"):
@@ -138,3 +140,4 @@ def buildNavigationPages() -> dict[str, Page]:
             if pageId in pages: continue
             pages[pageId] = instantiatePage(pageId, entry)
     
+    return pages

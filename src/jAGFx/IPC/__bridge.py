@@ -32,7 +32,7 @@ class Bridge(iBridge):
 
     # Default timeouts (nanoseconds)
     C_DEFAULT_ACTIVE_TIMEOUT_NS: int = 30_000_000_000                       # 30 s
-    C_DEFAULT_DORMANT_TIMEOUT_NS: int = C_DEFAULT_ACTIVE_TIMEOUT_NS * 3     # 60 s
+    C_DEFAULT_DORMANT_TIMEOUT_NS: int = C_DEFAULT_ACTIVE_TIMEOUT_NS * 3     # 180 s
     C_MAX_SERVICE_THROTTLE_S: float = 30.0                                  # cap when idle
 
     def __init__(self) -> None:
@@ -86,7 +86,7 @@ class Bridge(iBridge):
             return self._handlerCache[exact]
 
         for cls in exact.__mro__:
-            handler = self._messageHandlers.get(cls)
+            handler = self._messageHandlers.get(cls, None)
             if handler is not None:
                 self._handlerCache[exact] = handler
                 return handler
@@ -195,6 +195,7 @@ class Bridge(iBridge):
         if message.ownerId is None:
             try:
                 message.ownerId = self._bridgeId  # type: ignore[attr-defined]
+
             except Exception:
                 pass
 
@@ -258,6 +259,7 @@ class Bridge(iBridge):
             self._activeTimeoutService.throttle = min(
                 minRemaining / 1e9, self.C_MAX_SERVICE_THROTTLE_S
             )
+            
         else:
             self._activeTimeoutService.throttle = self.C_MAX_SERVICE_THROTTLE_S
 
