@@ -76,7 +76,8 @@ Each historical entry is a 4-tuple:
 Parameters are dynamic. Encoding uses a **fully learned encoder** that maps the structured parameter object → fixed-size vector for `param_stack`.
 
 - The encoder itself is **deterministic** (same parameter input → same vector). This keeps stacks stable and training reproducible.
-- Preventing “exact previous parameters → exact next parameters” is **not** done by making the encoder noisy. It is a property of the full decision context (intent, image stack, action stack, param stack) and of optional stochasticity on the **policy outputs** at inference time.
+- Variable structure is absorbed by the encoder; the **output width is fixed** so Layout 3 stacking works.
+- Preventing “exact previous parameters → exact next parameters” is **not** done by making the encoder noisy. It is a property of the full decision context and of optional stochasticity on the **policy outputs** at inference time.
 
 **Output of L1**
 
@@ -114,12 +115,19 @@ L1 may keep modality arrays internally; conversion to these stacked tensors occu
   - The model can therefore *see* that a change occurred (via `intent_stack`).
   - The decision itself is still framed as “under the **current** intent.”
 
-This avoids two failure modes:
-
-1. True single-value blanket with no history → intent changes are invisible; the model cannot learn “we just switched task.”
-2. Treating every past intent as equally important as the current one → dilutes the notion of “what am I doing right now.”
-
 So: **stack of intents exists; current intent is special.**
+
+### Major intent and `intent_end` (locked)
+
+Intents may compose hierarchically (sub-intents under a root). The executor owns an **intent stack**:
+
+| Concept | Role |
+|---------|------|
+| **Major (root) intent** | Top of the executor’s intent stack; finishing it ends the task for reset purposes |
+| **Sub-intents** | Pushed under the root; each is expected to end via an `intent_end` action |
+| **`intent_end` action** | Discrete action the policy may emit; the action executor interprets it as pop, replace, or push on the intent stack |
+
+L2 state reset (when the stateful switch is On) is triggered by **root** completion or **root** replacement — not by every sub-intent pop. Definition details of executor stack mechanics can be refined with the executor; the policy contract only requires that major = root.
 
 ---
 
@@ -133,7 +141,7 @@ So: **stack of intents exists; current intent is special.**
 
 - Consume the historical context (visuals + intents + past actions + past parameters).
 - Produce a **hybrid** decision:
-  - **Discrete** head(s): next action (and optionally argument kind) via classification / cosine-over-vocabulary style.
+  - **Discrete** head(s): next action (including `intent_end` when appropriate) via classification / cosine-over-vocabulary style.
   - **Continuous** head(s): spatial / geometric / other open parameters via regression.
 
 **Statefulness switch (locked)**
@@ -147,17 +155,24 @@ So: **stack of intents exists; current intent is special.**
 
 | Phase | Rule |
 |-------|------|
-| **Inference** | Reset internal state on **major intent** change and on episode / task boundary. Definition of “major” intent is deferred. |
+| **Inference** | Reset internal state on **major (root) intent** change/completion and on episode / task boundary. |
 | **Per-step control** | Expose a `reset_state` flag on the forward path so the action executor can force a reset (or not) on any step. Default: `false`. |
-| **Training** | **Match inference**: reset on episode boundary and on major intent change (per-env masks in batched training). Do **not** hard-reset every step — that would train away statefulness. |
+| **Training** | **Match inference**: reset on episode boundary and on major intent change (per-env masks in batched training). Do **not** hard-reset every step. |
 
-When **Off**, there is no internal state to reset.  
-When **On**, behaviour depends on carried state; the rules above keep train and inference aligned.
+**Inference-time noise switch (locked)**
+
+| Switch | Behaviour |
+|--------|-----------|
+| **Off** (**default**) | Deterministic decode (`argmax` / mean continuous outputs). |
+| **On** | Stochastic decode (e.g. temperature sampling on discrete heads; optional noise on continuous heads). |
+
+Independent of the L2 stateful switch. Param / Id encoders remain deterministic regardless of this switch.
 
 **What L2 does *not* own**
 
 - Circular buffer / history bookkeeping (L1).  
 - Raw image transforms (L1).  
+- Executor intent-stack machine (pop / push / replace) — L2 only emits actions such as `intent_end`.  
 - Long-term persistence of the L1 carousel across process restarts (unless later decided).
 
 ---
@@ -177,31 +192,37 @@ All discrete vocabulary items share this structure:
 ### Action
 
 - **Id** — fixed text/label of the action. Immutable for a given entry. Used to compute the embedding **deterministically**.
-- **options** — open-ended; may describe parameter type or related hints. **Included** in embedding computation when present.
+- **options** — open-ended; may describe parameter type or related hints. Encoded and fused with Id (see below).
 - **description** — documentation only; excluded from computation.
+- Special action **`intent_end`** — signals the executor to pop / replace / push on the intent stack.
 
 ### Parameters
 
 - **Id** — type of the parameter (e.g. `Key`, `tap`, `box`).
 - **options** — the value(s) (e.g. `[ESCAPE]`, `[0.254, 0.586]`).
-- Encoded by the **fully learned parameter encoder** (deterministic). Description does not participate.
+- Encoded by the **fully learned parameter encoder** (deterministic, fixed output width). Description does not participate.
 
 ### Intent
 
-Same base shape. Hierarchy (e.g. daily task → difficulty → dungeon) is expressed **inside** the intent item via `options` (and nested options if needed), **not** as an extra top-level argument alongside image / intent / action / parameters.
-
-Prefer nested/hierarchical options or hierarchical Ids rather than a fifth channel.
+Same base shape. Hierarchy is expressed **inside** the intent item via `options` (or hierarchical Ids), **not** as an extra top-level argument. The executor may still stack intents operationally; the model sees the current intent as blanket plus per-slot history.
 
 Vocabularies remain **injectable** (not static). Placeholders are used until concrete sets are supplied.
 
 ### Id vs options embedding (locked)
 
-For Action and Intent (and analogous discrete identities):
+For Action and Intent:
 
-- **Separate vectors**: `emb_id = Embed(Id)`, `emb_opt = Encode(options)` (zero when empty).
-- **Then fuse** (concat or gated sum) before temporal fusion / heads.
+```text
+emb_id  = Embed(Id)              # fixed width D_id
+emb_opt = Encode(options)        # fixed width D_opt (zeros if empty);
+                                 # learned encoder absorbs variable option structure
+emb     = Fuse(emb_id, emb_opt)  # default: concat → width D_id + D_opt
+```
 
-This keeps Id embeddings stable and deterministic while still letting options influence the representation.
+- **Separate vectors, then fuse** — locked.  
+- **Default fusion operator: concat.**  
+- Variable option *content* does not imply variable embedding *length*; encoders always emit fixed-width vectors so Layout 3 and batching stay valid.  
+- Exact values of `D_id` / `D_opt` are implementation defaults.
 
 ---
 
@@ -212,7 +233,7 @@ This keeps Id embeddings stable and deterministic while still letting options in
  current image ────►│                                     │
  current intent ───►│  L1  History / Context Buffer       │
  previous action ──►│   • transform image                 │
- previous params ──►│   • encode intent/action/params     │
+ previous params ──►│   • encode intent/action (Id∥opt)   │
                     │   • learned param encoder (det.)    │
                     │   • circular arrays (final-ready)   │
                     │   • pad to stackSize if needed      │
@@ -224,15 +245,18 @@ This keeps Id embeddings stable and deterministic while still letting options in
                     │  L2  Policy Core                    │
                     │   • stateful switch: off (default)  │
                     │                      | on           │
-                    │   • reset: major intent / episode   │
-                    │            + per-step flag          │
+                    │   • reset: major (root) intent /    │
+                    │            episode + per-step flag  │
+                    │   • inference noise: off (default)  │
+                    │                      | on           │
                     │   • temporal / context fusion       │
-                    │   • discrete head(s)                │
+                    │   • discrete head(s) incl. intent_end│
                     │   • continuous head(s)              │
                     └──────────────────┬──────────────────┘
                                        │
                                        ▼
                          next action + continuous args
+                              (executor may pop/push intent)
 ```
 
 After execution, the caller (or a thin wrapper) feeds the *executed* action + parameters back as the next step’s `previous_action` / `previous_parameters`.
@@ -249,33 +273,35 @@ After execution, the caller (or a thin wrapper) feeds the *executed* action + pa
 | `stackSize` | ∈ {2, 4, 8, 16, 32, 64, 128, 256} |
 | Slot temporal alignment | **Action taken from this image** |
 | L2 stateful switch | **Off by default**; On = carry internal recurrent state |
-| L2 state reset (when On) | **Major intent** change + episode boundary; per-step `reset_state` flag for executor; **training matches inference** (not every-step reset) |
-| Intent | Blanket for the *current* decision; per-slot history still stored in `intent_stack` |
+| L2 state reset (when On) | **Major (root) intent** change/completion + episode boundary; per-step `reset_state` flag; **training matches inference** |
+| Major intent | Root of executor intent stack; sub-intents end via **`intent_end`**; executor pop/replace/push |
+| Inference-time noise | **Switch on/off**, **default Off** (deterministic decode) |
+| Intent | Blanket for the *current* decision; per-slot history in `intent_stack` |
 | Vocabulary base | `{ Id, description, options }` — description never in computation |
 | Action Id | Fixed; drives deterministic embedding |
-| Parameters | Id = type, options = value(s); **fully learned encoder (deterministic)** |
-| Id vs options embedding | **Separate vectors, then fuse** |
+| Parameters | Id = type, options = value(s); **fully learned encoder (deterministic, fixed width)** |
+| Id vs options embedding | **Separate vectors, then fuse**; **default fusion = concat** |
 | Intent specialization | Nested/hierarchical **options** (or hierarchical Id), not a new top-level argument |
 | Discrete vocabularies | Injectable / not static; placeholders until supplied |
-| Non-copying of params | Enforced by full context + optional output stochasticity; **not** by noisy param encoding |
+| Non-copying of params | Full context + optional output stochasticity; **not** noisy param encoding |
 
 ---
 
 ## Open decisions (deferred)
 
-1. Definition of **major intent** (what counts as a major change for reset).  
-2. Exact fusion operator for Id/options (concat vs gated sum) and embedding dimensions.  
-3. Optional inference-time stochasticity on continuous / discrete heads (temperature, noise).
+1. Exact embedding dimensions (`D_id`, `D_opt`, backbone widths) — implementation defaults.  
+2. Fine-grained executor rules for pop vs replace vs push on `intent_end`.  
+3. Concrete temperature / noise schedules when inference-time noise is On.
 
 ---
 
 ## Design principles
 
-- Clear **separation of concerns**: L1 = history + tensorization; L2 = decision.  
+- Clear **separation of concerns**: L1 = history + tensorization; L2 = decision; executor = intent stack machine.  
 - **Circular buffer** of fixed, power-of-two-friendly `stackSize`.  
 - History contains **intent + prepared image + action taken from image + parameters**.  
 - Hybrid output (discrete + continuous) lives in L2.  
-- L2 statefulness is an explicit switch (default Off) with aligned train/inference reset rules.  
+- L2 statefulness and inference noise are explicit switches (both default Off).  
+- Variable structure in options/parameters is handled by **learned encoders with fixed output width**.  
 - Vocabularies are structured, injectable, and free of hard-coded closed sets.  
-- Human-readable `description` never enters the computation graph.  
-- Parameter encoding is learned and deterministic; decision non-determinism is optional and lives at the heads.
+- Human-readable `description` never enters the computation graph.
