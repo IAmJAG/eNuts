@@ -16,17 +16,17 @@ from PySide6.QtWidgets import (
 )
 
 # ==================================================================================
-from jAGQt.widgets import GLImage
 from jAGQt.widgets.page import Page
 
 # ==================================================================================
+from ..widgets import CaptureGLImage
 from .__playbackBase import PlaybackBase
 
 
 # ==================================================================================
 class KGRecorder(PlaybackBase):
     """
-    K&G Recorder page: GLImage stream + device strip + command bar chrome.
+    K&G Recorder page: CaptureGLImage stream + device strip + command bar chrome.
     Controller binds via Shell to:
         ``_streamView``, ``_deviceCombo``, ``_commandBar``, ``_statusLabel``, ``_eventList``.
     """
@@ -50,7 +50,7 @@ class KGRecorder(PlaybackBase):
         layout.setSpacing(8)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        image: GLImage = GLImage(bg="#1a1a1a")
+        image: CaptureGLImage = CaptureGLImage(bg="#1a1a1a")
         image.setObjectName(f"{self.OBJECT_NAME}_STREAM")
         image.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         image.setMinimumSize(320, 240)
@@ -79,7 +79,6 @@ class KGRecorder(PlaybackBase):
         utils.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
         utils.setLayout(utilsLayout)
 
-        # Page.addWidget forces Expanding + stretch; keep min size after add.
         self.addWidget(image, stretch=1)
         image.setMinimumSize(320, 240)
         self.Layout.addWidget(utils, 0)
