@@ -86,12 +86,7 @@ class KGRecorder(QObject):
         self._sigDevicesChanged.connect(self._refreshDeviceCombo)
 
     def _mainWindowSettings(self) -> Optional[QSettings]:
-        """Resolve QSettings from ENUTSWindow (Shell) via parent chain.
-
-        Shell owns ``settings`` (created in ``_wInitializeSettings``).
-        KGRecorder is constructed as ``KGRecorder(parent=self)`` from Shell,
-        so ``self.parent()`` is typically the main window.
-        """
+        """Resolve QSettings from ENUTSWindow (Shell) via parent chain."""
         node: Optional[QObject] = self.parent()
         while node is not None:
             settings = getattr(node, "settings", None)
@@ -500,6 +495,45 @@ class KGRecorder(QObject):
         if cleaned:
             warning(f"[KGRecorder] open stub name={cleaned!r}")
 
+    def _wireStreamInput(self, view: Any) -> None:
+        """Connect CaptureGLImage / CaptureImage input signals to inject/log slots."""
+        if view is None:
+            return
+        pairs = (
+            ("keyPressed", self._onKeyPressed),
+            ("keyReleased", self._onKeyReleased),
+            ("mousePressed", self._onMousePressed),
+            ("mouseMoved", self._onMouseMoved),
+            ("mouseReleased", self._onMouseReleased),
+        )
+        for name, slot in pairs:
+            sig = getattr(view, name, None)
+            if sig is None:
+                continue
+            try:
+                sig.connect(slot)
+            except Exception as ex:
+                warning(f"[KGRecorder] connect {name} failed: {ex}")
+
+    def _unwireStreamInput(self, view: Any) -> None:
+        if view is None:
+            return
+        pairs = (
+            ("keyPressed", self._onKeyPressed),
+            ("keyReleased", self._onKeyReleased),
+            ("mousePressed", self._onMousePressed),
+            ("mouseMoved", self._onMouseMoved),
+            ("mouseReleased", self._onMouseReleased),
+        )
+        for name, slot in pairs:
+            sig = getattr(view, name, None)
+            if sig is None:
+                continue
+            try:
+                sig.disconnect(slot)
+            except Exception:
+                pass
+
     def bindPage(self, page: Any) -> None:
         self.unbindPage()
         self._page = page
@@ -507,9 +541,11 @@ class KGRecorder(QObject):
         self._streamView = view
         self._deviceCombo = getattr(page, "_deviceCombo", None)
         if view is None:
-            warning("[KGRecorder] bindPage: page has no _streamView (GLImage)")
+            warning("[KGRecorder] bindPage: page has no _streamView (CaptureGLImage)")
             return
         verbose(f"[KGRecorder] bound to page streamView={type(view).__name__}")
+
+        self._wireStreamInput(view)
 
         if not self._deviceId:
             self._deviceId = self._loadPersistedDeviceId()
@@ -520,6 +556,7 @@ class KGRecorder(QObject):
             self._attachStream(self._deviceId)
 
     def unbindPage(self) -> None:
+        self._unwireStreamInput(self._streamView)
         self._unwireDeviceCombo()
         self._detachStream()
         self._streamView = None
