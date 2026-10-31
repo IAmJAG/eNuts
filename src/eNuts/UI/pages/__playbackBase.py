@@ -15,6 +15,13 @@ from jAGQt.widgets.page import Page
 
 # ==================================================================================
 class PlaybackBase(Page):
+    """Page with a single expanding GLImage stream host.
+
+    Subclasses that build a custom content row (e.g. stream + side strip) should
+    call ``Page._wInitializeUI`` themselves and must not rely on this default
+    stream insert.
+    """
+
     def __init__(
         self, title: str, description: str = "",
         icon: Optional[Union[QIcon, QPixmap, str]] = None,
@@ -33,8 +40,10 @@ class PlaybackBase(Page):
         streamView.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
-        # streamView.setMinimumSize(320, 240)
+        streamView.setMinimumSize(320, 240)
         self.addWidget(streamView, stretch=1)
+        # Page.addWidget resets minimum to 0x0 — restore so OpenGL host keeps a floor.
+        streamView.setMinimumSize(320, 240)
 
         self._streamView = streamView
 

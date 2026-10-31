@@ -5,9 +5,10 @@ from __future__ import annotations
 from typing import Optional, Union
 
 # ==================================================================================
-from PySide6.QtCore import QRect, Qt
+from PySide6.QtCore import QRect, QSize, Qt
 from PySide6.QtGui import QColor, QImage, QPainter, QResizeEvent
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
+from PySide6.QtWidgets import QSizePolicy
 
 # ==================================================================================
 from jAGFx.workflow import workflow
@@ -47,6 +48,16 @@ class GLImage(QOpenGLWidget, ComponentBase, ImageBase):
         self._contentW: int = 0
         self._contentH: int = 0
         self._liveImage: Optional[QImage] = None
+
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.setMinimumSize(1, 1)
+
+    def sizeHint(self) -> QSize:
+        # Prefer filling the layout; QOpenGLWidget default hint is often tiny.
+        return QSize(640, 480)
+
+    def minimumSizeHint(self) -> QSize:
+        return QSize(320, 240)
 
     def presentExternal(
         self,
