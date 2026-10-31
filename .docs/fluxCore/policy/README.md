@@ -1,12 +1,13 @@
-# fluxCore.policy — documentation (clean slate)
+# fluxCore.policy — documentation
 
-Previous documentation for `DCPolicy` v2.0 and the hybrid design note have been **archived**.
+## Active
 
-- **Archive (reference only):** `.docs/_archive/fluxCore/policy/`
-  - `policy.md`, `requirement.md`, `implementation.md`
-  - `hybrid_discrete_continuous_policy.md`
-  - `README.md` (archive index)
+- **`design.md`** — Hybrid Discrete–Continuous Policy design draft (L1 History/Context Buffer + L2 Policy Core).
 
-Those files are **not** the source of truth. New requirements, design, and implementation documentation will be written here from scratch.
+## Archive (reference only)
 
-Do not restore the archived content as active docs without an explicit decision to do so.
+Previous documentation for `DCPolicy` v2.0 and the hybrid design note live under:
+
+`.docs/_archive/fluxCore/policy/`
+
+Those files are **not** the source of truth.
