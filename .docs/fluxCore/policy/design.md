@@ -127,7 +127,7 @@ Intents may compose hierarchically (sub-intents under a root). The executor owns
 | **Sub-intents** | Pushed under the root; each is expected to end via an `intent_end` action |
 | **`intent_end` action** | Discrete action the policy may emit; the action executor interprets it as pop, replace, or push on the intent stack |
 
-L2 state reset (when the stateful switch is On) is triggered by **root** completion or **root** replacement — not by every sub-intent pop. Definition details of executor stack mechanics can be refined with the executor; the policy contract only requires that major = root.
+L2 internal-state reset (when the stateful switch is On) is triggered by **root** completion or **root** replacement — not by every sub-intent pop. The executor (or training loop) invokes the L2 **reset method** at those boundaries. Definition details of executor stack mechanics can be refined with the executor; the policy contract only requires that major = root.
 
 ---
 
@@ -151,13 +151,17 @@ L2 state reset (when the stateful switch is On) is triggered by **root** complet
 | **Off** (**default**) | Pure feed-forward across calls. All history that influences the decision lives in the L1 stacks. Inside one forward pass, any temporal operator over the stack is allowed (attention, LSTM unrolled over `stackSize`, mean-pool, etc.). |
 | **On** | Stateful across calls. L2 may carry internal recurrent state (e.g. LSTM/GRU hidden state) that persists between forward passes, enabling context longer than `stackSize`. |
 
-**Reset policy when switch is On (locked)**
+**Reset (locked) — method, not state**
 
-| Phase | Rule |
-|-------|------|
-| **Inference** | Reset internal state on **major (root) intent** change/completion and on episode / task boundary. |
-| **Per-step control** | Expose a `reset_state` flag on the forward path so the action executor can force a reset (or not) on any step. Default: `false`. |
-| **Training** | **Match inference**: reset on episode boundary and on major intent change (per-env masks in batched training). Do **not** hard-reset every step. |
+Reset is an explicit **method** on L2 (e.g. `reset()` / `reset_state()`), not a flag or argument on `forward`.
+
+| Caller | When to invoke |
+|--------|----------------|
+| **Inference / executor** | On **major (root) intent** change or completion, and on episode / task boundary. Executor decides when to call the method. |
+| **Training** | **Match inference**: call the reset method on episode boundary and on major intent change (per-env in batched training). Do **not** call reset every step. |
+
+When the stateful switch is **Off**, the method is a no-op (no internal state).  
+When **On**, the method clears internal recurrent state so the next forward starts clean.
 
 **Inference-time noise switch (locked)**
 
@@ -222,7 +226,7 @@ emb     = Fuse(emb_id, emb_opt)  # default: concat → width D_id + D_opt
 - **Separate vectors, then fuse** — locked.  
 - **Default fusion operator: concat.**  
 - Variable option *content* does not imply variable embedding *length*; encoders always emit fixed-width vectors so Layout 3 and batching stay valid.  
-- Exact values of `D_id` / `D_opt` are implementation defaults.
+- Exact values of `D_id` / `D_opt` are left to implementation details.
 
 ---
 
@@ -245,8 +249,7 @@ emb     = Fuse(emb_id, emb_opt)  # default: concat → width D_id + D_opt
                     │  L2  Policy Core                    │
                     │   • stateful switch: off (default)  │
                     │                      | on           │
-                    │   • reset: major (root) intent /    │
-                    │            episode + per-step flag  │
+                    │   • reset() method (not a flag)     │
                     │   • inference noise: off (default)  │
                     │                      | on           │
                     │   • temporal / context fusion       │
@@ -256,7 +259,8 @@ emb     = Fuse(emb_id, emb_opt)  # default: concat → width D_id + D_opt
                                        │
                                        ▼
                          next action + continuous args
-                              (executor may pop/push intent)
+                              (executor may pop/push intent;
+                               executor calls reset() on major boundaries)
 ```
 
 After execution, the caller (or a thin wrapper) feeds the *executed* action + parameters back as the next step’s `previous_action` / `previous_parameters`.
@@ -273,7 +277,7 @@ After execution, the caller (or a thin wrapper) feeds the *executed* action + pa
 | `stackSize` | ∈ {2, 4, 8, 16, 32, 64, 128, 256} |
 | Slot temporal alignment | **Action taken from this image** |
 | L2 stateful switch | **Off by default**; On = carry internal recurrent state |
-| L2 state reset (when On) | **Major (root) intent** change/completion + episode boundary; per-step `reset_state` flag; **training matches inference** |
+| L2 state reset | **Method** (`reset()` / `reset_state()`), not a forward flag; call on major (root) intent change/completion and episode boundary; training matches inference |
 | Major intent | Root of executor intent stack; sub-intents end via **`intent_end`**; executor pop/replace/push |
 | Inference-time noise | **Switch on/off**, **default Off** (deterministic decode) |
 | Intent | Blanket for the *current* decision; per-slot history in `intent_stack` |
@@ -287,11 +291,15 @@ After execution, the caller (or a thin wrapper) feeds the *executed* action + pa
 
 ---
 
-## Open decisions (deferred)
+## Deferred to implementation details
 
-1. Exact embedding dimensions (`D_id`, `D_opt`, backbone widths) — implementation defaults.  
+The following are **not** design locks. They must be specified when **implementation details** (and related requirement / implementation docs) are created:
+
+1. Exact embedding dimensions (`D_id`, `D_opt`, backbone / feature widths).  
 2. Fine-grained executor rules for pop vs replace vs push on `intent_end`.  
-3. Concrete temperature / noise schedules when inference-time noise is On.
+3. Concrete temperature / noise schedules when inference-time noise is On.  
+4. Precise API signature of the L2 `reset()` method (name, return value, multi-env behaviour).  
+5. Placeholder tensor dtypes and concrete warm-up pad values.
 
 ---
 
@@ -302,6 +310,7 @@ After execution, the caller (or a thin wrapper) feeds the *executed* action + pa
 - History contains **intent + prepared image + action taken from image + parameters**.  
 - Hybrid output (discrete + continuous) lives in L2.  
 - L2 statefulness and inference noise are explicit switches (both default Off).  
+- L2 internal-state **reset is a method**, invoked by the executor / training loop — not a per-step state flag.  
 - Variable structure in options/parameters is handled by **learned encoders with fixed output width**.  
 - Vocabularies are structured, injectable, and free of hard-coded closed sets.  
 - Human-readable `description` never enters the computation graph.
