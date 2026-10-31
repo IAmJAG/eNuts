@@ -22,7 +22,7 @@ QWidget#W_SIDEBAR > QWidget#W_SIDEBAR_HEADER {
 QWidget#W_SIDEBAR > QWidget#W_SIDEBAR_HEADER > QLabel#W_SIDEBAR_HEADER_TITLE {
     color: $accent;
     font-weight: 800;
-    font-size: 18px;
+    font-size: 18pt;
 }
 
 QWidget#W_SIDEBAR_MENU_ITEM {

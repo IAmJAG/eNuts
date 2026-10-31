@@ -3,7 +3,7 @@ QWidget {
     background: $bg;
     color: $text;
     font-family: "Segoe UI", "Arial", sans-serif;
-    font-size: 12px;
+    font-size: 12pt;
 }
 
 QLabel,
