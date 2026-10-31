@@ -5,7 +5,7 @@ from time import monotonic
 from traceback import format_exc
 from typing import Any, Dict, List, Optional, Tuple
 
-from PySide6.QtCore import QObject, Qt, Signal, SignalInstance
+from PySide6.QtCore import QObject, QSettings, Qt, Signal, SignalInstance
 from PySide6.QtGui import QKeyEvent, QMouseEvent
 
 from fluxCore.action.android.enums import eKeyCode, eKeyState, eMetaState
@@ -21,6 +21,9 @@ from ..device import (
     deviceManager,
 )
 from ..stream import LocalDeviceStream
+
+# QSettings key under MainWindow / Shell.settings
+C_SETTINGS_DEVICE_ID: str = "kgRecorder/deviceId"
 
 _C_QT_TO_ANDROID: Dict[int, eKeyCode] = {
     Qt.Key.Key_0: eKeyCode.KEYCODE_0, Qt.Key.Key_1: eKeyCode.KEYCODE_1,
@@ -79,7 +82,49 @@ class KGRecorder(QObject):
         self._deviceManager: Optional[deviceManager] = None
         self._streamSerial: Optional[str] = None
         self._deviceStream: Optional[LocalDeviceStream] = None
+        self._comboWired: bool = False
         self._sigDevicesChanged.connect(self._refreshDeviceCombo)
+
+    def _mainWindowSettings(self) -> Optional[QSettings]:
+        """Resolve QSettings from ENUTSWindow (Shell) via parent chain.
+
+        Shell owns ``settings`` (created in ``_wInitializeSettings``).
+        KGRecorder is constructed as ``KGRecorder(parent=self)`` from Shell,
+        so ``self.parent()`` is typically the main window.
+        """
+        node: Optional[QObject] = self.parent()
+        while node is not None:
+            settings = getattr(node, "settings", None)
+            if isinstance(settings, QSettings):
+                return settings
+            parentFn = getattr(node, "parent", None)
+            node = parentFn() if callable(parentFn) else None
+        return None
+
+    def _loadPersistedDeviceId(self) -> Optional[str]:
+        settings = self._mainWindowSettings()
+        if settings is None:
+            return None
+        try:
+            raw = settings.value(C_SETTINGS_DEVICE_ID, "")
+            cleaned = str(raw or "").strip()
+            return cleaned or None
+        except Exception as ex:
+            warning(f"[KGRecorder] load persisted deviceId failed: {ex}")
+            return None
+
+    def _persistDeviceId(self, deviceId: Optional[str]) -> None:
+        settings = self._mainWindowSettings()
+        if settings is None:
+            return
+        try:
+            value = (deviceId or "").strip()
+            settings.setValue(C_SETTINGS_DEVICE_ID, value)
+            verbose(
+                f"[KGRecorder] persisted deviceId={value!r} key={C_SETTINGS_DEVICE_ID!r}"
+            )
+        except Exception as ex:
+            warning(f"[KGRecorder] persist deviceId failed: {ex}")
 
     def setDeviceManager(self, mgr: Optional[deviceManager]) -> None:
         if self._deviceManager is mgr:
@@ -112,6 +157,51 @@ class KGRecorder(QObject):
         except Exception:
             pass
 
+    def _wireDeviceCombo(self) -> None:
+        combo = self._deviceCombo
+        if combo is None or self._comboWired:
+            return
+        try:
+            combo.currentIndexChanged.connect(self._onDeviceComboIndexChanged)
+            self._comboWired = True
+            verbose("[KGRecorder] device combo currentIndexChanged wired")
+        except Exception as ex:
+            warning(f"[KGRecorder] wire device combo failed: {ex}")
+
+    def _unwireDeviceCombo(self) -> None:
+        combo = self._deviceCombo
+        if combo is None or not self._comboWired:
+            self._comboWired = False
+            return
+        try:
+            combo.currentIndexChanged.disconnect(self._onDeviceComboIndexChanged)
+        except Exception:
+            pass
+        self._comboWired = False
+
+    def _onDeviceComboIndexChanged(self, index: int) -> None:
+        if self._state == eKGRecorderState.Recording:
+            return
+        combo = self._deviceCombo
+        if combo is None:
+            return
+        try:
+            data = combo.itemData(index) if index >= 0 else None
+        except Exception:
+            data = None
+        serial = str(data).strip() if data is not None else None
+        if not serial:
+            serial = None
+        if serial == self._deviceId:
+            return
+        self._deviceId = serial
+        self._persistDeviceId(serial)
+        if serial:
+            self._attachStream(serial)
+        else:
+            self._detachStream()
+        verbose(f"[KGRecorder] combo selected deviceId={serial!r}")
+
     def _refreshDeviceCombo(self) -> None:
         combo = self._deviceCombo
         if combo is None:
@@ -119,11 +209,14 @@ class KGRecorder(QObject):
         if self._state == eKGRecorderState.Recording:
             self._setDeviceComboEnabled(False)
             return
+
         mgr = self._deviceManager
         devices: List[Any] = []
         if mgr is not None and hasattr(mgr, "values"):
             devices = [d for d in list(mgr.values()) if hasattr(d, "id")]
-        prev = self._deviceId
+
+        preferred = self._deviceId or self._loadPersistedDeviceId()
+
         try:
             combo.blockSignals(True)
             combo.clear()
@@ -134,19 +227,26 @@ class KGRecorder(QObject):
                     serial = str(device.id)
                     caption = (getattr(device, "name", None) or "").strip() or serial
                     combo.addItem(caption, serial)
-            if prev:
-                idx = combo.findData(prev)
+
+            chosen: Optional[str] = None
+            if preferred:
+                idx = combo.findData(preferred)
                 if idx >= 0:
                     combo.setCurrentIndex(idx)
-                else:
-                    self._deviceId = None
-                    self._detachStream()
+                    chosen = preferred
+                elif devices:
                     combo.setCurrentIndex(0)
+                    data = combo.itemData(0)
+                    chosen = str(data) if data is not None else None
+                else:
+                    combo.setCurrentIndex(0)
+                    chosen = None
             elif combo.count() > 0:
                 combo.setCurrentIndex(0)
                 data = combo.itemData(0)
-                if data is not None:
-                    self._deviceId = str(data)
+                chosen = str(data) if data is not None else None
+
+            self._deviceId = chosen
         except Exception as ex:
             warning(f"[KGRecorder] refreshDeviceCombo failed: {ex}")
         finally:
@@ -154,18 +254,12 @@ class KGRecorder(QObject):
                 combo.blockSignals(False)
             except Exception:
                 pass
+
         self._setDeviceComboEnabled(True)
-        current = None
-        try:
-            data = combo.currentData()
-            current = str(data) if data is not None else None
-        except Exception:
-            pass
-        if current and current != self._streamSerial:
-            self._deviceId = current
-            self._attachStream(current)
-        elif not current:
-            self._deviceId = None
+
+        if self._deviceId and self._deviceId != self._streamSerial:
+            self._attachStream(self._deviceId)
+        elif not self._deviceId:
             self._detachStream()
 
     def _detachStream(self) -> None:
@@ -334,6 +428,24 @@ class KGRecorder(QObject):
             warning("[KGRecorder] setDeviceId ignored while recording")
             return
         self._deviceId = cleaned
+        self._persistDeviceId(cleaned)
+        combo = self._deviceCombo
+        if combo is not None:
+            try:
+                combo.blockSignals(True)
+                if cleaned:
+                    idx = combo.findData(cleaned)
+                    if idx >= 0:
+                        combo.setCurrentIndex(idx)
+                else:
+                    combo.setCurrentIndex(0)
+            except Exception:
+                pass
+            finally:
+                try:
+                    combo.blockSignals(False)
+                except Exception:
+                    pass
         if cleaned:
             self._attachStream(cleaned)
         else:
@@ -398,11 +510,17 @@ class KGRecorder(QObject):
             warning("[KGRecorder] bindPage: page has no _streamView (GLImage)")
             return
         verbose(f"[KGRecorder] bound to page streamView={type(view).__name__}")
+
+        if not self._deviceId:
+            self._deviceId = self._loadPersistedDeviceId()
+
+        self._wireDeviceCombo()
         self._refreshDeviceCombo()
         if self._deviceId:
             self._attachStream(self._deviceId)
 
     def unbindPage(self) -> None:
+        self._unwireDeviceCombo()
         self._detachStream()
         self._streamView = None
         self._deviceCombo = None
