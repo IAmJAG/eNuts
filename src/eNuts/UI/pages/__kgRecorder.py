@@ -49,19 +49,6 @@ class KGRecorder(PlaybackBase):
             id=id, *args, **kwargs
         )
 
-    def deviceChanged(self, device: str) -> None:
-        self._deviceCombo.setCurrentText(device)
-
-    def _initialize(self) -> None:
-        # TODO: this will be a binding later
-        adbDevices: Dict[str, AdbDevice] = {d.serial: d for d in adb.device_list()}
-        devices: QComboBox = self._deviceCombo
-
-        for d in adbDevices.values():
-            emitter: iSCRCPYEmitter = SCRCPYEmitter(d.serial)
-            task: Task = createTask(emitter.initialize)
-            task.add_done_callback(lambda _: devices.addItem(d.name)) 
-
     def _wInitializeUI(self) -> None:
         super()._wInitializeUI()
 
@@ -98,5 +85,3 @@ class KGRecorder(PlaybackBase):
 
         self._streamView = image
         self._deviceCombo = deviceCombo
-
-        self._initialize()
