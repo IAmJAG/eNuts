@@ -15,10 +15,11 @@ from .__subscription import AsyncSubscription
 
 
 # ==================================================================================
-class AsyncProcess(iService, AsyncSubscription):
+class AsyncProcess(AsyncSubscription, iService):
     C_DEFAULT_STOP_TIMEOUT: float = 5.0
 
     def __init__(self, work: Callable[..., Awaitable], name: str | None = None) -> None:
+        super().__init__()
         if work is None or not iscoroutinefunction(work):
             raise TypeError("AsyncProcess requires an awaitable (coroutine function) work argument")
 
