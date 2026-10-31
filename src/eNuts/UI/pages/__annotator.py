@@ -18,9 +18,6 @@ class Annotator(PlaybackBase):
     Inherits playback layout (Page chrome + GLImage). Annotation tools and
     stream attach are deferred.
     """
-
-    OBJECT_NAME = "W_ANNOTATOR"
-
     def __init__(
         self, title: str, description: str = "",
         icon: Optional[Union[QIcon, QPixmap, str]] = None, commandBarOn: bool = False,

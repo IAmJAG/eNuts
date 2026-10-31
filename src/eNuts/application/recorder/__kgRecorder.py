@@ -20,7 +20,6 @@ from ..device import (
     DEVICE_REMOVED_EVENT,
     deviceManager,
 )
-from ..stream import LocalDeviceStream
 
 _C_QT_TO_ANDROID: Dict[int, eKeyCode] = {
     Qt.Key.Key_0: eKeyCode.KEYCODE_0, Qt.Key.Key_1: eKeyCode.KEYCODE_1,

@@ -1,20 +1,32 @@
 # ==================================================================================
 from __future__ import annotations
 
+from asyncio import Task
+
 # ==================================================================================
-from typing import Optional, Union
+from typing import Dict, Optional, Union
+
+# ==================================================================================
+from adbutils import AdbDevice, adb
 
 # ==================================================================================
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
+    QBoxLayout,
     QComboBox,
     QHBoxLayout,
     QLabel,
     QListWidget,
     QSizePolicy,
+    QVBoxLayout,
     QWidget,
 )
+
+# ==================================================================================
+from fluxCore.emitters import SCRCPYEmitter
+from fluxCore.types.interface.emitters import iSCRCPYEmitter
+from jAGQt.widgets import GLImage
 
 # ==================================================================================
 from .__playbackBase import PlaybackBase
@@ -37,80 +49,54 @@ class KGRecorder(PlaybackBase):
             id=id, *args, **kwargs
         )
 
+    def deviceChanged(self, device: str) -> None:
+        self._deviceCombo.setCurrentText(device)
+
+    def _initialize(self) -> None:
+        # TODO: this will be a binding later
+        adbDevices: Dict[str, AdbDevice] = {d.serial: d for d in adb.device_list()}
+        devices: QComboBox = self._deviceCombo
+
+        for d in adbDevices.values():
+            emitter: iSCRCPYEmitter = SCRCPYEmitter(d.serial)
+            task: Task = createTask(emitter.initialize)
+            task.add_done_callback(lambda _: devices.addItem(d.name)) 
+
     def _wInitializeUI(self) -> None:
         super()._wInitializeUI()
 
-        strip = QWidget()
-        strip.setObjectName(f"{self.OBJECT_NAME}_DEVICE_STRIP")
-        strip.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        stripLayout = QHBoxLayout(strip)
-        stripLayout.setContentsMargins(8, 4, 8, 4)
-        stripLayout.setSpacing(8)
+        layout: QBoxLayout = self.Layout
+        layout.setDirection(QBoxLayout.Direction.LeftToRight)
 
-        deviceLabel = QLabel("Device")
-        deviceLabel.setObjectName(f"{self.OBJECT_NAME}_DEVICE_LABEL")
+        image: GLImage = GLImage(bg="#1a1a1a")
+        image.setObjectName(f"{self.OBJECT_NAME}_STREAM")
+        image.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        image.setMinimumSize(320, 240)
 
-        deviceCombo = QComboBox()
-        deviceCombo.setObjectName(f"{self.OBJECT_NAME}_DEVICE_COMBO")
-        deviceCombo.setMinimumWidth(220)
-        deviceCombo.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
-        )
-        deviceCombo.addItem("(no devices)", None)
+        deviceLabel: QLabel = QLabel("Device:")
+        deviceCombo: QComboBox = QComboBox(placeholderText="Select Device")
+        
+        deviceLayout: QHBoxLayout = QHBoxLayout()
+        deviceLayout.setContentsMargins(0, 5, 0, 0)
+        deviceLayout.setSpacing(5)
 
-        statusLabel = QLabel("Idle")
-        statusLabel.setObjectName(f"{self.OBJECT_NAME}_STATUS")
-        statusLabel.setAlignment(
-            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
-        )
-        statusLabel.setMinimumWidth(120)
+        deviceLayout.addWidget(deviceLabel)
+        deviceLayout.addWidget(deviceCombo, stretch=1)
 
-        stripLayout.addWidget(deviceLabel)
-        stripLayout.addWidget(deviceCombo, stretch=1)
-        stripLayout.addWidget(statusLabel)
+        utilsLayout: QBoxLayout = QBoxLayout(QBoxLayout.Direction.TopToBottom)
+        utilsLayout.addLayout(deviceLayout)
+        utilsLayout.addStretch(1)
 
-        contentLayout = self.Layout
-        contentLayout.insertWidget(0, strip, stretch=0)
+        utils: QWidget = QWidget()
+        utils.setFixedWidth(250)
+        utils.setObjectName(f"{self.OBJECT_NAME}_UTILS")
+        utils.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        utils.setLayout(utilsLayout)
+        
+        self.addWidget(image, stretch=1)
+        self.addWidget(utils)
 
-        eventList = QListWidget()
-        eventList.setObjectName(f"{self.OBJECT_NAME}_EVENTS")
-        eventList.setMinimumWidth(180)
-        eventList.setMaximumWidth(280)
-        eventList.setSizePolicy(
-            QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding
-        )
-
-        streamView = getattr(self, "_streamView", None)
-        if streamView is not None:
-            try:
-                contentLayout.removeWidget(streamView)
-            except Exception:
-                pass
-
-            row = QWidget()
-            row.setObjectName(f"{self.OBJECT_NAME}_BODY")
-            rowLayout = QHBoxLayout(row)
-            rowLayout.setContentsMargins(0, 0, 0, 0)
-            rowLayout.setSpacing(4)
-            rowLayout.addWidget(streamView, stretch=1)
-            rowLayout.addWidget(eventList, stretch=0)
-            contentLayout.addWidget(row, stretch=1)
-
-        if self._commandBar is not None:
-            for caption in ("Start", "Stop", "Clear", "Save", "Open"):
-                try:
-                    self.addCommand(caption)
-
-                except Exception as ex:
-                    warning(f"[pages] KG command button {caption!r} failed: {ex}")
-
+        self._streamView = image
         self._deviceCombo = deviceCombo
-        self._statusLabel = statusLabel
-        self._eventList = eventList
 
-        verbose(
-            f"[pages] KGRecorder page id={self.Id!r} "
-            f"stream={getattr(streamView, 'objectName', lambda: None)()!r} "
-            f"combo={deviceCombo.objectName()!r} "
-            f"commandBar={self._commandBar is not None}"
-        )
+        self._initialize()

@@ -15,8 +15,6 @@ from jAGQt.widgets.page import Page
 
 # ==================================================================================
 class PlaybackBase(Page):
-    OBJECT_NAME = "W_PLAYBACK"
-
     def __init__(
         self, title: str, description: str = "",
         icon: Optional[Union[QIcon, QPixmap, str]] = None,

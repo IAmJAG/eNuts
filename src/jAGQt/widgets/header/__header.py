@@ -31,12 +31,9 @@ class Header(QWidget, ComponentBase):
     OBJECT_NAME = "W_HEADER"
 
     def __init__(
-        self,
-        title: str = "",
-        description: Optional[str] = "",
+        self, title: str = "", description: Optional[str] = "",
         icon: Optional[Union[QIcon, QPixmap, str]] = None,
-        *args,
-        **kwargs,
+        *args, **kwargs,
     ) -> None:
         lObjName: str = kwargs.pop("objectName", self.OBJECT_NAME)
         super().__init__(objectName=lObjName, *args, **kwargs)
@@ -44,6 +41,7 @@ class Header(QWidget, ComponentBase):
         self._titleText: str = title
         self._descriptionText: str = description or ""
         self._iconData: Optional[Union[QIcon, QPixmap, str]] = icon
+        
         # Defaults — settable after construction via properties
         self._iconPosition: IconPosition = IconPosition.TitleRow
         self._iconSize: int = 24

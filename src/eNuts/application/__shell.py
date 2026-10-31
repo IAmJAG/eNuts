@@ -71,10 +71,6 @@ class Shell(ApplicationInformation):
         self._qsettings = value
 
     @property
-    def DeviceManager(self) -> deviceManager | None:
-        return getattr(self, "_deviceManager", None)
-
-    @property
     def KGRecorder(self) -> KGRecorder | None:
         return getattr(self, "_kgRecorder", None)
 

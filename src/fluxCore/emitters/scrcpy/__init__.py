@@ -25,15 +25,7 @@ from .__messages import (
     ScrcpyStopMessage,
 )
 from .__payloads import ScrcpyInitParams
-
-# ==================================================================================
-def __getattr__(name: str):
-    if name == "SCRCPYEmitter":
-        from .__SCRCPYEmitter import SCRCPYEmitter
-
-        return SCRCPYEmitter
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-
+from .__SCRCPYEmitter import SCRCPYEmitter
 
 # ==================================================================================
 __all__ = [

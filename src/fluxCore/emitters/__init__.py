@@ -1,11 +1,4 @@
-# ==================================================================================
-def __getattr__(name: str):
-    if name == "SCRCPYEmitter":
-        from .scrcpy import SCRCPYEmitter
-
-        return SCRCPYEmitter
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-
+from .scrcpy import SCRCPYEmitter
 
 # ==================================================================================
 __all__ = ["SCRCPYEmitter"]
