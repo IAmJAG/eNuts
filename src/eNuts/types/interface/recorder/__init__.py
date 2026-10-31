@@ -1,5 +1,5 @@
 # ==================================================================================
-from .__iKGRecorder import eKGRecorderState, iKGRecorder
+from .__iKGRecorder import iKGRecorder
 
 # ==================================================================================
-__all__ = ["eKGRecorderState", "iKGRecorder"]
+__all__ = ["iKGRecorder"]
