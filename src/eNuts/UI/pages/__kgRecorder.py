@@ -62,13 +62,13 @@ class KGRecorder(PlaybackBase):
         )
 
         deviceLayout: QHBoxLayout = QHBoxLayout()
-        deviceLayout.setContentsMargins(0, 5, 0, 0)
+        deviceLayout.setContentsMargins(0, 0, 0, 0)
         deviceLayout.setSpacing(5)
         deviceLayout.addWidget(deviceLabel)
         deviceLayout.addWidget(deviceCombo, stretch=1)
 
         utilsLayout: QBoxLayout = QBoxLayout(QBoxLayout.Direction.TopToBottom)
-        utilsLayout.setContentsMargins(0, 0, 0, 0)
+        utilsLayout.setContentsMargins(5, 5, 5, 5)
         utilsLayout.setSpacing(4)
         utilsLayout.addLayout(deviceLayout)
         utilsLayout.addStretch(1)
