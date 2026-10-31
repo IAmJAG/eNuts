@@ -42,30 +42,41 @@ class KGRecorder(QObject):
     # -------------------------------------------------------------------------
     # MainWindow / Shell QSettings
     # -------------------------------------------------------------------------
-    def _mainWindowSettings(self) -> Optional[QSettings]:
-        node: Optional[QObject] = self.parent()
-        while node is not None:
-            settings = getattr(node, "settings", None)
-            if isinstance(settings, QSettings):
-                return settings
-            parentFn = getattr(node, "parent", None)
-            node = parentFn() if callable(parentFn) else None
-        return None
+    @property
+    def settings(self) -> Optional[QSettings]:
+        """Return the QSettings instance of the MainWindow or Shell."""
+        if not hasattr(self, "_settings"):
+            qsettings: QSettings = None
+            node: Optional[QObject] = self.parent()
+            while node is not None:
+                settings = getattr(node, "settings", None)
+                if isinstance(settings, QSettings):
+                    qsettings = settings
+                    break
+
+                parentFn = getattr(node, "parent", None)
+                node = parentFn() if callable(parentFn) else None
+
+            self._settings = qsettings
+
+        return self._settings
+        
 
     def _loadPersistedDeviceId(self) -> Optional[str]:
-        settings = self._mainWindowSettings()
-        if settings is None:
-            return None
+        settings = self.settings
+        if settings is None: return None
+
         try:
             raw = settings.value(C_SETTINGS_DEVICE_ID, "")
             cleaned = str(raw or "").strip()
             return cleaned or None
+        
         except Exception as ex:
             warning(f"[KGRecorder] load persisted deviceId failed: {ex}")
             return None
 
     def _persistDeviceId(self, deviceId: Optional[str]) -> None:
-        settings = self._mainWindowSettings()
+        settings = self.settings
         if settings is None:
             return
         try:
