@@ -6,7 +6,7 @@
 |----------|------|
 | **`design.md`** | Hybrid Discrete–Continuous Policy design (term-store aligned) |
 | **`term-store.md`** | Agreed terminology and rules |
-| **`implementation.md`** | Implementation specification (RS1 architecture; further sections TBD) |
+| **`implementation.md`** | Implementation specification — Section 1 (architecture); further sections TBD |
 
 ## Archive (reference only)
 
