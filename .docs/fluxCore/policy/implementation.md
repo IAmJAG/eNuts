@@ -3,9 +3,25 @@
 **Status:** Initial implementation specification  
 **Source of truth:** The Revised Policy Design and Policy Term Store. This document translates their agreed decisions into implementation guidance. It does not supersede them.
 
+**Document structure** (planned sections):
+
+1. Architecture and component responsibilities *(this section)*
+2. Class and module design
+3. Public APIs and method contracts
+4. Data structures and tensor contracts
+5. L1 implementation
+6. L2 implementation
+7. Vocabulary and encoding implementation
+8. Intent Hierarchy and action-specific Executors
+9. Step orchestration and execution lifecycle
+10. State management and reset behavior
+11. Error handling and validation
+12. Testing strategy
+13. Deferred implementation decisions
+
 ---
 
-# RS1 — Architecture and Component Responsibilities
+# Section 1 — Architecture and Component Responsibilities
 
 ## 1.1 Purpose
 
@@ -18,7 +34,7 @@ The policy is organized around two cooperating layers:
 
 The policy's action execution is performed by action-specific **Executor** implementations. The complete interaction cycle is orchestrated by `step()`; `step()` is not assumed to be a method of L2 or of any other particular class.
 
-The implementation will use the technology choices already agreed in the Revised Policy Design. RS1 references those choices but does not redefine them.
+The implementation will use the technology choices already agreed in the Revised Policy Design. This section references those choices but does not redefine them.
 
 ## 1.2 Architectural overview
 
@@ -207,7 +223,7 @@ The implementation must preserve these meanings:
 
 L2 produces the predicted next action and its predicted parameters. The action determines the associated Executor implementation. That Executor receives the action and parameters and carries out the action.
 
-The concrete output data structure and Executor lookup/dispatch API are not specified by RS1; they belong in the relevant API and component sections of this implementation document.
+The concrete output data structure and Executor lookup/dispatch API are not specified in this section; they belong in the relevant API and component sections of this implementation document.
 
 ### Executor/environment to the next L1 input
 
@@ -243,9 +259,9 @@ The implementation must use the technology decisions recorded in the Revised Pol
 
 Pillow, OpenCV, NumPy, and PyTorch are complementary. The implementation may convert between PIL images, NumPy arrays, and PyTorch tensors at the appropriate processing boundaries.
 
-RS1 does not select specific library versions, define image transform operations, set tensor dtypes or dimensions, or specify device-selection APIs. Those details are addressed in later implementation sections.
+This section does not select specific library versions, define image transform operations, set tensor dtypes or dimensions, or specify device-selection APIs. Those details are addressed in later implementation sections.
 
-## 1.7 Explicitly unresolved by RS1
+## 1.7 Explicitly unresolved in this section
 
 The following details must not be inferred from this architecture section:
 
