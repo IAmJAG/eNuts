@@ -2,7 +2,11 @@
 
 ## Active
 
-- **`design.md`** — Hybrid Discrete–Continuous Policy design draft (L1 History/Context Buffer + L2 Policy Core).
+| Document | Role |
+|----------|------|
+| **`design.md`** | Hybrid Discrete–Continuous Policy design (term-store aligned) |
+| **`term-store.md`** | Agreed terminology and rules |
+| **`implementation.md`** | Implementation specification (RS1 architecture; further sections TBD) |
 
 ## Archive (reference only)
 
