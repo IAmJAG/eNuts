@@ -16,10 +16,6 @@ G_FRAME_SIZE: int = 224
 G_PARAM_DIM: int = 8
 
 G_DEFAULT_FEATURE_DIMENSION: int = 576
-G_FEATURE_DIMENSIONS: Dict[type, int] = {
-    models.MobileNetV3: 576,  # small last_channel; large is 960 — see note below
-    models.ResNet: 512,  # only if you handle layer depth; or split by concrete subclass
-}
 # ==================================================================================
 
 def getFeatureDimension(module: nn.Module) -> int:
