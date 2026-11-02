@@ -33,8 +33,7 @@ class PolicyOptions(Serializable):
         "spatialOutputDimension": G_DEFAULT_SPATIAL_OUTPUT_DIMENSION,
         "frameSize": G_DEFAULT_IMAGE_RESIZE,
         "normalizeMean": G_NORMALIZE_MEAN,
-        "normalizeStd": G_NORMALIZE_STD,
-    
+        "normalizeStd": G_NORMALIZE_STD,    
     }
 
     @overload
@@ -55,7 +54,7 @@ class PolicyOptions(Serializable):
         defaults: Dict[str, Any] = dict(type(self).DEFAULTS) 
         defaults["featureDimension"] = self.featureDimension
 
-        keys: List[str] = list(kwargs.keys())
+        keys: List[str] = list(defaults.keys())
         for key in keys:            
             if not hasattr(self, key):
                 warning(f"option '{key}' provided. Ignoring it.")

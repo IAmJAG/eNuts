@@ -178,31 +178,39 @@ class DCPolicyCore(iPolicy, nn.Module):
     def save(self, path: str | Path) -> None: 
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
+        
         torch.save(
             {
-                "VERSION": self.VERSION, 
+                "VERSION": self.VERSION,
                 "MODELSTATE": self.state_dict(),
                 "OPTIONS": self.options.encode(),
-            }, path
+            },
+            path,
         )
     
     @classmethod
-    def load(cls, path: str | Path, module: nn.Module = None, device: Optional[Union[str, torchDevice]] = "cuda",) -> iPolicy:
-        model: Dict = torch.load(path, map_location="cpu", weights_only=False)
-
+    def load(
+        cls, path: str | Path, module: nn.Module = None,
+        device: Optional[Union[str, torchDevice]] = "cuda",
+    ) -> iPolicy:
+        model: Dict = torch.load(path, map_location="cpu", weights_only=False)        
         version: str = model.get("VERSION", None)
         if not version or version != cls.VERSION:
             raise ValueError(
                 f"Unsupported policy checkpoint version: {model.get('VERSION')!r}"
             )
-        
+
         if "MODELSTATE" not in model:
             raise ValueError("Policy checkpoint missing MODELSTATE")
 
         if "OPTIONS" not in model:
             raise ValueError("Policy checkpoint missing OPTIONS")
-        
-        options: PolicyOptions = jsonDecode(model["OPTIONS"])
-        policy = cls(module, device=device, **options)
+
+        raw = model["OPTIONS"]
+        if not isinstance(raw, dict):
+            raise ValueError("Policy checkpoint OPTIONS must be a dict")
+
+        kwargs = {k: v for k, v in raw.items() if k != "__type__"}
+        policy = cls(module, device=device, **kwargs)
         policy.load_state_dict(model["MODELSTATE"], strict=True)
         return policy
