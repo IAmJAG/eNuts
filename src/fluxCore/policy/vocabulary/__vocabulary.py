@@ -22,23 +22,20 @@ from .__vocabularyItem import VocabularyItem
 class Vocabulary[T: iVocabularyItem](iVocabulary, Serializable):
     def __init__(
         self,
-        vocabulary: Optional[List[T]] = None,
-        dimension: int = G_DEFAULT_EMBED_DIM,
-        fuse: bool = False,
-        device: Optional[str | torchDevice] = None,
+        vocabulary: Optional[List[T]] = None, dimension: int = G_DEFAULT_EMBED_DIM,
+        fuse: bool = False, device: Optional[str | torchDevice] = None,
     ) -> None:
         super().__init__()
 
         if self._dimension < 1:
             raise ValueError("dimension (embed width) must be >= 1")
-
         
         self._dimension: int = int(dimension)
         self._fuse: bool = fuse
         self._device: torchDevice = getTorchDevice(device)        
         self._vocabulary: List[T] = list(vocabulary or [])
 
-        self._ids: List[str] = List[str]()
+        self._ids: List[str] = list[str]()
         self._embeddings: Tensor = None
         self.Properties.extend(["dimension", "vocabulary"])
 
