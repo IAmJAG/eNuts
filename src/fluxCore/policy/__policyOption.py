@@ -21,14 +21,22 @@ class PolicyOptions:
     }
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        for key, value in kwargs.items():
-            if hasattr(self, f"_{key}"):
-                setattr(self, f"_{key}", self.DEFAULTS.get(key, value))
-            else:
+        for key, value in kwargs.items():            
+            if not hasattr(self, key) or not isinstance(getattr(self, key), property):
                 warning(f"Unknown option '{key}' provided. Ignoring it.")
+                continue
+
+            defaultValue: Optional[Any] = self.DEFAULTS.get(key, None)
+            if defaultValue is None:
+                error(f"Option '{key}' default value not provided.")
+
+            setattr(self, f"_{key}", self.DEFAULTS.get(key, value))            
 
     @property
     def freezeBackbone(self) -> bool:
+        if not hasattr(self, "_freezeBackbone"):
+            self._freezeBackbone = self.DEFAULTS.get("freezeBackbone", G_DEFAULT_FREEZE_BACKBONE)
+
         return self._freezeBackbone
 
     @freezeBackbone.setter
@@ -37,6 +45,9 @@ class PolicyOptions:
 
     @property
     def featureDimension(self) -> int:
+        if not hasattr(self, "_featureDimension"):
+            self._featureDimension = self.DEFAULTS.get("featureDimension", G_DEFAULT_FEATURE_DIMENSION)
+
         return self._featureDimension
 
     @featureDimension.setter
@@ -45,6 +56,8 @@ class PolicyOptions:
 
     @property
     def actionEmbeddingDimension(self) -> int:
+        if not hasattr(self, "_actionEmbeddingDimension"):
+            self._actionEmbeddingDimension = self.DEFAULTS.get("actionEmbeddingDimension", G_DEFAULT_EMBEDDING_DIMENSION)
         return self._actionEmbeddingDimension
 
     @actionEmbeddingDimension.setter
@@ -53,6 +66,8 @@ class PolicyOptions:
 
     @property
     def parameterKindEmbeddingDimension(self) -> int:
+        if not hasattr(self, "_parameterKindEmbeddingDimension"):
+            self._parameterKindEmbeddingDimension = self.DEFAULTS.get("parameterKindEmbeddingDimension", G_DEFAULT_EMBEDDING_DIMENSION)
         return self._parameterKindEmbeddingDimension
 
     @parameterKindEmbeddingDimension.setter
@@ -61,6 +76,8 @@ class PolicyOptions:
 
     @property
     def spatialEmbeddingDimension(self) -> int:
+        if not hasattr(self, "_spatialEmbeddingDimension"):
+            self._spatialEmbeddingDimension = self.DEFAULTS.get("spatialEmbeddingDimension", G_DEFAULT_EMBEDDING_DIMENSION)
         return self._spatialEmbeddingDimension
 
     @spatialEmbeddingDimension.setter
@@ -69,9 +86,10 @@ class PolicyOptions:
 
     @property
     def intentEmbeddingDimension(self) -> int:
+        if not hasattr(self, "_intentEmbeddingDimension"):
+            self._intentEmbeddingDimension = self.DEFAULTS.get("intentEmbeddingDimension", G_DEFAULT_EMBEDDING_DIMENSION)
         return self._intentEmbeddingDimension
 
     @intentEmbeddingDimension.setter
     def intentEmbeddingDimension(self, value: int) -> None:
         self._intentEmbeddingDimension = value
-        
