@@ -71,7 +71,6 @@ class Serializable(iSerializable):
         lErrors: List[Exception] = list[Exception]()
         for attrbName in self.Properties:
             if attrbName.startswith("_"): continue
-
             try:
                 lval = self._decodeProperty(dct, attrbName)
                 if lval is not None:

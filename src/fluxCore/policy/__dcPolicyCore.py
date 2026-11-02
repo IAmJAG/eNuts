@@ -23,6 +23,7 @@ from .__utilities import buildBackbone
 
 # ==================================================================================
 class DCPolicyCore(iPolicy, nn.Module):
+    VERSION: str = "0.0.1"
     def __init__(
         self, module: Optional[nn.Module] = None,         
         device: Optional[str | torchDevice] = "cuda", *args, **kwargs,
@@ -131,6 +132,7 @@ class DCPolicyCore(iPolicy, nn.Module):
             B = 1
             visFlat = visualSpace
 
+        visualFeatures: nn.Module
         if self.options.freezeBackbone:
             with torch.no_grad():
                 visualFeatures = self.backbone(visFlat)
@@ -170,8 +172,31 @@ class DCPolicyCore(iPolicy, nn.Module):
             "SPATIAL": self.spatialHead(context),
         }
 
-    def save(self, path: str | Path, device: Optional[Union[str, torchDevice]] = "cuda",): 
-        raise NotImplementedError
+    def save(self, path: str | Path) -> None: 
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        torch.save(
+            {
+                "VERSION": self.VERSION, 
+                "MODELSTATE": self.state_dict(),
+                "OPTIONS": self.options.encode(),
+            }, path
+        )
+    
+    @classmethod
+    def load(cls, path: str | Path, module: nn.Module = None, device: Optional[Union[str, torchDevice]] = "cuda",) -> iPolicy:
+        model: Dict = torch.load(path, map_location="cpu", weights_only=False)
 
-    def load(self, path):
-        raise NotImplementedError
+        version: str = model.get("VERSION", None)
+        if not version or version != cls.VERSION:
+            raise ValueError(
+                f"Unsupported policy checkpoint version: {model.get('VERSION')!r}"
+            )
+        
+        if "MODELSTATE" not in model:
+            raise ValueError("Policy checkpoint missing MODELSTATE")
+
+        options: PolicyOptions = PolicyOptions.decode(model["OPTIONS"])
+        policy = cls(module, device=device, **options)
+        policy.load_state_dict(model["MODELSTATE"], strict=True)
+        return policy
