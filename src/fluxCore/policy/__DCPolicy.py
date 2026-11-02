@@ -37,10 +37,10 @@ class DCPolicy(DCPolicyCore):
             ]
         )
 
-        self._frames: deque[Tensor] = deque[Tensor](maxlen=stackSize)
-        self._actions: deque[Tensor] = deque[Tensor](maxlen=stackSize)
-        self._parameters: deque[Tensor] = deque[Tensor](maxlen=stackSize)
-        self._intents: deque[Tensor] = deque[Tensor](maxlen=stackSize)
+        self._frames: deque[Tensor] = deque[Tensor](maxlen=opts.stackSize)
+        self._actions: deque[Tensor] = deque[Tensor](maxlen=opts.stackSize)
+        self._parameters: deque[Tensor] = deque[Tensor](maxlen=opts.stackSize)
+        self._intents: deque[Tensor] = deque[Tensor](maxlen=opts.stackSize)
 
 # region [INTILLISENSE] retained for intellisense and type hinting purposes    
     def transform(self, x: Tensor) -> Tensor:
