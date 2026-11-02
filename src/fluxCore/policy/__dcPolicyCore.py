@@ -31,13 +31,13 @@ class DCPolicyCore(iPolicy, nn.Module):
             )
         opts: PolicyOptions = PolicyOptions(module, **kwargs)
 
-        super().__init__(*args, **kwargs)
         try:
             self._device: torchDevice = device if isinstance(device, torchDevice) else torch.device(device)
 
         except Exception:
             raise ValueError(f"Invalid device provided: {device!r}. Must be a string or torch.device instance.")
 
+        super().__init__(*args, **kwargs)
 
         backbone: nn.Module = buildBackbone(module).to(self.device)
         module.to(self.device)
