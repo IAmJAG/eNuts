@@ -6,8 +6,8 @@ from pathlib import Path
 from typing import Any, Optional, Protocol, Union, runtime_checkable
 
 # ==================================================================================
-from torch import Tensor
-from torch import device as TorchDevice
+from torch import Tensor, nn
+from torch import device as torchDevice
 
 
 # ==================================================================================
@@ -16,4 +16,4 @@ class iPolicy(Protocol):
     def forward(self, *args, **kwargs) -> dict[str, Tensor]: ...    
     def save(self, path: str | Path) -> None: ...    
     @classmethod
-    def load(self, path: str | Path, device: Optional[Union[str, TorchDevice]] = "cuda",) -> iPolicy: ...
+    def load(cls, path: str | Path, module: nn.Module = None, device: Optional[Union[str, torchDevice]] = "cuda",) -> iPolicy: ...

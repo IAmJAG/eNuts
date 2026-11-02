@@ -15,6 +15,9 @@ from torchvision.models import (
 )
 
 # ==================================================================================
+from jAGFx.serializer import jsonDecode
+
+# ==================================================================================
 from ..types.interface.policy import iPolicy
 from ..utilities import getTorchDevice
 from .__policyOption import PolicyOptions
@@ -196,7 +199,10 @@ class DCPolicyCore(iPolicy, nn.Module):
         if "MODELSTATE" not in model:
             raise ValueError("Policy checkpoint missing MODELSTATE")
 
-        options: PolicyOptions = PolicyOptions.decode(model["OPTIONS"])
+        if "OPTIONS" not in model:
+            raise ValueError("Policy checkpoint missing OPTIONS")
+        
+        options: PolicyOptions = jsonDecode(model["OPTIONS"])
         policy = cls(module, device=device, **options)
         policy.load_state_dict(model["MODELSTATE"], strict=True)
         return policy
