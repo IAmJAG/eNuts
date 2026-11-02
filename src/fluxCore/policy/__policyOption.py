@@ -15,6 +15,7 @@ from .__utilities import (
     G_DEFAULT_FREEZE_BACKBONE,
     G_DEFAULT_IMAGE_RESIZE,
     G_DEFAULT_SPATIAL_OUTPUT_DIMENSION,
+    G_DEFAULT_STACK_SIZE,
     G_NORMALIZE_MEAN,
     G_NORMALIZE_STD,
     getFeatureDimension,
@@ -32,8 +33,9 @@ class PolicyOptions(Serializable):
         "spatialEmbeddingDimension": G_DEFAULT_EMBEDDING_DIMENSION,
         "spatialOutputDimension": G_DEFAULT_SPATIAL_OUTPUT_DIMENSION,
         "frameSize": G_DEFAULT_IMAGE_RESIZE,
+        "stackSize": G_DEFAULT_STACK_SIZE,
         "normalizeMean": G_NORMALIZE_MEAN,
-        "normalizeStd": G_NORMALIZE_STD,    
+        "normalizeStd": G_NORMALIZE_STD,
     }
 
     @overload

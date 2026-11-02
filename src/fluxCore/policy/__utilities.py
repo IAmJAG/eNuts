@@ -16,6 +16,8 @@ G_NORMALIZE_STD: List[float] = [0.229, 0.224, 0.225]
 G_DEFAULT_IMAGE_RESIZE: int = 224
 G_PARAM_DIM: int = 8
 
+G_DEFAULT_STACK_SIZE: int = 4
+
 G_DEFAULT_FEATURE_DIMENSION: int = 576
 # ==================================================================================
 
