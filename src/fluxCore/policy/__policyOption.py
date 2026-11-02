@@ -48,7 +48,7 @@ class PolicyOptions(Serializable):
         keys: List[str] = list(kwargs.keys())
         for key in keys:            
             if not hasattr(self, key):
-                warning(f"Unknown option '{key}' provided. Ignoring it.")
+                warning(f"option '{key}' provided. Ignoring it.")
                 continue
 
             value: Any = kwargs.pop(key, None)

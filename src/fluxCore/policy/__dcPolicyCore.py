@@ -15,6 +15,7 @@ from torchvision.models import (
 
 # ==================================================================================
 from ..types.interface.policy import iPolicy
+from ..utilities import getTorchDevice
 from .__policyOption import PolicyOptions
 from .__utilities import buildBackbone
 
@@ -30,13 +31,8 @@ class DCPolicyCore(iPolicy, nn.Module):
                 weights=MobileNet_V3_Small_Weights.DEFAULT
             )
         opts: PolicyOptions = PolicyOptions(module, kwargs)
-
-        try:
-            self._device: torchDevice = device if isinstance(device, torchDevice) else torch.device(device)
-
-        except Exception:
-            raise ValueError(f"Invalid device provided: {device!r}. Must be a string or torch.device instance.")
-
+        self._device: torchDevice = getTorchDevice(device)
+        
         super().__init__(*args, **kwargs)
 
         backbone: nn.Module = buildBackbone(module).to(self.device)
@@ -44,7 +40,7 @@ class DCPolicyCore(iPolicy, nn.Module):
 
         if opts.freezeBackbone:
             for param in backbone.parameters():
-                param.requires_grad = False        
+                param.requires_grad = False
         
         featureDimension: int = opts.featureDimension
         slotInputDim: int = (
@@ -115,6 +111,11 @@ class DCPolicyCore(iPolicy, nn.Module):
         intent: Tensor, intentSpace: Tensor,
         visualSpace: Tensor, actionSpace: Tensor, parameterSpace: Tensor,
     ) -> Dict[str, Tensor]:
+
+        intentSpace: Tensor = intentSpace.to(self.device)
+        visualSpace: Tensor = visualSpace.to(self.device)
+        actionSpace: Tensor = actionSpace.to(self.device)
+        parameterSpace: Tensor = parameterSpace.to(self.device)
 
         visualFeatures: Tensor
         if self.options.freezeBackbone:
