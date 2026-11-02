@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-02 01:58:29 UTC*
+*Auto-generated on: 2026-11-02 04:58:43 UTC*
 
 ## Current Directory Structure
 
@@ -187,7 +187,8 @@ eNuts/
 │   │   │       ├── __messages.py
 │   │   │       └── __payloads.py
 │   │   ├── policy/
-│   │   │   ├── __DCPolicy.py
+│   │   │   ├── __dcPolicy.py
+│   │   │   ├── __dcPolicyCore.py
 │   │   │   ├── __policyOption.py
 │   │   │   └── __utilities.py
 │   │   ├── types/
@@ -894,21 +895,28 @@ src/fluxCore/emitters/scrcpy:
 			ScrcpyInitParams -> : scrcpyinitparams
 
 src/fluxCore/policy:
-	__DCPolicy.py - 
+	__dcPolicy.py - 
 		CLASSE(S):
 			DCPolicy -> : dcpolicy
+	__dcPolicyCore.py - 
+		CLASSE(S):
+			DCPolicyCore -> : dcpolicycore
 	__policyOption.py - 
 		CLASSE(S):
 			PolicyOptions -> : policyoptions
 	__utilities.py - 
+		FUNCTION(S):
+			getFeatureDimension -> : getfeaturedimension
+			buildBackbone -> : buildbackbone
 		CONSTANTS(S)/GLOBAL(S)
 			G_DEFAULT_EMBEDDING_DIMENSION -> : g_default_embedding_dimension
-			G_DEFAULT_FEATURE_DIMENSION -> : g_default_feature_dimension
 			G_DEFAULT_FREEZE_BACKBONE -> : g_default_freeze_backbone
+			G_DEFAULT_SPATIAL_OUTPUT_DIMENSION -> : g_default_spatial_output_dimension
 			G_NORMALIZE_MEAN -> : g_normalize_mean
 			G_NORMALIZE_STD -> : g_normalize_std
-			G_FRAME_SIZE -> : g_frame_size
+			G_DEFAULT_IMAGE_RESIZE -> : g_default_image_resize
 			G_PARAM_DIM -> : g_param_dim
+			G_DEFAULT_FEATURE_DIMENSION -> : g_default_feature_dimension
 
 src/fluxCore/types/geometry:
 	__circle.py - 
@@ -1707,41 +1715,52 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-f933df9:
-	Clean slate src/fluxCore/policy package (legacy archived)
+979fe11:
+	Refactor DCPolicy and PolicyOptions to enhance modularity and image processing capabilities
+		src/fluxCore/policy/__DCPolicy.py
+		src/fluxCore/policy/__dcPolicyCore.py
+		src/fluxCore/policy/__policyOption.py
+		src/fluxCore/policy/__utilities.py
 
-0581955:
-	Remove active vocabulary package init (archived)
+4a4582f:
+	Remove unused G_FEATURE_DIMENSIONS dictionary from utilities
+		src/fluxCore/policy/__utilities.py
 
-e02d6e8:
-	Remove active vocabulary.labels package (archived)
+2a718b4:
+	Update PolicyOptions initialization to ignore provided featureDimension and derive it from module type
+		src/fluxCore/policy/__policyOption.py
 
-8a2a4c5:
-	Remove active Label (archived)
-		src/fluxCore/policy/vocabulary/labels/__label.py
+58b5050:
+	Refactor PolicyOptions to dynamically set feature dimension based on module type
+		src/fluxCore/policy/__policyOption.py
 
-7830907:
-	Remove active ArgumentKindLabel (archived)
-		src/fluxCore/policy/vocabulary/labels/__argumentKindLabel.py
+382da57:
+	Refactor DCPolicy and PolicyOptions to improve module handling and feature dimension retrieval
+		src/fluxCore/policy/__DCPolicy.py
+		src/fluxCore/policy/__policyOption.py
+		src/fluxCore/policy/__utilities.py
 
-070bc48:
-	Remove active IntentLabel (archived)
-		src/fluxCore/policy/vocabulary/labels/__intentLabel.py
+9b79158:
+	Refactor DCPolicy and PolicyOptions to support dynamic feature dimensions based on module type
+		src/fluxCore/policy/__DCPolicy.py
+		src/fluxCore/policy/__policyOption.py
+		src/fluxCore/policy/__utilities.py
 
-a87935e:
-	Remove active ActionLabel (archived)
-		src/fluxCore/policy/vocabulary/labels/__actionLabel.py
+b4c93ce:
+	Enhance PolicyOptions initialization to validate options and set defaults
+		src/fluxCore/policy/__policyOption.py
 
-a0ebf8b:
-	Remove active ActionVocabulary (archived)
-		src/fluxCore/policy/vocabulary/__actionVocabulary.py
+f1a39fa:
+	Update contextMerge layer to include intent embedding dimension
+		src/fluxCore/policy/__DCPolicy.py
 
-97485b6:
-	Remove active PolicyOptions (archived)
-		src/fluxCore/policy/__policyOptions.py
+e59ab25:
+	Refactor feature dimension handling in DCPolicy and PolicyOptions
+		src/fluxCore/policy/__DCPolicy.py
+		src/fluxCore/policy/__policyOption.py
 
-164e125:
-	Remove active ArgumentKindVocabulary (archived)
-		src/fluxCore/policy/vocabulary/__argumentKindVocabulary.py
+ae7214b:
+	Update slot input dimension calculation to include intent embedding
+		src/fluxCore/policy/__DCPolicy.py
 
 ```
