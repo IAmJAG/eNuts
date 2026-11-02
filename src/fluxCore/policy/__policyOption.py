@@ -25,7 +25,13 @@ class PolicyOptions:
         "parameterKindEmbeddingDimension": G_DEFAULT_EMBEDDING_DIMENSION,
         "spatialEmbeddingDimension": G_DEFAULT_EMBEDDING_DIMENSION,
     }
-    def __init__(self, module: nn.Module, *args, **kwargs) -> None:
+    def __init__(self, module: nn.Module, **kwargs) -> None:
+        self._module = module
+
+        if "featureDimension" in kwargs:
+            kwargs.pop("featureDimension", getFeatureDimension(module))
+            warning("Option 'featureDimension' is provided in kwargs. It will be ignored and determined from the module type.")            
+
         defaults: Dict[str, Any] = dict(type(self).DEFAULTS)        
         defaults["featureDimension"] = self.featureDimension
 
@@ -38,9 +44,8 @@ class PolicyOptions:
             if defaultValue is None:
                 raise ValueError(f"Option '{key}' default value not provided.")
 
-            setattr(self, f"_{key}", defaults.get(key, value))
-
-        self._module = module
+            value: Any = kwargs.get(key, defaults.get(key, value))
+            setattr(self, f"_{key}", value)
 
     @property
     def freezeBackbone(self) -> bool:
