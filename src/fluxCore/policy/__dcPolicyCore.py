@@ -1,5 +1,6 @@
 # ==================================================================================
-from typing import Dict, Optional
+from pathlib import Path
+from typing import Dict, Optional, Union
 
 # ==================================================================================
 import torch
@@ -169,11 +170,7 @@ class DCPolicyCore(iPolicy, nn.Module):
             "SPATIAL": self.spatialHead(context),
         }
 
-    def __call__(self, *args, **kwargs):
-        super().__call__(*args, **kwargs)
-        return self.forward(*args, **kwargs)
-
-    def save(self, path): 
+    def save(self, path: str | Path, device: Optional[Union[str, torchDevice]] = "cuda",): 
         raise NotImplementedError
 
     def load(self, path):
