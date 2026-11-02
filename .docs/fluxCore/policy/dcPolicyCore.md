@@ -2,7 +2,7 @@
 
 `DCPolicyCore` is the L2 model. It runs a visual backbone, merges history, blankets the active intent, and emits three heads.
 
-* **Design Decision / Deviation Notes:** Stateless across calls. No `stateReset`. History is only what L1 passes. See `requirement.md`.
+* **Design Decision / Deviation Notes:** Stateless across calls. No `stateReset`. `forward` is deterministic. Inference-time noise is not an option here; it belongs to the inference implementation. See `implementation.md` section 4.
 
 ---
 
@@ -12,7 +12,7 @@
 - **Purpose:** `nn.Module` implementing `iPolicy`. Default backbone is MobileNet V3 Small.
 - **Methods:**
   - `__init__(module=None, device="cuda", *args, **kwargs)` → builds options, backbone, merges, and heads.
-  - `forward(intent, intentSpace, visualSpace, actionSpace, parameterSpace)` → `{"ACTION", "PARAMETERKIND", "SPATIAL"}`.
+  - `forward(intent, intentSpace, visualSpace, actionSpace, parameterSpace)` → `{"ACTION", "PARAMETERKIND", "SPATIAL"}`. No noise.
   - `save(path)` → writes `VERSION`, `MODELSTATE`, `OPTIONS`.
   - `load(path, module=None, device="cuda")` (classmethod) → rebuilds and `load_state_dict(strict=True)`.
   - `options` / `device` → properties.
