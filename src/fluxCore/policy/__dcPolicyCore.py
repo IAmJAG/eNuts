@@ -29,7 +29,7 @@ class DCPolicyCore(iPolicy, nn.Module):
             module: MobileNetV3 = mobilenet_v3_small(
                 weights=MobileNet_V3_Small_Weights.DEFAULT
             )
-        opts: PolicyOptions = PolicyOptions(module, **kwargs)
+        opts: PolicyOptions = PolicyOptions(module, kwargs)
 
         try:
             self._device: torchDevice = device if isinstance(device, torchDevice) else torch.device(device)
@@ -89,8 +89,7 @@ class DCPolicyCore(iPolicy, nn.Module):
 
     @property
     def options(self) -> PolicyOptions:
-        return self._options        
-
+        return self._options
 
 # region [INTILLISENSE] retained for intellisense and type hinting purposes    
     def backbone(self, *args, **kwargs) -> Tensor:

@@ -35,7 +35,7 @@ class PolicyOptions(Serializable):
         "normalizeMean": G_NORMALIZE_MEAN,
         "normalizeStd": G_NORMALIZE_STD,
     }
-    def __init__(self, module: nn.Module, **kwargs) -> None:
+    def __init__(self, module: nn.Module, kwargs: Dict) -> None:
         self._module = module
 
         if "featureDimension" in kwargs:

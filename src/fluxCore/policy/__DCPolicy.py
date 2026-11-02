@@ -37,5 +37,13 @@ class DCPolicy(DCPolicyCore):
         ...
 # endregion
 
-    def forward(self, activeIntent: str, image: Image.Image, previousAction: str, previousParameters: str) -> Tensor:
-        visualSpace =  self.transform(image).to(self.device).unsqueeze(0)
+    def forward(
+        self, activeIntent: str, 
+        image: Image.Image, 
+        previousAction: str, previousParameters: str
+    ) -> Tensor:
+        
+        activeVisualSpace: Tensor =  self.transform(image).to(self.device)
+
+
+        return super().forward(activeIntent, activeVisualSpace, previousAction, previousParameters) 
