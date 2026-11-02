@@ -5,6 +5,9 @@
 ## 1. Architecture Overview
 
 ```text
+Inference  → DCPolicy (L1 + L2)
+Training   → DCPolicyCore only
+
 DCPolicy (L1)
   transform image
   append previousIntent / image / previousAction / previousParameters
@@ -19,7 +22,7 @@ DCPolicyCore (L2)
   → ACTION, PARAMETERKIND, SPATIAL
 ```
 
-Entry points: `DCPolicy` for the live step, `DCPolicyCore` if the caller already has stacks.
+Inference uses `DCPolicy`. Training uses `DCPolicyCore` with stacks the dataset already built.
 
 ## 2. Directory & Module Mapping
 
@@ -79,7 +82,7 @@ VERSION, MODELSTATE, OPTIONS
 
 `stackSize` and `frameSize` travel inside `OPTIONS` because they are `PolicyOptions` properties. `stackSize` is any integer `>= 1` (default 4). It is not restricted to a power-of-two set.
 
-## 4. Deferred to inference
+## 4. Deferred outside this package
 
 ### Inference-time noise
 
@@ -93,6 +96,12 @@ Noise, if used, is added by the inference implementation after `forward` returns
 - On: add Gaussian noise to the three tensors. Clamp `SPATIAL` back to `[0, 1]`.
 
 Encoders stay deterministic. Training does not see this noise.
+
+### Training stacks
+
+Inference uses `DCPolicy`. Training uses `DCPolicyCore` only.
+
+Matching L1 is the training dataset's job: same transform, same `stackSize`, front zero-pad, same slot alignment (previous controls with the current image), active intent passed separately as the blanket.
 
 ## 5. Not implemented in this package
 
