@@ -166,4 +166,10 @@ class PolicyOptions(Serializable):
         if not hasattr(self, "_normalizeStd"):
             self._normalizeStd = self.DEFAULTS.get("normalizeStd", G_NORMALIZE_STD)
         return self._normalizeStd
+
+    @property
+    def stackSize(self) -> int:
+        if not hasattr(self, "_stackSize"):
+            self._stackSize = self.DEFAULTS.get("stackSize", G_DEFAULT_STACK_SIZE)
+        return self._stackSize
 # endregion
