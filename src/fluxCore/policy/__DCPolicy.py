@@ -23,7 +23,6 @@ class DCPolicy(DCPolicyCore):
     def __init__(
         self, module: Optional[nn.Module] = None,
         device: Optional[str | torchDevice] = "cuda",
-        stackSize: Optional[int] = 4,        
         *args, **kwargs,
     ) -> None:
         super().__init__(module, device, *args, **kwargs)
