@@ -57,7 +57,7 @@ class DCPolicy(iPolicy, nn.Module):
         )
 
         self.contextMerge = nn.Sequential(
-            nn.Linear(slotInputDim, featureDimension),
+            nn.Linear(featureDimension + opts.intentEmbeddingDimension, featureDimension),
             nn.ReLU(inplace=True),
         )
 
