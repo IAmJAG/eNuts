@@ -1,6 +1,6 @@
 # ==================================================================================
-from .__label import iLabel
 from .__vocabulary import iVocabulary
+from .__vocabularyItem import iVocabularyItem
 
 # ==================================================================================
-__all__ = ["iLabel", "iVocabulary"]
+__all__ = ["iVocabularyItem", "iVocabulary"]

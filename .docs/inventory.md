@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-02 04:58:43 UTC*
+*Auto-generated on: 2026-11-02 09:23:20 UTC*
 
 ## Current Directory Structure
 
@@ -190,7 +190,10 @@ eNuts/
 │   │   │   ├── __dcPolicy.py
 │   │   │   ├── __dcPolicyCore.py
 │   │   │   ├── __policyOption.py
-│   │   │   └── __utilities.py
+│   │   │   ├── __utilities.py
+│   │   │   └── vocabulary/
+│   │   │       ├── __vocabulary.py
+│   │   │       └── __vocabularyItem.py
 │   │   ├── types/
 │   │   │   ├── .fff
 │   │   │   ├── geometry/
@@ -217,8 +220,8 @@ eNuts/
 │   │   │   │   ├── policy/
 │   │   │   │   │   ├── __policy.py
 │   │   │   │   │   └── vocabulary/
-│   │   │   │   │       ├── __label.py
-│   │   │   │   │       └── __vocabulary.py
+│   │   │   │   │       ├── __vocabulary.py
+│   │   │   │   │       └── __vocabularyItem.py
 │   │   │   │   └── sockets/
 │   │   │   │       ├── __controlSocket.py
 │   │   │   │       ├── __socket.py
@@ -918,6 +921,14 @@ src/fluxCore/policy:
 			G_PARAM_DIM -> : g_param_dim
 			G_DEFAULT_FEATURE_DIMENSION -> : g_default_feature_dimension
 
+src/fluxCore/policy/vocabulary:
+	__vocabulary.py - 
+		CLASSE(S):
+			Vocabulary -> : vocabulary
+	__vocabularyItem.py - 
+		CLASSE(S):
+			VocabularyItem -> : vocabularyitem
+
 src/fluxCore/types/geometry:
 	__circle.py - 
 		CLASSE(S):
@@ -976,12 +987,12 @@ src/fluxCore/types/interface/policy:
 			iPolicy -> : ipolicy
 
 src/fluxCore/types/interface/policy/vocabulary:
-	__label.py - 
-		CLASSE(S):
-			iLabel -> : ilabel
 	__vocabulary.py - 
 		CLASSE(S):
 			iVocabulary -> : ivocabulary
+	__vocabularyItem.py - 
+		CLASSE(S):
+			iVocabularyItem -> : ivocabularyitem
 
 src/fluxCore/types/interface/sockets:
 	__controlSocket.py - 
@@ -1715,6 +1726,34 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+9d1426d:
+	Refactor forward method in DCPolicyCore for improved tensor handling and batch processing
+		src/fluxCore/policy/__dcPolicyCore.py
+
+def6ad5:
+	Refactor DCPolicyCore to utilize getTorchDevice for device handling and update PolicyOptions warning message for clarity
+		src/fluxCore/policy/__dcPolicyCore.py
+		src/fluxCore/policy/__policyOption.py
+
+279397b:
+	Refactor DCPolicy and PolicyOptions constructors to improve parameter handling and enhance forward method in DCPolicy for better image processing
+		src/fluxCore/policy/__DCPolicy.py
+		src/fluxCore/policy/__dcPolicyCore.py
+		src/fluxCore/policy/__policyOption.py
+
+d5f68a7:
+	Fix import statement for DCPolicyCore in __init__.py and adjust super() call in DCPolicyCore constructor
+		src/fluxCore/policy/__dcPolicyCore.py
+
+feff70a:
+	Refactor DCPolicyCore and PolicyOptions to improve module initialization and handle missing option values gracefully
+		src/fluxCore/policy/__dcPolicyCore.py
+		src/fluxCore/policy/__policyOption.py
+
+6844ef4:
+	Update inventory documentation with new auto-generated timestamp and refactor policy file names for consistency
+		.docs/inventory.md
+
 979fe11:
 	Refactor DCPolicy and PolicyOptions to enhance modularity and image processing capabilities
 		src/fluxCore/policy/__DCPolicy.py
@@ -1733,34 +1772,5 @@ src/utilities/io:
 58b5050:
 	Refactor PolicyOptions to dynamically set feature dimension based on module type
 		src/fluxCore/policy/__policyOption.py
-
-382da57:
-	Refactor DCPolicy and PolicyOptions to improve module handling and feature dimension retrieval
-		src/fluxCore/policy/__DCPolicy.py
-		src/fluxCore/policy/__policyOption.py
-		src/fluxCore/policy/__utilities.py
-
-9b79158:
-	Refactor DCPolicy and PolicyOptions to support dynamic feature dimensions based on module type
-		src/fluxCore/policy/__DCPolicy.py
-		src/fluxCore/policy/__policyOption.py
-		src/fluxCore/policy/__utilities.py
-
-b4c93ce:
-	Enhance PolicyOptions initialization to validate options and set defaults
-		src/fluxCore/policy/__policyOption.py
-
-f1a39fa:
-	Update contextMerge layer to include intent embedding dimension
-		src/fluxCore/policy/__DCPolicy.py
-
-e59ab25:
-	Refactor feature dimension handling in DCPolicy and PolicyOptions
-		src/fluxCore/policy/__DCPolicy.py
-		src/fluxCore/policy/__policyOption.py
-
-ae7214b:
-	Update slot input dimension calculation to include intent embedding
-		src/fluxCore/policy/__DCPolicy.py
 
 ```
