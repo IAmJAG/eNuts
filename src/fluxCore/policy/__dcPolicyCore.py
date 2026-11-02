@@ -107,40 +107,67 @@ class DCPolicyCore(iPolicy, nn.Module):
         return self._device
 
     def forward(
-        self, 
+        self,
         intent: Tensor, intentSpace: Tensor,
         visualSpace: Tensor, actionSpace: Tensor, parameterSpace: Tensor,
     ) -> Dict[str, Tensor]:
+        device = self.device
 
-        intentSpace: Tensor = intentSpace.to(self.device)
-        visualSpace: Tensor = visualSpace.to(self.device)
-        actionSpace: Tensor = actionSpace.to(self.device)
-        parameterSpace: Tensor = parameterSpace.to(self.device)
+        intent = intent.to(device)
+        intentSpace = intentSpace.to(device)
+        visualSpace = visualSpace.to(device)
+        actionSpace = actionSpace.to(device)
+        parameterSpace = parameterSpace.to(device)
 
-        visualFeatures: Tensor
-        if self.options.freezeBackbone:
-            with torch.no_grad():
-                visualFeatures = self.backbone(visualSpace)
+        # 4D = unbatched [T, C, H, W]; 5D = batched [B, T, C, H, W]
+        batched = visualSpace.dim() == 5
+        if batched:
+            B, T, C, H, W = visualSpace.shape
+            visFlat = visualSpace.reshape(B * T, C, H, W)
 
         else:
-            visualFeatures = self.backbone(visualSpace)
+            T = visualSpace.shape[0]
+            B = 1
+            visFlat = visualSpace
+
+        if self.options.freezeBackbone:
+            with torch.no_grad():
+                visualFeatures = self.backbone(visFlat)
+
+        else:
+            visualFeatures = self.backbone(visFlat)
+
+        # visualFeatures: [B*T, F] or [T, F]
+        if batched:
+            F = visualFeatures.shape[-1]
+            visualFeatures = visualFeatures.reshape(B, T, F)
+            # history tensors already [B, T, D]
+        # else: visualFeatures is [T, F]; history is [T, D]
 
         slotInput = torch.cat(
-            [
-                visualFeatures, intentSpace, actionSpace, parameterSpace,
-            ],
+            [visualFeatures, intentSpace, actionSpace, parameterSpace],
             dim=-1,
         )
-        slotVector: Tensor = self.slotMerge(slotInput)
-        slotMean: Tensor = slotVector.mean(dim=0, keepdim=True)
+        slotVector = self.slotMerge(slotInput)
 
-        intentBlanket: Tensor = torch.cat(
-            [slotMean, intent], dim=-1
-        )
-        context: Tensor = self.contextMerge(intentBlanket)
+        # reduce over time only
+        timeDim = 1 if batched else 0
+        slotMean = slotVector.mean(dim=timeDim)          # [B, F] or [F]
+
+        # intent blanket: make sure last-dim is I and batch matches
+        if intent.dim() == 1:
+            intent = intent.unsqueeze(0)                 # [1, I]
+        if batched and intent.shape[0] == 1 and B > 1:
+            intent = intent.expand(B, -1)                # [B, I]
+
+        intentBlanket = torch.cat([slotMean, intent], dim=-1)
+        context = self.contextMerge(intentBlanket)       # [B, F] or [1, F]
 
         return {
             "ACTION": self.actionHead(context),
             "PARAMETERKIND": self.parameterKindHead(context),
-            "SPATIAL": self.spatialHead(context), # PARAMETER VALUES
+            "SPATIAL": self.spatialHead(context),
         }
+
+    def __call__(self, *args, **kwargs):
+        return self.forward(*args, **kwargs)
