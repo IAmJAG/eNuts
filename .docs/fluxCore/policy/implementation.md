@@ -101,10 +101,28 @@ Encoders stay deterministic. Training does not see this noise.
 
 Inference uses `DCPolicy`. Training uses `DCPolicyCore` only.
 
-Matching L1 is the training dataset's job: same transform, same `stackSize`, front zero-pad, same slot alignment (previous controls with the current image), active intent passed separately as the blanket.
+There is no `stackTime`. Training runs at the video frame rate. No frame is skipped.
+
+The dataset owns matching L1: same transform, same `stackSize`, front zero-pad, same slot alignment (previous controls with the current image), active intent passed separately as the blanket.
+
+Actions are timestamped from 0 (video start) and snapped to the nearest frame.
+
+If several actions share one frame, that frame is repeated once per action, in timestamp order, until none remain:
+
+```text
+frame F, actions [A, B, C]
+  slot: F + A
+  slot: F + B
+  slot: F + C
+```
+
+A frame with no action is still one slot, with a zero action and zero parameters.
+
+A training sample is one window of `stackSize` slots. The window slides by one slot. The target is the action of the next slot.
 
 ## 5. Not implemented in this package
 
 - L2 stateful switch or `stateReset`
 - `step()` / Executor / intent hierarchy
 - Vocabulary lookup inside `forward`
+- `stackTime`
