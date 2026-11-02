@@ -26,15 +26,11 @@ class PolicyOptions:
         "spatialEmbeddingDimension": G_DEFAULT_EMBEDDING_DIMENSION,
     }
     def __init__(self, module: nn.Module, *args, **kwargs) -> None:
-        # Set the feature dimension based on the module type
-        if isinstance(module, (models.MobileNetV3, models.ResNet)):
-            self.DEFAULTS["featureDimension"] = getFeatureDimension(module)
-
-        else:
-            raise ValueError(f"Module type {type(module)} not supported.")
+        defaults: Dict[str, Any] = dict(type(self).DEFAULTS)        
+        defaults["featureDimension"] = self.featureDimension
 
         for key, value in kwargs.items():            
-            if not hasattr(self, key) or not isinstance(getattr(self, key), property):
+            if not hasattr(self, key):
                 warning(f"Unknown option '{key}' provided. Ignoring it.")
                 continue
 
@@ -42,7 +38,9 @@ class PolicyOptions:
             if defaultValue is None:
                 raise ValueError(f"Option '{key}' default value not provided.")
 
-            setattr(self, f"_{key}", self.DEFAULTS.get(key, value))            
+            setattr(self, f"_{key}", defaults.get(key, value))
+
+        self._module = module
 
     @property
     def freezeBackbone(self) -> bool:
@@ -58,13 +56,16 @@ class PolicyOptions:
     @property
     def featureDimension(self) -> int:
         if not hasattr(self, "_featureDimension"):
-            self._featureDimension = self.DEFAULTS.get("featureDimension", G_DEFAULT_FEATURE_DIMENSION)
+            module: nn.Module = getattr(self, "_module", None)
+            defaults = dict(type(self).DEFAULTS)                    
+            if not isinstance(module, (models.MobileNetV3, models.ResNet)):
+                raise ValueError(f"Module type {type(module)} not supported.")
+            
+            dimension: int = getFeatureDimension(module)
+            defaults["featureDimension"] = dimension
+            self._featureDimension = dimension
 
         return self._featureDimension
-
-    @featureDimension.setter
-    def featureDimension(self, value: int) -> None:
-        self._featureDimension = value
 
     @property
     def actionEmbeddingDimension(self) -> int:
