@@ -6,8 +6,8 @@
 
 `fluxCore.policy` is a two-layer hybrid discrete-continuous policy.
 
-- **L1 `DCPolicy`** transforms the current image, keeps a fixed-length circular history of intent / image / action / parameter tensors, pads to `stackSize`, and calls L2.
-- **L2 `DCPolicyCore`** runs a visual backbone, merges visual features with history embeddings, blankets the result with the active intent, and emits three heads: `ACTION`, `PARAMETERKIND`, `SPATIAL`.
+- **L1 `DCPolicy`** transforms the current image, keeps a fixed-length circular history of intent / image / action / parameter tensors, pads to `stackSize`, and calls L2. Used by inference.
+- **L2 `DCPolicyCore`** runs a visual backbone, merges visual features with history embeddings, blankets the result with the active intent, and emits three heads: `ACTION`, `PARAMETERKIND`, `SPATIAL`. Used by training directly.
 
 Vocabulary types exist and are not wired into `forward`.
 
@@ -29,6 +29,7 @@ Vocabulary types exist and are not wired into `forward`.
 - **FR-14:** `PolicyOptions` consumes known option keys from `kwargs`. Remaining keys are left for `nn.Module`.
 - **FR-15:** `featureDimension` is taken from the backbone. A caller-supplied value is ignored.
 - **FR-16:** `stackSize` is an option, default 4. Any integer `>= 1`. Not restricted to a power-of-two set. `DCPolicy` uses it for deque length. `frameSize` is the image resize.
+- **FR-17:** Inference uses `DCPolicy`. Training uses `DCPolicyCore` only. The training dataset must emit stacks that match L1.
 
 ## 3. Non-Functional Requirements
 
@@ -65,4 +66,11 @@ Vocabulary types exist and are not wired into `forward`.
 - **Description of Standard / Best Practice:** A design draft put a noise switch on the policy.
 - **Divergence:** Noise is not in `PolicyOptions` and is not applied in `forward`.
 - **Design Decision & Justification:** Noise is an inference concern. The inference implementation adds it after `forward` if it wants it. Encoders stay deterministic.
+- **Code Doc Cross-Reference:** `implementation.md` section 4.
+
+### Issue / Item 5: Training does not use L1
+- **Affected Modules:** `DCPolicy`, `DCPolicyCore`
+- **Description of Standard / Best Practice:** Train and infer through the same wrapper.
+- **Divergence:** Inference uses `DCPolicy`. Training uses `DCPolicyCore` only.
+- **Design Decision & Justification:** The deques are not batch-safe. Matching L1 (transform, `stackSize`, front pad, slot alignment, active intent as the blanket) is the training dataset's responsibility.
 - **Code Doc Cross-Reference:** `implementation.md` section 4.
