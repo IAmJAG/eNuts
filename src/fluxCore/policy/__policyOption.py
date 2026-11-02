@@ -2,11 +2,16 @@
 from typing import Any, Dict, List, Optional, Union
 
 # ==================================================================================
+from torch import nn
+from torchvision import models
+
+# ==================================================================================
 from .__utilities import (
     G_DEFAULT_EMBEDDING_DIMENSION,
     G_DEFAULT_FEATURE_DIMENSION,
     G_DEFAULT_FREEZE_BACKBONE,
     G_FEATURE_DIMENSIONS,
+    getFeatureDimension,
 )
 
 
@@ -20,15 +25,13 @@ class PolicyOptions:
         "parameterKindEmbeddingDimension": G_DEFAULT_EMBEDDING_DIMENSION,
         "spatialEmbeddingDimension": G_DEFAULT_EMBEDDING_DIMENSION,
     }
-    def __init__(self, moduleType: type, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-
+    def __init__(self, module: nn.Module, *args, **kwargs) -> None:
         # Set the feature dimension based on the module type
-        if moduleType in G_FEATURE_DIMENSIONS:
-            self.DEFAULTS["featureDimension"] = G_FEATURE_DIMENSIONS[moduleType]
+        if isinstance(module, (models.MobileNetV3, models.ResNet)):
+            self.DEFAULTS["featureDimension"] = getFeatureDimension(module)
 
         else:
-            error(f"Module type {moduleType} not supported.")
+            raise ValueError(f"Module type {type(module)} not supported.")
 
         for key, value in kwargs.items():            
             if not hasattr(self, key) or not isinstance(getattr(self, key), property):
@@ -37,7 +40,7 @@ class PolicyOptions:
 
             defaultValue: Optional[Any] = self.DEFAULTS.get(key, None)
             if defaultValue is None:
-                error(f"Option '{key}' default value not provided.")
+                raise ValueError(f"Option '{key}' default value not provided.")
 
             setattr(self, f"_{key}", self.DEFAULTS.get(key, value))            
 

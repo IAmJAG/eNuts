@@ -15,25 +15,23 @@ from torchvision.models import (
 # ==================================================================================
 from ..types.interface.policy import iPolicy
 from .__policyOption import PolicyOptions
+from .__utilities import buildBackbone
 
 
 # ==================================================================================
 class DCPolicy(iPolicy, nn.Module):
     def __init__(self, module: Optional[nn.Module] = None, *args, **kwargs) -> None:        
-        super().__init__(*args, **kwargs)
+        super().__init__(*args)
 
         if module is None:
             module: MobileNetV3 = mobilenet_v3_small(
                 weights=MobileNet_V3_Small_Weights.DEFAULT
             )
 
-        opts: PolicyOptions = PolicyOptions(type(module), *args, **kwargs)
+        opts: PolicyOptions = PolicyOptions(module, **kwargs)
 
-        backbone: nn.Sequential = nn.Sequential(
-            module.features,
-            nn.AdaptiveAvgPool2d(1),
-            nn.Flatten(),
-        )
+        backbone: nn.Sequential = buildBackbone(module)
+
         if opts.freezeBackbone:
             for param in backbone.parameters():
                 param.requires_grad = False
@@ -125,7 +123,7 @@ class DCPolicy(iPolicy, nn.Module):
             ],
             dim=-1,
         )
-        slotVector: nn.Module = self.slotMerge(slotInput)
+        slotVector: Tensor = self.slotMerge(slotInput)
         slotMean: Tensor = slotVector.mean(dim=0, keepdim=True)
 
         intentBlanket: Tensor = torch.cat(
