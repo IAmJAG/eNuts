@@ -32,21 +32,24 @@ class Vocabulary[T: iVocabularyItem](iVocabulary, Serializable):
         if self._dimension < 1:
             raise ValueError("dimension (embed width) must be >= 1")
 
-        self._device: torchDevice = getTorchDevice(device)
-
-        if not vocabulary:
-            vocabulary: List[T] = List[T]()
-
-        self._vocabulary: List[T] = vocabulary
+        
         self._dimension: int = int(dimension)
         self._fuse: bool = fuse
-
-        self._embeddings: Tensor = None
+        self._device: torchDevice = getTorchDevice(device)        
+        self._vocabulary: List[T] = list(vocabulary or [])
 
         self._ids: List[str] = List[str]()
+        self._embeddings: Tensor = None
         self.Properties.extend(["dimension", "vocabulary"])
 
+        self._rebuildEmbedding()
+
     def _rebuildEmbedding(self):
+        if not self._vocabulary: 
+            self._ids = []
+            self._embeddings = None
+            return
+        
         dimension: int = self._dimension
         fuse: bool = self._fuse
         device: torchDevice = self._device
@@ -91,7 +94,7 @@ class Vocabulary[T: iVocabularyItem](iVocabulary, Serializable):
         return self._embeddings
 
     @property
-    def ids(self) -> List[str]:
+    def ids(self) -> Set[str]:
         return set(self._ids)
 
     @property

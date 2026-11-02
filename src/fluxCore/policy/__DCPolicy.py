@@ -1,14 +1,14 @@
 # ==================================================================================
 from __future__ import annotations
 
-from collections import deque
-
 # ==================================================================================
-from typing import List, Optional
+from collections import deque
+from typing import Dict, List, Optional
 
 # ==================================================================================
 from PIL import Image
 from torch import Tensor, nn
+from torch import cat as torchCat
 from torch import device as torchDevice
 from torch import stack as torchStack
 from torchvision import transforms
@@ -22,9 +22,8 @@ from .__policyOption import PolicyOptions
 class DCPolicy(DCPolicyCore):
     def __init__(
         self, module: Optional[nn.Module] = None,
-        device: Optional[str | torchDevice] = "GPU",
-        stackSize: Optional[int] = 4,
-        
+        device: Optional[str | torchDevice] = "cuda",
+        stackSize: Optional[int] = 4,        
         *args, **kwargs,
     ) -> None:
         super().__init__(module, device, *args, **kwargs)
@@ -48,21 +47,33 @@ class DCPolicy(DCPolicyCore):
         ...
 # endregion
 
+    def _stack(self, buf: deque) -> Tensor:
+        items = list(buf)
+        maxLen: int = buf.maxlen
+
+        stacked = torchStack(items, dim=0)
+        t = stacked.shape[0]        
+        if t >= maxLen: return stacked
+
+        pad = stacked.new_zeros((maxLen - t, *stacked.shape[1:]))
+        return torchCat([pad, stacked], dim=0)
+
     def forward(
         self, activeIntent: Tensor, previousIntent: Tensor,
         image: Image.Image, 
         previousAction: Tensor, previousParameters: Tensor
-    ) -> Tensor:        
-        activeVisualSpace: Tensor =  self.transform(image).to(self.device)
+    ) -> Dict[str, Tensor]:        
+        device: torchDevice = self.device
 
-        self._intents.append(previousIntent)
-        self._frames.append(activeVisualSpace)
-        self._actions.append(previousAction)
-        self._parameters.append(previousParameters)
+        activeVisualSpace: Tensor =  self.transform(image).to(device)
+        self._intents.append(previousIntent.to(device))
+        self._frames.append(activeVisualSpace.to(device))
+        self._actions.append(previousAction.to(device))
+        self._parameters.append(previousParameters.to(device))
 
-        intentSpace: Tensor = torchStack(self._intents, dim=0)
-        visualSpace: Tensor = torchStack(self._frames, dim=0)
-        actionSpace: Tensor = torchStack(self._actions, dim=0)
-        parameterSpace: Tensor = torchStack(self._parameters, dim=0)
+        intentSpace: Tensor = self._stack(self._intents)
+        visualSpace: Tensor = self._stack(self._frames)
+        actionSpace: Tensor = self._stack(self._actions)
+        parameterSpace: Tensor = self._stack(self._parameters)
 
         return super().forward(activeIntent, intentSpace, visualSpace, actionSpace, parameterSpace) 
