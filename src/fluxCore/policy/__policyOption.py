@@ -6,24 +6,34 @@ from torch import nn
 from torchvision import models
 
 # ==================================================================================
+from jAGFx.serializer import Serializable
+
+# ==================================================================================
 from .__utilities import (
     G_DEFAULT_EMBEDDING_DIMENSION,
     G_DEFAULT_FEATURE_DIMENSION,
     G_DEFAULT_FREEZE_BACKBONE,
-    G_FEATURE_DIMENSIONS,
+    G_DEFAULT_IMAGE_RESIZE,
+    G_DEFAULT_SPATIAL_OUTPUT_DIMENSION,
+    G_NORMALIZE_MEAN,
+    G_NORMALIZE_STD,
     getFeatureDimension,
 )
 
 
 # ==================================================================================
-class PolicyOptions:
+class PolicyOptions(Serializable):
     DEFAULTS: Dict[str, Any] = {
-        "freezeBackbone": G_DEFAULT_FREEZE_BACKBONE,        
+        "freezeBackbone": G_DEFAULT_FREEZE_BACKBONE,
         "featureDimension": G_DEFAULT_FEATURE_DIMENSION,
         "intentEmbeddingDimension": G_DEFAULT_EMBEDDING_DIMENSION,
         "actionEmbeddingDimension": G_DEFAULT_EMBEDDING_DIMENSION,
         "parameterKindEmbeddingDimension": G_DEFAULT_EMBEDDING_DIMENSION,
         "spatialEmbeddingDimension": G_DEFAULT_EMBEDDING_DIMENSION,
+        "spatialOutputDimension": G_DEFAULT_SPATIAL_OUTPUT_DIMENSION,
+        "frameSize": G_DEFAULT_IMAGE_RESIZE,
+        "normalizeMean": G_NORMALIZE_MEAN,
+        "normalizeStd": G_NORMALIZE_STD,
     }
     def __init__(self, module: nn.Module, **kwargs) -> None:
         self._module = module
@@ -46,7 +56,9 @@ class PolicyOptions:
 
             value: Any = kwargs.get(key, defaults.get(key, value))
             setattr(self, f"_{key}", value)
+            self.Properties.extend([key])
 
+# region [CORE OPTIONS]
     @property
     def freezeBackbone(self) -> bool:
         if not hasattr(self, "_freezeBackbone"):
@@ -103,6 +115,16 @@ class PolicyOptions:
         self._spatialEmbeddingDimension = value
 
     @property
+    def spatialOutputDimension(self) -> int:
+        if not hasattr(self, "_spatialOutputDimension"):
+            self._spatialOutputDimension = self.DEFAULTS.get("spatialOutputDimension", G_DEFAULT_SPATIAL_OUTPUT_DIMENSION)
+        return self._spatialOutputDimension
+
+    @spatialOutputDimension.setter
+    def spatialOutputDimension(self, value: int) -> None:
+        self._spatialOutputDimension = value
+
+    @property
     def intentEmbeddingDimension(self) -> int:
         if not hasattr(self, "_intentEmbeddingDimension"):
             self._intentEmbeddingDimension = self.DEFAULTS.get("intentEmbeddingDimension", G_DEFAULT_EMBEDDING_DIMENSION)
@@ -111,3 +133,24 @@ class PolicyOptions:
     @intentEmbeddingDimension.setter
     def intentEmbeddingDimension(self, value: int) -> None:
         self._intentEmbeddingDimension = value
+# endregion
+
+# region [IMAGE PROCESSING OPTIONS]
+    @property
+    def frameSize(self) -> int:
+        if not hasattr(self, "_frameSize"):
+            self._frameSize = self.DEFAULTS.get("frameSize", G_DEFAULT_IMAGE_RESIZE)
+        return self._frameSize
+
+    @property
+    def normalizeMean(self) -> List[float]:
+        if not hasattr(self, "_normalizeMean"):
+            self._normalizeMean = self.DEFAULTS.get("normalizeMean", G_NORMALIZE_MEAN)
+        return self._normalizeMean
+
+    @property
+    def normalizeStd(self) -> List[float]:
+        if not hasattr(self, "_normalizeStd"):
+            self._normalizeStd = self.DEFAULTS.get("normalizeStd", G_NORMALIZE_STD)
+        return self._normalizeStd
+# endregion

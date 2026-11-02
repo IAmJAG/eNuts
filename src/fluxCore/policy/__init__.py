@@ -1,5 +1,5 @@
 # ==================================================================================
-from .__DCPolicy import DCPolicy
+from .__dcPolicyCore import DCPolicy
 from .__policyOption import PolicyOptions
 
 # ==================================================================================

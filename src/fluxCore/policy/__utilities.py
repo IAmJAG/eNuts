@@ -8,11 +8,12 @@ from torchvision import models
 # ==================================================================================
 G_DEFAULT_EMBEDDING_DIMENSION: int = 128
 G_DEFAULT_FREEZE_BACKBONE: bool = True
+G_DEFAULT_SPATIAL_OUTPUT_DIMENSION: int = 4
 
 G_NORMALIZE_MEAN: List[float] = [0.485, 0.456, 0.406]
 G_NORMALIZE_STD: List[float] = [0.229, 0.224, 0.225]
 
-G_FRAME_SIZE: int = 224
+G_DEFAULT_IMAGE_RESIZE: int = 224
 G_PARAM_DIM: int = 8
 
 G_DEFAULT_FEATURE_DIMENSION: int = 576
