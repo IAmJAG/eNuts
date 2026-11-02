@@ -40,7 +40,7 @@ class DCPolicy(iPolicy, nn.Module):
         
         
         visFeatDim: int = opts.visualFeatureDimension
-        slotInputDim: int = visFeatDim + opts.actionEmbeddingDimension + opts.parameterKindEmbeddingDimension
+        slotInputDim: int = visFeatDim + opts.intentEmbeddingDimension + opts.actionEmbeddingDimension + opts.parameterKindEmbeddingDimension
 
         featureLinear: nn.Linear = nn.Linear(
             visFeatDim, visFeatDim
@@ -117,6 +117,7 @@ class DCPolicy(iPolicy, nn.Module):
         slotInput = torch.cat(
             [
                 visualFeatures,
+                intentSpace,
                 actionSpace,
                 parameterSpace,
             ],
