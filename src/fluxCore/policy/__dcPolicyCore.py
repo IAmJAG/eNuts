@@ -25,6 +25,12 @@ class DCPolicyCore(iPolicy, nn.Module):
         self, module: Optional[nn.Module] = None,         
         device: Optional[str | torchDevice] = "cuda", *args, **kwargs,
     ) -> None:        
+        if module is None:
+            module: MobileNetV3 = mobilenet_v3_small(
+                weights=MobileNet_V3_Small_Weights.DEFAULT
+            )
+        opts: PolicyOptions = PolicyOptions(module, **kwargs)
+
         super().__init__(*args, **kwargs)
         try:
             self._device: torchDevice = device if isinstance(device, torchDevice) else torch.device(device)
@@ -32,22 +38,13 @@ class DCPolicyCore(iPolicy, nn.Module):
         except Exception:
             raise ValueError(f"Invalid device provided: {device!r}. Must be a string or torch.device instance.")
 
-        if module is None:
-            module: MobileNetV3 = mobilenet_v3_small(
-                weights=MobileNet_V3_Small_Weights.DEFAULT
-            )
 
+        backbone: nn.Module = buildBackbone(module).to(self.device)
         module.to(self.device)
-
-        opts: PolicyOptions = PolicyOptions(module, **kwargs)
-
-        backbone: nn.Sequential = buildBackbone(module).to(self.device)
-        backbone.to(self.device)
 
         if opts.freezeBackbone:
             for param in backbone.parameters():
-                param.requires_grad = False
-        
+                param.requires_grad = False        
         
         featureDimension: int = opts.featureDimension
         slotInputDim: int = (

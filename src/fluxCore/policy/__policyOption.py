@@ -45,16 +45,19 @@ class PolicyOptions(Serializable):
         defaults: Dict[str, Any] = dict(type(self).DEFAULTS)        
         defaults["featureDimension"] = self.featureDimension
 
-        for key, value in kwargs.items():            
+        keys: List[str] = list(kwargs.keys())
+        for key in keys:            
             if not hasattr(self, key):
                 warning(f"Unknown option '{key}' provided. Ignoring it.")
                 continue
 
-            defaultValue: Optional[Any] = self.DEFAULTS.get(key, None)
-            if defaultValue is None:
-                raise ValueError(f"Option '{key}' default value not provided.")
+            value: Any = kwargs.pop(key, None)
+            if value is None:
+                warning(f"Option '{key}' value is not provided. Using default value: {defaults.get(key, None)!r}.")
+                value: Optional[Any] = self.DEFAULTS.get(key, None)
+                if value is None:
+                    raise ValueError(f"Option '{key}' default value not found.")
 
-            value: Any = kwargs.get(key, defaults.get(key, value))
             setattr(self, f"_{key}", value)
             self.Properties.extend([key])
 
