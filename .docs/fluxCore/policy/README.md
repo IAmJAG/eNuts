@@ -1,17 +1,26 @@
 # fluxCore.policy — documentation
 
-## Active
+**Source of truth:** `src/fluxCore/policy/` on `development`.
+
+Design drafts are not authoritative. Where they disagree with the code, the code wins.
+
+## Active (mirrors source)
 
 | Document | Role |
 |----------|------|
-| **`design.md`** | Hybrid Discrete–Continuous Policy design (term-store aligned) |
-| **`term-store.md`** | Agreed terminology and rules |
-| **`implementation.md`** | Implementation specification (sections 1–13); follows design + term store |
+| `requirement.md` | What the package does, from the code |
+| `implementation.md` | How the modules fit together |
+| `dcPolicy.md` | L1 buffer (`DCPolicy`) |
+| `dcPolicyCore.md` | L2 core (`DCPolicyCore`) |
+| `policyOption.md` | `PolicyOptions` |
+| `utilities.md` | Backbone helpers and defaults |
+| `vocabulary/` | `Vocabulary` / `VocabularyItem` |
 
-## Archive (reference only)
+## Reference only
 
-Previous documentation for `DCPolicy` v2.0 and the hybrid design note live under:
+| Document | Role |
+|----------|------|
+| `design.md` | Prior design draft. Not the source of truth. |
+| `term-store.md` | Prior terminology. Not the source of truth. |
 
-`.docs/_archive/fluxCore/policy/`
-
-Those files are **not** the source of truth.
+Archived v2 docs remain under `.docs/_archive/fluxCore/policy/`.
