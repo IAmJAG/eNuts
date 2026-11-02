@@ -6,6 +6,7 @@ from .__utilities import (
     G_DEFAULT_EMBEDDING_DIMENSION,
     G_DEFAULT_FEATURE_DIMENSION,
     G_DEFAULT_FREEZE_BACKBONE,
+    G_FEATURE_DIMENSIONS,
 )
 
 
@@ -19,8 +20,16 @@ class PolicyOptions:
         "parameterKindEmbeddingDimension": G_DEFAULT_EMBEDDING_DIMENSION,
         "spatialEmbeddingDimension": G_DEFAULT_EMBEDDING_DIMENSION,
     }
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, moduleType: type, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
+
+        # Set the feature dimension based on the module type
+        if moduleType in G_FEATURE_DIMENSIONS:
+            self.DEFAULTS["featureDimension"] = G_FEATURE_DIMENSIONS[moduleType]
+
+        else:
+            error(f"Module type {moduleType} not supported.")
+
         for key, value in kwargs.items():            
             if not hasattr(self, key) or not isinstance(getattr(self, key), property):
                 warning(f"Unknown option '{key}' provided. Ignoring it.")

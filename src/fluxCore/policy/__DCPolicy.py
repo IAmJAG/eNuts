@@ -1,5 +1,5 @@
 # ==================================================================================
-from typing import Any, Dict
+from typing import Dict, Optional
 
 # ==================================================================================
 import torch
@@ -19,17 +19,18 @@ from .__policyOption import PolicyOptions
 
 # ==================================================================================
 class DCPolicy(iPolicy, nn.Module):
-    def __init__(self, *args, **kwargs) -> None:        
+    def __init__(self, module: Optional[nn.Module] = None, *args, **kwargs) -> None:        
         super().__init__(*args, **kwargs)
 
-        opts: PolicyOptions = PolicyOptions(*args, **kwargs)
+        if module is None:
+            module: MobileNetV3 = mobilenet_v3_small(
+                weights=MobileNet_V3_Small_Weights.DEFAULT
+            )
 
-        weights: MobileNetV3 = mobilenet_v3_small(
-            weights=MobileNet_V3_Small_Weights.DEFAULT
-        )
+        opts: PolicyOptions = PolicyOptions(type(module), *args, **kwargs)
 
         backbone: nn.Sequential = nn.Sequential(
-            weights.features,
+            module.features,
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
         )
@@ -46,10 +47,6 @@ class DCPolicy(iPolicy, nn.Module):
             + opts.parameterKindEmbeddingDimension,
         )[0]
         
-
-        featureLinear: nn.Linear = nn.Linear(
-            featureDimension, featureDimension
-        )
         
         self.slotMerge = nn.Sequential(
             nn.Linear(slotInputDim, featureDimension),
@@ -62,19 +59,19 @@ class DCPolicy(iPolicy, nn.Module):
         )
 
         self.actionHead = nn.Sequential(
-            featureLinear,
+            nn.Linear(featureDimension, featureDimension),
             nn.ReLU(inplace=True),
             nn.Linear(featureDimension, opts.actionEmbeddingDimension),
         )
 
         self.parameterKindHead = nn.Sequential(
-            featureLinear,
+            nn.Linear(featureDimension, featureDimension),
             nn.ReLU(inplace=True),
             nn.Linear(featureDimension, opts.parameterKindEmbeddingDimension),
         )
 
         self.spatialHead = nn.Sequential(
-            featureLinear,
+            nn.Linear(featureDimension, featureDimension),
             nn.ReLU(inplace=True),
             nn.Linear(featureDimension, 4),
             nn.Sigmoid(),
