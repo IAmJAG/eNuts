@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-02 09:23:20 UTC*
+*Auto-generated on: 2026-11-02 09:28:37 UTC*
 
 ## Current Directory Structure
 
@@ -1726,6 +1726,15 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+a963632:
+	Update inventory documentation, refactor vocabulary structure, and enhance DCPolicy with deque for improved state management
+		.docs/inventory.md
+		src/fluxCore/policy/__DCPolicy.py
+		src/fluxCore/policy/vocabulary/__vocabulary.py
+		src/fluxCore/policy/vocabulary/__vocabularyItem.py
+		src/fluxCore/types/interface/policy/vocabulary/__label.py -> src/fluxCore/types/interface/policy/vocabulary/__vocabularyItem.py
+		src/fluxCore/utilities/__torch.py
+
 9d1426d:
 	Refactor forward method in DCPolicyCore for improved tensor handling and batch processing
 		src/fluxCore/policy/__dcPolicyCore.py
@@ -1767,10 +1776,6 @@ feff70a:
 
 2a718b4:
 	Update PolicyOptions initialization to ignore provided featureDimension and derive it from module type
-		src/fluxCore/policy/__policyOption.py
-
-58b5050:
-	Refactor PolicyOptions to dynamically set feature dimension based on module type
 		src/fluxCore/policy/__policyOption.py
 
 ```
