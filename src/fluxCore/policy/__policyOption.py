@@ -1,5 +1,5 @@
 # ==================================================================================
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, overload
 
 # ==================================================================================
 from torch import nn
@@ -34,16 +34,25 @@ class PolicyOptions(Serializable):
         "frameSize": G_DEFAULT_IMAGE_RESIZE,
         "normalizeMean": G_NORMALIZE_MEAN,
         "normalizeStd": G_NORMALIZE_STD,
+    
     }
-    def __init__(self, module: nn.Module, kwargs: Dict) -> None:
-        super().__init__()   
-             
+
+    @overload
+    def __init__(self) -> None: ...
+    @overload
+    def __init__(self, module: nn.Module, kwargs: Dict) -> None:...
+
+    def __init__(self, module: Optional[nn.Module] = None, kwargs: Optional[Dict] = {}) -> None:
+        super().__init__()
+
+        if module is None and not kwargs: return        
+
         self._module = module
         if "featureDimension" in kwargs:
             kwargs.pop("featureDimension", getFeatureDimension(module))
             warning("Option 'featureDimension' is provided in kwargs. It will be ignored and determined from the module type.")            
 
-        defaults: Dict[str, Any] = dict(type(self).DEFAULTS)        
+        defaults: Dict[str, Any] = dict(type(self).DEFAULTS) 
         defaults["featureDimension"] = self.featureDimension
 
         keys: List[str] = list(kwargs.keys())
@@ -56,8 +65,7 @@ class PolicyOptions(Serializable):
             if value is None:
                 warning(f"Option '{key}' value is not provided. Using default value: {defaults.get(key, None)!r}.")
                 value: Optional[Any] = self.DEFAULTS.get(key, None)
-                if value is None:
-                    raise ValueError(f"Option '{key}' default value not found.")
+                if value is None: raise ValueError(f"Option '{key}' default value not found.")
 
             setattr(self, f"_{key}", value)
             self.Properties.extend([key])
