@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-10-31 05:58:45 UTC*
+*Auto-generated on: 2026-11-02 01:58:29 UTC*
 
 ## Current Directory Structure
 
@@ -102,6 +102,7 @@ eNuts/
 │   │   │   │   ├── __playbackBase.py
 │   │   │   │   └── __smokePages.py
 │   │   │   ├── widgets/
+│   │   │   │   ├── __captureGLImage.py
 │   │   │   │   ├── __captureImage.py
 │   │   │   │   ├── spinners/
 │   │   │   │   │   ├── __evolvingNeuralBrain.py
@@ -118,6 +119,7 @@ eNuts/
 │   │   │   │   └── __deviceManager.py
 │   │   │   ├── recorder/
 │   │   │   │   └── __kgRecorder.py
+│   │   │   ├── services/
 │   │   │   ├── stream/
 │   │   │   │   └── __deviceStream.py
 │   │   │   ├── theme/
@@ -185,18 +187,9 @@ eNuts/
 │   │   │       ├── __messages.py
 │   │   │       └── __payloads.py
 │   │   ├── policy/
-│   │   │   ├── __dcPolicy.py
-│   │   │   ├── __policyOptions.py
-│   │   │   └── vocabulary/
-│   │   │       ├── __actionVocabulary.py
-│   │   │       ├── __argumentKindVocabulary.py
-│   │   │       ├── __intentVocabulary.py
-│   │   │       ├── __vocabulary.py
-│   │   │       └── labels/
-│   │   │           ├── __actionLabel.py
-│   │   │           ├── __argumentKindLabel.py
-│   │   │           ├── __intentLabel.py
-│   │   │           └── __label.py
+│   │   │   ├── __DCPolicy.py
+│   │   │   ├── __policyOption.py
+│   │   │   └── __utilities.py
 │   │   ├── types/
 │   │   │   ├── .fff
 │   │   │   ├── geometry/
@@ -602,7 +595,7 @@ src/eNuts/application/recorder:
 		CLASSE(S):
 			KGRecorder -> : kgrecorder
 		CONSTANTS(S)/GLOBAL(S)
-			_C_QT_TO_ANDROID -> : _c_qt_to_android
+			C_SETTINGS_DEVICE_ID -> : c_settings_device_id
 
 src/eNuts/application/stream:
 	__deviceStream.py - 
@@ -671,7 +664,6 @@ src/eNuts/types/interface/configuration:
 src/eNuts/types/interface/recorder:
 	__iKGRecorder.py - 
 		CLASSE(S):
-			eKGRecorderState -> : ekgrecorderstate
 			iKGRecorder -> : ikgrecorder
 
 src/eNuts/types/interface/UI/windows:
@@ -738,6 +730,9 @@ src/eNuts/UI/pages:
 			PAGE_KEYS -> : page_keys
 
 src/eNuts/UI/widgets:
+	__captureGLImage.py - 
+		CLASSE(S):
+			CaptureGLImage -> : captureglimage
 	__captureImage.py - 
 		CLASSE(S):
 			CaptureImage -> : captureimage
@@ -899,46 +894,21 @@ src/fluxCore/emitters/scrcpy:
 			ScrcpyInitParams -> : scrcpyinitparams
 
 src/fluxCore/policy:
-	__dcPolicy.py - 
+	__DCPolicy.py - 
 		CLASSE(S):
 			DCPolicy -> : dcpolicy
-	__policyOptions.py - 
+	__policyOption.py - 
 		CLASSE(S):
 			PolicyOptions -> : policyoptions
+	__utilities.py - 
 		CONSTANTS(S)/GLOBAL(S)
-			C_STACK_SIZES -> : c_stack_sizes
-			C_DEFAULT_STACK_SIZE -> : c_default_stack_size
-			C_DEFAULT_DURATION_SEC -> : c_default_duration_sec
-			C_NONE_ACTION -> : c_none_action
-			C_NONE_ARGUMENT_KIND -> : c_none_argument_kind
-
-src/fluxCore/policy/vocabulary:
-	__actionVocabulary.py - 
-		CLASSE(S):
-			ActionVocabulary -> : actionvocabulary
-	__argumentKindVocabulary.py - 
-		CLASSE(S):
-			ArgumentKindVocabulary -> : argumentkindvocabulary
-	__intentVocabulary.py - 
-		CLASSE(S):
-			IntentVocabulary -> : intentvocabulary
-	__vocabulary.py - 
-		CLASSE(S):
-			Vocabulary -> : vocabulary
-
-src/fluxCore/policy/vocabulary/labels:
-	__actionLabel.py - 
-		CLASSE(S):
-			ActionLabel -> : actionlabel
-	__argumentKindLabel.py - 
-		CLASSE(S):
-			ArgumentKindLabel -> : argumentkindlabel
-	__intentLabel.py - 
-		CLASSE(S):
-			IntentLabel -> : intentlabel
-	__label.py - 
-		CLASSE(S):
-			Label -> : label
+			G_DEFAULT_EMBEDDING_DIMENSION -> : g_default_embedding_dimension
+			G_DEFAULT_FEATURE_DIMENSION -> : g_default_feature_dimension
+			G_DEFAULT_FREEZE_BACKBONE -> : g_default_freeze_backbone
+			G_NORMALIZE_MEAN -> : g_normalize_mean
+			G_NORMALIZE_STD -> : g_normalize_std
+			G_FRAME_SIZE -> : g_frame_size
+			G_PARAM_DIM -> : g_param_dim
 
 src/fluxCore/types/geometry:
 	__circle.py - 
@@ -1737,64 +1707,41 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-7dc009b:
-	refactor: streamline error handling in _wrap_init by condensing conditional statements
-		src/jAGFx/workflow/__workflow.py
+f933df9:
+	Clean slate src/fluxCore/policy package (legacy archived)
 
-201f787:
-	refactor: clean up constructor parameters and remove unnecessary decorators in WorkSpace and iENUTSWindow classes
-		src/eNuts/UI/windows/__mainWindow.py
-		src/eNuts/application/workspace/__workSpace.py
-		src/eNuts/types/interface/UI/windows/__mainWindow.py
-		src/jAGFx/logging/__utilities.py
+0581955:
+	Remove active vocabulary package init (archived)
 
-7f75c63:
-	feat(logging): introduce managedCall decorator for enhanced error handling refactor(navigation): streamline page class resolution and improve readability refactor(workspace): simplify UI initialization and sidebar construction fix(logging): enhance logging functions to support additional arguments
-		src/__monkeyPatch.py
-		src/eNuts/UI/navigation/__navigation.py
-		src/eNuts/application/__shell.py
-		src/eNuts/application/workspace/__workSpace.py
-		src/jAGFx/logging/__log.py
-		src/jAGFx/logging/__logging.py
-		src/jAGFx/logging/__utilities.py
-		src/jAGFx/logging/data/__baseSourceInformation.py
-		src/jAGFx/logging/filters/__namespaceFilter.py
-		src/jAGFx/logging/formatters/__defaultFormatter.py
-		src/utilities/__frame.py
-		typings/__builtins__.pyi
+e02d6e8:
+	Remove active vocabulary.labels package (archived)
 
-f6b2567:
-	fix(SideBar): avoid QFont setPointSize(-1) when QSS uses pixel fonts
-		src/jAGQt/widgets/SideBar/menu/__sideBarMenuItem.py
+8a2a4c5:
+	Remove active Label (archived)
+		src/fluxCore/policy/vocabulary/labels/__label.py
 
-76ea86b:
-	refactor: clean up code formatting and improve docstrings across multiple files
-		src/eNuts/UI/pages/__devicePage.py
-		src/eNuts/UI/pages/__kgRecorder.py
-		src/eNuts/UI/pages/__playbackBase.py
-		src/eNuts/UI/windows/__mainWindow.py
-		src/eNuts/application/__shell.py
-		src/eNuts/application/stream/__deviceStream.py
-		src/eNuts/application/workspace/__workSpace.py
+7830907:
+	Remove active ArgumentKindLabel (archived)
+		src/fluxCore/policy/vocabulary/labels/__argumentKindLabel.py
 
-2b006ac:
-	fix(scrcpy): clear event suppress after initialize so ON_FRAME fires
-		src/fluxCore/emitters/scrcpy/__SCRCPYEmitter.py
+070bc48:
+	Remove active IntentLabel (archived)
+		src/fluxCore/policy/vocabulary/labels/__intentLabel.py
 
-a14a98c:
-	fix(stream): config SPS/PPS feed + UI-thread bridge parent; clear event suppress after scrcpy init
-		src/eNuts/application/stream/__deviceStream.py
+a87935e:
+	Remove active ActionLabel (archived)
+		src/fluxCore/policy/vocabulary/labels/__actionLabel.py
 
-6db89f8:
-	feat(KG): page device combo, status, events, command bar buttons
-		src/eNuts/UI/pages/__kgRecorder.py
+a0ebf8b:
+	Remove active ActionVocabulary (archived)
+		src/fluxCore/policy/vocabulary/__actionVocabulary.py
 
-e95171e:
-	fix(nav): restore navigation + enable KG commandBar
-		src/eNuts/UI/navigation/__navigation.py
+97485b6:
+	Remove active PolicyOptions (archived)
+		src/fluxCore/policy/__policyOptions.py
 
-14fdac2:
-	feat(KG): wire page chrome (device combo, command bar, status, events) + frame path fixes
-		src/eNuts/UI/navigation/__navigation.py
+164e125:
+	Remove active ArgumentKindVocabulary (archived)
+		src/fluxCore/policy/vocabulary/__argumentKindVocabulary.py
 
 ```
