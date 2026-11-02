@@ -82,7 +82,7 @@ class Vocabulary[T: iVocabularyItem](iVocabulary, Serializable):
     def remove(self, item: T) -> None: ...
 
     def remove(self, idItem: Union[str, T]) -> None:
-        id: str = idItem.id if isinstance(idItem, T) else idItem
+        id: str = idItem.id if isinstance(idItem, iVocabularyItem) else idItem
         self._vocabulary = [v for v in self._vocabulary if v.id != id]
         self._rebuildEmbedding()
 
@@ -109,6 +109,7 @@ class Vocabulary[T: iVocabularyItem](iVocabulary, Serializable):
     @fuse.setter
     def fuse(self, value: bool) -> None:
         self._fuse = value
+        self._rebuildEmbedding()
 
     @property
     def size(self) -> int:

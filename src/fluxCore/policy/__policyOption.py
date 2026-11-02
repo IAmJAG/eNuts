@@ -36,8 +36,9 @@ class PolicyOptions(Serializable):
         "normalizeStd": G_NORMALIZE_STD,
     }
     def __init__(self, module: nn.Module, kwargs: Dict) -> None:
+        super().__init__()   
+             
         self._module = module
-
         if "featureDimension" in kwargs:
             kwargs.pop("featureDimension", getFeatureDimension(module))
             warning("Option 'featureDimension' is provided in kwargs. It will be ignored and determined from the module type.")            

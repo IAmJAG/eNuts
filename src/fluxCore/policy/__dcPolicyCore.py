@@ -170,4 +170,11 @@ class DCPolicyCore(iPolicy, nn.Module):
         }
 
     def __call__(self, *args, **kwargs):
+        super().__call__(*args, **kwargs)
         return self.forward(*args, **kwargs)
+
+    def save(self, path): 
+        raise NotImplementedError
+
+    def load(self, path):
+        raise NotImplementedError
