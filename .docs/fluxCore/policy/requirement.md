@@ -30,6 +30,8 @@ Vocabulary types exist and are not wired into `forward`.
 - **FR-15:** `featureDimension` is taken from the backbone. A caller-supplied value is ignored.
 - **FR-16:** `stackSize` is an option, default 4. Any integer `>= 1`. Not restricted to a power-of-two set. `DCPolicy` uses it for deque length. `frameSize` is the image resize.
 - **FR-17:** Inference uses `DCPolicy`. Training uses `DCPolicyCore` only. The training dataset must emit stacks that match L1.
+- **FR-18:** Training runs at the video frame rate. There is no `stackTime`. No frame is skipped.
+- **FR-19:** Actions that share a frame repeat that frame, once per action, in timestamp order, until none remain. A frame with no action is one slot with a zero action.
 
 ## 3. Non-Functional Requirements
 
@@ -71,6 +73,6 @@ Vocabulary types exist and are not wired into `forward`.
 ### Issue / Item 5: Training does not use L1
 - **Affected Modules:** `DCPolicy`, `DCPolicyCore`
 - **Description of Standard / Best Practice:** Train and infer through the same wrapper.
-- **Divergence:** Inference uses `DCPolicy`. Training uses `DCPolicyCore` only.
-- **Design Decision & Justification:** The deques are not batch-safe. Matching L1 (transform, `stackSize`, front pad, slot alignment, active intent as the blanket) is the training dataset's responsibility.
+- **Divergence:** Inference uses `DCPolicy`. Training uses `DCPolicyCore` only. No `stackTime`. Video rate. Shared-frame actions repeat the frame.
+- **Design Decision & Justification:** The deques are not batch-safe. Matching L1 is the training dataset's responsibility.
 - **Code Doc Cross-Reference:** `implementation.md` section 4.
