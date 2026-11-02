@@ -13,7 +13,7 @@ from .__utilities import (
 class PolicyOptions:
     DEFAULTS: Dict[str, Any] = {
         "freezeBackbone": G_DEFAULT_FREEZE_BACKBONE,        
-        "visualFeatureDimension": G_DEFAULT_FEATURE_DIMENSION,
+        "featureDimension": G_DEFAULT_FEATURE_DIMENSION,
         "intentEmbeddingDimension": G_DEFAULT_EMBEDDING_DIMENSION,
         "actionEmbeddingDimension": G_DEFAULT_EMBEDDING_DIMENSION,
         "parameterKindEmbeddingDimension": G_DEFAULT_EMBEDDING_DIMENSION,
@@ -36,12 +36,12 @@ class PolicyOptions:
         self._freezeBackbone = value
 
     @property
-    def visualFeatureDimension(self) -> int:
-        return self._visualFeatureDimension
+    def featureDimension(self) -> int:
+        return self._featureDimension
 
-    @visualFeatureDimension.setter
-    def visualFeatureDimension(self, value: int) -> None:
-        self._visualFeatureDimension = value
+    @featureDimension.setter
+    def featureDimension(self, value: int) -> None:
+        self._featureDimension = value
 
     @property
     def actionEmbeddingDimension(self) -> int:
@@ -74,3 +74,4 @@ class PolicyOptions:
     @intentEmbeddingDimension.setter
     def intentEmbeddingDimension(self, value: int) -> None:
         self._intentEmbeddingDimension = value
+        

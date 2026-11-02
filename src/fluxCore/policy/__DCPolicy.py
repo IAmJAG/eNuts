@@ -36,42 +36,47 @@ class DCPolicy(iPolicy, nn.Module):
         if opts.freezeBackbone:
             for param in backbone.parameters():
                 param.requires_grad = False
-
         
         
-        visFeatDim: int = opts.visualFeatureDimension
-        slotInputDim: int = visFeatDim + opts.intentEmbeddingDimension + opts.actionEmbeddingDimension + opts.parameterKindEmbeddingDimension
+        featureDimension: int = opts.featureDimension
+        slotInputDim: int = (
+            featureDimension
+            + opts.intentEmbeddingDimension
+            + opts.actionEmbeddingDimension
+            + opts.parameterKindEmbeddingDimension,
+        )[0]
+        
 
         featureLinear: nn.Linear = nn.Linear(
-            visFeatDim, visFeatDim
+            featureDimension, featureDimension
         )
         
         self.slotMerge = nn.Sequential(
-            nn.Linear(slotInputDim, visFeatDim),
+            nn.Linear(slotInputDim, featureDimension),
             nn.ReLU(inplace=True),
         )
 
         self.contextMerge = nn.Sequential(
-            nn.Linear(slotInputDim, opts.intentEmbeddingDimension),
+            nn.Linear(slotInputDim, featureDimension),
             nn.ReLU(inplace=True),
         )
 
         self.actionHead = nn.Sequential(
             featureLinear,
             nn.ReLU(inplace=True),
-            nn.Linear(visFeatDim, opts.actionEmbeddingDimension),
+            nn.Linear(featureDimension, opts.actionEmbeddingDimension),
         )
 
         self.parameterKindHead = nn.Sequential(
             featureLinear,
             nn.ReLU(inplace=True),
-            nn.Linear(visFeatDim, opts.parameterKindEmbeddingDimension),
+            nn.Linear(featureDimension, opts.parameterKindEmbeddingDimension),
         )
 
         self.spatialHead = nn.Sequential(
             featureLinear,
             nn.ReLU(inplace=True),
-            nn.Linear(visFeatDim, 4),
+            nn.Linear(featureDimension, 4),
             nn.Sigmoid(),
         )
 
