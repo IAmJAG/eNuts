@@ -27,7 +27,7 @@ class Vocabulary[T: iVocabularyItem](iVocabulary, Serializable):
     ) -> None:
         super().__init__()
 
-        if self._dimension < 1:
+        if dimension < 1:
             raise ValueError("dimension (embed width) must be >= 1")
         
         self._dimension: int = int(dimension)
@@ -37,7 +37,7 @@ class Vocabulary[T: iVocabularyItem](iVocabulary, Serializable):
 
         self._ids: List[str] = list[str]()
         self._embeddings: Tensor = None
-        self.Properties.extend(["dimension", "vocabulary"])
+        self.Properties.extend(["dimension", "vocabulary", "fuse"])
 
         self._rebuildEmbedding()
 
