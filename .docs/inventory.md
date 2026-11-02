@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-02 09:28:37 UTC*
+*Auto-generated on: 2026-11-02 12:00:48 UTC*
 
 ## Current Directory Structure
 
@@ -919,6 +919,7 @@ src/fluxCore/policy:
 			G_NORMALIZE_STD -> : g_normalize_std
 			G_DEFAULT_IMAGE_RESIZE -> : g_default_image_resize
 			G_PARAM_DIM -> : g_param_dim
+			G_DEFAULT_STACK_SIZE -> : g_default_stack_size
 			G_DEFAULT_FEATURE_DIMENSION -> : g_default_feature_dimension
 
 src/fluxCore/policy/vocabulary:
@@ -1726,56 +1727,44 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-a963632:
-	Update inventory documentation, refactor vocabulary structure, and enhance DCPolicy with deque for improved state management
-		.docs/inventory.md
-		src/fluxCore/policy/__DCPolicy.py
-		src/fluxCore/policy/vocabulary/__vocabulary.py
-		src/fluxCore/policy/vocabulary/__vocabularyItem.py
-		src/fluxCore/types/interface/policy/vocabulary/__label.py -> src/fluxCore/types/interface/policy/vocabulary/__vocabularyItem.py
-		src/fluxCore/utilities/__torch.py
+c2552d0:
+	docs(policy): forward is deterministic
+		.docs/fluxCore/policy/dcPolicyCore.md
 
-9d1426d:
-	Refactor forward method in DCPolicyCore for improved tensor handling and batch processing
-		src/fluxCore/policy/__dcPolicyCore.py
+cfdf7a9:
+	docs(policy): defer inference noise; stackSize unrestricted
+		.docs/fluxCore/policy/requirement.md
 
-def6ad5:
-	Refactor DCPolicyCore to utilize getTorchDevice for device handling and update PolicyOptions warning message for clarity
-		src/fluxCore/policy/__dcPolicyCore.py
-		src/fluxCore/policy/__policyOption.py
+abf8392:
+	docs(policy): defer inference noise to inference
+		.docs/fluxCore/policy/implementation.md
 
-279397b:
-	Refactor DCPolicy and PolicyOptions constructors to improve parameter handling and enhance forward method in DCPolicy for better image processing
-		src/fluxCore/policy/__DCPolicy.py
-		src/fluxCore/policy/__dcPolicyCore.py
-		src/fluxCore/policy/__policyOption.py
+7c074a8:
+	docs(policy): mark term store as reference only
+		.docs/fluxCore/policy/term-store.md
 
-d5f68a7:
-	Fix import statement for DCPolicyCore in __init__.py and adjust super() call in DCPolicyCore constructor
-		src/fluxCore/policy/__dcPolicyCore.py
+d7333c0:
+	docs(policy): mark design draft as reference only
+		.docs/fluxCore/policy/design.md
 
-feff70a:
-	Refactor DCPolicyCore and PolicyOptions to improve module initialization and handle missing option values gracefully
-		src/fluxCore/policy/__dcPolicyCore.py
-		src/fluxCore/policy/__policyOption.py
+20b6203:
+	docs(policy): vocabulary implementation from code
+		.docs/fluxCore/policy/vocabulary/implementation.md
 
-6844ef4:
-	Update inventory documentation with new auto-generated timestamp and refactor policy file names for consistency
-		.docs/inventory.md
+b37c3a8:
+	docs(policy): vocabulary requirements from code
+		.docs/fluxCore/policy/vocabulary/requirement.md
 
-979fe11:
-	Refactor DCPolicy and PolicyOptions to enhance modularity and image processing capabilities
-		src/fluxCore/policy/__DCPolicy.py
-		src/fluxCore/policy/__dcPolicyCore.py
-		src/fluxCore/policy/__policyOption.py
-		src/fluxCore/policy/__utilities.py
+a83f535:
+	docs(policy): VocabularyItem from code
+		.docs/fluxCore/policy/vocabulary/vocabularyItem.md
 
-4a4582f:
-	Remove unused G_FEATURE_DIMENSIONS dictionary from utilities
-		src/fluxCore/policy/__utilities.py
+dbd9367:
+	docs(policy): Vocabulary from code
+		.docs/fluxCore/policy/vocabulary/vocabulary.md
 
-2a718b4:
-	Update PolicyOptions initialization to ignore provided featureDimension and derive it from module type
-		src/fluxCore/policy/__policyOption.py
+7cd8cd3:
+	docs(policy): utilities from code
+		.docs/fluxCore/policy/utilities.md
 
 ```
