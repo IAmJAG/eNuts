@@ -60,6 +60,8 @@ Widths (defaults): visual `F=576`, intent/action/parameterKind embeddings `128`,
 `slotMerge` input width = `F + I + A + P`.  
 `contextMerge` input width = `F + I`.
 
+`forward` is deterministic. It does not add noise.
+
 ### Save / load
 
 `save(path)` writes:
@@ -75,13 +77,25 @@ VERSION, MODELSTATE, OPTIONS
 3. Drop `__type__` from `OPTIONS` and pass the rest as kwargs.
 4. `load_state_dict(..., strict=True)`. A different backbone raises here.
 
-`stackSize` and `frameSize` travel inside `OPTIONS` because they are `PolicyOptions` properties.
+`stackSize` and `frameSize` travel inside `OPTIONS` because they are `PolicyOptions` properties. `stackSize` is any integer `>= 1` (default 4). It is not restricted to a power-of-two set.
 
-## 4. Not implemented in this package
+## 4. Deferred to inference
 
-The prior design draft described these. The code does not:
+### Inference-time noise
+
+Not a `PolicyOptions` item. Not applied inside `forward`.
+
+The heads emit embedding vectors (`ACTION`, `PARAMETERKIND`) and a sigmoid `SPATIAL` in `[0, 1]`. Decode is cosine against the vocabulary, outside this package.
+
+Noise, if used, is added by the inference implementation after `forward` returns:
+
+- Off (default): use the tensors as returned.
+- On: add Gaussian noise to the three tensors. Clamp `SPATIAL` back to `[0, 1]`.
+
+Encoders stay deterministic. Training does not see this noise.
+
+## 5. Not implemented in this package
 
 - L2 stateful switch or `stateReset`
-- Inference-time noise switch
 - `step()` / Executor / intent hierarchy
 - Vocabulary lookup inside `forward`
