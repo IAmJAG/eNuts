@@ -99,6 +99,7 @@ def _flattenEntries(section: Dict[str, Any]) -> list[tuple[str, Dict[str, Any]]]
 
 # ==================================================================================
 def instantiatePage(pageId: str, entry: Dict[str, Any]) -> Page:
+    page: Page = None
     try:
         title = str(entry.get("title") or pageId)
         description = str(entry.get("description") or "")

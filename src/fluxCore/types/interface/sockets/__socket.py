@@ -1,6 +1,4 @@
 # ==================================================================================
-# src/fluxCore/types/interface/sockets/__socket.py
-# ==================================================================================
 from asyncio import AbstractEventLoop
 from socket import socket
 from typing import Protocol, runtime_checkable

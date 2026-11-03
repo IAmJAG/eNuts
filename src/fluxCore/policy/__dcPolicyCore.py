@@ -208,6 +208,6 @@ class DCPolicyCore(iPolicy, nn.Module):
             raise ValueError("Policy checkpoint OPTIONS must be a dict")
 
         kwargs = {k: v for k, v in raw.items() if k != "__type__"}
-        policy = cls(module, device=device, **kwargs)
+        policy: iPolicy = cls(module, device=device, **kwargs)
         policy.load_state_dict(model["MODELSTATE"], strict=True)
         return policy

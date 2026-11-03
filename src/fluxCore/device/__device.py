@@ -13,17 +13,13 @@ from ..types.interface.device import iDevice
 class Device(Serializable, iDevice):
     def __init__(self, ident: str | UUID | None = None, name: str | None = None) -> None:
         super().__init__()
-        if ident is None:
-            self._id: str = str(uuid4())
-        else:
-            self._id = str(ident)
-        if name is not None:
-            self._name: str | None = name
-        else:
-            try:
-                self._name = getRandomName()
-            except Exception:
-                self._name = ""
+
+        if ident is None:  ident = uuid4()
+        if name is None: name = getRandomName()
+
+        self._id = ident
+        self._name = name
+
         self.Properties.extend(["id", "name"])
 
     @property

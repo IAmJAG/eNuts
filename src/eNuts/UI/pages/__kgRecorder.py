@@ -19,18 +19,19 @@ from PySide6.QtWidgets import (
 from jAGQt.widgets.page import Page
 
 # ==================================================================================
+from ...types.interface.application import iShell
+from ...types.interface.application.device import iDeviceManager
 from ..widgets import CaptureGLImage
 from .__playbackBase import PlaybackBase
 
+# ==================================================================================
+DEVICE_ADDED_EVENT: str = "deviceManager.deviceAdded"
+DEVICE_REMOVED_EVENT: str = "deviceManager.deviceRemoved"
+DEVICE_INITIALIZED_EVENT: str = "deviceManager.deviceInitialized"
+# ==================================================================================
 
 # ==================================================================================
 class KGRecorder(PlaybackBase):
-    """
-    K&G Recorder page: CaptureGLImage stream + device strip + command bar chrome.
-    Controller binds via Shell to:
-        ``_streamView``, ``_deviceCombo``, ``_commandBar``, ``_statusLabel``, ``_eventList``.
-    """
-
     def __init__(
         self, title: str, description: str = "",
         icon: Optional[Union[QIcon, QPixmap, str]] = None, commandBarOn: bool = True,
@@ -41,19 +42,23 @@ class KGRecorder(PlaybackBase):
             id=id, *args, **kwargs
         )
 
+    def _wInitializeServices(self) -> None: 
+        super()._wInitializeServices()
+        shell: iShell = self.mainwindow()
+        deviceManager: iDeviceManager = shell.deviceManager
+
+        deviceManager.subscribe(DEVICE_ADDED_EVENT, self._wOnDeviceAdded)
+        deviceManager.onDeviceRemoved.connect(self._wOnDeviceRemoved)
+
     def _wInitializeUI(self) -> None:
-        # Page chrome only — do not call PlaybackBase (it would insert a first GLImage).
-        Page._wInitializeUI(self)
+        super()._wInitializeUI(CaptureGLImage)
+
+        view: CaptureGLImage = self._streamView
 
         layout: QBoxLayout = self.Layout
         layout.setDirection(QBoxLayout.Direction.LeftToRight)
         layout.setSpacing(8)
         layout.setContentsMargins(0, 0, 0, 0)
-
-        image: CaptureGLImage = CaptureGLImage(bg="#1a1a1a")
-        image.setObjectName(f"{self.OBJECT_NAME}_STREAM")
-        image.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        image.setMinimumSize(320, 240)
 
         deviceLabel: QLabel = QLabel("Device:")
         deviceCombo: QComboBox = QComboBox(placeholderText="Select Device")
@@ -79,14 +84,10 @@ class KGRecorder(PlaybackBase):
         utils.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
         utils.setLayout(utilsLayout)
 
-        self.addWidget(image, stretch=1)
-        image.setMinimumSize(320, 240)
         self.Layout.addWidget(utils, 0)
-
-        self._streamView = image
         self._deviceCombo = deviceCombo
 
         verbose(
-            f"[KGRecorder] page id={self.Id!r} stream={image.objectName()!r} "
+            f"[{self.__class__.__name__}] page id={self.Id!r} stream={view.objectName()!r} "
             f"utilsWidth=250"
         )

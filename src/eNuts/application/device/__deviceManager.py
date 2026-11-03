@@ -1,14 +1,16 @@
 # ==================================================================================
 from asyncio import Event
 from asyncio import sleep as asyncSleep
-from typing import Dict, Iterable, Iterator, Optional
+from typing import Dict, Iterable, Iterator, Optional, Union
 
 # ==================================================================================
-from fluxCore.emitters.scrcpy import SCRCPYEmitter
+from fluxCore.emitters import SCRCPYEmitter
 from fluxCore.types.interface.device import iDevice
+from fluxCore.types.interface.emitters import iEmitter
 from jAGFx.services import AsyncSubscription
 
 # ==================================================================================
+from ...types.interface.application.device import iDeviceManager
 from ...utilities.asyncADB import SCRCPYDevices
 
 # ==================================================================================
@@ -20,7 +22,7 @@ POLL_INTERVAL: float = 2.0
 
 
 # ==================================================================================
-class deviceManager(AsyncSubscription):
+class DeviceManager(iDeviceManager, AsyncSubscription):
     def __init__(self, shutdownEvent: Event, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._shutdownEvent = shutdownEvent
@@ -48,20 +50,13 @@ class deviceManager(AsyncSubscription):
     def get(self, deviceId: str, default: Optional[iDevice] = None) -> Optional[iDevice]:
         return self._devices.get(deviceId, default)
 
-    def getEmitter(self, deviceId: str) -> Optional[SCRCPYEmitter]:
-        device = self._devices.get(deviceId)
-        if isinstance(device, SCRCPYEmitter):
-            return device
-        return None
-
     async def ensureRunning(self, deviceId: str) -> SCRCPYEmitter:
-        emitter = self.getEmitter(deviceId)
+        emitter: SCRCPYEmitter = self.get(deviceId)
         if emitter is None:
             raise KeyError(f"No SCRCPYEmitter registered for id={deviceId!r}")
 
         if not self._streamReady.get(deviceId, False):
             verbose(f"[{self.__class__.__name__}] ensureRunning initialize id={deviceId!r}")
-            # Windows stack: software decode (PyAV). GPU decode is opt-in later.
             await emitter.initialize(GPUReady=False)
             self._streamReady[deviceId] = True
 
@@ -71,34 +66,64 @@ class deviceManager(AsyncSubscription):
 
         return emitter
 
-    def _stopEmitter(self, device: iDevice) -> None:
-        if not isinstance(device, SCRCPYEmitter):
-            return
+    def stop(self, device: Union[str, iDevice]) -> None:        
+        if not isinstance(device, iEmitter): return        
         deviceId = str(device.id)
         try:
             if device.isRunning:
                 device.stop()
                 verbose(f"[{self.__class__.__name__}] stopped emitter id={deviceId!r}")
+
         except Exception as ex:
-            warning(f"[deviceManager] stop emitter id={deviceId!r} failed: {ex}")
+            warning(
+                f"[{self.__class__.__name__}] stop emitter id={deviceId!r} failed: {ex}"
+            )
+
         self._streamReady.pop(deviceId, None)
 
     def stopAll(self) -> None:
-        """Stop every running emitter (app shutdown)."""
         for device in list(self._devices.values()):
-            self._stopEmitter(device)
-        verbose("[deviceManager] stopAll done")
+            if isinstance(device, iEmitter): device.stop()
+
+        verbose(f"[{self.__class__.__name__}] stopAll done")
 
     def stopExcept(self, keepDeviceId: Optional[str]) -> None:
-        """Stop every running emitter except the given serial (if any)."""
         keep = (keepDeviceId or "").strip() or None
         for device in list(self._devices.values()):
-            if not isinstance(device, SCRCPYEmitter):
-                continue
-            if keep is not None and str(device.id) == keep:
-                continue
-            self._stopEmitter(device)
+            if not isinstance(device, SCRCPYEmitter): continue
+            if keep is not None and str(device.id) == keep: continue
+            self.stop(device)
         verbose(f"[{self.__class__.__name__}] stopExcept keep={keep!r} done")
+
+    # def start(self, device: Union[str, iDevice]) -> None: ...
+    # def stopAll(self) -> None: ...    
+
+    def add(self, device: iDevice) -> Optional[iDevice]:
+        if device is None: return None
+
+        deviceId: str = str(device.id)
+
+        if deviceId in self._devices: return self._devices[deviceId]
+        self._devices[deviceId] = device
+        
+        verbose(
+            f"[{self.__class__.__name__}] addDevice id={deviceId!r} "
+            f"name={getattr(device, 'name', None)!r} "
+            f"type={type(device).__name__}"
+        )
+        self.raiseEvent(DEVICE_ADDED_EVENT, device)
+        return device
+
+    def remove(self, device: iDevice | str) -> Optional[iDevice]:
+        if device is None or device == "": return None
+        deviceId: str = device if isinstance(device, str) else str(device.id)
+        removed: Optional[iDevice] = self._devices.pop(deviceId, None)
+        if removed is not None:
+            self._stopEmitter(removed)
+            verbose(f"[{self.__class__.__name__}] removeDevice id={deviceId!r}")
+            self.raiseEvent(DEVICE_REMOVED_EVENT, removed)
+            return removed
+        return None
 
     async def _discovery(self) -> None:
         isShuttingDown = self._shutdownEvent.is_set
@@ -117,10 +142,9 @@ class deviceManager(AsyncSubscription):
         self.setSuppressEvent(True)
         try:
             for deviceId, device in devices.items():
-                if isShuttingDown():
-                    break
-                if device is not None:
-                    self.addDevice(device)
+                if isShuttingDown(): return
+                if device is not None: self.add(device)
+
         finally:
             self.setSuppressEvent(False)
 
@@ -139,10 +163,10 @@ class deviceManager(AsyncSubscription):
             for deviceId in curIds - oldIds:
                 device = devices.get(deviceId)
                 if device is not None:
-                    self.addDevice(device)
+                    self.add(device)
 
             for deviceId in oldIds - curIds:
-                self.removeDevice(deviceId)
+                self.remove(deviceId)
 
             if not isShuttingDown():
                 await asyncSleep(POLL_INTERVAL)
@@ -155,33 +179,9 @@ class deviceManager(AsyncSubscription):
                 await self._discovery()
 
             except Exception as ex:
-                error("[deviceManager] discovery FAIL", ex)
+                error(f"[{self.__class__.__name__}] discovery FAIL", ex)
 
         createTask(_discoveryRunner)
-        verbose("[deviceManager] runDiscovery scheduled")
+        verbose(f"[{self.__class__.__class__}] runDiscovery scheduled")
 
-    def addDevice(self, device: iDevice) -> Optional[iDevice]:
-        if device is None:
-            return None
-        deviceId: str = str(device.id)
-        if deviceId in self._devices: return self._devices[deviceId]
-        self._devices[deviceId] = device
-        verbose(
-            f"[{self.__class__.__name__}] addDevice id={deviceId!r} "
-            f"name={getattr(device, 'name', None)!r} "
-            f"type={type(device).__name__}"
-        )
-        self.raiseEvent(DEVICE_ADDED_EVENT, device)
-        return device
-
-    def removeDevice(self, device: iDevice | str) -> Optional[iDevice]:
-        if device is None or device == "":
-            return None
-        deviceId: str = device if isinstance(device, str) else str(device.id)
-        removed: Optional[iDevice] = self._devices.pop(deviceId, None)
-        if removed is not None:
-            self._stopEmitter(removed)
-            verbose(f"[{self.__class__.__name__}] removeDevice id={deviceId!r}")
-            self.raiseEvent(DEVICE_REMOVED_EVENT, removed)
-            return removed
-        return None
+    

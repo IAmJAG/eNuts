@@ -10,7 +10,7 @@ from ..device import (
     DEVICE_ADDED_EVENT,
     DEVICE_INITIALIZED_EVENT,
     DEVICE_REMOVED_EVENT,
-    deviceManager,
+    DeviceManager,
 )
 from ..stream import LocalDeviceStream
 
@@ -149,23 +149,27 @@ class KGRecorder(QObject):
 
     def _onDeviceComboIndexChanged(self, index: int) -> None:
         combo = self._deviceCombo
-        if combo is None:
-            return
+        if combo is None: return
         try:
             data = combo.itemData(index) if index >= 0 else None
+
         except Exception:
             data = None
+
         serial = str(data).strip() if data is not None else None
-        if not serial:
-            serial = None
-        if serial == self._deviceId:
-            return
+
+        if not serial: serial = None
+
+        if serial == self._deviceId: return
         self._deviceId = serial
+
         self._persistDeviceId(serial)
         if serial:
             self._attachStream(serial)
+
         else:
             self._detachStream()
+
         verbose(f"[KGRecorder] combo selected deviceId={serial!r}")
 
     def _refreshDeviceCombo(self) -> None:
@@ -239,13 +243,15 @@ class KGRecorder(QObject):
         self._streamSerial = None
 
     def _attachStream(self, serial: str) -> None:
-        if not serial:
-            return
+        if not serial: return
         if self._streamSerial == serial and self._deviceStream is not None:
             return
+        
         self._detachStream()
+
         view = self._streamView
         mgr = self._deviceManager
+        
         if view is None or mgr is None:
             warning("[KGRecorder] attachStream: missing streamView or deviceManager")
             return

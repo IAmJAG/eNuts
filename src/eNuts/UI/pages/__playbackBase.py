@@ -2,14 +2,14 @@
 from __future__ import annotations
 
 # ==================================================================================
-from typing import Optional, Union
+from typing import Optional, Type, Union
 
 # ==================================================================================
 from PySide6.QtGui import QIcon, QPixmap
-from PySide6.QtWidgets import QSizePolicy
+from PySide6.QtWidgets import QSizePolicy, QWidget
 
 # ==================================================================================
-from jAGQt.widgets import GLImage
+from jAGQt.widgets import GLImage, ImageBase
 from jAGQt.widgets.page import Page
 
 
@@ -32,17 +32,16 @@ class PlaybackBase(Page):
             commandBarOn=commandBarOn, id=id, *args, **kwargs,
         )
 
-    def _wInitializeUI(self) -> None:
+    def _wInitializeUI(self, view: Type[ImageBase] = GLImage) -> None:
         super()._wInitializeUI()
 
-        streamView = GLImage(bg="#1a1a1a")
+        streamView: ImageBase | QWidget = view(bg="#1a1a1a")
         streamView.setObjectName(f"{self.OBJECT_NAME}_STREAM")
         streamView.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
         streamView.setMinimumSize(320, 240)
         self.addWidget(streamView, stretch=1)
-        # Page.addWidget resets minimum to 0x0 — restore so OpenGL host keeps a floor.
         streamView.setMinimumSize(320, 240)
 
         self._streamView = streamView

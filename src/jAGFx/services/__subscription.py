@@ -10,6 +10,7 @@ from ..types.interface.services import iSubscription
 class Subscription(iSubscription):
     def __init__(self) -> None:
         self._callbacks: Dict[str, List[Callable]] = {}
+        self._suppressEvent = False
 
     def subscribe(self, event: str, callback: Callable) -> None:
         self._callbacks.setdefault(event, []).append(callback)
@@ -22,6 +23,7 @@ class Subscription(iSubscription):
                 del self._callbacks[event]
 
     def raiseEvent(self, event: str, *args, **kwargs) -> None:
+        if self._suppressEvent: return
         if event in self._callbacks:
             for callback in self._callbacks[event]:
                 callback(*args, **kwargs)
@@ -33,8 +35,7 @@ class Subscription(iSubscription):
 # ==================================================================================
 class AsyncSubscription(Subscription):
     def __init__(self) -> None:
-        super().__init__()
-        self._suppressEvent = False
+        super().__init__()        
 
     def subscribe(self, event: str, callback: Callable[..., Awaitable]) -> None:
         super().subscribe(event, callback)
@@ -43,8 +44,7 @@ class AsyncSubscription(Subscription):
         super().unsubscribe(event, callback)
 
     def raiseEvent(self, event: str, *args, **kwargs) -> None:
-        if event not in self._callbacks: return
-
+        if event not in self._callbacks: return        
         if self._suppressEvent: return
 
         for callback in self._callbacks[event]:
@@ -59,10 +59,8 @@ class AsyncSubscription(Subscription):
                 callback(*args, **kwargs)
 
     async def asyncRaiseEvent(self, event: str, *args, **kwargs) -> None:
-        if event not in self._callbacks:
-            return
-        if self._suppressEvent:
-            return
+        if event not in self._callbacks: return
+        if self._suppressEvent: return
 
         for callback in self._callbacks[event]:
             if not callable(callback):

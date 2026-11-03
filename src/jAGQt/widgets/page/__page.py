@@ -29,18 +29,14 @@ from ..header import Header, HeaderIconPosition
 
 
 # ==================================================================================
-@workflow("InitializeUI")
+@workflow("InitializeUI", "InitializeServices", "BindComponents")
 class Page(QWidget, ComponentBase):
     OBJECT_NAME = "W_PAGE"
     def __init__(
-        self,
-        title: str,
-        description: str = "",
+        self, title: str, description: str = "",
         icon: Optional[Union[QIcon, QPixmap, str]] = None,
-        commandBarOn: bool = False,
-        id: Optional[str] = None,
-        *args,
-        **kwargs,
+        commandBarOn: bool = False, id: Optional[str] = None,
+        *args, **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
         self._id: str | UUID = uuid4() if id is None else id
@@ -48,6 +44,9 @@ class Page(QWidget, ComponentBase):
         self._description = description
         self._icon = icon
         self._isCommandBarOn: bool = commandBarOn
+
+    def _wBindComponents(self) -> None: ...
+    def _wInitializeServices(self) -> None: ...
 
     def _wInitializeUI(self) -> None:
         titleText: str = self._title

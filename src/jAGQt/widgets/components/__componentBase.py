@@ -71,3 +71,15 @@ class ComponentBase:
             layout.setContentsMargins(value)
         else:
             layout.setContentsMargins(contentMargins(value))
+
+    @property
+    def mainwindow(self) -> QMainWindow:
+        def _getMainWindow(window: QWidget) -> QMainWindow:
+            if isinstance(window, QMainWindow): 
+                return window
+
+            if window is None: return None
+                        
+            return _getMainWindow(window.parentWidget())
+        
+        return _getMainWindow(self)

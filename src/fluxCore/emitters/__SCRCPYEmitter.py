@@ -19,17 +19,17 @@ from jAGFx.services import AsyncService
 from jAGFx.services.__subscription import AsyncSubscription
 
 # ==================================================================================
-from ...devices import SCRCPY
-from ...types.interface.packets import iFrame
-from ...types.interface.sockets import iControlSocket, iVideoSocket
-from ...types.sockets import ControlSocket, VideoSocket
-from ...utilities.scrcpy import (
+from ..devices import SCRCPY
+from ..types.interface.emitters import iSCRCPYEmitter
+from ..types.interface.packets import iFrame
+from ..types.interface.sockets import iControlSocket, iVideoSocket
+from ..types.sockets import ControlSocket, VideoSocket
+from ..utilities.scrcpy import (
     SCRCPYServerConfig,
     createCodecContext,
     deployServer,
     getSCRCPYADBSocket,
 )
-from .__footprint import SCRCPYError
 
 # ==================================================================================
 JAR_NAME = "scrcpy-server.jar"
@@ -55,12 +55,11 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
     """
 
     def __init__(self, serial: str, name: str | None = None) -> None:
-        # AsyncService first so AsyncSubscription._callbacks exists before any raiseEvent.
-        # SCRCPY second for device identity / codec metadata fields.
         AsyncService.__init__(self, work=self.work, name=name)
         SCRCPY.__init__(self, serial=serial, name=name)
-        if not hasattr(self, "_callbacks"):
-            AsyncSubscription.__init__(self)
+
+        if not hasattr(self, "_callbacks"): AsyncSubscription.__init__(self)
+
         self._vSocket: iVideoSocket | None = None
         self._cSocket: iControlSocket | None = None
         self._streamServer: AdbConnection | None = None
@@ -69,7 +68,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         self._serverLogThread: Thread | None = None
 
     @classmethod
-    def toScrcpy(cls, emitter: SCRCPYEmitter) -> SCRCPY:
+    def toSCRCPY(cls, emitter: SCRCPYEmitter) -> SCRCPY:
         scrcpy = SCRCPY(serial=str(emitter.id), name=emitter.name)
         scrcpy.update(
             codecId=emitter.codecId,
@@ -87,7 +86,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
     async def _raiseError(self, phase: str, message: str) -> None:
         await self.asyncRaiseEvent(
             "ON_ERROR",
-            SCRCPYError(phase=phase, message=message, serial=str(self.id)),
+            RuntimeError(f"[SCRCPY] {phase}: {message}"),
         )
 
     def _startServerLogDrain(self, streamServer: AdbConnection) -> None:
@@ -205,3 +204,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
             raise
         # Re-enable events so ON_FRAME reaches LocalDeviceStream subscribers.
         self.setSuppressEvent(False)
+
+    @property
+    def isConnected(self) -> bool:
+        return self._isRunning

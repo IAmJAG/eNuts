@@ -38,7 +38,7 @@ from ..device import (
     DEVICE_ADDED_EVENT,
     DEVICE_INITIALIZED_EVENT,
     DEVICE_REMOVED_EVENT,
-    deviceManager,
+    DeviceManager,
 )
 
 # ==================================================================================

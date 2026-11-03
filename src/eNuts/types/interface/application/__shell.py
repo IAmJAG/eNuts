@@ -6,9 +6,13 @@ from jAGQt.types.interface.window import iMainWindowBase
 
 # ==================================================================================
 from .__applicationInformation import iApplicationInformation
+from .device import iDeviceManager
 
 
 # ==================================================================================
 class iShell(iApplicationInformation):
     def _wInitializeUI(self: iMainWindowBase) -> None: ...
+
+    @property
+    def deviceManager(self) -> iDeviceManager: ...
     

@@ -11,9 +11,6 @@ from PySide6.QtCore import QObject, Signal, SignalInstance
 from PySide6.QtGui import QImage
 
 # ==================================================================================
-from fluxCore.emitters.scrcpy import FrameRing, FrameSlotFlags, shouldSkipPresent
-
-# ==================================================================================
 C_ON_FRAME = "ON_FRAME"
 
 
@@ -65,6 +62,7 @@ class LocalDeviceStream:
             if emitter is not None:
                 try:
                     emitter.unsubscribe(C_ON_FRAME, handler)
+
                 except Exception:
                     pass
         self._handler = None
@@ -73,6 +71,7 @@ class LocalDeviceStream:
         if view is not None and hasattr(view, "clearPresent"):
             try:
                 view.clearPresent()
+                
             except Exception:
                 pass
 
