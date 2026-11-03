@@ -98,7 +98,7 @@ def _flattenEntries(section: Dict[str, Any]) -> list[tuple[str, Dict[str, Any]]]
 
 
 # ==================================================================================
-def instantiatePage(pageId: str, entry: Dict[str, Any]) -> Page:
+def instantiatePage(pageId: str, entry: Dict[str, Any], parent = None) -> Page:
     page: Page = None
     try:
         title = str(entry.get("title") or pageId)
@@ -119,7 +119,8 @@ def instantiatePage(pageId: str, entry: Dict[str, Any]) -> Page:
         try:
             page = cls(
                 title = title, description = description,
-                commandBarOn = commandBarOn, id = pageId
+                commandBarOn = commandBarOn, id = pageId,
+                parent = parent
             )
 
         except TypeError:
@@ -133,12 +134,12 @@ def instantiatePage(pageId: str, entry: Dict[str, Any]) -> Page:
     finally:
         return page
 
-def buildNavigationPages() -> dict[str, Page]:
+def buildNavigationPages(parent: None) -> dict[str, Page]:
     pages: dict[str, Page] = {}
     for sectionName in ("CONTENT", "FOOTER"):
         section = PAGE_AND_MENU.get(sectionName) or {}
         for pageId, entry in _flattenEntries(section):
             if pageId in pages: continue
-            pages[pageId] = instantiatePage(pageId, entry)
+            pages[pageId] = instantiatePage(pageId, entry, parent)
     
     return pages

@@ -151,8 +151,8 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
                 warning("Stack not built")
                 return
 
-            pages = buildNavigationPages()
-            for key, page in pages.items():
+            pages = buildNavigationPages(self)
+            for key, page in pages.items():                
                 idx = stack.addWidget(page)
                 self._pages[key] = page
                 self._pageIndex[key] = idx
@@ -205,6 +205,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
         if key is None:
             if isinstance(item, SideBarMenuItem):
                 debug(f"nav skip caption={item.Caption!r} (no pageKey)")
+
             return
         
         self.showPage(key)

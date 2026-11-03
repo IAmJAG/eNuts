@@ -1,7 +1,7 @@
 # ==================================================================================
 from asyncio import Event
 from asyncio import sleep as asyncSleep
-from typing import Dict, Iterable, Iterator, Optional, Union
+from typing import Dict, Iterable, Iterator, List, Optional, Union
 
 # ==================================================================================
 from fluxCore.emitters import SCRCPYEmitter
@@ -105,7 +105,7 @@ class DeviceManager(iDeviceManager, AsyncSubscription):
 
         if deviceId in self._devices: return self._devices[deviceId]
         self._devices[deviceId] = device
-        
+
         verbose(
             f"[{self.__class__.__name__}] addDevice id={deviceId!r} "
             f"name={getattr(device, 'name', None)!r} "
@@ -119,7 +119,7 @@ class DeviceManager(iDeviceManager, AsyncSubscription):
         deviceId: str = device if isinstance(device, str) else str(device.id)
         removed: Optional[iDevice] = self._devices.pop(deviceId, None)
         if removed is not None:
-            self._stopEmitter(removed)
+            self.stop(removed)
             verbose(f"[{self.__class__.__name__}] removeDevice id={deviceId!r}")
             self.raiseEvent(DEVICE_REMOVED_EVENT, removed)
             return removed
@@ -138,9 +138,9 @@ class DeviceManager(iDeviceManager, AsyncSubscription):
             f"[{self.__class__.__name__}] initial discovery count={len(devices)} "
             f"ids={list(devices.keys())}"
         )
-
-        self.setSuppressEvent(True)
+        
         try:
+            self.setSuppressEvent(True)
             for deviceId, device in devices.items():
                 if isShuttingDown(): return
                 if device is not None: self.add(device)
@@ -155,15 +155,14 @@ class DeviceManager(iDeviceManager, AsyncSubscription):
         )
 
         while not isShuttingDown():
-            devices = await _getDevices()
-            
+            devices: Dict[iDevice] = await _getDevices()            
+
             curIds = set(devices.keys())
             oldIds = set(self._devices.keys())
 
             for deviceId in curIds - oldIds:
                 device = devices.get(deviceId)
-                if device is not None:
-                    self.add(device)
+                if device is not None: self.add(device)
 
             for deviceId in oldIds - curIds:
                 self.remove(deviceId)

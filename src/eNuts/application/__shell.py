@@ -27,12 +27,12 @@ class Shell(iShell, ApplicationInformation):
         verbose("ENTER")
         try:        
             mgr: iDeviceManager = DeviceManager(self._shutdownEvent)
-
+            self._deviceManager = mgr
+            
             central: WorkSpace = WorkSpace(title=self.title, parent=self)
             self.setCentralWidget(central)
 
-            mgr.runDiscovery()
-            self._deviceManager = mgr
+            mgr.runDiscovery()           
 
         except Exception as ex:
             error("FAIL", ex)
@@ -93,11 +93,13 @@ class Shell(iShell, ApplicationInformation):
 
     def closeEvent(self, event) -> None:
         self.saveWindowState()
+
         mgr = self.deviceManager
+
         if mgr is not None:
-            try:
-                mgr.stopAll()
+            try: mgr.stopAll()
             except Exception as ex:
                 warning(f"[Shell] deviceManager.stopAll failed: {ex}")
+
         self._shutdownEvent.set()
         super().closeEvent(event)

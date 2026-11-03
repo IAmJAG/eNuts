@@ -75,11 +75,11 @@ class ComponentBase:
     @property
     def mainwindow(self) -> QMainWindow:
         def _getMainWindow(window: QWidget) -> QMainWindow:
-            if isinstance(window, QMainWindow): 
-                return window
+            if isinstance(window, QMainWindow): return window
 
             if window is None: return None
-                        
-            return _getMainWindow(window.parentWidget())
+
+            parent: QWidget = window.parent() or window.parentWidget()                                    
+            return _getMainWindow(parent)
         
         return _getMainWindow(self)

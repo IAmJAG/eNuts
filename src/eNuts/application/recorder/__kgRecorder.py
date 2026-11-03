@@ -33,15 +33,12 @@ class KGRecorder(QObject):
         self._page: Any = None
         self._streamView: Any = None
         self._deviceCombo: Any = None
-        self._deviceManager: Optional[deviceManager] = None
+        self._deviceManager: Optional[DeviceManager] = None
         self._streamSerial: Optional[str] = None
         self._deviceStream: Optional[LocalDeviceStream] = None
         self._comboWired: bool = False
         self._sigDevicesChanged.connect(self._refreshDeviceCombo)
 
-    # -------------------------------------------------------------------------
-    # MainWindow / Shell QSettings
-    # -------------------------------------------------------------------------
     @property
     def settings(self) -> Optional[QSettings]:
         """Return the QSettings instance of the MainWindow or Shell."""
@@ -72,7 +69,7 @@ class KGRecorder(QObject):
             return cleaned or None
         
         except Exception as ex:
-            warning(f"[KGRecorder] load persisted deviceId failed: {ex}")
+            warning(f"[{self.__class__.__name__}] load persisted deviceId failed: {ex}")
             return None
 
     def _persistDeviceId(self, deviceId: Optional[str]) -> None:
@@ -91,7 +88,7 @@ class KGRecorder(QObject):
     # -------------------------------------------------------------------------
     # deviceManager
     # -------------------------------------------------------------------------
-    def setDeviceManager(self, mgr: Optional[deviceManager]) -> None:
+    def setDeviceManager(self, mgr: Optional[DeviceManager]) -> None:
         if self._deviceManager is mgr:
             return
         old = self._deviceManager
