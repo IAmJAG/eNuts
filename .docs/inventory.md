@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-02 12:00:48 UTC*
+*Auto-generated on: 2026-11-03 07:15:36 UTC*
 
 ## Current Directory Structure
 
@@ -119,7 +119,6 @@ eNuts/
 │   │   │   │   └── __deviceManager.py
 │   │   │   ├── recorder/
 │   │   │   │   └── __kgRecorder.py
-│   │   │   ├── services/
 │   │   │   ├── stream/
 │   │   │   │   └── __deviceStream.py
 │   │   │   ├── theme/
@@ -141,7 +140,9 @@ eNuts/
 │   │   │       │       └── __mainWindow.py
 │   │   │       ├── application/
 │   │   │       │   ├── __applicationInformation.py
-│   │   │       │   └── __shell.py
+│   │   │       │   ├── __shell.py
+│   │   │       │   └── device/
+│   │   │       │       └── __deviceManager.py
 │   │   │       ├── configuration/
 │   │   │       │   └── __eNutsConfiguration.py
 │   │   │       └── recorder/
@@ -178,14 +179,7 @@ eNuts/
 │   │   ├── devices/
 │   │   │   └── __scrcpy.py
 │   │   ├── emitters/
-│   │   │   └── scrcpy/
-│   │   │       ├── __SCRCPYEmitter.py
-│   │   │       ├── __bridge.py
-│   │   │       ├── __footprint.py
-│   │   │       ├── __frameRing.py
-│   │   │       ├── __frameSlot.py
-│   │   │       ├── __messages.py
-│   │   │       └── __payloads.py
+│   │   │   └── __SCRCPYEmitter.py
 │   │   ├── policy/
 │   │   │   ├── __dcPolicy.py
 │   │   │   ├── __dcPolicyCore.py
@@ -206,11 +200,11 @@ eNuts/
 │   │   │   │   │   └── __androidAction.py
 │   │   │   │   ├── device/
 │   │   │   │   │   └── __device.py
-│   │   │   │   ├── deviceInput/
 │   │   │   │   ├── devices/
 │   │   │   │   │   └── __scrcpy.py
 │   │   │   │   ├── emitters/
-│   │   │   │   │   └── __SCRCPYEmitter.py
+│   │   │   │   │   ├── __SCRCPYEmitter.py
+│   │   │   │   │   └── __emitter.py
 │   │   │   │   ├── geometry/
 │   │   │   │   │   ├── __geoBase.py
 │   │   │   │   │   └── __point.py
@@ -587,7 +581,7 @@ src/eNuts/application:
 src/eNuts/application/device:
 	__deviceManager.py - 
 		CLASSE(S):
-			deviceManager -> : devicemanager
+			DeviceManager -> : devicemanager
 		CONSTANTS(S)/GLOBAL(S)
 			DEVICE_ADDED_EVENT -> : device_added_event
 			DEVICE_REMOVED_EVENT -> : device_removed_event
@@ -660,6 +654,11 @@ src/eNuts/types/interface/application:
 		CLASSE(S):
 			iShell -> : ishell
 
+src/eNuts/types/interface/application/device:
+	__deviceManager.py - 
+		CLASSE(S):
+			iDeviceManager -> : idevicemanager
+
 src/eNuts/types/interface/configuration:
 	__eNutsConfiguration.py - 
 		CLASSE(S):
@@ -723,6 +722,11 @@ src/eNuts/UI/pages:
 	__kgRecorder.py - 
 		CLASSE(S):
 			KGRecorder -> : kgrecorder
+		CONSTANTS(S)/GLOBAL(S)
+			DEVICE_ADDED_EVENT -> : device_added_event
+			DEVICE_REMOVED_EVENT -> : device_removed_event
+			DEVICE_INITIALIZED_EVENT -> : device_initialized_event
+			C_SETTINGS_DEVICE_ID -> : c_settings_device_id
 	__pageKeys.py - 
 	__playbackBase.py - 
 		CLASSE(S):
@@ -841,7 +845,7 @@ src/fluxCore/devices:
 		CLASSE(S):
 			SCRCPY -> : scrcpy
 
-src/fluxCore/emitters/scrcpy:
+src/fluxCore/emitters:
 	__SCRCPYEmitter.py - 
 		CLASSE(S):
 			SCRCPYEmitter -> : scrcpyemitter
@@ -852,50 +856,6 @@ src/fluxCore/emitters/scrcpy:
 			MAX_SIZE -> : max_size
 			MAX_FPS -> : max_fps
 			BITRATE -> : bitrate
-	__bridge.py - 
-		CLASSE(S):
-			_ScrcpyBridgeBase -> : _scrcpybridgebase
-			ScrcpyRealBridge -> : scrcpyrealbridge
-			ScrcpyProxyBridge -> : scrcpyproxybridge
-		FUNCTION(S):
-			_loadSCRCPYEmitter -> : _loadscrcpyemitter
-		CONSTANTS(S)/GLOBAL(S)
-			MetadataCallback -> : metadatacallback
-			ErrorCallback -> : errorcallback
-	__footprint.py - 
-		CLASSE(S):
-			SCRCPYError -> : scrcpyerror
-	__frameRing.py - 
-		CLASSE(S):
-			FrameRing -> : framering
-	__frameSlot.py - 
-		CLASSE(S):
-			FramePresentFormat -> : framepresentformat
-			FrameSlotFlags -> : frameslotflags
-			FrameSlotHeader -> : frameslotheader
-		FUNCTION(S):
-			makeFrameSlotHeader -> : makeframeslotheader
-			clampRingSize -> : clampringsize
-			nextRingIndex -> : nextringindex
-			pickWriteIndex -> : pickwriteindex
-			shouldSkipPresent -> : shouldskippresent
-		CONSTANTS(S)/GLOBAL(S)
-			C_FRAME_SLOT_MAGIC -> : c_frame_slot_magic
-			C_FRAME_SLOT_HEADER_STRUCT -> : c_frame_slot_header_struct
-			C_FRAME_SLOT_HEADER_SIZE -> : c_frame_slot_header_size
-			C_DEFAULT_RING_SIZE -> : c_default_ring_size
-			C_MIN_RING_SIZE -> : c_min_ring_size
-			C_MAX_RING_SIZE -> : c_max_ring_size
-	__messages.py - 
-		CLASSE(S):
-			ScrcpyInitializeMessage -> : scrcpyinitializemessage
-			ScrcpyStartMessage -> : scrcpystartmessage
-			ScrcpyStopMessage -> : scrcpystopmessage
-			ScrcpyMetadataMessage -> : scrcpymetadatamessage
-			ScrcpyErrorMessage -> : scrcpyerrormessage
-	__payloads.py - 
-		CLASSE(S):
-			ScrcpyInitParams -> : scrcpyinitparams
 
 src/fluxCore/policy:
 	__dcPolicy.py - 
@@ -965,6 +925,9 @@ src/fluxCore/types/interface/emitters:
 	__SCRCPYEmitter.py - 
 		CLASSE(S):
 			iSCRCPYEmitter -> : iscrcpyemitter
+	__emitter.py - 
+		CLASSE(S):
+			iEmitter -> : iemitter
 
 src/fluxCore/types/interface/geometry:
 	__geoBase.py - 
@@ -1727,6 +1690,70 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+36bccf2:
+	feat: enhance device management and navigation structure
+		src/eNuts/UI/navigation/__navigation.py
+		src/eNuts/UI/pages/__kgRecorder.py
+		src/eNuts/application/__shell.py
+		src/eNuts/application/device/__deviceManager.py
+		src/eNuts/application/recorder/__kgRecorder.py
+		src/eNuts/application/workspace/__workSpace.py
+		src/jAGQt/widgets/components/__componentBase.py
+
+b6a34ea:
+	Refactor SCRCPY emitter components
+		src/eNuts/UI/navigation/__navigation.py
+		src/eNuts/UI/pages/__kgRecorder.py
+		src/eNuts/UI/pages/__playbackBase.py
+		src/eNuts/application/__shell.py
+		src/eNuts/application/device/__deviceManager.py
+		src/eNuts/application/recorder/__kgRecorder.py
+		src/eNuts/application/stream/__deviceStream.py
+		src/eNuts/application/workspace/__workSpace.py
+		src/eNuts/types/interface/application/__shell.py
+		src/eNuts/types/interface/application/device/__deviceManager.py
+		src/eNuts/utilities/asyncADB/__asyncADB.py
+		src/fluxCore/device/__device.py
+		src/fluxCore/emitters/scrcpy/__SCRCPYEmitter.py -> src/fluxCore/emitters/__SCRCPYEmitter.py
+		src/fluxCore/emitters/scrcpy/__bridge.py
+		src/fluxCore/emitters/scrcpy/__footprint.py
+		src/fluxCore/emitters/scrcpy/__frameRing.py
+		src/fluxCore/emitters/scrcpy/__frameSlot.py
+		src/fluxCore/emitters/scrcpy/__messages.py
+		src/fluxCore/emitters/scrcpy/__payloads.py
+		src/fluxCore/policy/__dcPolicyCore.py
+		src/fluxCore/types/interface/device/__device.py
+		src/fluxCore/types/interface/devices/__scrcpy.py
+		src/fluxCore/types/interface/emitters/__SCRCPYEmitter.py
+		src/fluxCore/types/interface/emitters/__emitter.py
+		src/fluxCore/types/interface/sockets/__socket.py
+		src/fluxCore/types/interface/sockets/__videoSocket.py
+		src/jAGFx/services/__subscription.py
+		src/jAGQt/types/interface/components/__componentBase.py
+		src/jAGQt/types/interface/window/windowBase/__windowBase.py
+		src/jAGQt/widgets/components/__componentBase.py
+		src/jAGQt/widgets/page/__page.py
+
+9aa7771:
+	docs(policy): training at video rate, repeat shared frames
+		.docs/fluxCore/policy/requirement.md
+
+85581a4:
+	docs(policy): training runs at video rate
+		.docs/fluxCore/policy/implementation.md
+
+ff947d9:
+	docs(policy): training dataset owns L1 match
+		.docs/fluxCore/policy/requirement.md
+
+4b499ee:
+	docs(policy): training dataset owns L1 match
+		.docs/fluxCore/policy/implementation.md
+
+a4db658:
+	docs(inventory): update auto-generated timestamp and enhance directory structure
+		.docs/inventory.md
+
 c2552d0:
 	docs(policy): forward is deterministic
 		.docs/fluxCore/policy/dcPolicyCore.md
@@ -1738,33 +1765,5 @@ cfdf7a9:
 abf8392:
 	docs(policy): defer inference noise to inference
 		.docs/fluxCore/policy/implementation.md
-
-7c074a8:
-	docs(policy): mark term store as reference only
-		.docs/fluxCore/policy/term-store.md
-
-d7333c0:
-	docs(policy): mark design draft as reference only
-		.docs/fluxCore/policy/design.md
-
-20b6203:
-	docs(policy): vocabulary implementation from code
-		.docs/fluxCore/policy/vocabulary/implementation.md
-
-b37c3a8:
-	docs(policy): vocabulary requirements from code
-		.docs/fluxCore/policy/vocabulary/requirement.md
-
-a83f535:
-	docs(policy): VocabularyItem from code
-		.docs/fluxCore/policy/vocabulary/vocabularyItem.md
-
-dbd9367:
-	docs(policy): Vocabulary from code
-		.docs/fluxCore/policy/vocabulary/vocabulary.md
-
-7cd8cd3:
-	docs(policy): utilities from code
-		.docs/fluxCore/policy/utilities.md
 
 ```
