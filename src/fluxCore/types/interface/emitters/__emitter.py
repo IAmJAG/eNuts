@@ -13,4 +13,6 @@ from ..device import iDevice
 
 # ==================================================================================
 @runtime_checkable
-class iEmitter(iService, iSubscription, iDevice, Protocol): ...
+class iEmitter(iService, iSubscription, iDevice, Protocol):
+    @classmethod
+    def toDevice(self, device: iDevice) -> Optional[iDevice]: ...

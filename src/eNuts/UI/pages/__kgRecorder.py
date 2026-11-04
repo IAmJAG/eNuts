@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 # ==================================================================================
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 # ==================================================================================
 from PySide6.QtCore import QSettings
@@ -44,39 +44,39 @@ class KGRecorder(PlaybackBase):
             title=title, description=description, icon=icon,
             commandBarOn=commandBarOn, id=id, *args, **kwargs
         )
+        self._: Dict[QWidget, Any] = {}
 
-    def _refreshDeviceCombo(self, *args, **kwargs) -> None:
-        deviceCombo: QComboBox = self._deviceCombo
-        trace("REFRESH DEVICE COMBO")
-        
-        shell: iShell = self.mainwindow
-        settings: QSettings = shell.settings
+    def _refreshDeviceCombo(self, *args, **kwargs) -> None:        
+        try:
+            deviceCombo: QComboBox = self._deviceCombo
+            self.blockWidgetSignals(deviceCombo)
 
-        deviceMngr: iDeviceManager = shell.deviceManager
+            deviceCombo.clear()
+            devices: List[iDevice] = [d for d in list(self.deviceManager.values())]
 
-        devices: List[iDevice] = [d for d in list(deviceMngr.values())]
-        deviceId = settings.value(C_SETTINGS_DEVICE_ID, None)
+            if len(devices) == 0 or not devices:
+                deviceCombo.placeholderText = "<No Device Found>"
 
-        deviceCombo.blockSignals(True)
-        deviceCombo.clear()
-        if len(devices) == 0 or not devices:
-            deviceCombo.placeholderText = "<No Device Found>"
-        else:
-            
-            deviceCombo.placeholderText = "<Select Device>"
-            for device in devices:
-                deviceCombo.addItem(device.name, device.id)                
+            else:
+                deviceCombo.placeholderText = "<Select Device>"
+                
+                for device in devices:
+                    deviceCombo.addItem(device.name, device.id)            
 
-        deviceCombo.blockSignals(False)
+            deviceId = self.settings.value(C_SETTINGS_DEVICE_ID, EMPTY)
+            self._setDevice(deviceId)
+
+        except Exception as ex:
+            warning(f"[{self.__class__.__name__}] refresh device combo failed: {ex}")
+
+        finally:
+            self.restoreWidgetSignals(deviceCombo)
 
     def _setDevice(self, deviceId: str) -> None:
-        shell: iShell = self.mainwindow
-        deviceMngr: iDeviceManager = shell.deviceManager
         self._persistDeviceId(deviceId)
 
     def _persistDeviceId(self, deviceId: Optional[str]) -> None:
-        shell: iShell = self.mainwindow
-        settings: QSettings = shell.settings
+        settings: QSettings = self.settings
 
         if settings is None: return
 
@@ -151,6 +151,10 @@ class KGRecorder(PlaybackBase):
     @property
     def shell(self) -> iShell:
         return self.mainwindow
+
+    @property
+    def settings(self) -> QSettings:
+        return self.shell.settings
 
     @property
     def deviceManager(self) -> iDeviceManager:

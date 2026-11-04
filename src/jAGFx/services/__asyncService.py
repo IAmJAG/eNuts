@@ -122,7 +122,6 @@ class AsyncService(AsyncSubscription, iService):
     def start(self, *args, **kwargs) -> None:
         self._assertStartReady()
         self.raiseEvent("ON_STARTING")
-
         lLoop = get_running_loop()
         self._isRunning = True
         self._pauseEvent.set()

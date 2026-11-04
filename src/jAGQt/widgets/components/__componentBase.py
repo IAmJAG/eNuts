@@ -1,4 +1,7 @@
 # ==================================================================================
+from typing import Dict
+
+# ==================================================================================
 from PySide6.QtCore import QMargins
 from PySide6.QtWidgets import QBoxLayout, QMainWindow, QWidget
 
@@ -14,8 +17,11 @@ class ComponentBase:
         # back to a no-arg super call only for that case.
         try:
             super().__init__(*args, **kwargs)
+
         except TypeError:
             super().__init__()
+
+        self._widgetSignals: Dict[QWidget, bool] = {}
 
     @property
     def Name(self: QWidget | QMainWindow) -> str:
@@ -83,3 +89,11 @@ class ComponentBase:
             return _getMainWindow(parent)
         
         return _getMainWindow(self)
+
+    def blockWidgetSignals(self, obj: QWidget) -> None:
+        self._widgetSignals[obj] = obj.signalsBlocked()
+        obj.blockSignals(True)
+    
+    def restoreWidgetSignals(self, obj: QWidget) -> None:
+        obj.blockSignals(self._widgetSignals[obj])
+        self._[obj] = None

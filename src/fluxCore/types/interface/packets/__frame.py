@@ -4,7 +4,7 @@
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 # ==================================================================================
-from av import VideoFrame
+from av import VideoCodecContext, VideoFrame
 from torch import Tensor
 
 # ==================================================================================
@@ -21,5 +21,5 @@ class iFrame(iPacket, Protocol):
     def isConfig(self) -> bool: ...
     @property
     def pts(self) -> int: ...
-    def decode(self, ) -> VideoFrame | Tensor: ...
+    def decode(self, decoder: VideoCodecContext, gpu: bool = False) -> VideoFrame | Tensor: ...
     

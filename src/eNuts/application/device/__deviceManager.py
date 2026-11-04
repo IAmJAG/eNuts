@@ -51,7 +51,7 @@ class DeviceManager(iDeviceManager, AsyncSubscription):
         return self._devices.get(deviceId, default)
 
     async def ensureRunning(self, deviceId: str) -> SCRCPYEmitter:
-        emitter: SCRCPYEmitter = self.get(deviceId)
+        emitter: SCRCPYEmitter = self.get(deviceId, None)
         if emitter is None:
             raise KeyError(f"No SCRCPYEmitter registered for id={deviceId!r}")
 
@@ -95,8 +95,9 @@ class DeviceManager(iDeviceManager, AsyncSubscription):
             self.stop(device)
         verbose(f"[{self.__class__.__name__}] stopExcept keep={keep!r} done")
 
-    # def start(self, device: Union[str, iDevice]) -> None: ...
-    # def stopAll(self) -> None: ...    
+    def start(self, device: Union[str, iDevice]) -> None: 
+        deviceId: str = str(device.id) if isinstance(device, iDevice) else device
+        createTask(self.ensureRunning, deviceId)        
 
     def add(self, device: iDevice) -> Optional[iDevice]:
         if device is None: return None

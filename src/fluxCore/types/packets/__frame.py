@@ -1,6 +1,4 @@
 # ==================================================================================
-# src/fluxCore/types/packets/__frame.py
-# ==================================================================================
 from fractions import Fraction
 
 # ==================================================================================
@@ -45,33 +43,31 @@ class Frame(Packet, iFrame):
     def pts(self, value: int) -> None:
         self._pts = value
 
-    def decode(
-        self, decoder: VideoCodecContext | None = None, toGPU: bool = False
-    ) -> VideoFrame | Tensor | None:
+    def decode(self, decoder: VideoCodecContext, gpu: bool = False) -> VideoFrame | Tensor: 
         if decoder is None:
             raise ValueError("decode() requires a VideoCodecContext decoder.")
 
+        payload: bytes = self.payload        
         # Config / parameter sets: feed extradata only — do not send_packet.
         if self.isConfig:
-            decoder.extradata = self.payload
+            decoder.extradata = payload
             return None
 
-        packet: AVPacket = AVPacket(self._payload)
+        packet: AVPacket = AVPacket(payload)
         packet.pts = self._pts
         packet.time_base = Fraction(1, 1_000_000_000)
         packet.is_keyframe = self._isKeyFrame
 
         frames: list[VideoFrame] = decoder.decode(packet)
-        if not frames:
-            return None
+        if not frames: return None
 
-        lFrame = frames[0]
-        if not toGPU:
-            return lFrame
+        frame = frames[0]
+        if not gpu:
+            return frame
 
-        if not self._isHwFrame(lFrame):
-            lFmt = getattr(getattr(lFrame, "format", None), "name", None)
-            lHw = getattr(lFrame, "hw_frames_ctx", None)
+        if not self._isHwFrame(frame):
+            lFmt = getattr(getattr(frame, "format", None), "name", None)
+            lHw = getattr(frame, "hw_frames_ctx", None)
 
             raise RuntimeError(
                 "decodeToGpu=True but frame is software "
@@ -79,7 +75,7 @@ class Frame(Packet, iFrame):
                 "NVDEC did not produce a device frame; refusing CPU copy."
             )
 
-        return self._frameToCudaTensor(lFrame)
+        return self._frameToCudaTensor(frame)
 
     @staticmethod
     def _isHwFrame(frame: VideoFrame) -> bool:

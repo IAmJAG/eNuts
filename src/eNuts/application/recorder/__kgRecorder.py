@@ -1,23 +1,30 @@
 # ==================================================================================
 from __future__ import annotations
 
+# ==================================================================================
 from traceback import format_exc
 from typing import Any, List, Optional
 
+# ==================================================================================
 from PySide6.QtCore import QObject, QSettings, Signal, SignalInstance
 
+# ==================================================================================
+from fluxCore.stream import LocalDeviceStream
+
+# ==================================================================================
 from ..device import (
     DEVICE_ADDED_EVENT,
     DEVICE_INITIALIZED_EVENT,
     DEVICE_REMOVED_EVENT,
     DeviceManager,
 )
-from ..stream import LocalDeviceStream
 
+# ==================================================================================
 # QSettings key under MainWindow / Shell.settings
 C_SETTINGS_DEVICE_ID: str = "kgRecorder/deviceId"
+# ==================================================================================
 
-
+# ==================================================================================
 class KGRecorder(QObject):
     """KG Recorder controller: device list, selection persist, stream attach.
 

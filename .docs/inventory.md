@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-03 07:15:36 UTC*
+*Auto-generated on: 2026-11-04 06:15:25 UTC*
 
 ## Current Directory Structure
 
@@ -7,15 +7,16 @@
 eNuts/
 ├── .bin/
 │   └── scrcpy-server.jar
-├── .gitignore
-├── .kilocode/
-│   ├── .gitignore
+├── .clinerules/
 │   ├── rules/
 │   │   ├── CodingStyle.md
 │   │   ├── Documentation.md
 │   │   └── NamingConventions.md
 │   └── templates/
 │       └── documentTemplates.md
+├── .gitignore
+├── .kilocode/
+│   └── .gitignore
 ├── .pytest_cache/
 │   ├── .gitignore
 │   ├── CACHEDIR.TAG
@@ -119,8 +120,6 @@ eNuts/
 │   │   │   │   └── __deviceManager.py
 │   │   │   ├── recorder/
 │   │   │   │   └── __kgRecorder.py
-│   │   │   ├── stream/
-│   │   │   │   └── __deviceStream.py
 │   │   │   ├── theme/
 │   │   │   │   └── __theme.py
 │   │   │   └── workspace/
@@ -188,6 +187,17 @@ eNuts/
 │   │   │   └── vocabulary/
 │   │   │       ├── __vocabulary.py
 │   │   │       └── __vocabularyItem.py
+│   │   ├── stream/
+│   │   │   ├── __deviceStream.py
+│   │   │   ├── __eDecodeFormat.py
+│   │   │   ├── __frameDecoder.py
+│   │   │   ├── __frameFlags.py
+│   │   │   ├── __frameHeader.py
+│   │   │   ├── __frameRing.py
+│   │   │   ├── __imageConverters.py
+│   │   │   ├── __ipcDeviceStream.py
+│   │   │   ├── __streamHelpers.py
+│   │   │   └── __streamPresenter.py
 │   │   ├── types/
 │   │   │   ├── .fff
 │   │   │   ├── geometry/
@@ -595,16 +605,6 @@ src/eNuts/application/recorder:
 		CONSTANTS(S)/GLOBAL(S)
 			C_SETTINGS_DEVICE_ID -> : c_settings_device_id
 
-src/eNuts/application/stream:
-	__deviceStream.py - 
-		CLASSE(S):
-			iDeviceStream -> : idevicestream
-			StreamFrameBridge -> : streamframebridge
-			LocalDeviceStream -> : localdevicestream
-			IpcDeviceStream -> : ipcdevicestream
-		CONSTANTS(S)/GLOBAL(S)
-			C_ON_FRAME -> : c_on_frame
-
 src/eNuts/application/theme:
 	__theme.py - 
 		FUNCTION(S):
@@ -889,6 +889,64 @@ src/fluxCore/policy/vocabulary:
 	__vocabularyItem.py - 
 		CLASSE(S):
 			VocabularyItem -> : vocabularyitem
+
+src/fluxCore/stream:
+	__deviceStream.py - 
+		CLASSE(S):
+			LocalDeviceStream -> : localdevicestream
+		CONSTANTS(S)/GLOBAL(S)
+			C_ON_FRAME -> : c_on_frame
+			C_ON_METADATA_UPDATE -> : c_on_metadata_update
+			C_ON_ERROR -> : c_on_error
+			C_ON_INITIALIZED -> : c_on_initialized
+			C_ON_STARTING -> : c_on_starting
+			C_ON_STARTED -> : c_on_started
+			C_ON_STOPPING -> : c_on_stopping
+			C_ON_STOPPED -> : c_on_stopped
+			C_ON_PAUSED -> : c_on_paused
+			C_ON_RESUMED -> : c_on_resumed
+	__eDecodeFormat.py - 
+		CLASSE(S):
+			eDecodeFormat -> : edecodeformat
+		CONSTANTS(S)/GLOBAL(S)
+			DECODEFORMAT -> : decodeformat
+	__frameDecoder.py - 
+		CLASSE(S):
+			FrameDecoder -> : framedecoder
+	__frameFlags.py - 
+		CLASSE(S):
+			FrameFlags -> : frameflags
+	__frameHeader.py - 
+		CLASSE(S):
+			FrameHeader -> : frameheader
+	__frameRing.py - 
+		CLASSE(S):
+			FrameRing -> : framering
+	__imageConverters.py - 
+		FUNCTION(S):
+			toPIL -> : topil
+			toQImage -> : toqimage
+			toTensor -> : totensor
+			toNumpy -> : tonumpy
+			toVideoFrame -> : tovideoframe
+		CONSTANTS(S)/GLOBAL(S)
+			G_DECODE_FORMAT_MAP -> : g_decode_format_map
+	__ipcDeviceStream.py - 
+		CLASSE(S):
+			IpcDeviceStream -> : ipcdevicestream
+	__streamHelpers.py - 
+		FUNCTION(S):
+			validateRingSize -> : validateringsize
+			pickWriteIndex -> : pickwriteindex
+			shouldSkipPresent -> : shouldskippresent
+			makeFrameSlotHeader -> : makeframeslotheader
+		CONSTANTS(S)/GLOBAL(S)
+			C_DEFAULT_RING_SIZE -> : c_default_ring_size
+			C_RING_SIZES -> : c_ring_sizes
+			C_MIN_RING_SIZE -> : c_min_ring_size
+	__streamPresenter.py - 
+		CLASSE(S):
+			StreamPresenter -> : streampresenter
 
 src/fluxCore/types/geometry:
 	__circle.py - 
@@ -1690,6 +1748,10 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+73145eb:
+	docs(inventory): update auto-generated timestamp and enhance directory structure
+		.docs/inventory.md
+
 36bccf2:
 	feat: enhance device management and navigation structure
 		src/eNuts/UI/navigation/__navigation.py
@@ -1761,9 +1823,5 @@ c2552d0:
 cfdf7a9:
 	docs(policy): defer inference noise; stackSize unrestricted
 		.docs/fluxCore/policy/requirement.md
-
-abf8392:
-	docs(policy): defer inference noise to inference
-		.docs/fluxCore/policy/implementation.md
 
 ```
