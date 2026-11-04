@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-04 06:15:25 UTC*
+*Auto-generated on: 2026-11-04 08:45:30 UTC*
 
 ## Current Directory Structure
 
@@ -937,9 +937,7 @@ src/fluxCore/stream:
 	__streamHelpers.py - 
 		FUNCTION(S):
 			validateRingSize -> : validateringsize
-			pickWriteIndex -> : pickwriteindex
 			shouldSkipPresent -> : shouldskippresent
-			makeFrameSlotHeader -> : makeframeslotheader
 		CONSTANTS(S)/GLOBAL(S)
 			C_DEFAULT_RING_SIZE -> : c_default_ring_size
 			C_RING_SIZES -> : c_ring_sizes
@@ -1748,6 +1746,55 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+361e710:
+	refactor(stream): simplify FrameHeader initialization and enhance FrameRing logic
+		src/fluxCore/stream/__frameHeader.py
+		src/fluxCore/stream/__frameRing.py
+
+29767fa:
+	refactor(stream): enhance FrameRing logic and improve latest frame retrieval
+		src/fluxCore/stream/__frameHeader.py
+
+700da3e:
+	fix(stream): correct FrameHeader slots and enhance FrameRing publish logic
+		src/fluxCore/stream/__frameHeader.py
+		src/fluxCore/stream/__frameRing.py
+
+70fe48d:
+	refactor(stream): streamline frame handling and improve FrameHeader initialization
+		src/fluxCore/stream/__deviceStream.py
+		src/fluxCore/stream/__frameFlags.py
+		src/fluxCore/stream/__frameHeader.py
+		src/fluxCore/stream/__streamHelpers.py
+
+018fca3:
+	feat(stream): Implement LocalDeviceStream and associated frame handling
+		.kilocode/rules/CodingStyle.md -> .clinerules/rules/CodingStyle.md
+		.kilocode/rules/Documentation.md -> .clinerules/rules/Documentation.md
+		.kilocode/rules/NamingConventions.md -> .clinerules/rules/NamingConventions.md
+		.kilocode/templates/documentTemplates.md -> .clinerules/templates/documentTemplates.md
+		.docs/inventory.md
+		src/eNuts/UI/pages/__kgRecorder.py
+		src/eNuts/application/device/__deviceManager.py
+		src/eNuts/application/recorder/__kgRecorder.py
+		src/eNuts/application/stream/__deviceStream.py
+		src/fluxCore/emitters/__SCRCPYEmitter.py
+		src/fluxCore/stream/__deviceStream.py
+		src/fluxCore/stream/__eDecodeFormat.py
+		src/fluxCore/stream/__frameDecoder.py
+		src/fluxCore/stream/__frameFlags.py
+		src/fluxCore/stream/__frameHeader.py
+		src/fluxCore/stream/__frameRing.py
+		src/fluxCore/stream/__imageConverters.py
+		src/fluxCore/stream/__ipcDeviceStream.py
+		src/fluxCore/stream/__streamHelpers.py
+		src/fluxCore/stream/__streamPresenter.py
+		src/fluxCore/types/interface/emitters/__emitter.py
+		src/fluxCore/types/interface/packets/__frame.py
+		src/fluxCore/types/packets/__frame.py
+		src/jAGFx/services/__asyncService.py
+		src/jAGQt/widgets/components/__componentBase.py
+
 73145eb:
 	docs(inventory): update auto-generated timestamp and enhance directory structure
 		.docs/inventory.md
@@ -1803,25 +1850,5 @@ b6a34ea:
 85581a4:
 	docs(policy): training runs at video rate
 		.docs/fluxCore/policy/implementation.md
-
-ff947d9:
-	docs(policy): training dataset owns L1 match
-		.docs/fluxCore/policy/requirement.md
-
-4b499ee:
-	docs(policy): training dataset owns L1 match
-		.docs/fluxCore/policy/implementation.md
-
-a4db658:
-	docs(inventory): update auto-generated timestamp and enhance directory structure
-		.docs/inventory.md
-
-c2552d0:
-	docs(policy): forward is deterministic
-		.docs/fluxCore/policy/dcPolicyCore.md
-
-cfdf7a9:
-	docs(policy): defer inference noise; stackSize unrestricted
-		.docs/fluxCore/policy/requirement.md
 
 ```
