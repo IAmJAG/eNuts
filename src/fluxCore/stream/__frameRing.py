@@ -2,71 +2,82 @@
 from __future__ import annotations
 
 # ==================================================================================
-from typing import Any, Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 # ==================================================================================
 from .__eDecodeFormat import DECODEFORMAT
-from .__frameHeader import FrameFlags, FrameHeader
-from .__streamHelpers import (
-    C_DEFAULT_RING_SIZE,
-    pickWriteIndex,
-    validateRingSize,
-)
+from .__frameHeader import FrameHeader
+from .__streamHelpers import C_DEFAULT_RING_SIZE, validateRingSize
 
 
 # ==================================================================================
 class FrameRing:
     def __init__(self, size: int = C_DEFAULT_RING_SIZE) -> None:
-        size = validateRingSize(size)
-        self._size: int = size
-        self._slots: List[Tuple[FrameHeader, DECODEFORMAT]] = [None] * size
+        self._size: int = validateRingSize(size)
+        self._slots: List[Optional[Tuple[FrameHeader, DECODEFORMAT]]] = [
+            None
+        ] * self._size
+        self._displayIndex: int = 0
 
-        self._displayIndex: int = 0        
-        self._currentSequence: int = 0
-
-    def publish(self, header: FrameHeader, payload: DECODEFORMAT):
-        slots: List[Tuple[FrameHeader, DECODEFORMAT]] = self._slots
-        sequence: int = max(self._currentSequence, header.sequence)
-        displayIndex: int = self._displayIndex
-
-        oldestSequence: int = min([
-            hdr.sequence for hdr, _ in self._slots 
-            if hdr is not None and hdr.sequence != sequence]
-        )
-
-        writeIdx: int = 0
-        for i, (hdr, _) in enumerate(slots):
-            if hdr is None:
-                writeIdx = i
-                break
-
-            else:
-                if hdr.sequence == oldestSequence:                    
-                    writeIdx = i if i != displayIndex else 0 if displayIndex == self._size - 1 else displayIndex + 1
-                    break                        
-
+    def publish(self, header: FrameHeader, payload: DECODEFORMAT) -> None:
+        writeIdx = self._pickWriteIndex()
         self._slots[writeIdx] = (header, payload)
-        self._currentSequence = sequence        
-
-    def acquireForDisplay(self) -> Optional[Tuple[FrameHeader, DECODEFORMAT]]:        
-        displayIndex: int = self._displayIndex        
-        return self._slots[displayIndex]
 
     def latest(self) -> Optional[Tuple[FrameHeader, DECODEFORMAT]]:
-        bestHdr: Optional[FrameHeader] = None        
+        bestIdx: Optional[int] = None
+        bestHdr: Optional[FrameHeader] = None
+        bestPayload: Optional[DECODEFORMAT] = None
+
+        # Seed with current display slot when it is valid
+        displaySlot = self._slots[self._displayIndex]
+        if displaySlot is not None:
+            bestIdx = self._displayIndex
+            bestHdr, bestPayload = displaySlot
+
         for i in range(self._size):
-            if i == self._displayIndex: continue
-            
-            hdr, payload = self._slots[i]
-            if hdr is None: continue
+            if i == self._displayIndex:
+                continue
+            slot = self._slots[i]
+            if slot is None:
+                continue
 
+            hdr, payload = slot
             if bestHdr is None or hdr.sequence > bestHdr.sequence:
+                bestIdx = i
                 bestHdr = hdr
+                bestPayload = payload
 
-        if bestHdr is None: 
-            return None, None
+        if bestIdx is None or bestHdr is None:
+            return None
 
-        return bestHdr, payload
+        self._displayIndex = bestIdx
+        return bestHdr, bestPayload
+
+    def _pickWriteIndex(self) -> int:
+        """
+        Never returns _displayIndex.
+        First empty non-display slot wins immediately.
+        Otherwise the non-display slot with the lowest sequence.
+        """
+        oldestIdx: Optional[int] = None
+        oldestSeq: Optional[int] = None
+
+        for i in range(self._size):
+            if i == self._displayIndex:
+                continue
+            slot = self._slots[i]
+            if slot is None:
+                return i  # empty → take at once
+            hdr, _ = slot
+            if oldestSeq is None or hdr.sequence < oldestSeq:
+                oldestSeq = hdr.sequence
+                oldestIdx = i
+
+        if oldestIdx is not None:
+            return oldestIdx
+
+        # size == 1 fallback
+        return 0
 
     @property
     def size(self) -> int:
