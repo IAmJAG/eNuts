@@ -2,11 +2,11 @@
 from __future__ import annotations
 
 # ==================================================================================
-from enum import Enum
+from enum import IntFlag
 
 
 # ==================================================================================
-class FrameFlags(Enum):
+class FrameFlags(IntFlag):
     NONE = 0x00
     KEYFRAME = 0x01
     RESOLUTION_CHANGED = 0x02

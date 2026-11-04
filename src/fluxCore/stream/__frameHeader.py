@@ -2,6 +2,10 @@
 from __future__ import annotations
 
 # ==================================================================================
+from time import monotonic_ns
+from typing import Optional
+
+# ==================================================================================
 from .__eDecodeFormat import eDecodeFormat
 from .__frameFlags import FrameFlags
 
@@ -10,9 +14,10 @@ from .__frameFlags import FrameFlags
 class FrameHeader:
     __slots__ = ("_sequence", "_pts", "_width", "_height", "_format", "_format")
     def __init__(
-        self, sequence: int, pts: int, width: int, height: int,
-        format: eDecodeFormat.PIL, flags: FrameFlags
+        self, pts: int, width: int, height: int, sequence: Optional[int] = None,
+        format: eDecodeFormat = eDecodeFormat.PIL, flags: FrameFlags = FrameFlags.NONE
     ) -> None:
+        sequence: int = monotonic_ns() if sequence is None else sequence
         self._sequence: int = sequence
         self._pts: int = pts
         self._width: int = width

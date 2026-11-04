@@ -119,21 +119,17 @@ class LocalDeviceStream(AsyncService):
             raise ex
 
         prevSize: Tuple[int, int] = (0, 0)
-        sequence: int = None
-
         async def _onFrame(frame: iFrame) -> None:
-            nonlocal prevSize, sequence
+            nonlocal prevSize
             try:
                 if frame.isConfig: return
 
                 qimg: QImage = decoder.decode(frame, eDecodeFormat.QIMAGE)
                 if qimg is None or qimg.isNull(): return
 
-                sequence = monotonic()
                 newSize: Tuple[int, int] = (qimg.width(), qimg.height())
 
                 flag: FrameFlags = FrameFlags.NONE
-
                 if frame.isKeyFrame: flag |= FrameFlags.KEYFRAME                
                 if newSize != prevSize:
                     device: iDevice = self._emitter.toDevice(self._emitter)
@@ -141,9 +137,10 @@ class LocalDeviceStream(AsyncService):
                     flag |= FrameFlags.RESOLUTION_CHANGED
                 
                 header: FrameHeader = FrameHeader(
-                    sequence, frame.pts, *newSize, eDecodeFormat.QIMAGE, flag
+                    pts=frame.pts, width=newSize[0], height=newSize[1], 
+                    format=eDecodeFormat.QIMAGE, flags=flag
                 )
-
+                
                 prevSize = newSize
                 self.raiseEvent(C_ON_FRAME, header, qimg)
 
