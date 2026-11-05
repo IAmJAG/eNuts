@@ -2,9 +2,7 @@
 from __future__ import annotations
 
 # ==================================================================================
-from time import monotonic
-from typing import Any, List, Tuple
-from uuid import UUID
+from typing import List, Tuple
 
 # ==================================================================================
 from PySide6.QtGui import QImage
@@ -13,7 +11,7 @@ from PySide6.QtGui import QImage
 from fluxCore.types.interface.device import iDevice
 from fluxCore.types.interface.emitters import iEmitter
 from fluxCore.types.interface.packets import iFrame
-from jAGFx.services import AsyncService
+from jAGFx.services import AsyncSubscription
 
 # ==================================================================================
 from .__eDecodeFormat import eDecodeFormat
@@ -36,7 +34,7 @@ C_ON_RESUMED: str = "ON_RESUMED"
 # ==================================================================================
 
 # ==================================================================================
-class LocalDeviceStream(AsyncService):
+class LocalDeviceStream(AsyncSubscription):
     EVENTS: List[str] = [
         C_ON_FRAME, C_ON_METADATA_UPDATE, C_ON_ERROR, C_ON_INITIALIZED,
         C_ON_STARTING, C_ON_STARTED, C_ON_STOPPING, C_ON_STOPPED,
