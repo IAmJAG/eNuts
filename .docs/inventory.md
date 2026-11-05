@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-05 02:35:10 UTC*
+*Auto-generated on: 2026-11-05 02:40:10 UTC*
 
 ## Current Directory Structure
 
@@ -1743,6 +1743,20 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+df324b7:
+	fix(formatter): ensure domain and member attributes are set in log records
+		src/jAGFx/logging/formatters/__defaultFormatter.py
+
+832d3af:
+	refactor(stream): update device management and enhance stream handling in KGRecorder
+		.docs/inventory.md
+		src/eNuts/UI/pages/__kgRecorder.py
+		src/eNuts/application/device/__deviceManager.py
+		src/fluxCore/stream/__deviceStream.py
+		src/jAGFx/logging/__utilities.py
+		src/jAGFx/logging/formatters/__defaultFormatter.py
+		src/jAGQt/widgets/components/__componentBase.py
+
 fc03b1c:
 	refactor(stream): clean up imports and streamline __init__.py and __streamHelpers.py
 		.docs/inventory.md
@@ -1810,43 +1824,5 @@ fc03b1c:
 		src/eNuts/application/recorder/__kgRecorder.py
 		src/eNuts/application/workspace/__workSpace.py
 		src/jAGQt/widgets/components/__componentBase.py
-
-b6a34ea:
-	Refactor SCRCPY emitter components
-		src/eNuts/UI/navigation/__navigation.py
-		src/eNuts/UI/pages/__kgRecorder.py
-		src/eNuts/UI/pages/__playbackBase.py
-		src/eNuts/application/__shell.py
-		src/eNuts/application/device/__deviceManager.py
-		src/eNuts/application/recorder/__kgRecorder.py
-		src/eNuts/application/stream/__deviceStream.py
-		src/eNuts/application/workspace/__workSpace.py
-		src/eNuts/types/interface/application/__shell.py
-		src/eNuts/types/interface/application/device/__deviceManager.py
-		src/eNuts/utilities/asyncADB/__asyncADB.py
-		src/fluxCore/device/__device.py
-		src/fluxCore/emitters/scrcpy/__SCRCPYEmitter.py -> src/fluxCore/emitters/__SCRCPYEmitter.py
-		src/fluxCore/emitters/scrcpy/__bridge.py
-		src/fluxCore/emitters/scrcpy/__footprint.py
-		src/fluxCore/emitters/scrcpy/__frameRing.py
-		src/fluxCore/emitters/scrcpy/__frameSlot.py
-		src/fluxCore/emitters/scrcpy/__messages.py
-		src/fluxCore/emitters/scrcpy/__payloads.py
-		src/fluxCore/policy/__dcPolicyCore.py
-		src/fluxCore/types/interface/device/__device.py
-		src/fluxCore/types/interface/devices/__scrcpy.py
-		src/fluxCore/types/interface/emitters/__SCRCPYEmitter.py
-		src/fluxCore/types/interface/emitters/__emitter.py
-		src/fluxCore/types/interface/sockets/__socket.py
-		src/fluxCore/types/interface/sockets/__videoSocket.py
-		src/jAGFx/services/__subscription.py
-		src/jAGQt/types/interface/components/__componentBase.py
-		src/jAGQt/types/interface/window/windowBase/__windowBase.py
-		src/jAGQt/widgets/components/__componentBase.py
-		src/jAGQt/widgets/page/__page.py
-
-9aa7771:
-	docs(policy): training at video rate, repeat shared frames
-		.docs/fluxCore/policy/requirement.md
 
 ```

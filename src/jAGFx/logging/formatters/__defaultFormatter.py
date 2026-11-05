@@ -59,10 +59,11 @@ class DefaultFormatter(Formatter):
                 setattr(record, "caller", lCaller)                
 
             if not hasattr(record, "domain") or record.domain is None:
-                record.domain = (lCaller.Class or lCaller.Module or "NOT")
+                setattr(record, "domain", (lCaller.Class or lCaller.Module or "NOT"))
 
             if not hasattr(record, "member") or record.member is None:
-                record.member = (lCaller.Member or "MINE")
+                setattr(record, "member", (lCaller.Member or "MINE"))
+
 
             lOMsg = record.msg
             lLines = str(lOMsg).splitlines()
