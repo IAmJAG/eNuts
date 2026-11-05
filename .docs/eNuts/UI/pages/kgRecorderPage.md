@@ -1,27 +1,21 @@
 ## Overview & Design Context
-Factory `buildKGRecorderPage` builds the Key & Gesture Recorder page as a pure view: CaptureImage (stream + event source), expandable configuration strip (device combo first), status label, event list, and CommandBar (Start/Stop, Clear, Save/Open).
+`KGRecorder` page is a view with device combo and `CaptureGLImage` stream surface. Live video is driven exclusively by `LocalDeviceStream` (decode, ring, present). The page does not subscribe to emitters or decode frames.
 
-* **Design Decision / Deviation Notes:** Recording logic lives outside the Page in `KGRecorder` (ENUTSWindow component, wired from Shell). The page never owns session state. CaptureImage is a plain event source with no recording logic.
-
----
-
-## Functions
-
-### `buildKGRecorderPage`
-- **Arguments:** `key` (str) - Page id; defaults to `PAGE_KG_RECORDER`.
-- **Returns:** `Page` - Fully composed recorder page.
-- **Behavior:** Creates `Page` with CommandBar enabled, lays out CaptureImage on the left and config/status/event list on the right, registers CommandBar groups, and stashes `_captureImage`, `_deviceCombo`, `_statusLabel`, `_eventList`, `_configStrip` on the page for the controller.
+* **Design Decision / Deviation Notes:** Device changes call `LocalDeviceStream.switchDevice` via `createTask`. Persistence key remains `RECORDER_DEVICE_ID`. Application-level controller (`application/recorder/KGRecorder`) is a separate component and is not required for this stream path.
 
 ---
 
-## Constants & Globals
+## Classes
 
-None beyond page-key usage from `__pageKeys`.
+### `KGRecorder`
+- **Purpose:** Page UI + device list; stream lifecycle delegated to `LocalDeviceStream`.
+- **Methods:**
+  - `_setDevice(deviceId)` — persist + `switchDevice`.
+  - `_refreshDeviceCombo` — rebuild combo from `deviceManager`, then `_setDevice`.
+  - `_wInitializeUI` — `CaptureGLImage` + utils strip; `stream.attachView`.
 
 ## Sample Usage
 
 ```python
-from eNuts.UI.pages import buildKGRecorderPage, PAGE_KG_RECORDER
-
-page = buildKGRecorderPage(PAGE_KG_RECORDER)
+# Page is registered by navigation/shell; stream starts when a device is selected.
 ```
