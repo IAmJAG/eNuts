@@ -95,6 +95,7 @@ class KGRecorder(PlaybackBase):
         if oldEmitter is not None:
             oldEmitter.unsubscribe("ON_INITIALIZED", self._decoder.setCodecContext)
             oldEmitter.unsubscribe("ON_FRAME", self._onFrame)
+            if oldEmitter.isRunning: oldEmitter.stop()
 
         deviceMngr: iDeviceManager = self.deviceManager
         emitter: Optional[iEmitter] = deviceMngr.get(deviceId)
@@ -152,13 +153,11 @@ class KGRecorder(PlaybackBase):
         deviceMngr: iDeviceManager = self.deviceManager
         deviceMngr.subscribe(DEVICE_INITIALIZED_EVENT, self._refreshDeviceCombo)
         deviceMngr.subscribe(DEVICE_ADDED_EVENT, self._onDeviceAdded)        
-        deviceMngr.subscribe(DEVICE_REMOVED_EVENT, self._onDeviceRemoved)
-
-        deviceId = self.settings.value(C_SETTINGS_DEVICE_ID, EMPTY)        
+        deviceMngr.subscribe(DEVICE_REMOVED_EVENT, self._onDeviceRemoved)  
 
     def _onDeviceChanged(self, device: str, *args, **kwargs) -> None:
-        cboDevices: QComboBox = self._deviceCombo
-        deviceId: str = cboDevices.currentData()
+        cboDevices: QComboBox = self._deviceCombo        
+        deviceId: str = cboDevices.itemData(cboDevices.findText(device))
         self._setDevice(deviceId)
         
     def _onDeviceAdded(self, device: iDevice, *args, **kwargs) -> None:        
@@ -232,3 +231,4 @@ class KGRecorder(PlaybackBase):
     @property
     def deviceManager(self) -> iDeviceManager:
         return self.shell.deviceManager
+    

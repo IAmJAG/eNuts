@@ -7,14 +7,14 @@ from struct import unpack
 from .__socket import AsyncReadExact, ReadExact
 
 # ==================================================================================
-C_MAX_FRAME_BYTES: int = 32 * 1024 * 1024
+C_MAX_FRAME_BYTES: int = 32 * 1024 * 1024 * 1024
 C_FLAG_CONFIG: int = 0x8000_0000_0000_0000
 C_FLAG_KEYFRAME: int = 0x4000_0000_0000_0000
 C_PTS_MASK: int = 0x3FFF_FFFF_FFFF_FFFF
-
+# ==================================================================================
 
 # ==================================================================================
-def _ParseFrameHeader(header12: bytes) -> tuple[int, bool, bool, int]:
+def _parseFrameHeader(header12: bytes) -> tuple[int, bool, bool, int]:
     if len(header12) < 12: raise ConnectionError("Incomplete frame header")
     lHeaderVal, lSize = unpack(">QI", header12)
 
@@ -34,7 +34,7 @@ def ReadSingleFrame(sckt: socket) -> tuple[int, bool, bool, bytes]:
     except ConnectionError:
         return None
     
-    lPts, lIsConfig, lIsKeyFrame, lSize = _ParseFrameHeader(lHeader)
+    lPts, lIsConfig, lIsKeyFrame, lSize = _parseFrameHeader(lHeader)
     lPayload = ReadExact(sckt, lSize) if lSize else b""
     return lPts, lIsConfig, lIsKeyFrame, lPayload
 
@@ -45,6 +45,6 @@ async def AsyncReadSingleFrame(sckt: socket, loop: AbstractEventLoop) -> tuple[i
     except ConnectionError:
         return None
     
-    lPts, lIsConfig, lIsKeyFrame, lSize = _ParseFrameHeader(lHeader)
+    lPts, lIsConfig, lIsKeyFrame, lSize = _parseFrameHeader(lHeader)
     lPayload = await AsyncReadExact(sckt, lSize, loop) if lSize else b""
     return lPts, lIsConfig, lIsKeyFrame, lPayload

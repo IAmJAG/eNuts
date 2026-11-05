@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-05 02:40:10 UTC*
+*Auto-generated on: 2026-11-05 08:03:07 UTC*
 
 ## Current Directory Structure
 
@@ -1743,86 +1743,48 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+41d8d6a:
+	fix(recorder): clean up imports and improve error logging in device management
+		src/eNuts/UI/pages/__kgRecorder.py
+
+58a7995:
+	fix(stream): enhance subscription handling to prevent duplicate callbacks
+		src/eNuts/UI/pages/__kgRecorder.py
+		src/fluxCore/stream/__frameDecoder.py
+		src/jAGFx/services/__subscription.py
+
+71bb20e:
+	fix(imageConverters): handle None case for isConfig in toVideoFrame function
+		src/fluxCore/stream/__imageConverters.py
+
+34b0369:
+	fix(imageConverters): handle None case in toQImage function when converting to numpy array
+		src/fluxCore/stream/__imageConverters.py
+
+7d8dea6:
+	fix(imageConverters): handle None case for videoFrame in toNumpy function
+		src/fluxCore/stream/__imageConverters.py
+
+7bf83fd:
+	fix(stream): call super constructor in LocalDeviceStream and remove unused decorator in toVideoFrame
+		src/fluxCore/stream/__deviceStream.py
+		src/fluxCore/stream/__imageConverters.py
+
+cdcdc6b:
+	refactor(stream): use partial to enhance event subscription handling in LocalDeviceStream
+		src/fluxCore/stream/__deviceStream.py
+
+a20465b:
+	refactor(stream): replace AsyncService with AsyncSubscription in LocalDeviceStream
+		src/fluxCore/stream/__deviceStream.py
+
+e0785d1:
+	fix(formatter): set domain and member attributes in log records if not present
+		.docs/inventory.md
+		src/jAGFx/logging/formatters/__defaultFormatter.py
+
 df324b7:
 	fix(formatter): ensure domain and member attributes are set in log records
 		src/jAGFx/logging/formatters/__defaultFormatter.py
-
-832d3af:
-	refactor(stream): update device management and enhance stream handling in KGRecorder
-		.docs/inventory.md
-		src/eNuts/UI/pages/__kgRecorder.py
-		src/eNuts/application/device/__deviceManager.py
-		src/fluxCore/stream/__deviceStream.py
-		src/jAGFx/logging/__utilities.py
-		src/jAGFx/logging/formatters/__defaultFormatter.py
-		src/jAGQt/widgets/components/__componentBase.py
-
-fc03b1c:
-	refactor(stream): clean up imports and streamline __init__.py and __streamHelpers.py
-		.docs/inventory.md
-		src/fluxCore/stream/__streamHelpers.py
-
-361e710:
-	refactor(stream): simplify FrameHeader initialization and enhance FrameRing logic
-		src/fluxCore/stream/__frameHeader.py
-		src/fluxCore/stream/__frameRing.py
-
-29767fa:
-	refactor(stream): enhance FrameRing logic and improve latest frame retrieval
-		src/fluxCore/stream/__frameHeader.py
-
-700da3e:
-	fix(stream): correct FrameHeader slots and enhance FrameRing publish logic
-		src/fluxCore/stream/__frameHeader.py
-		src/fluxCore/stream/__frameRing.py
-
-70fe48d:
-	refactor(stream): streamline frame handling and improve FrameHeader initialization
-		src/fluxCore/stream/__deviceStream.py
-		src/fluxCore/stream/__frameFlags.py
-		src/fluxCore/stream/__frameHeader.py
-		src/fluxCore/stream/__streamHelpers.py
-
-018fca3:
-	feat(stream): Implement LocalDeviceStream and associated frame handling
-		.kilocode/rules/CodingStyle.md -> .clinerules/rules/CodingStyle.md
-		.kilocode/rules/Documentation.md -> .clinerules/rules/Documentation.md
-		.kilocode/rules/NamingConventions.md -> .clinerules/rules/NamingConventions.md
-		.kilocode/templates/documentTemplates.md -> .clinerules/templates/documentTemplates.md
-		.docs/inventory.md
-		src/eNuts/UI/pages/__kgRecorder.py
-		src/eNuts/application/device/__deviceManager.py
-		src/eNuts/application/recorder/__kgRecorder.py
-		src/eNuts/application/stream/__deviceStream.py
-		src/fluxCore/emitters/__SCRCPYEmitter.py
-		src/fluxCore/stream/__deviceStream.py
-		src/fluxCore/stream/__eDecodeFormat.py
-		src/fluxCore/stream/__frameDecoder.py
-		src/fluxCore/stream/__frameFlags.py
-		src/fluxCore/stream/__frameHeader.py
-		src/fluxCore/stream/__frameRing.py
-		src/fluxCore/stream/__imageConverters.py
-		src/fluxCore/stream/__ipcDeviceStream.py
-		src/fluxCore/stream/__streamHelpers.py
-		src/fluxCore/stream/__streamPresenter.py
-		src/fluxCore/types/interface/emitters/__emitter.py
-		src/fluxCore/types/interface/packets/__frame.py
-		src/fluxCore/types/packets/__frame.py
-		src/jAGFx/services/__asyncService.py
-		src/jAGQt/widgets/components/__componentBase.py
-
-73145eb:
-	docs(inventory): update auto-generated timestamp and enhance directory structure
-		.docs/inventory.md
-
-36bccf2:
-	feat: enhance device management and navigation structure
-		src/eNuts/UI/navigation/__navigation.py
-		src/eNuts/UI/pages/__kgRecorder.py
-		src/eNuts/application/__shell.py
-		src/eNuts/application/device/__deviceManager.py
-		src/eNuts/application/recorder/__kgRecorder.py
-		src/eNuts/application/workspace/__workSpace.py
-		src/jAGQt/widgets/components/__componentBase.py
 
 ```
