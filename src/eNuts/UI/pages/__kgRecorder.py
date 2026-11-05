@@ -2,11 +2,10 @@
 from __future__ import annotations
 
 # ==================================================================================
-from typing import Any, Dict, List, Optional, Union
+from typing import List, Optional, Union
 
 # ==================================================================================
-from av import VideoCodecContext, VideoFrame
-from PySide6.QtCore import QSettings, Qt
+from PySide6.QtCore import QSettings
 from PySide6.QtGui import QIcon, QImage, QPixmap
 from PySide6.QtWidgets import (
     QBoxLayout,
@@ -16,10 +15,11 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QWidget,
 )
+from shiboken6 import isValid
 
 # ==================================================================================
 from fluxCore.emitters import SCRCPYEmitter
-from fluxCore.stream import FrameDecoder, FrameFlags, eDecodeFormat
+from fluxCore.stream import FrameDecoder, FrameRing, eDecodeFormat
 from fluxCore.types.interface.device import iDevice
 from fluxCore.types.interface.emitters import iEmitter
 from fluxCore.types.interface.packets import iFrame
@@ -52,6 +52,7 @@ class KGRecorder(PlaybackBase):
         )
         self._emitter: Optional[SCRCPYEmitter] = None
         self._decoder: FrameDecoder = FrameDecoder()
+        self._frameRing: FrameRing = FrameRing(8)        
 
     @classmethod
     def classname(cls) -> str: 
@@ -75,17 +76,17 @@ class KGRecorder(PlaybackBase):
                     name: str = device.name.strip().lower()
                     deviceCombo.addItem(name, device.id)
 
-            deviceId = self.settings.value(C_SETTINGS_DEVICE_ID, EMPTY)            
+            deviceId = self.settings.value(C_SETTINGS_DEVICE_ID, EMPTY)
+            deviceCombo.setCurrentIndex(deviceCombo.findData(deviceId))
             self._setDevice(deviceId)
 
         except Exception as ex:
-            warning(f"[{self.classname()}] refresh device combo failed: {ex}")
+            warning(f"refresh device combo failed: {ex}")
 
         finally:
             self.restoreWidgetSignals(deviceCombo)
 
     def _setDevice(self, deviceId: str) -> None:
-        cboDevices: QComboBox = self._deviceCombo
         self._persistDeviceId(deviceId)
 
         verbose(f"[{self.classname()}] setting deviceId={deviceId!r}")
@@ -98,24 +99,32 @@ class KGRecorder(PlaybackBase):
         deviceMngr: iDeviceManager = self.deviceManager
         emitter: Optional[iEmitter] = deviceMngr.get(deviceId)
 
-        if emitter is None: 
+        if emitter is None:
             raise Exception(f"Device {deviceId!r} not found")
 
         # subscribe is guarded againts duplicate subscriptions
         emitter.subscribe("ON_INITIALIZED", self._decoder.setCodecContext)
         emitter.subscribe("ON_FRAME", self._onFrame)
-        if not emitter.isRunning: emitter.start()
 
+        if not emitter.isRunning: emitter.start()
         self._emitter = emitter
         
     def _onFrame(self, frame: iFrame) -> None:
         try:
-            decoder: FrameDecoder = self._decoder
+            view: CaptureGLImage = self._streamView
 
+            if view is None or not isValid(view):
+                return
+        
+            decoder: FrameDecoder = self._decoder
             if decoder.codec is None: return
             
             image: QImage = decoder.decode(frame, eDecodeFormat.QIMAGE)
-            self._streamView.image = image
+            if image is None or image.isNull(): return
+
+            if not isValid(view): return
+            
+            view.image = image
 
         except Exception as ex:
             warning(f"decode frame failed: {ex}")        
@@ -124,19 +133,16 @@ class KGRecorder(PlaybackBase):
         settings: QSettings = self.settings
 
         if settings is None: return
-
         try:
             value = (deviceId or "").strip()
             settings.setValue(C_SETTINGS_DEVICE_ID, value)
-            verbose(
-                f"[{self.classname()}] persisted deviceId={value!r} key={C_SETTINGS_DEVICE_ID!r}"
-            )
+            verbose(f"persisted deviceId={value!r} key={C_SETTINGS_DEVICE_ID!r}")
 
         except Exception as ex:
-            warning(f"[{self.classname()}] persist deviceId failed: {ex}")
+            warning(f"persist deviceId failed: {ex}")
 
     def _wInitializeServices(self) -> None: 
-        super()._wInitializeServices()        
+        super()._wInitializeServices()
         
     def _wBindComponents(self) -> None:
         super()._wBindComponents()
@@ -147,6 +153,8 @@ class KGRecorder(PlaybackBase):
         deviceMngr.subscribe(DEVICE_INITIALIZED_EVENT, self._refreshDeviceCombo)
         deviceMngr.subscribe(DEVICE_ADDED_EVENT, self._onDeviceAdded)        
         deviceMngr.subscribe(DEVICE_REMOVED_EVENT, self._onDeviceRemoved)
+
+        deviceId = self.settings.value(C_SETTINGS_DEVICE_ID, EMPTY)        
 
     def _onDeviceChanged(self, device: str, *args, **kwargs) -> None:
         cboDevices: QComboBox = self._deviceCombo
@@ -169,7 +177,7 @@ class KGRecorder(PlaybackBase):
         if index != -1:
             cboDevices.removeItem(index)
             deviceName: str = device.name.strip().lower()
-            verbose(f"[{self.classname()}] removed device={deviceId!r}:{deviceName!r}")
+            verbose(f"removed device={deviceId!r}:{deviceName!r}")
 
     def _wInitializeUI(self) -> None:
         super()._wInitializeUI(CaptureGLImage)
@@ -209,7 +217,7 @@ class KGRecorder(PlaybackBase):
         self._deviceCombo = deviceCombo
 
         verbose(
-            f"[{self.__class__.__name__}] page id={self.Id!r} stream={view.objectName()!r} "
+            f"page id={self.Id!r} stream={view.objectName()!r} "
             f"utilsWidth=250"
         )
 
