@@ -96,4 +96,4 @@ class ComponentBase:
     
     def restoreWidgetSignals(self, obj: QWidget) -> None:
         obj.blockSignals(self._widgetSignals[obj])
-        self._[obj] = None
+        self._widgetSignals[obj] = None

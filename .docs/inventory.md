@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-04 08:45:30 UTC*
+*Auto-generated on: 2026-11-05 02:35:10 UTC*
 
 ## Current Directory Structure
 
@@ -723,9 +723,6 @@ src/eNuts/UI/pages:
 		CLASSE(S):
 			KGRecorder -> : kgrecorder
 		CONSTANTS(S)/GLOBAL(S)
-			DEVICE_ADDED_EVENT -> : device_added_event
-			DEVICE_REMOVED_EVENT -> : device_removed_event
-			DEVICE_INITIALIZED_EVENT -> : device_initialized_event
 			C_SETTINGS_DEVICE_ID -> : c_settings_device_id
 	__pageKeys.py - 
 	__playbackBase.py - 
@@ -1746,6 +1743,11 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+fc03b1c:
+	refactor(stream): clean up imports and streamline __init__.py and __streamHelpers.py
+		.docs/inventory.md
+		src/fluxCore/stream/__streamHelpers.py
+
 361e710:
 	refactor(stream): simplify FrameHeader initialization and enhance FrameRing logic
 		src/fluxCore/stream/__frameHeader.py
@@ -1846,9 +1848,5 @@ b6a34ea:
 9aa7771:
 	docs(policy): training at video rate, repeat shared frames
 		.docs/fluxCore/policy/requirement.md
-
-85581a4:
-	docs(policy): training runs at video rate
-		.docs/fluxCore/policy/implementation.md
 
 ```

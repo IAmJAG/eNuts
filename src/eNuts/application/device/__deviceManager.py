@@ -83,7 +83,10 @@ class DeviceManager(iDeviceManager, AsyncSubscription):
 
     def stopAll(self) -> None:
         for device in list(self._devices.values()):
-            if isinstance(device, iEmitter): device.stop()
+            if isinstance(device, iEmitter):                 
+                if device.isRunning: 
+                    verbose(f"[{self.__class__.__name__}] stopping id={device.id!r}")
+                    device.stop()
 
         verbose(f"[{self.__class__.__name__}] stopAll done")
 

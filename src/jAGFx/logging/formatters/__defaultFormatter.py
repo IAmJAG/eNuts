@@ -61,7 +61,7 @@ class DefaultFormatter(Formatter):
             lOMsg = record.msg
             lLines = str(lOMsg).splitlines()
 
-            record.msg = lLines[0]
+            record.msg = lLines[0]            
             lFormattedParts = [coloredFormatter.format(record)]
             for i in range(1, len(lLines)):
                 record.msg = f"{TAB}{lLines[i]}"
@@ -69,6 +69,6 @@ class DefaultFormatter(Formatter):
 
             record.msg = lOMsg
             return LF.join(lFormattedParts)
-
+        
         except Exception:
             raise

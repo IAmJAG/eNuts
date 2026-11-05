@@ -42,10 +42,9 @@ class LocalDeviceStream(AsyncService):
         C_ON_STARTING, C_ON_STARTED, C_ON_STOPPING, C_ON_STOPPED,
         C_ON_PAUSED, C_ON_RESUMED,
     ]
-    def __init__(self, ident: str | UUID) -> None:
-        self._identity: str | UUID = ident
+    def __init__(self) -> None:
         self._decoder = FrameDecoder()
-        self._emitter: iEmitter = None
+        self._emitter: iEmitter = None        
 
     @classmethod
     def classname(cls) -> str:
@@ -77,6 +76,7 @@ class LocalDeviceStream(AsyncService):
         emitter: iEmitter = self._emitter
 
         try:
+            if emitter is None: return
             emitter.setSuppressEvent(True)
             decoder: FrameDecoder = self._decoder
 
@@ -84,30 +84,23 @@ class LocalDeviceStream(AsyncService):
             emitter.unsubscribe(C_ON_INITIALIZED, decoder.setCodecContext)
             for event in self.EVENTS: emitter.unsubscribe(event, self._onEvent)
 
-            self._emitter = None
-
         except Exception:
             raise 
 
-        finally:
-            emitter.setSuppressEvent(False)
+        finally:            
             self._emitter = None
 
     async def stop(self) -> None:
         emitter: iEmitter = self._emitter
-        if emitter is None:
-            raise ValueError("No emitter attached")
-
-        emitter.stop()
+        if emitter is None: raise ValueError("No emitter attached")
+        emitter.stop()        
 
     async def start(self) -> None:
         emitter: iEmitter = self._emitter
-        if emitter is None: 
-            raise ValueError("No emitter attached")
+        if emitter is None: raise ValueError("No emitter attached")
         
         decoder: FrameDecoder = self._decoder
-        if decoder is None:
-            raise ValueError("Decoder not set")
+        if decoder is None: raise ValueError("Decoder not set")
         
         if emitter.isRunning: 
             raise RuntimeError("Emitter is already running")        
@@ -116,38 +109,41 @@ class LocalDeviceStream(AsyncService):
             emitter.start()
 
         except Exception as ex:
-            raise ex
+            raise ex        
 
-        prevSize: Tuple[int, int] = (0, 0)
-        async def _onFrame(frame: iFrame) -> None:
-            nonlocal prevSize
-            try:
-                if frame.isConfig: return
-
-                qimg: QImage = decoder.decode(frame, eDecodeFormat.QIMAGE)
-                if qimg is None or qimg.isNull(): return
-
-                newSize: Tuple[int, int] = (qimg.width(), qimg.height())
-
-                flag: FrameFlags = FrameFlags.NONE
-                if frame.isKeyFrame: flag |= FrameFlags.KEYFRAME                
-                if newSize != prevSize:
-                    device: iDevice = self._emitter.toDevice(self._emitter)
-                    self.raiseEvent(C_ON_METADATA_UPDATE, device)                    
-                    flag |= FrameFlags.RESOLUTION_CHANGED
-                
-                header: FrameHeader = FrameHeader(
-                    pts=frame.pts, width=newSize[0], height=newSize[1], 
-                    format=eDecodeFormat.QIMAGE, flags=flag
-                )
-                
-                prevSize = newSize
-                self.raiseEvent(C_ON_FRAME, header, qimg)
-
-            except Exception as ex:
-                warning(f"[{self.classname()}] _onFrame failed", ex)
-                raise ex
-
-        self.subscribe(C_ON_FRAME, _onFrame)
+        self._previousSize: Tuple[int, int] = (0, 0)
+        emitter.unsubscribe(C_ON_FRAME, self._onFrame)
+        emitter.subscribe(C_ON_FRAME, self._onFrame)
+        
         serial: str = self._emitter.id
         verbose(f"[{self.classname()}] subscribed ON_FRAME id={serial!r}")
+
+    async def _onFrame(self, frame: iFrame) -> None:        
+        try:
+            prevSize: Tuple[int, int] = self._previousSize
+            decoder: FrameDecoder = self._decoder
+            if frame.isConfig: return
+
+            qimg: QImage = decoder.decode(frame, eDecodeFormat.QIMAGE)
+            if qimg is None or qimg.isNull(): return
+
+            newSize: Tuple[int, int] = (qimg.width(), qimg.height())
+
+            flag: FrameFlags = FrameFlags.NONE
+            if frame.isKeyFrame: flag |= FrameFlags.KEYFRAME                
+            if newSize != prevSize:
+                device: iDevice = self._emitter.toDevice(self._emitter)
+                self.raiseEvent(C_ON_METADATA_UPDATE, device)                    
+                flag |= FrameFlags.RESOLUTION_CHANGED
+            
+            header: FrameHeader = FrameHeader(
+                pts=frame.pts, width=newSize[0], height=newSize[1], 
+                format=eDecodeFormat.QIMAGE, flags=flag
+            )
+            
+            self._previousSize = newSize
+            self.raiseEvent(C_ON_FRAME, header, qimg)
+
+        except Exception as ex:
+            warning(f"[{self.classname()}] _onFrame failed", ex)
+            raise ex

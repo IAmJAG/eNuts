@@ -37,6 +37,8 @@ DEF_FILE_HANDLER = {
     "logExtension": "log",
     "archiveTimeStampFormat": "%Y%m%d%H%M",
     "archiveRetention": 10,
+    "encoding": "utf-8",
+    "errors": "replace",
 }
 
 DEF_FILE_FORMATTER: Dict[str, Any] = (

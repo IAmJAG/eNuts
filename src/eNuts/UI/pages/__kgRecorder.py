@@ -5,8 +5,8 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional, Union
 
 # ==================================================================================
-from PySide6.QtCore import QSettings
-from PySide6.QtGui import QIcon, QPixmap
+from PySide6.QtCore import QSettings, Qt
+from PySide6.QtGui import QIcon, QImage, QPixmap
 from PySide6.QtWidgets import (
     QBoxLayout,
     QComboBox,
@@ -17,19 +17,23 @@ from PySide6.QtWidgets import (
 )
 
 # ==================================================================================
+from fluxCore.emitters import SCRCPYEmitter
+from fluxCore.stream import FrameHeader, LocalDeviceStream
 from fluxCore.types.interface.device import iDevice
+from fluxCore.types.interface.emitters import iEmitter
 
 # ==================================================================================
+from ...application.device import (
+    DEVICE_ADDED_EVENT,
+    DEVICE_INITIALIZED_EVENT,
+    DEVICE_REMOVED_EVENT,
+)
 from ...types.interface.application import iShell
 from ...types.interface.application.device import iDeviceManager
 from ..widgets import CaptureGLImage
 from .__playbackBase import PlaybackBase
 
 # ==================================================================================
-DEVICE_ADDED_EVENT: str = "deviceManager.deviceAdded"
-DEVICE_REMOVED_EVENT: str = "deviceManager.deviceRemoved"
-DEVICE_INITIALIZED_EVENT: str = "deviceManager.deviceInitialized"
-
 C_SETTINGS_DEVICE_ID: str = "RECORDER_DEVICE_ID"
 # ==================================================================================
 
@@ -44,7 +48,12 @@ class KGRecorder(PlaybackBase):
             title=title, description=description, icon=icon,
             commandBarOn=commandBarOn, id=id, *args, **kwargs
         )
-        self._: Dict[QWidget, Any] = {}
+        self._stream: Optional[LocalDeviceStream] = None
+        self._emitter: Optional[SCRCPYEmitter] = None
+
+    @classmethod
+    def classname(cls) -> str: 
+        return cls.__name__
 
     def _refreshDeviceCombo(self, *args, **kwargs) -> None:        
         try:
@@ -61,19 +70,39 @@ class KGRecorder(PlaybackBase):
                 deviceCombo.placeholderText = "<Select Device>"
                 
                 for device in devices:
-                    deviceCombo.addItem(device.name, device.id)            
+                    name: str = device.name.strip().lower()
+                    deviceCombo.addItem(name, device.id)
 
             deviceId = self.settings.value(C_SETTINGS_DEVICE_ID, EMPTY)
             self._setDevice(deviceId)
 
         except Exception as ex:
-            warning(f"[{self.__class__.__name__}] refresh device combo failed: {ex}")
+            warning(f"[{self.classname()}] refresh device combo failed: {ex}")
 
         finally:
             self.restoreWidgetSignals(deviceCombo)
 
     def _setDevice(self, deviceId: str) -> None:
+        cboDevices: QComboBox = self._deviceCombo
         self._persistDeviceId(deviceId)
+
+        stream: Optional[LocalDeviceStream] = self._stream
+        deviceMngr: iDeviceManager = self.deviceManager
+        emitter: Optional[iEmitter] = deviceMngr.get(deviceId)
+
+        if emitter is None: 
+            raise Exception(f"Device {deviceId!r} not found")
+        
+        if stream is None:
+            stream: LocalDeviceStream = LocalDeviceStream()
+
+        stream.detachedEmitter()
+        stream.attachedEmitter(emitter)    
+
+        createTask(stream.start)
+
+    def _onFrame(self, header: FrameHeader, image: QImage):
+        print(header.sequence, image.width(), image.height())
 
     def _persistDeviceId(self, deviceId: Optional[str]) -> None:
         settings: QSettings = self.settings
@@ -84,27 +113,47 @@ class KGRecorder(PlaybackBase):
             value = (deviceId or "").strip()
             settings.setValue(C_SETTINGS_DEVICE_ID, value)
             verbose(
-                f"[{self.__class__.__name__}] persisted deviceId={value!r} key={C_SETTINGS_DEVICE_ID!r}"
+                f"[{self.classname()}] persisted deviceId={value!r} key={C_SETTINGS_DEVICE_ID!r}"
             )
 
         except Exception as ex:
-            warning(f"[{self.__class__.__name__}] persist deviceId failed: {ex}")
+            warning(f"[{self.classname()}] persist deviceId failed: {ex}")
 
     def _wInitializeServices(self) -> None: 
         super()._wInitializeServices()        
         
     def _wBindComponents(self) -> None:
         super()._wBindComponents()
+        cboDevices: QComboBox = self._deviceCombo
+        cboDevices.currentTextChanged.connect(self._onDeviceChanged)
+
         deviceMngr: iDeviceManager = self.deviceManager
         deviceMngr.subscribe(DEVICE_INITIALIZED_EVENT, self._refreshDeviceCombo)
         deviceMngr.subscribe(DEVICE_ADDED_EVENT, self._onDeviceAdded)        
         deviceMngr.subscribe(DEVICE_REMOVED_EVENT, self._onDeviceRemoved)
-        
-    def _onDeviceAdded(self, device: str, *args, **kwargs) -> None:
-        debug(f"added device={device!r}")
 
-    def _onDeviceRemoved(self, device: str, *args, **kwargs) -> None:
-        debug(f"remove device={device!r}")
+    def _onDeviceChanged(self, device: str, *args, **kwargs) -> None:
+        cboDevices: QComboBox = self._deviceCombo
+        deviceId: str = cboDevices.currentData()
+        self._setDevice(deviceId)
+        
+    def _onDeviceAdded(self, device: iDevice, *args, **kwargs) -> None:        
+        cboDevices: QComboBox = self._deviceCombo
+        deviceId: str = device.id
+        newIndex: int = cboDevices.findData(deviceId)        
+        if newIndex == -1: 
+            deviceName: str = device.name.strip().lower()
+            cboDevices.addItem(deviceName, deviceId)
+            verbose(f"[{self.classname()}] added device={deviceId!r}:{deviceName!r}")
+        
+    def _onDeviceRemoved(self, device: iDevice, *args, **kwargs) -> None:
+        cboDevices: QComboBox = self._deviceCombo
+        deviceId: str = device.id
+        index: int = cboDevices.findData(deviceId)
+        if index != -1:
+            cboDevices.removeItem(index)
+            deviceName: str = device.name.strip().lower()
+            verbose(f"[{self.classname()}] removed device={deviceId!r}:{deviceName!r}")
 
     def _wInitializeUI(self) -> None:
         super()._wInitializeUI(CaptureGLImage)
