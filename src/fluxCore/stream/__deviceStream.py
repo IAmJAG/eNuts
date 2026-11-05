@@ -55,9 +55,10 @@ C_LIFECYCLE_EVENTS: List[str] = [
 class LocalDeviceStream(AsyncSubscription):
     """In-process stream: one emitter, decode once, ring + optional view present.
 
-    Device switches go through ``switchDevice`` (serialized). By default the previous
-    emitter is **not** stopped (hot-retain) so switching back is attach-only.
-    Pass ``stopPrevious=True`` or ``serial=None`` to tear down.
+    ``switchDevice`` is coalesced: rapid combo changes only apply the **latest**
+    serial. In-flight ``ensureRunning`` work for a superseded serial is abandoned
+    after it returns (no attach/start). Previous emitters are hot-retained unless
+    ``stopPrevious=True`` or ``serial=None``.
     """
 
     EVENTS: List[str] = [
@@ -82,6 +83,8 @@ class LocalDeviceStream(AsyncSubscription):
         self._view: Any = None
         self._switchLock = Lock()
         self._serial: Optional[str] = None
+        self._desiredSerial: Optional[str] = None
+        self._switchEpoch: int = 0
         self._previousSize: Tuple[int, int] = (0, 0)
         self._frameSubscribed: bool = False
 
@@ -103,7 +106,6 @@ class LocalDeviceStream(AsyncSubscription):
     # codec
     # -------------------------------------------------------------------------
     def _syncCodecFromEmitter(self, emitter: iEmitter) -> None:
-        """Apply codec if initialize already ran before we subscribed."""
         codec = getattr(emitter, "_codecContext", None)
         if codec is None:
             return
@@ -288,51 +290,100 @@ class LocalDeviceStream(AsyncSubscription):
         serial: Optional[str],
         stopPrevious: bool = False,
     ) -> None:
-        """Serialized switch. Default: detach only (hot-retain previous emitter).
+        """Request a device switch; only the latest serial is applied.
 
-        First time a serial is used still pays ``ensureRunning`` / initialize cost.
-        Subsequent switches to an already-warm emitter are attach + frame subscribe.
+        Concurrent calls update ``_desiredSerial`` and bump ``_switchEpoch``.
+        The single worker under ``_switchLock`` loops until the active target
+        matches the latest desired serial, skipping attach for superseded work.
         """
+        cleaned: Optional[str] = (serial or "").strip() or None
+        self._desiredSerial = cleaned
+        self._switchEpoch += 1
+        requestEpoch = self._switchEpoch
+
+        verbose(
+            f"[{self.classname()}] switchDevice request serial={cleaned!r} "
+            f"epoch={requestEpoch}"
+        )
+
         async with self._switchLock:
-            cleaned: Optional[str] = (serial or "").strip() or None
-            if cleaned == self._serial and self._emitter is not None:
-                return
-
-            # Always unsubscribe from the current emitter.
-            prev = self._emitter
-            self.detachedEmitter()
-
-            # Only stop when clearing selection or caller requests teardown.
-            if (stopPrevious or cleaned is None) and prev is not None:
-                if getattr(prev, "isRunning", False):
-                    try:
-                        prev.stop()
-                    except Exception as ex:
-                        warning(f"[{self.classname()}] stop previous failed: {ex}")
-
-            self._serial = None
-
-            if cleaned is None:
-                verbose(f"[{self.classname()}] switchDevice cleared")
-                return
-
-            if deviceManager is None:
-                raise ValueError("deviceManager is required")
-
-            ensure = getattr(deviceManager, "ensureRunning", None)
-            if ensure is None:
-                raise TypeError(
-                    f"deviceManager {type(deviceManager).__name__} has no ensureRunning"
+            # Another waiter may have already satisfied a newer epoch.
+            if requestEpoch != self._switchEpoch:
+                verbose(
+                    f"[{self.classname()}] switchDevice superseded "
+                    f"epoch={requestEpoch} current={self._switchEpoch}"
                 )
+                return
 
-            emitter = await ensure(cleaned)
-            self.attachedEmitter(emitter)
-            await self.start()
-            self._serial = cleaned
-            verbose(
-                f"[{self.classname()}] switchDevice serial={cleaned!r} "
-                f"running={getattr(emitter, 'isRunning', None)}"
-            )
+            while True:
+                target = self._desiredSerial
+                epochAtStart = self._switchEpoch
+
+                if target == self._serial and self._emitter is not None:
+                    verbose(
+                        f"[{self.classname()}] switchDevice already on "
+                        f"serial={target!r}"
+                    )
+                    return
+
+                prev = self._emitter
+                self.detachedEmitter()
+
+                if (stopPrevious or target is None) and prev is not None:
+                    if getattr(prev, "isRunning", False):
+                        try:
+                            prev.stop()
+                        except Exception as ex:
+                            warning(
+                                f"[{self.classname()}] stop previous failed: {ex}"
+                            )
+
+                self._serial = None
+
+                if target is None:
+                    verbose(f"[{self.classname()}] switchDevice cleared")
+                    return
+
+                if deviceManager is None:
+                    raise ValueError("deviceManager is required")
+
+                ensure = getattr(deviceManager, "ensureRunning", None)
+                if ensure is None:
+                    raise TypeError(
+                        f"deviceManager {type(deviceManager).__name__} "
+                        f"has no ensureRunning"
+                    )
+
+                # Long wait: user may change selection while this runs.
+                emitter = await ensure(target)
+
+                if self._desiredSerial != target or self._switchEpoch != epochAtStart:
+                    verbose(
+                        f"[{self.classname()}] switchDevice abandoned "
+                        f"target={target!r} desired={self._desiredSerial!r} "
+                        f"epoch={epochAtStart}->{self._switchEpoch}"
+                    )
+                    # Do not attach the stale emitter; loop for the new target.
+                    continue
+
+                self.attachedEmitter(emitter)
+                await self.start()
+
+                if self._desiredSerial != target or self._switchEpoch != epochAtStart:
+                    # Desired changed during attach/start — detach and retry.
+                    verbose(
+                        f"[{self.classname()}] switchDevice race after start; retry"
+                    )
+                    self.detachedEmitter()
+                    self._serial = None
+                    continue
+
+                self._serial = target
+                verbose(
+                    f"[{self.classname()}] switchDevice applied serial={target!r} "
+                    f"running={getattr(emitter, 'isRunning', None)}"
+                )
+                return
 
 
 # ==================================================================================
