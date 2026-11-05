@@ -29,7 +29,8 @@ def toPIL(frame: iFrame, codec: VideoCodecContext) -> Optional[QImage | Tensor |
 
 def toQImage(frame: iFrame, codec: VideoCodecContext) -> Optional[QImage]:
     try:
-        imgArray: np.ndarray = toNumpy(frame, codec)
+        imgArray: Optional[np.ndarray] = toNumpy(frame, codec)
+        if imgArray is None: return None
         height, width, channels = imgArray.shape
         bytesPerLine = channels * width
         image: QImage = QImage(imgArray.data, width, height, bytesPerLine, QImage.Format.Format_RGB888).copy()
