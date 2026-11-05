@@ -13,7 +13,14 @@ class Subscription(iSubscription):
         self._suppressEvent = False
 
     def subscribe(self, event: str, callback: Callable) -> None:
-        self._callbacks.setdefault(event, []).append(callback)
+        if event not in self._callbacks:
+            self._callbacks[event] = []
+
+        if callback in self._callbacks[event]:
+            warning(f"Callback for event '{event}' already exists.")
+            return
+        
+        self._callbacks[event].append(callback)
 
     def unsubscribe(self, event: str, callback: Callable) -> None:
         if event in self._callbacks:

@@ -27,6 +27,10 @@ class FrameDecoder:
     def classname(cls) -> str:
         return cls.__name__
 
+    @property
+    def codec(self) -> Optional[VideoCodecContext]:
+        return self._codec
+
     def setCodecContext(self, codec: VideoCodecContext) -> None:
         self._codec = codec
 

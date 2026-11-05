@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional, Union
 
 # ==================================================================================
+from av import VideoCodecContext, VideoFrame
 from PySide6.QtCore import QSettings, Qt
 from PySide6.QtGui import QIcon, QImage, QPixmap
 from PySide6.QtWidgets import (
@@ -18,9 +19,10 @@ from PySide6.QtWidgets import (
 
 # ==================================================================================
 from fluxCore.emitters import SCRCPYEmitter
-from fluxCore.stream import FrameHeader, LocalDeviceStream
+from fluxCore.stream import FrameDecoder, FrameFlags, eDecodeFormat
 from fluxCore.types.interface.device import iDevice
 from fluxCore.types.interface.emitters import iEmitter
+from fluxCore.types.interface.packets import iFrame
 
 # ==================================================================================
 from ...application.device import (
@@ -48,8 +50,8 @@ class KGRecorder(PlaybackBase):
             title=title, description=description, icon=icon,
             commandBarOn=commandBarOn, id=id, *args, **kwargs
         )
-        self._stream: Optional[LocalDeviceStream] = None
         self._emitter: Optional[SCRCPYEmitter] = None
+        self._decoder: FrameDecoder = FrameDecoder()
 
     @classmethod
     def classname(cls) -> str: 
@@ -73,7 +75,7 @@ class KGRecorder(PlaybackBase):
                     name: str = device.name.strip().lower()
                     deviceCombo.addItem(name, device.id)
 
-            deviceId = self.settings.value(C_SETTINGS_DEVICE_ID, EMPTY)
+            deviceId = self.settings.value(C_SETTINGS_DEVICE_ID, EMPTY)            
             self._setDevice(deviceId)
 
         except Exception as ex:
@@ -86,23 +88,37 @@ class KGRecorder(PlaybackBase):
         cboDevices: QComboBox = self._deviceCombo
         self._persistDeviceId(deviceId)
 
-        stream: Optional[LocalDeviceStream] = self._stream
+        verbose(f"[{self.classname()}] setting deviceId={deviceId!r}")
+
+        oldEmitter: Optional[iEmitter] = self._emitter
+        if oldEmitter is not None:
+            oldEmitter.unsubscribe("ON_INITIALIZED", self._decoder.setCodecContext)
+            oldEmitter.unsubscribe("ON_FRAME", self._onFrame)
+
         deviceMngr: iDeviceManager = self.deviceManager
         emitter: Optional[iEmitter] = deviceMngr.get(deviceId)
 
         if emitter is None: 
             raise Exception(f"Device {deviceId!r} not found")
+
+        # subscribe is guarded againts duplicate subscriptions
+        emitter.subscribe("ON_INITIALIZED", self._decoder.setCodecContext)
+        emitter.subscribe("ON_FRAME", self._onFrame)
+        if not emitter.isRunning: emitter.start()
+
+        self._emitter = emitter
         
-        if stream is None:
-            stream: LocalDeviceStream = LocalDeviceStream()
+    def _onFrame(self, frame: iFrame) -> None:
+        try:
+            decoder: FrameDecoder = self._decoder
 
-        stream.detachedEmitter()
-        stream.attachedEmitter(emitter)    
+            if decoder.codec is None: return
+            
+            image: QImage = decoder.decode(frame, eDecodeFormat.QIMAGE)
+            self._streamView.image = image
 
-        createTask(stream.start)
-
-    def _onFrame(self, header: FrameHeader, image: QImage):
-        print(header.sequence, image.width(), image.height())
+        except Exception as ex:
+            warning(f"decode frame failed: {ex}")        
 
     def _persistDeviceId(self, deviceId: Optional[str]) -> None:
         settings: QSettings = self.settings
@@ -144,7 +160,7 @@ class KGRecorder(PlaybackBase):
         if newIndex == -1: 
             deviceName: str = device.name.strip().lower()
             cboDevices.addItem(deviceName, deviceId)
-            verbose(f"[{self.classname()}] added device={deviceId!r}:{deviceName!r}")
+            verbose(f"added device={deviceId!r}:{deviceName!r}")
         
     def _onDeviceRemoved(self, device: iDevice, *args, **kwargs) -> None:
         cboDevices: QComboBox = self._deviceCombo
