@@ -42,6 +42,7 @@ class LocalDeviceStream(AsyncSubscription):
         C_ON_PAUSED, C_ON_RESUMED,
     ]
     def __init__(self) -> None:
+        super().__init__()
         self._decoder = FrameDecoder()
         self._emitter: iEmitter = None        
 
@@ -129,8 +130,7 @@ class LocalDeviceStream(AsyncSubscription):
     async def _onFrame(self, frame: iFrame) -> None:        
         try:
             prevSize: Tuple[int, int] = self._previousSize
-            decoder: FrameDecoder = self._decoder
-            if frame.isConfig: return
+            decoder: FrameDecoder = self._decoder            
 
             qimg: QImage = decoder.decode(frame, eDecodeFormat.QIMAGE)
             if qimg is None or qimg.isNull(): return
