@@ -48,7 +48,8 @@ def toTensor(frame: iFrame, codec: VideoCodecContext) -> Optional[Tensor]:
 
 def toNumpy(frame: iFrame, codec: VideoCodecContext) -> Optional[np.ndarray]:
     try:
-        videoFrame: VideoFrame = toVideoFrame(frame, codec)
+        videoFrame: Optional[VideoFrame] = toVideoFrame(frame, codec)
+        if videoFrame is None: return None
         return videoFrame.to_ndarray(format="rgb24")
 
     except Exception as ex:
