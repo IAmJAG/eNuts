@@ -55,8 +55,9 @@ C_LIFECYCLE_EVENTS: List[str] = [
 class LocalDeviceStream(AsyncSubscription):
     """In-process stream: one emitter, decode once, ring + optional view present.
 
-    Device switches go through ``switchDevice`` (serialized). Consumers should not
-    subscribe to the emitter directly.
+    Device switches go through ``switchDevice`` (serialized). By default the previous
+    emitter is **not** stopped (hot-retain) so switching back is attach-only.
+    Pass ``stopPrevious=True`` or ``serial=None`` to tear down.
     """
 
     EVENTS: List[str] = [
@@ -107,7 +108,10 @@ class LocalDeviceStream(AsyncSubscription):
         if codec is None:
             return
         self._decoder.setCodecContext(codec)
-        verbose(f"[{self.classname()}] codec synced from emitter id={getattr(emitter, 'id', None)!r}")
+        verbose(
+            f"[{self.classname()}] codec synced from emitter "
+            f"id={getattr(emitter, 'id', None)!r}"
+        )
 
     def _clearCodec(self) -> None:
         self._decoder.setCodecContext(None)
@@ -134,7 +138,6 @@ class LocalDeviceStream(AsyncSubscription):
                 emitter.subscribe(event, callback)
 
             self._emitter = emitter
-            # ensureRunning / initialize often completes before attach; catch up.
             self._syncCodecFromEmitter(emitter)
 
         except Exception:
@@ -191,9 +194,7 @@ class LocalDeviceStream(AsyncSubscription):
         if self._decoder is None:
             raise ValueError("Decoder not set")
 
-        # Re-sync in case initialize finished between attach and start.
         self._syncCodecFromEmitter(emitter)
-
         self._previousSize = (0, 0)
 
         if self._frameSubscribed:
@@ -216,7 +217,6 @@ class LocalDeviceStream(AsyncSubscription):
         try:
             decoder: FrameDecoder = self._decoder
             if decoder.codec is None:
-                # Late frames before codec is ready — drop silently.
                 return
 
             prevSize: Tuple[int, int] = self._previousSize
@@ -282,17 +282,37 @@ class LocalDeviceStream(AsyncSubscription):
     # -------------------------------------------------------------------------
     # device switch (page entry point)
     # -------------------------------------------------------------------------
-    async def switchDevice(self, deviceManager: Any, serial: Optional[str]) -> None:
-        """Serialize detach/stop → ensureRunning → attach/start for one serial."""
+    async def switchDevice(
+        self,
+        deviceManager: Any,
+        serial: Optional[str],
+        stopPrevious: bool = False,
+    ) -> None:
+        """Serialized switch. Default: detach only (hot-retain previous emitter).
+
+        First time a serial is used still pays ``ensureRunning`` / initialize cost.
+        Subsequent switches to an already-warm emitter are attach + frame subscribe.
+        """
         async with self._switchLock:
             cleaned: Optional[str] = (serial or "").strip() or None
             if cleaned == self._serial and self._emitter is not None:
                 return
 
-            await self._detachAndStop()
+            # Always unsubscribe from the current emitter.
+            prev = self._emitter
+            self.detachedEmitter()
+
+            # Only stop when clearing selection or caller requests teardown.
+            if (stopPrevious or cleaned is None) and prev is not None:
+                if getattr(prev, "isRunning", False):
+                    try:
+                        prev.stop()
+                    except Exception as ex:
+                        warning(f"[{self.classname()}] stop previous failed: {ex}")
+
+            self._serial = None
 
             if cleaned is None:
-                self._serial = None
                 verbose(f"[{self.classname()}] switchDevice cleared")
                 return
 
@@ -309,17 +329,10 @@ class LocalDeviceStream(AsyncSubscription):
             self.attachedEmitter(emitter)
             await self.start()
             self._serial = cleaned
-            verbose(f"[{self.classname()}] switchDevice serial={cleaned!r}")
-
-    async def _detachAndStop(self) -> None:
-        emitter: Optional[iEmitter] = self._emitter
-        self.detachedEmitter()
-        if emitter is not None and getattr(emitter, "isRunning", False):
-            try:
-                emitter.stop()
-            except Exception as ex:
-                warning(f"[{self.classname()}] stop failed: {ex}")
-        self._serial = None
+            verbose(
+                f"[{self.classname()}] switchDevice serial={cleaned!r} "
+                f"running={getattr(emitter, 'isRunning', None)}"
+            )
 
 
 # ==================================================================================

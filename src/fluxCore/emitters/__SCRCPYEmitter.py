@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 
 # ==================================================================================
-from asyncio import AbstractEventLoop, CancelledError, Task, get_running_loop
+from asyncio import AbstractEventLoop, CancelledError, Task, get_running_loop, to_thread
 from socket import socket
 from threading import Event as ThreadEvent
 from threading import Thread
@@ -56,7 +56,8 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
     - ON_ERROR → SCRCPYError
     plus AsyncService lifecycle events (no args).
 
-    All SCRCPYEmitter-raised events use asyncRaiseEvent (same as AsyncSubscription).
+    Blocking ADB (deploy / abstract sockets) runs in a worker thread via
+    ``asyncio.to_thread`` so the qasync UI loop stays responsive during init.
     """
 
     def __init__(self, serial: str, name: str | None = None) -> None:
@@ -70,15 +71,14 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         self._codecContext: Optional[VideoCodecContext] = None
         self._serverLogThread: Optional[Thread] = None
         self._serverLogStop: ThreadEvent = ThreadEvent()
-        
 
     @classmethod
     def toSCRCPY(cls, emitter: SCRCPYEmitter) -> SCRCPY:
         return cls.toDevice(emitter)
 
     @classmethod
-    def toDevice(self, device: iDevice) -> Optional[iDevice]:         
-        scrcpy: SCRCPY = SCRCPY(serial=str(device.id), name=device.name)        
+    def toDevice(self, device: iDevice) -> Optional[iDevice]:
+        scrcpy: SCRCPY = SCRCPY(serial=str(device.id), name=device.name)
         scrcpy.update(
             codecId=device.codecId,
             width=device.width,
@@ -88,7 +88,8 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
 
     @property
     def ControlSocket(self) -> iControlSocket | None:
-        if not hasattr(self, "_cSocket"): return None
+        if not hasattr(self, "_cSocket"):
+            return None
         return self._cSocket
 
     async def _raiseError(self, phase: str, message: str) -> None:
@@ -103,10 +104,10 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
                 while not self._serverLogStop.is_set():
                     try:
                         lChunk = streamServer.read(4096)
-
-                    except Exception: break
-                    if not lChunk: break
-
+                    except Exception:
+                        break
+                    if not lChunk:
+                        break
             finally:
                 pass
 
@@ -136,7 +137,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
 
                 except CancelledError:
                     raise
-                
+
                 except InvalidDataError:
                     await asyncWait(0)
                     continue
@@ -144,7 +145,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
                 except Exception as ex:
                     await self._raiseError("work", str(ex))
                     raise
-                
+
                 await asyncWait(0)
 
         finally:
@@ -157,7 +158,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
 
         codecIdRaw: bytes = await sckt.receive(4)
         widthRaw: bytes = await sckt.receive(4)
-        heightRaw: bytes = await sckt.receive(4)        
+        heightRaw: bytes = await sckt.receive(4)
         lCodecId: str = (
             codecIdRaw.decode("ascii", errors="replace").strip("\x00") or "h264"
         )
@@ -168,46 +169,60 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         self._name = lName
 
         self.update(codecId=lCodecId, width=lWidth, height=lHeight)
-        
+
         me: SCRCPY = self.toSCRCPY(self)
         await self.asyncRaiseEvent("ON_METADATA_UPDATE", me)
 
     async def initialize(self, GPUID: int = 0, GPUReady: bool = False) -> None:
-        """Deploy scrcpy server and open sockets. Default SW decode (GPUReady=False)."""
+        """Deploy scrcpy server and open sockets. Default SW decode (GPUReady=False).
+
+        Blocking ADB deploy and abstract-socket connect run in ``to_thread`` so the
+        UI event loop is not stalled for multi-second sleeps/retries.
+        """
         try:
             self.setSuppressEvent(True)
 
-            device: AdbDevice = adb.device(serial=self.id)            
+            device: AdbDevice = await to_thread(adb.device, serial=self.id)
             cfg: SCRCPYServerConfig = SCRCPYServerConfig(
-                androidPath=ANDROID_PATH, jarName=JAR_NAME,
-                maxSize=MAX_SIZE, maxFps=MAX_FPS,
-                bitrate=BITRATE, logLevel="warn",
+                androidPath=ANDROID_PATH,
+                jarName=JAR_NAME,
+                maxSize=MAX_SIZE,
+                maxFps=MAX_FPS,
+                bitrate=BITRATE,
+                logLevel="warn",
             )
-    
+
             try:
-                streamServer: AdbConnection = deployServer(
-                    device, cfg=cfg, serverPath=SERVER_PATH, timeout=3000
+                streamServer: AdbConnection = await to_thread(
+                    deployServer,
+                    device,
+                    cfg,
+                    SERVER_PATH,
+                    3000,
                 )
-    
+
             except Exception as ex:
                 await self._raiseError("initialize.deploy", str(ex))
                 raise
-    
+
             if streamServer is None:
                 await self._raiseError(
                     "initialize.deploy", "Failed to deploy scrcpy server"
-                )                
+                )
                 raise RuntimeError("Failed to deploy scrcpy server")
-            
-            
+
             self._startServerLogDrain(streamServer)
             asyncLoop: AbstractEventLoop = get_running_loop()
-            
+
             try:
-                vSCKT: socket = getSCRCPYADBSocket(device, scid=cfg.Scid, timeout=3000)
+                vSCKT: socket = await to_thread(
+                    getSCRCPYADBSocket, device, cfg.Scid, 3000
+                )
                 self._vSocket = VideoSocket(vSCKT, loop=asyncLoop)
 
-                cSCKT: socket = getSCRCPYADBSocket(device, scid=cfg.Scid, timeout=3000)
+                cSCKT: socket = await to_thread(
+                    getSCRCPYADBSocket, device, cfg.Scid, 3000
+                )
                 self._cSocket = ControlSocket(cSCKT, loop=asyncLoop)
 
             except Exception as ex:
@@ -224,7 +239,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
             try:
                 self._codecContext = createCodecContext(
                     self.codecId, GPUID=GPUID, GPUReady=GPUReady
-                )                
+                )
                 self.setSuppressEvent(False)
 
                 self._streamServer = streamServer
@@ -238,15 +253,27 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
             self.setSuppressEvent(False)
 
     def start(self, *args, **kwargs):
-        task: Task = None        
-        if self._streamServer is None:        
-            task: Task = createTask(self.initialize, *args, **kwargs)
+        task: Task = None
+        if self._streamServer is None:
+            task = createTask(self.initialize, *args, **kwargs)
 
         if task is None:
             return super().start(*args, **kwargs)
 
-        task.add_done_callback(super().start, *args, **kwargs)        
-    
+        # add_done_callback only receives the finished task
+        def _onInitDone(t: Task) -> None:
+            try:
+                t.result()
+            except Exception as ex:
+                warning(f"[SCRCPYEmitter] initialize failed id={self.id!r}: {ex}")
+                return
+            try:
+                super(SCRCPYEmitter, self).start(*args, **kwargs)
+            except Exception as ex:
+                warning(f"[SCRCPYEmitter] start after init failed id={self.id!r}: {ex}")
+
+        task.add_done_callback(_onInitDone)
+
     @property
     def isConnected(self) -> bool:
         return self._isRunning
