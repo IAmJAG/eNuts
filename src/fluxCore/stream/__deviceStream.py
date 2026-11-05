@@ -99,6 +99,20 @@ class LocalDeviceStream(AsyncSubscription):
         self._view = None
 
     # -------------------------------------------------------------------------
+    # codec
+    # -------------------------------------------------------------------------
+    def _syncCodecFromEmitter(self, emitter: iEmitter) -> None:
+        """Apply codec if initialize already ran before we subscribed."""
+        codec = getattr(emitter, "_codecContext", None)
+        if codec is None:
+            return
+        self._decoder.setCodecContext(codec)
+        verbose(f"[{self.classname()}] codec synced from emitter id={getattr(emitter, 'id', None)!r}")
+
+    def _clearCodec(self) -> None:
+        self._decoder.setCodecContext(None)
+
+    # -------------------------------------------------------------------------
     # emitter wiring
     # -------------------------------------------------------------------------
     async def _onEvent(self, event: str, *args, **kwargs) -> None:
@@ -120,6 +134,8 @@ class LocalDeviceStream(AsyncSubscription):
                 emitter.subscribe(event, callback)
 
             self._emitter = emitter
+            # ensureRunning / initialize often completes before attach; catch up.
+            self._syncCodecFromEmitter(emitter)
 
         except Exception:
             raise
@@ -157,6 +173,7 @@ class LocalDeviceStream(AsyncSubscription):
             raise
 
         finally:
+            self._clearCodec()
             self._emitter = None
 
     async def stop(self) -> None:
@@ -173,6 +190,9 @@ class LocalDeviceStream(AsyncSubscription):
 
         if self._decoder is None:
             raise ValueError("Decoder not set")
+
+        # Re-sync in case initialize finished between attach and start.
+        self._syncCodecFromEmitter(emitter)
 
         self._previousSize = (0, 0)
 
@@ -194,8 +214,12 @@ class LocalDeviceStream(AsyncSubscription):
 
     async def _onFrame(self, frame: iFrame) -> None:
         try:
-            prevSize: Tuple[int, int] = self._previousSize
             decoder: FrameDecoder = self._decoder
+            if decoder.codec is None:
+                # Late frames before codec is ready — drop silently.
+                return
+
+            prevSize: Tuple[int, int] = self._previousSize
 
             qimg: QImage = decoder.decode(frame, eDecodeFormat.QIMAGE)
             if qimg is None or qimg.isNull():
