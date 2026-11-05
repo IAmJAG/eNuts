@@ -57,8 +57,7 @@ def toNumpy(frame: iFrame, codec: VideoCodecContext) -> Optional[np.ndarray]:
         raise ex
 
 def toVideoFrame(frame: iFrame, codec: VideoCodecContext, gpu: bool = False) -> Optional[VideoFrame | Tensor]:
-    try:
-        if frame.isConfig: return None
+    try:        
         return frame.decode(codec, gpu)
             
     except Exception as ex:
