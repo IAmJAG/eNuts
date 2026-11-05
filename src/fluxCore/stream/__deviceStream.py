@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 # ==================================================================================
+from functools import partial
 from typing import List, Tuple
 
 # ==================================================================================
@@ -60,7 +61,9 @@ class LocalDeviceStream(AsyncSubscription):
 
             # DIRECT EMITTER EVENTS
             emitter.subscribe(C_ON_INITIALIZED, decoder.setCodecContext)            
-            for event in self.EVENTS: emitter.subscribe(event, self._onEvent)
+            for event in self.EVENTS: 
+                callback = partial(self._onEvent, event)
+                emitter.subscribe(event, callback)
 
             self._emitter: iEmitter = emitter   
 
@@ -80,7 +83,14 @@ class LocalDeviceStream(AsyncSubscription):
 
             # DIRECT EMITTER EVENTS
             emitter.unsubscribe(C_ON_INITIALIZED, decoder.setCodecContext)
-            for event in self.EVENTS: emitter.unsubscribe(event, self._onEvent)
+            for event in self.EVENTS:
+                callbacks = emitter._callbacks.get(event, [])
+                for callback in callbacks:
+                    if (
+                        isinstance(callback, partial)
+                        and callback.func == self._onEvent
+                    ):
+                        emitter.unsubscribe(event, callback)
 
         except Exception:
             raise 
