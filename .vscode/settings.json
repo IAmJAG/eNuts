@@ -18,7 +18,8 @@
         ".gitignore": false,
         ".fff": true,
         ".ff": true,
-        ".f": true,        
+        ".f": true,       
+         
     },        
     "terminal.integrated.env.windows": {
         "PYTHONPATH": "${workspaceFolder}\\src;${workspaceFolder}"
