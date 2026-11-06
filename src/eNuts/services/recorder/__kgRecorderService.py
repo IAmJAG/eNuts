@@ -30,7 +30,7 @@ C_MANIFEST_VERSION: int = 1
 
 
 # ==================================================================================
-class KGRecorderService(iKGRecorderService, AsyncService):
+class KGRecorderService(AsyncService):  # structural: iKGRecorderService
     """Capture every emitter ON_FRAME packet + key/pointer events for one session.
 
     Video is the raw encoded elementary stream (scrcpy/h264 payloads as they
@@ -149,9 +149,10 @@ class KGRecorderService(iKGRecorderService, AsyncService):
         self._attachFrame()
 
         # AsyncService start: light work loop for wake/stop integration only.
+        # Call concrete base explicitly — Protocol must not sit ahead of AsyncService in MRO.
         try:
             if not self.isRunning:
-                super().start(*args, **kwargs)
+                AsyncService.start(self, *args, **kwargs)
         except RuntimeError:
             # Already running is acceptable if reused across sessions after stop.
             pass
@@ -186,7 +187,14 @@ class KGRecorderService(iKGRecorderService, AsyncService):
         # Stop AsyncService loop if it was started by us.
         try:
             if self.isRunning:
-                super().stop(*args, **kwargs)
+                AsyncService.stop(self, *args, **kwargs)
+        except TypeError:
+            # forceAfter-only signature if caller passed unexpected kwargs
+            try:
+                if self.isRunning:
+                    AsyncService.stop(self)
+            except RuntimeError as ex:
+                warning(f"[{self.name}] AsyncService.stop: {ex}")
         except RuntimeError as ex:
             warning(f"[{self.name}] AsyncService.stop: {ex}")
 
