@@ -76,16 +76,16 @@ class LocalDeviceStream(AsyncSubscription):
 
     def __init__(self, ringSize: int = 8) -> None:
         super().__init__()
-        self._ring = FrameRing(size=ringSize)
-        self._decoder = FrameDecoder()
-        self._presenter = StreamPresenter()
-        self._view: Any = None
         self._emitter: Optional[iEmitter] = None
         self._serial: Optional[str] = None
         self._desiredSerial: Optional[str] = None
         self._switchEpoch: int = 0
-        self._switchLock = Lock()
+        self._switchLock: Lock = Lock()
         self._frameSubscribed: bool = False
+        self._view: Any = None
+        self._decoder: FrameDecoder = FrameDecoder()
+        self._ring: FrameRing = FrameRing(size=ringSize)
+        self._presenter: StreamPresenter = StreamPresenter()
         self._previousSize: Optional[Tuple[int, int]] = None
 
     @classmethod
@@ -205,18 +205,30 @@ class LocalDeviceStream(AsyncSubscription):
 
     def _onFrame(self, frame: iFrame, *args, **kwargs) -> None:
         try:
-            decoded = self._decoder.decode(frame)
-            if decoded is None:
+            result = self._decoder.decode(frame)
+            if result is None:
                 return
-            header, payload = decoded
+            # decoder returns decoded surface; publish + present
+            if isinstance(result, tuple) and len(result) == 2:
+                header, payload = result
+            else:
+                # fallback: build minimal header from frame
+                header = FrameHeader(
+                    pts=getattr(frame, "pts", 0),
+                    width=0,
+                    height=0,
+                    format=eDecodeFormat.QIMAGE,
+                    flags=FrameFlags(0),
+                )
+                payload = result
             self._ring.publish(header, payload)
-            self._present()
+            self._presentLatest()
             self.raiseEvent(C_ON_FRAME, header, payload)
         except Exception as ex:
             warning(f"[{self.classname()}] _onFrame failed: {ex}")
             self.raiseEvent(C_ON_ERROR, ex)
 
-    def _present(self) -> None:
+    def _presentLatest(self) -> None:
         view = self._view
         if view is None:
             return
@@ -225,13 +237,14 @@ class LocalDeviceStream(AsyncSubscription):
             return
         header, payload = slot
         try:
+            if hasattr(self._presenter, "present"):
+                self._presenter.present(view, header, payload)
+                return
             if hasattr(view, "presentExternal"):
                 view.presentExternal(payload, header)
                 return
-            image = payload
-            if not isinstance(image, QImage):
-                return
-            view.image = image
+            if isinstance(payload, QImage):
+                view.image = payload
         except Exception as ex:
             warning(f"[{self.classname()}] present fallback failed: {ex}")
 
@@ -261,7 +274,6 @@ class LocalDeviceStream(AsyncSubscription):
         )
 
         async with self._switchLock:
-            # Another waiter may have already satisfied a newer epoch.
             if requestEpoch != self._switchEpoch:
                 verbose(
                     f"[{self.classname()}] switchDevice superseded "
@@ -308,9 +320,6 @@ class LocalDeviceStream(AsyncSubscription):
                         f"has no ensureRunning"
                     )
 
-                # Long wait: user may change selection while this runs.
-                # Connection / init failures must not escape as unretrieved tasks
-                # (createTask has no caller await).
                 try:
                     emitter = await ensure(target)
                 except Exception as ex:
@@ -319,7 +328,6 @@ class LocalDeviceStream(AsyncSubscription):
                         f"failed serial={target!r}: {ex}"
                     )
                     self.raiseEvent(C_ON_ERROR, ex)
-                    # If a newer request arrived, loop for that target.
                     if self._desiredSerial != target or self._switchEpoch != epochAtStart:
                         continue
                     return
