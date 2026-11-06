@@ -12,9 +12,8 @@ from PySide6.QtWidgets import QMainWindow
 # ==================================================================================
 from jAGQt.types.interface.window import iMainWindowBase
 
-from ..services.device import DeviceManager
-
 # ==================================================================================
+from ..services.device import DeviceManager
 from ..types.interface.application import iShell
 from ..types.interface.services.device import iDeviceManager
 from .__applicationInformation import ApplicationInformation
