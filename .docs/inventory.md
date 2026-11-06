@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-06 01:03:55 UTC*
+*Auto-generated on: 2026-11-06 03:39:13 UTC*
 
 ## Current Directory Structure
 
@@ -119,7 +119,6 @@ eNuts/
 │   │   │   ├── device/
 │   │   │   │   └── __deviceManager.py
 │   │   │   ├── recorder/
-│   │   │   │   └── __kgRecorder.py
 │   │   │   ├── theme/
 │   │   │   │   └── __theme.py
 │   │   │   └── workspace/
@@ -142,10 +141,8 @@ eNuts/
 │   │   │       │   ├── __shell.py
 │   │   │       │   └── device/
 │   │   │       │       └── __deviceManager.py
-│   │   │       ├── configuration/
-│   │   │       │   └── __eNutsConfiguration.py
-│   │   │       └── recorder/
-│   │   │           └── __iKGRecorder.py
+│   │   │       └── configuration/
+│   │   │           └── __eNutsConfiguration.py
 │   │   └── utilities/
 │   │       ├── .fff
 │   │       └── asyncADB/
@@ -598,13 +595,6 @@ src/eNuts/application/device:
 			DEVICE_INITIALIZED_EVENT -> : device_initialized_event
 			POLL_INTERVAL -> : poll_interval
 
-src/eNuts/application/recorder:
-	__kgRecorder.py - 
-		CLASSE(S):
-			KGRecorder -> : kgrecorder
-		CONSTANTS(S)/GLOBAL(S)
-			C_SETTINGS_DEVICE_ID -> : c_settings_device_id
-
 src/eNuts/application/theme:
 	__theme.py - 
 		FUNCTION(S):
@@ -664,11 +654,6 @@ src/eNuts/types/interface/configuration:
 		CLASSE(S):
 			iENUTSConfiguration -> : ienutsconfiguration
 
-src/eNuts/types/interface/recorder:
-	__iKGRecorder.py - 
-		CLASSE(S):
-			iKGRecorder -> : ikgrecorder
-
 src/eNuts/types/interface/UI/windows:
 	__mainWindow.py - 
 		CLASSE(S):
@@ -721,9 +706,11 @@ src/eNuts/UI/pages:
 			_applyFrame -> : _applyframe
 	__kgRecorder.py - 
 		CLASSE(S):
+			eKGRecorderState -> : ekgrecorderstate
 			KGRecorder -> : kgrecorder
 		CONSTANTS(S)/GLOBAL(S)
 			C_SETTINGS_DEVICE_ID -> : c_settings_device_id
+			_C_QT_TO_ANDROID -> : _c_qt_to_android
 	__pageKeys.py - 
 	__playbackBase.py - 
 		CLASSE(S):
@@ -1744,53 +1731,43 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-8006bc6:
-	LocalDeviceStream: coalesce device switches to latest serial only
-		src/fluxCore/stream/__deviceStream.py
+b236829:
+	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
 
-9f79270:
-	Faster device switch: hot-retain emitters; offload blocking scrcpy ADB to threads
+b019bdf:
+	config: reduce default video settings for SCRCPY emitter
 		src/fluxCore/emitters/__SCRCPYEmitter.py
-		src/fluxCore/stream/__deviceStream.py
 
-ab0f459:
-	LocalDeviceStream: sync codec after attach when ON_INITIALIZED already fired
-		src/fluxCore/stream/__deviceStream.py
+d091032:
+	Docs: CaptureGLImage inherits GLImage mapToContent; page owns inject
+		.docs/eNuts/UI/widgets/captureGLImage.md
 
-543e3d0:
-	docs: LocalDeviceStream switchDevice/ring/presenter; KGRecorder page stream path
+6f3d926:
+	Docs: GLImage mapToContent / fittedRect / contentSize for input mapping
+		.docs/jAGQt/widgets/Image/glImage.md
+
+c534390:
+	Docs: fit-aware touch mapping via GLImage.mapToContent
 		.docs/eNuts/UI/pages/kgRecorderPage.md
-		.docs/fluxCore/stream/deviceStream.md
-		.docs/fluxCore/stream/implementation.md
-		.docs/fluxCore/stream/requirement.md
 
-89a0151:
-	LocalDeviceStream: ring+presenter+switchDevice; KGRecorder page uses stream for device switch
-		src/eNuts/UI/pages/__kgRecorder.py
-		src/fluxCore/stream/__deviceStream.py
-
-988770b:
-	fix(frame): correct maximum frame size constant and update function naming conventions
-		.docs/inventory.md
-		src/eNuts/UI/pages/__kgRecorder.py
-		src/fluxCore/utilities/__frame.py
-
-41d8d6a:
-	fix(recorder): clean up imports and improve error logging in device management
+c1a5ed6:
+	KGRecorder: fit-aware widgetâ†’contentâ†’device touch mapping via GLImage.mapToContent
 		src/eNuts/UI/pages/__kgRecorder.py
 
-58a7995:
-	fix(stream): enhance subscription handling to prevent duplicate callbacks
+71df0a5:
+	GLImage: public fittedRect/contentSize/mapToContent for touch inject
+		src/jAGQt/widgets/Image/__glImage.py
+
+a807aef:
+	Docs: KGRecorder page owns recording session, inject, event log
+		.docs/eNuts/UI/pages/kgRecorderPage.md
+
+bfb993e:
+	Reconstruct KGRecorder page: session state, inject+event log, CaptureGLImage wiring
 		src/eNuts/UI/pages/__kgRecorder.py
-		src/fluxCore/stream/__frameDecoder.py
-		src/jAGFx/services/__subscription.py
 
-71bb20e:
-	fix(imageConverters): handle None case for isConfig in toVideoFrame function
-		src/fluxCore/stream/__imageConverters.py
-
-34b0369:
-	fix(imageConverters): handle None case in toQImage function when converting to numpy array
-		src/fluxCore/stream/__imageConverters.py
+9673a89:
+	Remove obsolete recorder interface docs
+		.docs/eNuts/types/interface/recorder/implementation.md
 
 ```
