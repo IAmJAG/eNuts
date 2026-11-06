@@ -1,7 +1,7 @@
 ## Overview & Design Context
 `KGRecorder` page owns the device combo, `CaptureGLImage` stream surface, and the recording controller. Live video is driven exclusively by `LocalDeviceStream` (decode, ring, present). Input from `CaptureGLImage` is injected to the selected device; successful injects are logged while Recording.
 
-* **Design Decision / Deviation Notes:** Device changes call `LocalDeviceStream.switchDevice` via `createTask`. Persistence key remains `RECORDER_DEVICE_ID`. Controller lives inside the page (no Shell wiring). Continuous recording only (Idle | Recording). Widget→device coordinate fit transform is a simple scale for now; precise image-fit mapping is deferred. Save/Open (paired MP4 + events) deferred.
+* **Design Decision / Deviation Notes:** Device changes call `LocalDeviceStream.switchDevice` via `createTask`. Persistence key remains `RECORDER_DEVICE_ID`. Controller lives inside the page (no Shell wiring). Continuous recording only (Idle | Recording). Pointer inject uses `GLImage.mapToContent` (Scale/Fill/Crop same as paint) then scales content→device resolution; clicks outside the fitted image (letterbox) are ignored. Save/Open (paired MP4 + events) deferred.
 
 ---
 
@@ -17,6 +17,7 @@
   - `_refreshDeviceCombo` — rebuild combo from `deviceManager`, then `_setDevice`.
   - `_wInitializeUI` — `CaptureGLImage` + utils strip; `stream.attachView`.
   - `_wireCaptureSignals` — connect key/mouse signals to inject handlers.
+  - `_widgetToDevice(event)` — widget → `mapToContent` → device pixels; `None` if outside fit.
   - `start()` / `stop()` / `clear()` — session transport.
   - `save(name)` / `open(name)` — persistence stubs (deferred).
   - `_onKeyPressed` / `_onKeyReleased` / `_onMouse*` — inject + optional log.
