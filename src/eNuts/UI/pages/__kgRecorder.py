@@ -231,7 +231,6 @@ class KGRecorder(PlaybackBase):
         verbose(f"[{self.classname()}] session events cleared")
 
     def save(self, name: Optional[str] = None) -> None:
-        # Finalize current session if still recording; artefacts already on disk.
         if self._state is eKGRecorderState.Recording:
             self.stop()
         result = self._lastSessionResult
@@ -247,7 +246,6 @@ class KGRecorder(PlaybackBase):
         )
 
     def open(self, name: Optional[str] = None) -> None:
-        # Deferred: load paired artefacts.
         warning(f"[{self.classname()}] open deferred name={name!r}")
 
     def _sessionDirPath(self, name: Optional[str] = None) -> Path:
@@ -270,9 +268,6 @@ class KGRecorder(PlaybackBase):
                 int(payload.get("y", 0)),
             )
 
-    # -------------------------------------------------------------------------
-    # device combo / stream
-    # -------------------------------------------------------------------------
     def _setDeviceComboEnabled(self, enabled: bool) -> None:
         combo = getattr(self, "_deviceCombo", None)
         if combo is None:
@@ -286,11 +281,19 @@ class KGRecorder(PlaybackBase):
         if self._state is eKGRecorderState.Recording:
             return
         try:
-            deviceCombo: QComboBox = self._deviceCombo
+            deviceCombo: QComboBox = getattr(self, "_deviceCombo", None)
+            if deviceCombo is None:
+                return
+            mgr = self.deviceManager
+            if mgr is None:
+                warning(
+                    f"[{self.classname()}] refresh device combo: deviceManager unavailable"
+                )
+                return
             self.blockWidgetSignals(deviceCombo)
 
             deviceCombo.clear()
-            devices: List[iDevice] = [d for d in list(self.deviceManager.values())]
+            devices: List[iDevice] = [d for d in list(mgr.values())]
 
             if len(devices) == 0 or not devices:
                 deviceCombo.placeholderText = "<No Device Found>"
@@ -314,7 +317,9 @@ class KGRecorder(PlaybackBase):
             warning(f"refresh device combo failed: {ex}")
 
         finally:
-            self.restoreWidgetSignals(deviceCombo)
+            combo = getattr(self, "_deviceCombo", None)
+            if combo is not None:
+                self.restoreWidgetSignals(combo)
 
     def _setDevice(self, deviceId: Optional[str]) -> None:
         if self._state is eKGRecorderState.Recording:
@@ -382,9 +387,6 @@ class KGRecorder(PlaybackBase):
                     self.stop()
                 self._setDevice(None)
 
-    # -------------------------------------------------------------------------
-    # CaptureGLImage → inject + log
-    # -------------------------------------------------------------------------
     def _wireCaptureSignals(self) -> None:
         view = getattr(self, "_streamView", None)
         if view is None or self._captureWired:
@@ -511,7 +513,6 @@ class KGRecorder(PlaybackBase):
             warning(f"[{self.classname()}] inject touch down failed: {ex}")
 
     def _onMouseMoved(self, event: QMouseEvent) -> None:
-        # Pointer move only while dragging.
         if not (event.buttons() & Qt.MouseButton.LeftButton):
             return
         control = self._controlSocket()
@@ -587,7 +588,22 @@ class KGRecorder(PlaybackBase):
 
     @property
     def shell(self) -> iShell:
-        return self.Parent.Parent
+        # Pages are constructed with WorkSpace as parent, then reparented into
+        # QStackedWidget by stack.addWidget — Parent is no longer WorkSpace.
+        # Walk ancestors (or top-level window) for the Shell that owns deviceManager.
+        node = self.parent()
+        while node is not None:
+            if getattr(node, "deviceManager", None) is not None and hasattr(
+                node, "settings"
+            ):
+                return node  # type: ignore[return-value]
+            node = node.parent()
+        win = self.window()
+        if win is not None and getattr(win, "deviceManager", None) is not None:
+            return win  # type: ignore[return-value]
+        raise RuntimeError(
+            f"[{self.classname()}] cannot resolve Shell (deviceManager) from parent chain"
+        )
 
     @property
     def settings(self) -> QSettings:
