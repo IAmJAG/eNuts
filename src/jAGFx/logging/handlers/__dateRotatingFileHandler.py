@@ -1,6 +1,7 @@
 # ==================================================================================
 import logging
 import os
+import time
 
 # ==================================================================================
 from datetime import datetime
@@ -100,10 +101,71 @@ class DateRotatingFileHandler(logging.FileHandler):
         now = datetime.now(self._timezone)  # Use timezone-aware datetime
         return f"{template.format(timestamp=now.strftime(datetimeFormat))}.{ext}"
 
+    def _safeRename(self, src: str, dst: str, attempts: int = 8) -> None:
+        """Rename with retries — Windows may briefly keep the handle after close."""
+        lastEx: Exception | None = None
+        for attempt in range(attempts):
+            try:
+                if os.path.exists(dst):
+                    try:
+                        os.remove(dst)
+                    except OSError:
+                        pass
+                os.rename(src, dst)
+                return
+            except PermissionError as ex:
+                lastEx = ex
+                time.sleep(0.05 * (attempt + 1))
+            except OSError as ex:
+                lastEx = ex
+                time.sleep(0.05 * (attempt + 1))
+        # Last resort: copy then truncate source (still open elsewhere).
+        try:
+            import shutil
+
+            shutil.copy2(src, dst)
+            with open(src, "w", encoding=self._encoding, errors=self._errors):
+                pass
+            return
+        except Exception as ex:
+            if lastEx is not None:
+                raise lastEx from ex
+            raise
+
     def _rotate(self):
-        self.close()
+        # Close the open stream first so Windows allows rename (WinError 32).
+        try:
+            stream = getattr(self, "stream", None)
+            if stream is not None:
+                try:
+                    stream.flush()
+                except Exception:
+                    pass
+                try:
+                    stream.close()
+                except Exception:
+                    pass
+                self.stream = None
+        except Exception:
+            pass
+
+        self._fileSize = 0
+
+        current = self._currentLogPath
+        if current and os.path.exists(current):
+            try:
+                self._shiftBackup()
+                bakPath = f"{self._baseFilename}(000).bak"
+                self._safeRename(current, bakPath)
+            except Exception as ex:
+                # Do not abort logging — continue with a new path if possible.
+                try:
+                    warning(f"[DateRotatingFileHandler] rotate rename failed: {ex}")
+                except Exception:
+                    pass
+
         self._xRotate()
-        self._open()
+        self.stream = self._open()
 
     def _xRotate(self):
         self._currentLogPath = os.path.join(
@@ -147,22 +209,23 @@ class DateRotatingFileHandler(logging.FileHandler):
             lNewBackupPath = os.path.join(
                 lBackupInfo["Directory"], f"{self._baseFilename}({lSeq:03}).bak"
             )
-            os.rename(lOldBackupPath, lNewBackupPath)
+            try:
+                self._safeRename(lOldBackupPath, lNewBackupPath)
+            except OSError:
+                pass
             lSeq -= 1
 
     def _shouldRotate(self):
         lCurrFilePath = os.path.join(
             self._directories[self.KEY_ROOT],
-            self._getTimeStampedFilename(self._filenameTemplate, self._logfileExtention, self._dateFormat),
+            self._getTimeStampedFilename(
+                self._filenameTemplate, self._logfileExtention, self._dateFormat
+            ),
         )
 
         lFilenameRotate = lCurrFilePath != self._currentLogPath
         lFileSizeRotate = self._fileSize >= self._maximumSize
-
-        if lFilenameRotate or lFileSizeRotate:
-            self._shiftBackup()
-            os.rename(self._currentLogPath, f"{self._baseFilename}(000).bak")
-
+        # Do not rename here — stream is still open (WinError 32 on Windows).
         return lFilenameRotate or lFileSizeRotate
 
     def format(self, record):
@@ -200,7 +263,10 @@ class DateRotatingFileHandler(logging.FileHandler):
                     lArchDir,
                     f"{lOldLogFile}.{datetime.now(self._timezone).strftime(self._archiveDateFormat)}",
                 )
-                os.rename(lOldLogPath, lArchivePath)
+                try:
+                    self._safeRename(lOldLogPath, lArchivePath)
+                except OSError:
+                    pass
 
         except OSError as e:
             raise e
@@ -239,7 +305,7 @@ class DateRotatingFileHandler(logging.FileHandler):
             )
 
             try:
-                os.rename(lOldBackupPath, lArchivePath)
+                self._safeRename(lOldBackupPath, lArchivePath)
 
             except OSError as e:
                 logging.error(f"Error archiving backup: {e}")
