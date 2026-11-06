@@ -39,9 +39,9 @@ from ..utilities.scrcpy import (
 JAR_NAME = "scrcpy-server.jar"
 SERVER_PATH = os.path.join(os.getcwd(), ".bin", JAR_NAME)
 ANDROID_PATH = "/data/local/tmp/"
-MAX_SIZE = 1920
-MAX_FPS = 60
-BITRATE = 4000000
+MAX_SIZE = 720
+MAX_FPS = 30
+BITRATE = 2000000
 # ==================================================================================
 
 
