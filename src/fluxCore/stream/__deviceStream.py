@@ -24,6 +24,13 @@ from .__frameRing import FrameRing
 from .__streamPresenter import StreamPresenter
 
 # ==================================================================================
+try:
+    from shiboken6 import isValid as _qtIsValid
+except ImportError:  # pragma: no cover
+    def _qtIsValid(obj: Any) -> bool:  # type: ignore[misc]
+        return obj is not None
+
+# ==================================================================================
 C_ON_FRAME: str = "ON_FRAME"
 C_ON_METADATA_UPDATE: str = "ON_METADATA_UPDATE"
 C_ON_ERROR: str = "ON_ERROR"
@@ -267,6 +274,10 @@ class LocalDeviceStream(AsyncSubscription):
         view = self._view
         if view is None:
             return
+        if not _qtIsValid(view):
+            # Page/widget destroyed while emitter still streaming.
+            self._view = None
+            return
 
         latest = self._ring.latest()
         if latest is None:
@@ -286,6 +297,11 @@ class LocalDeviceStream(AsyncSubscription):
 
         try:
             view.image = image
+        except RuntimeError as ex:
+            if "already deleted" in str(ex).lower():
+                self._view = None
+                return
+            warning(f"[{self.classname()}] present fallback failed: {ex}")
         except Exception as ex:
             warning(f"[{self.classname()}] present fallback failed: {ex}")
 
