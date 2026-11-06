@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 # ==================================================================================
-from enum import Enum, auto
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 from uuid import uuid4
@@ -39,7 +38,9 @@ from ...types.interface.application import iShell
 from ...types.interface.services.device import iDeviceManager
 from ...types.interface.services.recorder import iKGRecorderService
 from ..widgets import CaptureGLImage
+from .__helper import C_QT_TO_ANDROID
 from .__playbackBase import PlaybackBase
+from .__recorderState import eKGRecorderState
 
 # ==================================================================================
 C_SETTINGS_DEVICE_ID: str = "RECORDER_DEVICE_ID"
@@ -48,75 +49,9 @@ C_RECORDINGS_DIR: str = "recordings"
 
 
 # ==================================================================================
-class eKGRecorderState(Enum):
-    Idle = auto()
-    Recording = auto()
-
-
-# ==================================================================================
-# Practical Qt → Android key map (subset; extend later).
-_C_QT_TO_ANDROID: Dict[int, eKeyCode] = {
-    Qt.Key.Key_0: eKeyCode.KEYCODE_0,
-    Qt.Key.Key_1: eKeyCode.KEYCODE_1,
-    Qt.Key.Key_2: eKeyCode.KEYCODE_2,
-    Qt.Key.Key_3: eKeyCode.KEYCODE_3,
-    Qt.Key.Key_4: eKeyCode.KEYCODE_4,
-    Qt.Key.Key_5: eKeyCode.KEYCODE_5,
-    Qt.Key.Key_6: eKeyCode.KEYCODE_6,
-    Qt.Key.Key_7: eKeyCode.KEYCODE_7,
-    Qt.Key.Key_8: eKeyCode.KEYCODE_8,
-    Qt.Key.Key_9: eKeyCode.KEYCODE_9,
-    Qt.Key.Key_A: eKeyCode.KEYCODE_A,
-    Qt.Key.Key_B: eKeyCode.KEYCODE_B,
-    Qt.Key.Key_C: eKeyCode.KEYCODE_C,
-    Qt.Key.Key_D: eKeyCode.KEYCODE_D,
-    Qt.Key.Key_E: eKeyCode.KEYCODE_E,
-    Qt.Key.Key_F: eKeyCode.KEYCODE_F,
-    Qt.Key.Key_G: eKeyCode.KEYCODE_G,
-    Qt.Key.Key_H: eKeyCode.KEYCODE_H,
-    Qt.Key.Key_I: eKeyCode.KEYCODE_I,
-    Qt.Key.Key_J: eKeyCode.KEYCODE_J,
-    Qt.Key.Key_K: eKeyCode.KEYCODE_K,
-    Qt.Key.Key_L: eKeyCode.KEYCODE_L,
-    Qt.Key.Key_M: eKeyCode.KEYCODE_M,
-    Qt.Key.Key_N: eKeyCode.KEYCODE_N,
-    Qt.Key.Key_O: eKeyCode.KEYCODE_O,
-    Qt.Key.Key_P: eKeyCode.KEYCODE_P,
-    Qt.Key.Key_Q: eKeyCode.KEYCODE_Q,
-    Qt.Key.Key_R: eKeyCode.KEYCODE_R,
-    Qt.Key.Key_S: eKeyCode.KEYCODE_S,
-    Qt.Key.Key_T: eKeyCode.KEYCODE_T,
-    Qt.Key.Key_U: eKeyCode.KEYCODE_U,
-    Qt.Key.Key_V: eKeyCode.KEYCODE_V,
-    Qt.Key.Key_W: eKeyCode.KEYCODE_W,
-    Qt.Key.Key_X: eKeyCode.KEYCODE_X,
-    Qt.Key.Key_Y: eKeyCode.KEYCODE_Y,
-    Qt.Key.Key_Z: eKeyCode.KEYCODE_Z,
-    Qt.Key.Key_Space: eKeyCode.KEYCODE_SPACE,
-    Qt.Key.Key_Return: eKeyCode.KEYCODE_ENTER,
-    Qt.Key.Key_Enter: eKeyCode.KEYCODE_ENTER,
-    Qt.Key.Key_Backspace: eKeyCode.KEYCODE_DEL,
-    Qt.Key.Key_Delete: eKeyCode.KEYCODE_FORWARD_DEL,
-    Qt.Key.Key_Tab: eKeyCode.KEYCODE_TAB,
-    Qt.Key.Key_Escape: eKeyCode.KEYCODE_ESCAPE,
-    Qt.Key.Key_Up: eKeyCode.KEYCODE_DPAD_UP,
-    Qt.Key.Key_Down: eKeyCode.KEYCODE_DPAD_DOWN,
-    Qt.Key.Key_Left: eKeyCode.KEYCODE_DPAD_LEFT,
-    Qt.Key.Key_Right: eKeyCode.KEYCODE_DPAD_RIGHT,
-    Qt.Key.Key_Home: eKeyCode.KEYCODE_MOVE_HOME,
-    Qt.Key.Key_End: eKeyCode.KEYCODE_MOVE_END,
-    Qt.Key.Key_PageUp: eKeyCode.KEYCODE_PAGE_UP,
-    Qt.Key.Key_PageDown: eKeyCode.KEYCODE_PAGE_DOWN,
-    Qt.Key.Key_VolumeUp: eKeyCode.KEYCODE_VOLUME_UP,
-    Qt.Key.Key_VolumeDown: eKeyCode.KEYCODE_VOLUME_DOWN,
-    Qt.Key.Key_Back: eKeyCode.KEYCODE_BACK,
-}
-# ==================================================================================
-
-
-# ==================================================================================
 class KGRecorder(PlaybackBase):
-    """KG Recorder page: device combo, stream, and recording UI controller.
+    """
+    KG Recorder page: device combo, stream, and recording UI controller.
 
     Session capture is delegated to ``KGRecorderService`` (every emitter frame +
     key/pointer events). This page owns Idle|Recording UI state, inject, and
@@ -134,13 +69,9 @@ class KGRecorder(PlaybackBase):
         **kwargs,
     ) -> None:
         super().__init__(
-            title=title,
-            description=description,
-            icon=icon,
-            commandBarOn=commandBarOn,
-            id=id,
-            *args,
-            **kwargs,
+            title=title, description=description, icon=icon,
+            commandBarOn=commandBarOn, id=id,
+            *args, **kwargs,
         )
         self._stream: LocalDeviceStream = LocalDeviceStream(ringSize=8)
         self._state: eKGRecorderState = eKGRecorderState.Idle
@@ -156,9 +87,6 @@ class KGRecorder(PlaybackBase):
     def classname(cls) -> str:
         return cls.__name__
 
-    # -------------------------------------------------------------------------
-    # session
-    # -------------------------------------------------------------------------
     @property
     def state(self) -> eKGRecorderState:
         return self._state
@@ -222,15 +150,14 @@ class KGRecorder(PlaybackBase):
         except Exception as ex:
             error(f"[{self.classname()}] recorder stop failed: {ex}")
             self._lastSessionResult = None
+
         self._state = eKGRecorderState.Idle
         self._setDeviceComboEnabled(True)
         self._syncCommandBar()
         result = self._lastSessionResult or {}
         verbose(
-            f"[{self.classname()}] recording stopped "
-            f"frames={result.get('frameCount', 0)} "
-            f"events={len(result.get('events', []))} "
-            f"dir={result.get('sessionDir')!r}"
+            f"recording stopped frames={result.get('frameCount', 0)} "
+            f"events={len(result.get('events', []))} dir={result.get('sessionDir')!r}"
         )
 
     def clear(self) -> None:
@@ -479,7 +406,7 @@ class KGRecorder(PlaybackBase):
         return x, y
 
     def _onKeyPressed(self, event: QKeyEvent) -> None:
-        code = _C_QT_TO_ANDROID.get(int(event.key()))
+        code = C_QT_TO_ANDROID.get(int(event.key()))
         if code is None:
             return
         control = self._controlSocket()
@@ -492,7 +419,7 @@ class KGRecorder(PlaybackBase):
             warning(f"[{self.classname()}] inject key press failed: {ex}")
 
     def _onKeyReleased(self, event: QKeyEvent) -> None:
-        code = _C_QT_TO_ANDROID.get(int(event.key()))
+        code = C_QT_TO_ANDROID.get(int(event.key()))
         if code is None:
             return
         control = self._controlSocket()

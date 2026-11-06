@@ -16,18 +16,12 @@ from ..navigation import buildBlankPage
 
 # ==================================================================================
 class DeviceFrameBridge(QObject):
-    """Marshal decoded frames onto the Qt thread for Image."""
-
     frameReady: SignalInstance = Signal(object)  # QImage | QPixmap
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
 
 # ==================================================================================
 def buildDevicePage(key: str, title: str, serial: str) -> Page:
-    """
-    Device Page with Image stream host (content slot).
-    Emitter is **not** owned here — resolve via deviceManager + ensureRunning.
-    """
     page = buildBlankPage(key, title, f"Device {serial}")
     view = Image(bg="#1a1a1a", backend="software")
     view.setObjectName("W_DEVICE_STREAM")
@@ -46,7 +40,7 @@ def buildDevicePage(key: str, title: str, serial: str) -> Page:
     verbose(f"[pages] device page key={key!r} serial={serial!r}")
     return page
 
-
+# ==================================================================================
 def _applyFrame(view: Image, img: object) -> None:
     try:
         if isinstance(img, QImage):

@@ -56,20 +56,19 @@ class DeviceManager(iDeviceManager, AsyncSubscription):
             raise KeyError(f"No SCRCPYEmitter registered for id={deviceId!r}")
 
         if not self._streamReady.get(deviceId, False):
-            verbose(f"[{self.__class__.__name__}] ensureRunning initialize id={deviceId!r}")
+            verbose(f"ensureRunning initialize id={deviceId!r}")
             try:
                 await emitter.initialize(GPUReady=False)
+
             except Exception as ex:
                 self._streamReady[deviceId] = False
-                error(
-                    f"[{self.__class__.__name__}] ensureRunning initialize "
-                    f"failed id={deviceId!r}: {ex}"
-                )
+                error(f"ensureRunning initialize failed id={deviceId!r}", ex)
                 raise
+
             self._streamReady[deviceId] = True
 
         if not emitter.isRunning:
-            verbose(f"[{self.__class__.__name__}] ensureRunning start id={deviceId!r}")
+            verbose(f"ensureRunning start id={deviceId!r}")
             emitter.start()
 
         return emitter
@@ -80,27 +79,22 @@ class DeviceManager(iDeviceManager, AsyncSubscription):
         try:
             if device.isRunning:
                 device.stop()
-                verbose(f"[{self.__class__.__name__}] stopped emitter id={deviceId!r}")
+                verbose(f"stopped emitter id={deviceId!r}")
 
         except Exception as ex:
-            warning(
-                f"[{self.__class__.__name__}] stop emitter id={deviceId!r} failed: {ex}"
-            )
+            warning(f"stop emitter id={deviceId!r} failed", ex)
 
     def start(self, device: Union[str, iDevice]) -> None:
-        if isinstance(device, str):
-            device = self.get(device)
-        if device is None or not isinstance(device, iEmitter):
-            return
+        if isinstance(device, str): device = self.get(device)
+        if device is None or not isinstance(device, iEmitter): return
         deviceId = str(device.id)
         try:
             if not device.isRunning:
                 device.start()
-                verbose(f"[{self.__class__.__name__}] started emitter id={deviceId!r}")
+                verbose(f"started emitter id={deviceId!r}")
+                
         except Exception as ex:
-            warning(
-                f"[{self.__class__.__name__}] start emitter id={deviceId!r} failed: {ex}"
-            )
+            warning(f"start emitter id={deviceId!r} failed", ex)
 
     def stopAll(self) -> None:
         for device in list(self._devices.values()):
@@ -113,25 +107,25 @@ class DeviceManager(iDeviceManager, AsyncSubscription):
                 self.stop(device)
 
     def add(self, device: iDevice) -> Optional[iDevice]:
-        if device is None:
-            return None
+        if device is None: return None
         deviceId = str(device.id)
-        if deviceId in self._devices:
-            return self._devices[deviceId]
+        
+        if deviceId in self._devices: return self._devices[deviceId]
         self._devices[deviceId] = device
-        verbose(
-            f"[{self.__class__.__name__}] addDevice id={deviceId!r} type={type(device).__name__}"
-        )
+
+        verbose(f"addDevice id={deviceId!r} type={type(device).__name__}")
         self.raiseEvent(DEVICE_ADDED_EVENT, device)
         return device
 
     def remove(self, device: iDevice | str) -> Optional[iDevice]:
         if device is None or device == "": return None
+        
         deviceId: str = device if isinstance(device, str) else str(device.id)
         removed: Optional[iDevice] = self._devices.pop(deviceId, None)
+
         if removed is not None:
             self.stop(removed)
-            verbose(f"[{self.__class__.__name__}] removeDevice id={deviceId!r}")
+            verbose(f"removeDevice id={deviceId!r}")
             self.raiseEvent(DEVICE_REMOVED_EVENT, removed)
             return removed
         return None
@@ -145,11 +139,8 @@ class DeviceManager(iDeviceManager, AsyncSubscription):
             return found
 
         devices: Dict[str, iDevice] = await _getDevices()
-        verbose(
-            f"[{self.__class__.__name__}] initial discovery count={len(devices)} "
-            f"ids={list(devices.keys())}"
-        )
-        
+        verbose(f"initial discovery count={len(devices)} ids={list(devices.keys())}")
+
         try:
             self.setSuppressEvent(True)
             for deviceId, device in devices.items():
@@ -160,10 +151,7 @@ class DeviceManager(iDeviceManager, AsyncSubscription):
             self.setSuppressEvent(False)
 
         self.raiseEvent(DEVICE_INITIALIZED_EVENT, self)
-        verbose(
-            f"[{self.__class__.__name__}] INITIALIZED stored={len(self._devices)} "
-            f"ids={list(self._devices.keys())}"
-        )
+        verbose(f"INITIALIZED stored={len(self._devices)} ids={list(self._devices.keys())}")
 
         while not isShuttingDown():
             devices: Dict[iDevice] = await _getDevices()            
@@ -189,9 +177,9 @@ class DeviceManager(iDeviceManager, AsyncSubscription):
                 await self._discovery()
 
             except Exception as ex:
-                error(f"[{self.__class__.__name__}] discovery FAIL", ex)
+                error("discovery FAIL", ex)
 
         createTask(_discoveryRunner)
-        verbose(f"[{self.__class__.__class__}] runDiscovery scheduled")
+        verbose("runDiscovery scheduled")
 
     

@@ -11,17 +11,18 @@ from jAGQt.widgets.image import Image
 
 # ==================================================================================
 class CaptureImage(Image):
-    """Plain Image that additionally surfaces keyboard and mouse events.
+    """
+    Plain Image that additionally surfaces keyboard and mouse events.
 
     Image is display-only (no pan/zoom). Controllers subscribe to the signals;
     this widget only displays and emits.
     """
 
-    keyPressed: SignalInstance = Signal(object)   # QKeyEvent
-    keyReleased: SignalInstance = Signal(object)  # QKeyEvent
-    mousePressed: SignalInstance = Signal(object)   # QMouseEvent
-    mouseMoved: SignalInstance = Signal(object)     # QMouseEvent
-    mouseReleased: SignalInstance = Signal(object)  # QMouseEvent
+    keyPressed: SignalInstance = Signal(object)
+    keyReleased: SignalInstance = Signal(object)
+    mousePressed: SignalInstance = Signal(object)
+    mouseMoved: SignalInstance = Signal(object)
+    mouseReleased: SignalInstance = Signal(object)
 
     OBJECT_NAME = "W_CAPTURE_IMAGE"
 

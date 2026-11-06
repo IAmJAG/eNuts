@@ -3,15 +3,13 @@ from __future__ import annotations
 
 # ==================================================================================
 from traceback import format_exc
-from typing import Dict, List, Optional, Set
+from typing import Dict, Optional
 
 # ==================================================================================
 from PySide6.QtCore import QSettings, Qt
-from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QBoxLayout, QSizePolicy, QStackedWidget, QWidget
 
 # ==================================================================================
-from fluxCore.types.interface.device import iDevice
 from jAGFx.workflow import workflow
 from jAGQt.options import AnimationOptions, SideBarOptions
 from jAGQt.widgets.components import ComponentBase, ObjectName
@@ -22,24 +20,11 @@ from utilities.io import getICONPath
 # ==================================================================================
 from ...types.interface.UI.windows import iENUTSWindow
 from ...UI.navigation import (
-    G_DEVICE_KEY_PREFIX,
-    G_DEVICE_NONE,
     PAGE_DASHBOARD,
-    PAGE_DEVICES,
     buildSideBarMenu,
-    devicePageKeyFromId,
     pageKeyOf,
-    serialFromPageKey,
-    setPageKey,
 )
-from ...UI.pages import buildDevicePage, buildNavigationPages
-from ...UI.pages.__devicePage import DeviceFrameBridge
-from ...services.device import (
-    DEVICE_ADDED_EVENT,
-    DEVICE_INITIALIZED_EVENT,
-    DEVICE_REMOVED_EVENT,
-    DeviceManager,
-)
+from ...UI.pages import buildNavigationPages
 
 # ==================================================================================
 QSPolicy = QSizePolicy.Policy
@@ -129,8 +114,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             layout.addWidget(sideBar)
             layout.addWidget(stack, 1)
     
-            if hasattr(self, "_layout"):
-                self._layout = layout
+            if hasattr(self, "_layout"): self._layout = layout
 
             self.setLayout(layout)
     

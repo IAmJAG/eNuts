@@ -48,8 +48,6 @@ class Shell(iShell, ApplicationInformation):
         self.restoreWindowsState()
 
     def saveWindowState(self) -> None:
-        # saveGeometry encodes normal size/pos + maximized/fullscreen.
-        # geometry() alone is the *current* frame (maximized rect) and loses normal size.
         self.settings.setValue("geometry", self.saveGeometry())
         self.settings.setValue("windowState", int(self.windowState().value))
 
@@ -61,14 +59,13 @@ class Shell(iShell, ApplicationInformation):
             elif isinstance(geo, (bytes, bytearray)) and len(geo) > 0:
                 self.restoreGeometry(QByteArray(geo))
             elif isinstance(geo, QRect) and geo.isValid():
-                # Legacy: plain QRect from older builds (no normal-size memory).
                 self.setGeometry(geo)
 
         if self.settings.contains("windowState"):
             try:
                 state = int(self.settings.value("windowState"))
-                # Re-apply after geometry so maximized/minimized matches last close.
                 self.setWindowState(Qt.WindowState(state))
+
             except (TypeError, ValueError) as ex:
                 warning(
                     f"[Shell] restoreWindowsState invalid windowState={self.settings.value('windowState')!r}: {ex}"
@@ -88,12 +85,11 @@ class Shell(iShell, ApplicationInformation):
 
     def closeEvent(self, event) -> None:
         self.saveWindowState()
-
         mgr = self.deviceManager
-
         if mgr is not None:
             try:
                 mgr.stopAll()
+
             except Exception as ex:
                 warning(f"[Shell] deviceManager.stopAll failed: {ex}")
 
