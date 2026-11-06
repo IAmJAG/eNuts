@@ -15,7 +15,6 @@ from jAGQt.types.interface.window import iMainWindowBase
 # ==================================================================================
 from ..types.interface.application import iShell
 from ..types.interface.application.device import iDeviceManager
-from ..UI.navigation.__pageKeys import PAGE_KG_RECORDER
 from .__applicationInformation import ApplicationInformation
 from .device import DeviceManager
 from .workspace import WorkSpace
@@ -25,14 +24,14 @@ from .workspace import WorkSpace
 class Shell(iShell, ApplicationInformation):
     def _wInitializeUI(self: iMainWindowBase | QMainWindow) -> None:
         verbose("ENTER")
-        try:        
+        try:
             mgr: iDeviceManager = DeviceManager(self._shutdownEvent)
             self._deviceManager = mgr
-            
+
             central: WorkSpace = WorkSpace(title=self.title, parent=self)
             self.setCentralWidget(central)
 
-            mgr.runDiscovery()           
+            mgr.runDiscovery()
 
         except Exception as ex:
             error("FAIL", ex)
@@ -87,17 +86,14 @@ class Shell(iShell, ApplicationInformation):
     def deviceManager(self) -> Optional[iDeviceManager]:
         return self._deviceManager
 
-    @property
-    def KGRecorder(self) -> Optional[KGRecorder]:
-        return getattr(self, "_kgRecorder", None)
-
     def closeEvent(self, event) -> None:
         self.saveWindowState()
 
         mgr = self.deviceManager
 
         if mgr is not None:
-            try: mgr.stopAll()
+            try:
+                mgr.stopAll()
             except Exception as ex:
                 warning(f"[Shell] deviceManager.stopAll failed: {ex}")
 
