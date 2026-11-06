@@ -76,23 +76,23 @@ class LocalDeviceStream(AsyncSubscription):
 
     def __init__(self, ringSize: int = 8) -> None:
         super().__init__()
+        self._ring = FrameRing(size=ringSize)
         self._decoder = FrameDecoder()
-        self._emitter: Optional[iEmitter] = None
-        self._ring = FrameRing(ringSize)
         self._presenter = StreamPresenter()
         self._view: Any = None
-        self._switchLock = Lock()
+        self._emitter: Optional[iEmitter] = None
         self._serial: Optional[str] = None
         self._desiredSerial: Optional[str] = None
         self._switchEpoch: int = 0
-        self._previousSize: Tuple[int, int] = (0, 0)
+        self._switchLock = Lock()
         self._frameSubscribed: bool = False
+        self._previousSize: Optional[Tuple[int, int]] = None
 
     @classmethod
     def classname(cls) -> str:
         return cls.__name__
 
-    # --------------------------------------------------------------------------
+    # ------------------------------------------------------------------------- 
     # view
     # -------------------------------------------------------------------------
     def attachView(self, view: Any) -> None:
@@ -168,37 +168,34 @@ class LocalDeviceStream(AsyncSubscription):
             for event in C_LIFECYCLE_EVENTS:
                 callbacks = list(emitter._callbacks.get(event, []))
                 for callback in callbacks:
-                    if (
-                        isinstance(callback, partial)
-                        and callback.func == self._onEvent
-                    ):
+                    try:
                         emitter.unsubscribe(event, callback)
+                    except Exception:
+                        pass
 
-        except Exception:
-            raise
+            self._emitter = None
+            self._clearCodec()
 
         finally:
-            self._clearCodec()
-            self._emitter = None
-
-    async def stop(self) -> None:
-        emitter: Optional[iEmitter] = self._emitter
-        if emitter is None:
-            return
-        if getattr(emitter, "isRunning", False):
-            emitter.stop()
+            try:
+                emitter.setSuppressEvent(False)
+            except Exception:
+                pass
 
     async def start(self) -> None:
-        emitter: Optional[iEmitter] = self._emitter
+        emitter = self._emitter
         if emitter is None:
-            raise ValueError("No emitter attached")
+            return
+        if not self._frameSubscribed:
+            emitter.subscribe(C_ON_FRAME, self._onFrame)
+            self._frameSubscribed = True
+        if not getattr(emitter, "isRunning", False):
+            emitter.start()
 
-        if self._decoder is None:
-            raise ValueError("Decoder not set")
-
-        self._syncCodecFromEmitter(emitter)
-        self._previousSize = (0, 0)
-
+    async def stop(self) -> None:
+        emitter = self._emitter
+        if emitter is None:
+            return
         if self._frameSubscribed:
             try:
                 emitter.unsubscribe(C_ON_FRAME, self._onFrame)
@@ -206,77 +203,34 @@ class LocalDeviceStream(AsyncSubscription):
                 pass
             self._frameSubscribed = False
 
-        emitter.subscribe(C_ON_FRAME, self._onFrame)
-        self._frameSubscribed = True
-
-        if not emitter.isRunning:
-            emitter.start()
-
-        serial = getattr(emitter, "id", None)
-        verbose(f"[{self.classname()}] start serial={serial!r}")
-
-    async def _onFrame(self, frame: iFrame) -> None:
+    def _onFrame(self, frame: iFrame, *args, **kwargs) -> None:
         try:
-            decoder: FrameDecoder = self._decoder
-            if decoder.codec is None:
+            decoded = self._decoder.decode(frame)
+            if decoded is None:
                 return
-
-            prevSize: Tuple[int, int] = self._previousSize
-
-            qimg: QImage = decoder.decode(frame, eDecodeFormat.QIMAGE)
-            if qimg is None or qimg.isNull():
-                return
-
-            newSize: Tuple[int, int] = (qimg.width(), qimg.height())
-
-            flag: FrameFlags = FrameFlags.NONE
-            if getattr(frame, "isKeyFrame", False):
-                flag |= FrameFlags.KEYFRAME
-            if newSize != prevSize:
-                emitter = self._emitter
-                if emitter is not None and hasattr(emitter, "toDevice"):
-                    device: iDevice = emitter.toDevice(emitter)
-                    self.raiseEvent(C_ON_METADATA_UPDATE, device)
-                flag |= FrameFlags.RESOLUTION_CHANGED
-
-            header: FrameHeader = FrameHeader(
-                pts=getattr(frame, "pts", 0),
-                width=newSize[0],
-                height=newSize[1],
-                format=eDecodeFormat.QIMAGE,
-                flags=flag,
-            )
-
-            self._previousSize = newSize
-            self._ring.publish(header, qimg)
-            self._presentLatest()
-            self.raiseEvent(C_ON_FRAME, header, qimg)
-
+            header, payload = decoded
+            self._ring.publish(header, payload)
+            self._present()
+            self.raiseEvent(C_ON_FRAME, header, payload)
         except Exception as ex:
-            warning(f"[{self.classname()}] _onFrame failed", ex)
+            warning(f"[{self.classname()}] _onFrame failed: {ex}")
+            self.raiseEvent(C_ON_ERROR, ex)
 
-    def _presentLatest(self) -> None:
+    def _present(self) -> None:
         view = self._view
         if view is None:
             return
-
-        latest = self._ring.latest()
-        if latest is None:
+        slot = self._ring.latest()
+        if slot is None:
             return
-
-        header, image = latest
-        meta = {
-            "seq": header.sequence,
-            "pts": header.pts,
-            "w": header.width,
-            "h": header.height,
-        }
-
-        if hasattr(view, "presentExternal"):
-            self._presenter.present(view, meta, image)
-            return
-
+        header, payload = slot
         try:
+            if hasattr(view, "presentExternal"):
+                view.presentExternal(payload, header)
+                return
+            image = payload
+            if not isinstance(image, QImage):
+                return
             view.image = image
         except Exception as ex:
             warning(f"[{self.classname()}] present fallback failed: {ex}")
@@ -355,7 +309,20 @@ class LocalDeviceStream(AsyncSubscription):
                     )
 
                 # Long wait: user may change selection while this runs.
-                emitter = await ensure(target)
+                # Connection / init failures must not escape as unretrieved tasks
+                # (createTask has no caller await).
+                try:
+                    emitter = await ensure(target)
+                except Exception as ex:
+                    error(
+                        f"[{self.classname()}] switchDevice ensureRunning "
+                        f"failed serial={target!r}: {ex}"
+                    )
+                    self.raiseEvent(C_ON_ERROR, ex)
+                    # If a newer request arrived, loop for that target.
+                    if self._desiredSerial != target or self._switchEpoch != epochAtStart:
+                        continue
+                    return
 
                 if self._desiredSerial != target or self._switchEpoch != epochAtStart:
                     verbose(
@@ -363,14 +330,24 @@ class LocalDeviceStream(AsyncSubscription):
                         f"target={target!r} desired={self._desiredSerial!r} "
                         f"epoch={epochAtStart}->{self._switchEpoch}"
                     )
-                    # Do not attach the stale emitter; loop for the new target.
                     continue
 
-                self.attachedEmitter(emitter)
-                await self.start()
+                try:
+                    self.attachedEmitter(emitter)
+                    await self.start()
+                except Exception as ex:
+                    error(
+                        f"[{self.classname()}] switchDevice attach/start "
+                        f"failed serial={target!r}: {ex}"
+                    )
+                    self.detachedEmitter()
+                    self._serial = None
+                    self.raiseEvent(C_ON_ERROR, ex)
+                    if self._desiredSerial != target or self._switchEpoch != epochAtStart:
+                        continue
+                    return
 
                 if self._desiredSerial != target or self._switchEpoch != epochAtStart:
-                    # Desired changed during attach/start — detach and retry.
                     verbose(
                         f"[{self.classname()}] switchDevice race after start; retry"
                     )
