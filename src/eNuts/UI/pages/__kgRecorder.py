@@ -437,12 +437,6 @@ class KGRecorder(PlaybackBase):
         return Point(1080, 1920)
 
     def _widgetToDevice(self, event: QMouseEvent) -> Optional[Tuple[int, int]]:
-        """Widget → image-fit content → device resolution.
-
-        Uses ``GLImage.mapToContent`` (same Scale/Fill/Crop math as paint).
-        Returns ``None`` when the point is outside the fitted image (Scale bars)
-        or content is not available yet.
-        """
         view = self._streamView
         if view is None:
             return None
