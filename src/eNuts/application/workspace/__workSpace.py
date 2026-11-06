@@ -34,7 +34,7 @@ from ...UI.navigation import (
 )
 from ...UI.pages import buildDevicePage, buildNavigationPages
 from ...UI.pages.__devicePage import DeviceFrameBridge
-from ..device import (
+from ...services.device import (
     DEVICE_ADDED_EVENT,
     DEVICE_INITIALIZED_EVENT,
     DEVICE_REMOVED_EVENT,
