@@ -26,6 +26,7 @@ from fluxCore.action.android.injectKey import InjectKeyPress, InjectKeyRelease
 from fluxCore.stream import LocalDeviceStream
 from fluxCore.types.geometry import Point
 from fluxCore.types.interface.device import iDevice
+from jAGQt.widgets.commandBar import CommandBarButton
 
 # ==================================================================================
 from ...services.device import (
@@ -146,6 +147,10 @@ class KGRecorder(PlaybackBase):
         self._recorder: iKGRecorderService = KGRecorderService()
         self._lastSessionResult: Optional[Dict[str, Any]] = None
         self._captureWired: bool = False
+        self._btnRecord: Optional[CommandBarButton] = None
+        self._btnStop: Optional[CommandBarButton] = None
+        self._btnClear: Optional[CommandBarButton] = None
+        self._btnSave: Optional[CommandBarButton] = None
 
     @classmethod
     def classname(cls) -> str:
@@ -203,6 +208,7 @@ class KGRecorder(PlaybackBase):
         self._state = eKGRecorderState.Recording
         self._lastSessionResult = None
         self._setDeviceComboEnabled(False)
+        self._syncCommandBar()
         verbose(
             f"[{self.classname()}] recording started serial={serial!r} "
             f"dir={str(sessionDir)!r}"
@@ -218,6 +224,7 @@ class KGRecorder(PlaybackBase):
             self._lastSessionResult = None
         self._state = eKGRecorderState.Idle
         self._setDeviceComboEnabled(True)
+        self._syncCommandBar()
         result = self._lastSessionResult or {}
         verbose(
             f"[{self.classname()}] recording stopped "
@@ -228,6 +235,7 @@ class KGRecorder(PlaybackBase):
 
     def clear(self) -> None:
         self._recorder.clearEvents()
+        self._syncCommandBar()
         verbose(f"[{self.classname()}] session events cleared")
 
     def save(self, name: Optional[str] = None) -> None:
@@ -237,6 +245,7 @@ class KGRecorder(PlaybackBase):
         if result is None:
             warning(f"[{self.classname()}] save: no session result name={name!r}")
             return
+        self._syncCommandBar()
         verbose(
             f"[{self.classname()}] save name={name!r} "
             f"video={result.get('videoPath')!r} "
@@ -585,6 +594,49 @@ class KGRecorder(PlaybackBase):
 
         self._deviceCombo = deviceCombo
         self._utilsPanel = utils
+
+        self._wInitializeCommandBar()
+
+    def _wInitializeCommandBar(self) -> None:
+        """Session transport buttons on the page command bar."""
+        btnRecord = CommandBarButton("Record")
+        btnStop = CommandBarButton("Stop")
+        btnClear = CommandBarButton("Clear")
+        btnSave = CommandBarButton("Save")
+
+        btnRecord.clicked.connect(self.start)
+        btnStop.clicked.connect(self.stop)
+        btnClear.clicked.connect(self.clear)
+        btnSave.clicked.connect(self._onSaveClicked)
+
+        self.addCommandGroup("Session")
+        self.addCommand(btnRecord, "Session")
+        self.addCommand(btnStop, "Session")
+        self.addCommand(btnClear, "Session")
+        self.addCommand(btnSave, "Session")
+
+        self._btnRecord = btnRecord
+        self._btnStop = btnStop
+        self._btnClear = btnClear
+        self._btnSave = btnSave
+        self._syncCommandBar()
+
+    def _onSaveClicked(self) -> None:
+        self.save()
+
+    def _syncCommandBar(self) -> None:
+        recording = self._state is eKGRecorderState.Recording
+        hasResult = self._lastSessionResult is not None
+        btnRecord = self._btnRecord
+        btnStop = self._btnStop
+        btnClear = self._btnClear
+        btnSave = self._btnSave
+        if btnRecord is None or btnStop is None or btnClear is None or btnSave is None:
+            return
+        btnRecord.setEnabled(not recording)
+        btnStop.setEnabled(recording)
+        btnClear.setEnabled(recording)
+        btnSave.setEnabled(recording or hasResult)
 
     @property
     def shell(self) -> iShell:
