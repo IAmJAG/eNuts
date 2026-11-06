@@ -30,7 +30,7 @@ C_MANIFEST_VERSION: int = 1
 
 
 # ==================================================================================
-class KGRecorderService(AsyncService):  # structural: iKGRecorderService
+class KGRecorderService(AsyncService): 
     """Capture every emitter ON_FRAME packet + key/pointer events for one session.
 
     Video is the raw encoded elementary stream (scrcpy/h264 payloads as they
@@ -62,9 +62,6 @@ class KGRecorderService(AsyncService):  # structural: iKGRecorderService
         self._events: List[Dict[str, Any]] = []
         self._frameSubscribed: bool = False
 
-    # -------------------------------------------------------------------------
-    # properties
-    # -------------------------------------------------------------------------
     @property
     def isRecording(self) -> bool:
         return self._recording
@@ -81,24 +78,16 @@ class KGRecorderService(AsyncService):  # structural: iKGRecorderService
     def frameCount(self) -> int:
         return self._frameCount
 
-    # -------------------------------------------------------------------------
-    # bind / session control
-    # -------------------------------------------------------------------------
     def bind(
-        self,
-        emitter: iEmitter,
-        *,
-        serial: str,
-        width: int,
-        height: int,
-        codec: str = "h264",
+        self, emitter: iEmitter, *, serial: str, 
+        width: int, height: int,  codec: str = "h264",
     ) -> None:
-        if self._recording:
-            raise RuntimeError(
-                f"[{self.name}] cannot bind while recording sessionId={self._sessionId!r}"
+        if self.isRecording:
+            raise RuntimeError(f"cannot bind while recording sessionId={self._sessionId!r}"
             )
-        if emitter is None:
-            raise ValueError("emitter is required")
+        
+        if emitter is None: raise ValueError("emitter is required")
+
         cleaned = (serial or "").strip()
         if not cleaned:
             raise ValueError("serial is required")
@@ -193,12 +182,8 @@ class KGRecorderService(AsyncService):  # structural: iKGRecorderService
         self._sessionStartMono = None
         return result
 
-    # -------------------------------------------------------------------------
-    # events log
-    # -------------------------------------------------------------------------
     def logKey(self, action: str, key: str) -> None:
-        if not self._recording:
-            return
+        if not self._recording: return
         self._events.append(
             {
                 "t": self._relativeTs(),
@@ -277,8 +262,7 @@ class KGRecorderService(AsyncService):  # structural: iKGRecorderService
     # helpers
     # -------------------------------------------------------------------------
     def _relativeTs(self) -> float:
-        if self._sessionStartMono is None:
-            return 0.0
+        if self._sessionStartMono is None: return 0.0
         return max(0.0, monotonic() - self._sessionStartMono)
 
     def _closeVideoFile(self) -> None:
@@ -289,8 +273,9 @@ class KGRecorderService(AsyncService):  # structural: iKGRecorderService
         try:
             videoFile.flush()
             videoFile.close()
+
         except Exception as ex:
-            warning(f"[{self.name}] close video failed: {ex}")
+            warning(f"close video failed: {ex}")
 
     def _writeManifest(self, durationSec: float) -> Dict[str, Any]:
         result: Dict[str, Any] = {
