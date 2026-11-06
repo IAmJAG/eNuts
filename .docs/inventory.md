@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-05 08:03:07 UTC*
+*Auto-generated on: 2026-11-06 01:03:55 UTC*
 
 ## Current Directory Structure
 
@@ -902,6 +902,7 @@ src/fluxCore/stream:
 			C_ON_STOPPED -> : c_on_stopped
 			C_ON_PAUSED -> : c_on_paused
 			C_ON_RESUMED -> : c_on_resumed
+			C_LIFECYCLE_EVENTS -> : c_lifecycle_events
 	__eDecodeFormat.py - 
 		CLASSE(S):
 			eDecodeFormat -> : edecodeformat
@@ -1047,7 +1048,7 @@ src/fluxCore/utilities:
 			getADBDevice -> : getadbdevice
 	__frame.py - 
 		FUNCTION(S):
-			_ParseFrameHeader -> : _parseframeheader
+			_parseFrameHeader -> : _parseframeheader
 			ReadSingleFrame -> : readsingleframe
 			AsyncReadSingleFrame -> : asyncreadsingleframe
 		CONSTANTS(S)/GLOBAL(S)
@@ -1743,6 +1744,37 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+8006bc6:
+	LocalDeviceStream: coalesce device switches to latest serial only
+		src/fluxCore/stream/__deviceStream.py
+
+9f79270:
+	Faster device switch: hot-retain emitters; offload blocking scrcpy ADB to threads
+		src/fluxCore/emitters/__SCRCPYEmitter.py
+		src/fluxCore/stream/__deviceStream.py
+
+ab0f459:
+	LocalDeviceStream: sync codec after attach when ON_INITIALIZED already fired
+		src/fluxCore/stream/__deviceStream.py
+
+543e3d0:
+	docs: LocalDeviceStream switchDevice/ring/presenter; KGRecorder page stream path
+		.docs/eNuts/UI/pages/kgRecorderPage.md
+		.docs/fluxCore/stream/deviceStream.md
+		.docs/fluxCore/stream/implementation.md
+		.docs/fluxCore/stream/requirement.md
+
+89a0151:
+	LocalDeviceStream: ring+presenter+switchDevice; KGRecorder page uses stream for device switch
+		src/eNuts/UI/pages/__kgRecorder.py
+		src/fluxCore/stream/__deviceStream.py
+
+988770b:
+	fix(frame): correct maximum frame size constant and update function naming conventions
+		.docs/inventory.md
+		src/eNuts/UI/pages/__kgRecorder.py
+		src/fluxCore/utilities/__frame.py
+
 41d8d6a:
 	fix(recorder): clean up imports and improve error logging in device management
 		src/eNuts/UI/pages/__kgRecorder.py
@@ -1760,31 +1792,5 @@ src/utilities/io:
 34b0369:
 	fix(imageConverters): handle None case in toQImage function when converting to numpy array
 		src/fluxCore/stream/__imageConverters.py
-
-7d8dea6:
-	fix(imageConverters): handle None case for videoFrame in toNumpy function
-		src/fluxCore/stream/__imageConverters.py
-
-7bf83fd:
-	fix(stream): call super constructor in LocalDeviceStream and remove unused decorator in toVideoFrame
-		src/fluxCore/stream/__deviceStream.py
-		src/fluxCore/stream/__imageConverters.py
-
-cdcdc6b:
-	refactor(stream): use partial to enhance event subscription handling in LocalDeviceStream
-		src/fluxCore/stream/__deviceStream.py
-
-a20465b:
-	refactor(stream): replace AsyncService with AsyncSubscription in LocalDeviceStream
-		src/fluxCore/stream/__deviceStream.py
-
-e0785d1:
-	fix(formatter): set domain and member attributes in log records if not present
-		.docs/inventory.md
-		src/jAGFx/logging/formatters/__defaultFormatter.py
-
-df324b7:
-	fix(formatter): ensure domain and member attributes are set in log records
-		src/jAGFx/logging/formatters/__defaultFormatter.py
 
 ```
