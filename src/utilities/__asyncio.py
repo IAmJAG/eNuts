@@ -51,7 +51,25 @@ def createTask(func: Callable[..., Any], *args, **kwargs) -> Task:
         if not iscoroutinefunction(func):
             runner = _getCoroutine(func)
 
-        return loop.create_task(runner(*args, **kwargs))
+        task: Task = loop.create_task(runner(*args, **kwargs))
+
+        def _logTaskException(done: Task) -> None:
+            try:
+                exc = done.exception()
+            except Exception:
+                return
+            if exc is not None:
+                try:
+                    error(
+                        f"createTask unhandled exception "
+                        f"name={done.get_name()!r}: {exc}",
+                        exc,
+                    )
+                except Exception:
+                    pass
+
+        task.add_done_callback(_logTaskException)
+        return task
 
     except Exception as ex:
         raise ex
