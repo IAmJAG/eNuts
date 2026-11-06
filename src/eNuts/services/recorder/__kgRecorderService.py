@@ -36,6 +36,9 @@ class KGRecorderService(AsyncService):  # structural: iKGRecorderService
     Video is the raw encoded elementary stream (scrcpy/h264 payloads as they
     arrive). Display path (LocalDeviceStream ring) is not used — no skip.
     Events are a single JSON array inside the session manifest. No pause.
+
+    Session capture is event-driven only: do not start AsyncService._serviceLoop
+    while recording (no-op work + throttle 0 busy-spins the qasync/Qt loop).
     """
 
     def __init__(self, name: str | None = None) -> None:
@@ -130,7 +133,8 @@ class KGRecorderService(AsyncService):  # structural: iKGRecorderService
         manifestPath = target / C_MANIFEST_NAME
 
         try:
-            videoFile = open(videoPath, "wb")
+            # 1 MiB buffer reduces syscall pressure on the emitter loop.
+            videoFile = open(videoPath, "wb", buffering=1024 * 1024)
         except OSError as ex:
             error(f"[{self.name}] open video failed path={videoPath}: {ex}")
             raise
@@ -148,14 +152,9 @@ class KGRecorderService(AsyncService):  # structural: iKGRecorderService
 
         self._attachFrame()
 
-        # AsyncService start: light work loop for wake/stop integration only.
-        # Call concrete base explicitly — Protocol must not sit ahead of AsyncService in MRO.
-        try:
-            if not self.isRunning:
-                AsyncService.start(self, *args, **kwargs)
-        except RuntimeError:
-            # Already running is acceptable if reused across sessions after stop.
-            pass
+        # Do NOT start AsyncService._serviceLoop here.
+        # work() is a no-op; with throttle=0 an undetected no-op busy-spins the
+        # qasync loop and freezes the Qt UI. Capture is purely ON_FRAME driven.
 
         self.raiseEvent(
             C_ON_SESSION_STARTED,
@@ -183,20 +182,6 @@ class KGRecorderService(AsyncService):  # structural: iKGRecorderService
         self._closeVideoFile()
 
         result = self._writeManifest(durationSec=duration)
-
-        # Stop AsyncService loop if it was started by us.
-        try:
-            if self.isRunning:
-                AsyncService.stop(self, *args, **kwargs)
-        except TypeError:
-            # forceAfter-only signature if caller passed unexpected kwargs
-            try:
-                if self.isRunning:
-                    AsyncService.stop(self)
-            except RuntimeError as ex:
-                warning(f"[{self.name}] AsyncService.stop: {ex}")
-        except RuntimeError as ex:
-            warning(f"[{self.name}] AsyncService.stop: {ex}")
 
         self.raiseEvent(C_ON_SESSION_STOPPED, result)
         verbose(
@@ -243,11 +228,9 @@ class KGRecorderService(AsyncService):  # structural: iKGRecorderService
         verbose(f"[{self.name}] events cleared")
 
     # -------------------------------------------------------------------------
-    # AsyncService work (heartbeat only — frames arrive via ON_FRAME)
+    # AsyncService work (unused for sessions — capture is ON_FRAME only)
     # -------------------------------------------------------------------------
     async def work(self, *args, **kwargs) -> None:
-        # Capture is event-driven on emitter ON_FRAME. Work is a no-op tick so
-        # AsyncService lifecycle (start/stop) remains available to callers.
         return None
 
     # -------------------------------------------------------------------------
@@ -271,7 +254,8 @@ class KGRecorderService(AsyncService):  # structural: iKGRecorderService
             warning(f"[{self.name}] unsubscribe ON_FRAME failed: {ex}")
         self._frameSubscribed = False
 
-    def _onFrame(self, frame: iFrame, *args, **kwargs) -> None:
+    async def _onFrame(self, frame: iFrame, *args, **kwargs) -> None:
+        # Awaited by emitter asyncRaiseEvent — sequential, no per-frame createTask.
         if not self._recording:
             return
         videoFile = self._videoFile
