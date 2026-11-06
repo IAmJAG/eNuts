@@ -57,7 +57,15 @@ class DeviceManager(iDeviceManager, AsyncSubscription):
 
         if not self._streamReady.get(deviceId, False):
             verbose(f"[{self.__class__.__name__}] ensureRunning initialize id={deviceId!r}")
-            await emitter.initialize(GPUReady=False)
+            try:
+                await emitter.initialize(GPUReady=False)
+            except Exception as ex:
+                self._streamReady[deviceId] = False
+                error(
+                    f"[{self.__class__.__name__}] ensureRunning initialize "
+                    f"failed id={deviceId!r}: {ex}"
+                )
+                raise
             self._streamReady[deviceId] = True
 
         if not emitter.isRunning:
