@@ -2,11 +2,13 @@
 from __future__ import annotations
 
 # ==================================================================================
-from typing import List, Optional, Union
+from enum import Enum, auto
+from time import monotonic
+from typing import Any, Dict, List, Optional, Union
 
 # ==================================================================================
-from PySide6.QtCore import QSettings
-from PySide6.QtGui import QIcon, QPixmap
+from PySide6.QtCore import QSettings, Qt
+from PySide6.QtGui import QIcon, QKeyEvent, QMouseEvent, QPixmap
 from PySide6.QtWidgets import (
     QBoxLayout,
     QComboBox,
@@ -17,7 +19,11 @@ from PySide6.QtWidgets import (
 )
 
 # ==================================================================================
+from fluxCore.action.android.enums import eKeyCode, eKeyState
+from fluxCore.action.android.gesture import Touch
+from fluxCore.action.android.injectKey import InjectKeyPress, InjectKeyRelease
 from fluxCore.stream import LocalDeviceStream
+from fluxCore.types.geometry import Point
 from fluxCore.types.interface.device import iDevice
 
 # ==================================================================================
@@ -37,11 +43,79 @@ C_SETTINGS_DEVICE_ID: str = "RECORDER_DEVICE_ID"
 
 
 # ==================================================================================
-class KGRecorder(PlaybackBase):
-    """KG Recorder page: device combo + stream view via LocalDeviceStream.
+class eKGRecorderState(Enum):
+    Idle = auto()
+    Recording = auto()
 
-    Does not own emitter subscribe/decode/start/stop. All stream lifecycle goes
-    through ``LocalDeviceStream.switchDevice``.
+
+# ==================================================================================
+# Practical Qt → Android key map (subset; extend later).
+_C_QT_TO_ANDROID: Dict[int, eKeyCode] = {
+    Qt.Key.Key_0: eKeyCode.KEYCODE_0,
+    Qt.Key.Key_1: eKeyCode.KEYCODE_1,
+    Qt.Key.Key_2: eKeyCode.KEYCODE_2,
+    Qt.Key.Key_3: eKeyCode.KEYCODE_3,
+    Qt.Key.Key_4: eKeyCode.KEYCODE_4,
+    Qt.Key.Key_5: eKeyCode.KEYCODE_5,
+    Qt.Key.Key_6: eKeyCode.KEYCODE_6,
+    Qt.Key.Key_7: eKeyCode.KEYCODE_7,
+    Qt.Key.Key_8: eKeyCode.KEYCODE_8,
+    Qt.Key.Key_9: eKeyCode.KEYCODE_9,
+    Qt.Key.Key_A: eKeyCode.KEYCODE_A,
+    Qt.Key.Key_B: eKeyCode.KEYCODE_B,
+    Qt.Key.Key_C: eKeyCode.KEYCODE_C,
+    Qt.Key.Key_D: eKeyCode.KEYCODE_D,
+    Qt.Key.Key_E: eKeyCode.KEYCODE_E,
+    Qt.Key.Key_F: eKeyCode.KEYCODE_F,
+    Qt.Key.Key_G: eKeyCode.KEYCODE_G,
+    Qt.Key.Key_H: eKeyCode.KEYCODE_H,
+    Qt.Key.Key_I: eKeyCode.KEYCODE_I,
+    Qt.Key.Key_J: eKeyCode.KEYCODE_J,
+    Qt.Key.Key_K: eKeyCode.KEYCODE_K,
+    Qt.Key.Key_L: eKeyCode.KEYCODE_L,
+    Qt.Key.Key_M: eKeyCode.KEYCODE_M,
+    Qt.Key.Key_N: eKeyCode.KEYCODE_N,
+    Qt.Key.Key_O: eKeyCode.KEYCODE_O,
+    Qt.Key.Key_P: eKeyCode.KEYCODE_P,
+    Qt.Key.Key_Q: eKeyCode.KEYCODE_Q,
+    Qt.Key.Key_R: eKeyCode.KEYCODE_R,
+    Qt.Key.Key_S: eKeyCode.KEYCODE_S,
+    Qt.Key.Key_T: eKeyCode.KEYCODE_T,
+    Qt.Key.Key_U: eKeyCode.KEYCODE_U,
+    Qt.Key.Key_V: eKeyCode.KEYCODE_V,
+    Qt.Key.Key_W: eKeyCode.KEYCODE_W,
+    Qt.Key.Key_X: eKeyCode.KEYCODE_X,
+    Qt.Key.Key_Y: eKeyCode.KEYCODE_Y,
+    Qt.Key.Key_Z: eKeyCode.KEYCODE_Z,
+    Qt.Key.Key_Space: eKeyCode.KEYCODE_SPACE,
+    Qt.Key.Key_Return: eKeyCode.KEYCODE_ENTER,
+    Qt.Key.Key_Enter: eKeyCode.KEYCODE_ENTER,
+    Qt.Key.Key_Backspace: eKeyCode.KEYCODE_DEL,
+    Qt.Key.Key_Delete: eKeyCode.KEYCODE_FORWARD_DEL,
+    Qt.Key.Key_Tab: eKeyCode.KEYCODE_TAB,
+    Qt.Key.Key_Escape: eKeyCode.KEYCODE_ESCAPE,
+    Qt.Key.Key_Up: eKeyCode.KEYCODE_DPAD_UP,
+    Qt.Key.Key_Down: eKeyCode.KEYCODE_DPAD_DOWN,
+    Qt.Key.Key_Left: eKeyCode.KEYCODE_DPAD_LEFT,
+    Qt.Key.Key_Right: eKeyCode.KEYCODE_DPAD_RIGHT,
+    Qt.Key.Key_Home: eKeyCode.KEYCODE_MOVE_HOME,
+    Qt.Key.Key_End: eKeyCode.KEYCODE_MOVE_END,
+    Qt.Key.Key_PageUp: eKeyCode.KEYCODE_PAGE_UP,
+    Qt.Key.Key_PageDown: eKeyCode.KEYCODE_PAGE_DOWN,
+    Qt.Key.Key_VolumeUp: eKeyCode.KEYCODE_VOLUME_UP,
+    Qt.Key.Key_VolumeDown: eKeyCode.KEYCODE_VOLUME_DOWN,
+    Qt.Key.Key_Back: eKeyCode.KEYCODE_BACK,
+}
+# ==================================================================================
+
+
+# ==================================================================================
+class KGRecorder(PlaybackBase):
+    """KG Recorder page: device combo, stream, and recording controller.
+
+    Owns session state (Idle | Recording), injects capture-surface input to the
+    selected device, and logs successful injects while Recording.
+    Stream lifecycle goes through ``LocalDeviceStream.switchDevice``.
     """
 
     def __init__(
@@ -64,12 +138,90 @@ class KGRecorder(PlaybackBase):
             **kwargs,
         )
         self._stream: LocalDeviceStream = LocalDeviceStream(ringSize=8)
+        self._state: eKGRecorderState = eKGRecorderState.Idle
+        self._sessionStart: Optional[float] = None
+        self._events: List[Dict[str, Any]] = []
+        self._captureWired: bool = False
 
     @classmethod
     def classname(cls) -> str:
         return cls.__name__
 
+    # -------------------------------------------------------------------------
+    # session
+    # -------------------------------------------------------------------------
+    @property
+    def state(self) -> eKGRecorderState:
+        return self._state
+
+    @property
+    def events(self) -> List[Dict[str, Any]]:
+        return list(self._events)
+
+    def start(self) -> None:
+        if self._state is eKGRecorderState.Recording:
+            return
+        if not self._stream._serial:
+            warning(f"[{self.classname()}] start blocked: no device selected")
+            return
+        self._state = eKGRecorderState.Recording
+        self._sessionStart = monotonic()
+        self._setDeviceComboEnabled(False)
+        verbose(f"[{self.classname()}] recording started serial={self._stream._serial!r}")
+
+    def stop(self) -> None:
+        if self._state is not eKGRecorderState.Recording:
+            return
+        self._state = eKGRecorderState.Idle
+        self._sessionStart = None
+        self._setDeviceComboEnabled(True)
+        verbose(
+            f"[{self.classname()}] recording stopped events={len(self._events)}"
+        )
+
+    def clear(self) -> None:
+        self._events.clear()
+        if self._state is eKGRecorderState.Recording:
+            self._sessionStart = monotonic()
+        verbose(f"[{self.classname()}] session events cleared")
+
+    def save(self, name: Optional[str] = None) -> None:
+        # Deferred: paired MP4 + event file.
+        warning(
+            f"[{self.classname()}] save deferred name={name!r} "
+            f"events={len(self._events)}"
+        )
+
+    def open(self, name: Optional[str] = None) -> None:
+        # Deferred: load paired artefacts.
+        warning(f"[{self.classname()}] open deferred name={name!r}")
+
+    def _relativeTs(self) -> float:
+        if self._sessionStart is None:
+            return 0.0
+        return max(0.0, monotonic() - self._sessionStart)
+
+    def _logEvent(self, kind: str, payload: Dict[str, Any]) -> None:
+        if self._state is not eKGRecorderState.Recording:
+            return
+        entry = {"t": self._relativeTs(), "kind": kind, **payload}
+        self._events.append(entry)
+
+    # -------------------------------------------------------------------------
+    # device combo / stream
+    # -------------------------------------------------------------------------
+    def _setDeviceComboEnabled(self, enabled: bool) -> None:
+        combo = getattr(self, "_deviceCombo", None)
+        if combo is None:
+            return
+        try:
+            combo.setEnabled(enabled)
+        except Exception:
+            pass
+
     def _refreshDeviceCombo(self, *args, **kwargs) -> None:
+        if self._state is eKGRecorderState.Recording:
+            return
         try:
             deviceCombo: QComboBox = self._deviceCombo
             self.blockWidgetSignals(deviceCombo)
@@ -102,6 +254,9 @@ class KGRecorder(PlaybackBase):
             self.restoreWidgetSignals(deviceCombo)
 
     def _setDevice(self, deviceId: Optional[str]) -> None:
+        if self._state is eKGRecorderState.Recording:
+            warning(f"[{self.classname()}] setDevice blocked while Recording")
+            return
         cleaned: Optional[str] = (str(deviceId).strip() if deviceId else "") or None
         self._persistDeviceId(cleaned)
         verbose(f"[{self.classname()}] setting deviceId={cleaned!r}")
@@ -131,12 +286,18 @@ class KGRecorder(PlaybackBase):
         deviceMngr.subscribe(DEVICE_ADDED_EVENT, self._onDeviceAdded)
         deviceMngr.subscribe(DEVICE_REMOVED_EVENT, self._onDeviceRemoved)
 
+        self._wireCaptureSignals()
+
     def _onDeviceChanged(self, device: str, *args, **kwargs) -> None:
+        if self._state is eKGRecorderState.Recording:
+            return
         cboDevices: QComboBox = self._deviceCombo
         deviceId = cboDevices.itemData(cboDevices.findText(device))
         self._setDevice(deviceId)
 
     def _onDeviceAdded(self, device: iDevice, *args, **kwargs) -> None:
+        if self._state is eKGRecorderState.Recording:
+            return
         cboDevices: QComboBox = self._deviceCombo
         deviceId: str = device.id
         newIndex: int = cboDevices.findData(deviceId)
@@ -154,7 +315,138 @@ class KGRecorder(PlaybackBase):
             deviceName: str = device.name.strip().lower()
             verbose(f"removed device={deviceId!r}:{deviceName!r}")
             if self._stream._serial == deviceId:
+                if self._state is eKGRecorderState.Recording:
+                    self.stop()
                 self._setDevice(None)
+
+    # -------------------------------------------------------------------------
+    # CaptureGLImage → inject + log
+    # -------------------------------------------------------------------------
+    def _wireCaptureSignals(self) -> None:
+        view = getattr(self, "_streamView", None)
+        if view is None or self._captureWired:
+            return
+        if not isinstance(view, CaptureGLImage):
+            warning(
+                f"[{self.classname()}] streamView is not CaptureGLImage; "
+                f"input signals not wired"
+            )
+            return
+        try:
+            view.keyPressed.connect(self._onKeyPressed)
+            view.keyReleased.connect(self._onKeyReleased)
+            view.mousePressed.connect(self._onMousePressed)
+            view.mouseMoved.connect(self._onMouseMoved)
+            view.mouseReleased.connect(self._onMouseReleased)
+            self._captureWired = True
+            verbose(f"[{self.classname()}] CaptureGLImage signals wired")
+        except Exception as ex:
+            warning(f"[{self.classname()}] wire capture signals failed: {ex}")
+
+    def _controlSocket(self) -> Any:
+        serial = self._stream._serial
+        if not serial:
+            return None
+        mgr = self.deviceManager
+        if mgr is None:
+            return None
+        emitter = mgr.get(serial)
+        if emitter is None:
+            return None
+        return getattr(emitter, "ControlSocket", None)
+
+    def _deviceResolution(self) -> Point:
+        serial = self._stream._serial
+        if serial:
+            emitter = self.deviceManager.get(serial) if self.deviceManager else None
+            if emitter is not None:
+                w = int(getattr(emitter, "width", 0) or 0)
+                h = int(getattr(emitter, "height", 0) or 0)
+                if w > 0 and h > 0:
+                    return Point(w, h)
+        view = getattr(self, "_streamView", None)
+        if view is not None:
+            return Point(max(1, view.width()), max(1, view.height()))
+        return Point(1080, 1920)
+
+    def _widgetToDevice(self, event: QMouseEvent) -> tuple[int, int]:
+        """Map widget coords toward device resolution (fit transform deferred)."""
+        view = self._streamView
+        res = self._deviceResolution()
+        vw = max(1, view.width())
+        vh = max(1, view.height())
+        x = int(event.position().x() * (res.x / vw))
+        y = int(event.position().y() * (res.y / vh))
+        return x, y
+
+    def _onKeyPressed(self, event: QKeyEvent) -> None:
+        code = _C_QT_TO_ANDROID.get(int(event.key()))
+        if code is None:
+            return
+        control = self._controlSocket()
+        if control is None:
+            return
+        try:
+            InjectKeyPress(code).execute(control)
+            self._logEvent("key", {"action": "down", "key": code.name})
+        except Exception as ex:
+            warning(f"[{self.classname()}] inject key press failed: {ex}")
+
+    def _onKeyReleased(self, event: QKeyEvent) -> None:
+        code = _C_QT_TO_ANDROID.get(int(event.key()))
+        if code is None:
+            return
+        control = self._controlSocket()
+        if control is None:
+            return
+        try:
+            InjectKeyRelease(code).execute(control)
+            self._logEvent("key", {"action": "up", "key": code.name})
+        except Exception as ex:
+            warning(f"[{self.classname()}] inject key release failed: {ex}")
+
+    def _onMousePressed(self, event: QMouseEvent) -> None:
+        if event.button() != Qt.MouseButton.LeftButton:
+            return
+        control = self._controlSocket()
+        if control is None:
+            return
+        x, y = self._widgetToDevice(event)
+        res = self._deviceResolution()
+        try:
+            Touch(eKeyState.DOWN, x, y, resolution=res).execute(control)
+            self._logEvent("pointer", {"action": "down", "x": x, "y": y})
+        except Exception as ex:
+            warning(f"[{self.classname()}] inject touch down failed: {ex}")
+
+    def _onMouseMoved(self, event: QMouseEvent) -> None:
+        # Pointer move only while dragging.
+        if not (event.buttons() & Qt.MouseButton.LeftButton):
+            return
+        control = self._controlSocket()
+        if control is None:
+            return
+        x, y = self._widgetToDevice(event)
+        res = self._deviceResolution()
+        try:
+            Touch(eKeyState.MOVE, x, y, resolution=res).execute(control)
+            self._logEvent("pointer", {"action": "move", "x": x, "y": y})
+        except Exception as ex:
+            warning(f"[{self.classname()}] inject touch move failed: {ex}")
+
+    def _onMouseReleased(self, event: QMouseEvent) -> None:
+        if event.button() != Qt.MouseButton.LeftButton:
+            return
+        control = self._controlSocket()
+        if control is None:
+            return
+        x, y = self._widgetToDevice(event)
+        res = self._deviceResolution()
+        try:
+            Touch(eKeyState.UP, x, y, resolution=res).execute(control)
+            self._logEvent("pointer", {"action": "up", "x": x, "y": y})
+        except Exception as ex:
+            warning(f"[{self.classname()}] inject touch up failed: {ex}")
 
     def _wInitializeUI(self) -> None:
         super()._wInitializeUI(CaptureGLImage)
