@@ -4,7 +4,7 @@ from __future__ import annotations
 # ==================================================================================
 from enum import Enum, auto
 from time import monotonic
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 # ==================================================================================
 from PySide6.QtCore import QSettings, Qt
@@ -365,18 +365,49 @@ class KGRecorder(PlaybackBase):
                 if w > 0 and h > 0:
                     return Point(w, h)
         view = getattr(self, "_streamView", None)
+        if view is not None and hasattr(view, "contentSize"):
+            cw, ch = view.contentSize()
+            if cw > 0 and ch > 0:
+                return Point(cw, ch)
         if view is not None:
             return Point(max(1, view.width()), max(1, view.height()))
         return Point(1080, 1920)
 
-    def _widgetToDevice(self, event: QMouseEvent) -> tuple[int, int]:
-        """Map widget coords toward device resolution (fit transform deferred)."""
+    def _widgetToDevice(self, event: QMouseEvent) -> Optional[Tuple[int, int]]:
+        """Widget → image-fit content → device resolution.
+
+        Uses ``GLImage.mapToContent`` (same Scale/Fill/Crop math as paint).
+        Returns ``None`` when the point is outside the fitted image (Scale bars)
+        or content is not available yet.
+        """
         view = self._streamView
+        if view is None:
+            return None
+
+        pos = event.position()
+        mapped: Optional[Tuple[float, float]] = None
+        if hasattr(view, "mapToContent"):
+            mapped = view.mapToContent(float(pos.x()), float(pos.y()))
+        if mapped is None:
+            return None
+
+        cx, cy = mapped
         res = self._deviceResolution()
-        vw = max(1, view.width())
-        vh = max(1, view.height())
-        x = int(event.position().x() * (res.x / vw))
-        y = int(event.position().y() * (res.y / vh))
+        contentW, contentH = 0, 0
+        if hasattr(view, "contentSize"):
+            contentW, contentH = view.contentSize()
+
+        if contentW > 0 and contentH > 0 and (
+            contentW != int(res.x) or contentH != int(res.y)
+        ):
+            x = int(cx * (res.x / contentW))
+            y = int(cy * (res.y / contentH))
+        else:
+            x = int(cx)
+            y = int(cy)
+
+        x = max(0, min(int(res.x), x))
+        y = max(0, min(int(res.y), y))
         return x, y
 
     def _onKeyPressed(self, event: QKeyEvent) -> None:
@@ -411,7 +442,10 @@ class KGRecorder(PlaybackBase):
         control = self._controlSocket()
         if control is None:
             return
-        x, y = self._widgetToDevice(event)
+        mapped = self._widgetToDevice(event)
+        if mapped is None:
+            return
+        x, y = mapped
         res = self._deviceResolution()
         try:
             Touch(eKeyState.DOWN, x, y, resolution=res).execute(control)
@@ -426,7 +460,10 @@ class KGRecorder(PlaybackBase):
         control = self._controlSocket()
         if control is None:
             return
-        x, y = self._widgetToDevice(event)
+        mapped = self._widgetToDevice(event)
+        if mapped is None:
+            return
+        x, y = mapped
         res = self._deviceResolution()
         try:
             Touch(eKeyState.MOVE, x, y, resolution=res).execute(control)
@@ -440,7 +477,10 @@ class KGRecorder(PlaybackBase):
         control = self._controlSocket()
         if control is None:
             return
-        x, y = self._widgetToDevice(event)
+        mapped = self._widgetToDevice(event)
+        if mapped is None:
+            return
+        x, y = mapped
         res = self._deviceResolution()
         try:
             Touch(eKeyState.UP, x, y, resolution=res).execute(control)
