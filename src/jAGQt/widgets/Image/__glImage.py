@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 # ==================================================================================
-from typing import Optional, Union
+from typing import Optional, Tuple, Union
 
 # ==================================================================================
-from PySide6.QtCore import QRect, QSize, Qt
+from PySide6.QtCore import QPointF, QRect, QSize, Qt
 from PySide6.QtGui import QColor, QImage, QPainter, QResizeEvent
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from PySide6.QtWidgets import QSizePolicy
@@ -116,6 +116,64 @@ class GLImage(QOpenGLWidget, ComponentBase, ImageBase):
     @property
     def livePts(self) -> int:
         return self._livePts
+
+    def contentSize(self) -> Tuple[int, int]:
+        """Last presented / static content pixel size (w, h), or (0, 0)."""
+        return self._contentSize()
+
+    def fittedRect(self) -> QRect:
+        """Widget-space rectangle where content is drawn (same math as paint)."""
+        vw = self.width()
+        vh = self.height()
+        iw, ih = self._contentSize()
+        return self._fitRect(vw, vh, iw, ih)
+
+    def mapToContent(
+        self, x: float, y: float
+    ) -> Optional[Tuple[float, float]]:
+        """Map widget coordinates to content-pixel coordinates.
+
+        Returns ``None`` when there is no content, or (Scale mode) the point
+        lies outside the letterboxed/pillarboxed image rect.
+        Uses the same fit rules as ``paintGL`` / ``_recompute``.
+        """
+        vw = self.width()
+        vh = self.height()
+        iw, ih = self._contentSize()
+        if vw <= 0 or vh <= 0 or iw <= 0 or ih <= 0:
+            return None
+
+        mode = self._fitMode
+
+        if mode is ImageFitMode.Fill:
+            return (x / vw) * iw, (y / vh) * ih
+
+        if mode is ImageFitMode.Scale:
+            rect = self._fitRect(vw, vh, iw, ih)
+            if rect.isEmpty():
+                return None
+            if not (
+                rect.left() <= x < rect.left() + rect.width()
+                and rect.top() <= y < rect.top() + rect.height()
+            ):
+                return None
+            localX = (x - rect.left()) / max(1, rect.width())
+            localY = (y - rect.top()) / max(1, rect.height())
+            return localX * iw, localY * ih
+
+        # Crop: content scaled with max() and center-cropped to the widget.
+        scale = max(vw / iw, vh / ih)
+        tw = max(1.0, iw * scale)
+        th = max(1.0, ih * scale)
+        ox = (tw - vw) / 2.0
+        oy = (th - vh) / 2.0
+        return (x + ox) / scale, (y + oy) / scale
+
+    def mapToContentPoint(self, pos: QPointF) -> Optional[QPointF]:
+        mapped = self.mapToContent(float(pos.x()), float(pos.y()))
+        if mapped is None:
+            return None
+        return QPointF(mapped[0], mapped[1])
 
     def _initializeGL(self) -> None:
         self.gl = self.context().functions()
