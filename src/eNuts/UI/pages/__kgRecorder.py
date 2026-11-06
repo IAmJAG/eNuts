@@ -525,7 +525,6 @@ class KGRecorder(PlaybackBase):
         self._wInitializeCommandBar()
 
     def _wInitializeCommandBar(self) -> None:
-        """Session transport buttons on the page command bar."""
         btnRecord = CommandBarButton("Record")
         btnStop = CommandBarButton("Stop")
         btnClear = CommandBarButton("Clear")
@@ -565,11 +564,19 @@ class KGRecorder(PlaybackBase):
         btnClear.setEnabled(recording)
         btnSave.setEnabled(recording or hasResult)
 
+    def showEvent(self, event) -> None:  # type: ignore[override]
+        super().showEvent(event)
+        view = getattr(self, "_streamView", None)
+        if view is not None:
+            self._stream.attachView(view)
+
+    def hideEvent(self, event) -> None:  # type: ignore[override]
+        # Stop presenting into a widget that is off-stack / about to be deleted.
+        self._stream.detachView()
+        super().hideEvent(event)
+
     @property
     def shell(self) -> iShell:
-        # Pages are constructed with WorkSpace as parent, then reparented into
-        # QStackedWidget by stack.addWidget — Parent is no longer WorkSpace.
-        # Walk ancestors (or top-level window) for the Shell that owns deviceManager.
         node = self.parent()
         while node is not None:
             if getattr(node, "deviceManager", None) is not None and hasattr(
