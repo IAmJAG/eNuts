@@ -6,7 +6,7 @@ from jAGQt.types.interface.window import iMainWindowBase
 
 # ==================================================================================
 from .__applicationInformation import iApplicationInformation
-from .device import iDeviceManager
+from ..services.device import iDeviceManager
 
 
 # ==================================================================================
@@ -15,4 +15,3 @@ class iShell(iApplicationInformation):
 
     @property
     def deviceManager(self) -> iDeviceManager: ...
-    

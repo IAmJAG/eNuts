@@ -14,9 +14,9 @@ from jAGQt.types.interface.window import iMainWindowBase
 
 # ==================================================================================
 from ..types.interface.application import iShell
-from ..types.interface.application.device import iDeviceManager
+from ..types.interface.services.device import iDeviceManager
 from .__applicationInformation import ApplicationInformation
-from .device import DeviceManager
+from ..services.device import DeviceManager
 from .workspace import WorkSpace
 
 
