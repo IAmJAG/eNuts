@@ -5,32 +5,41 @@ from __future__ import annotations
 from time import monotonic_ns
 
 # ==================================================================================
+from utilities import fromNanoSeconds
+
+# ==================================================================================
 from ..types import eTimeDeltaFormat
+from ..types.interface.packets import iPacket
 
 
 # ==================================================================================
-class Packet:
-    def __init__(self, data: bytes): 
+class Packet(iPacket):
+    def __init__(self, data: bytes, width: int = 0, height: int = 0): 
         self._createdAt: float = monotonic_ns()
         self._payload: bytes = data
+        self._width: int = width
+        self._height: int = height
     
     @property
-    def createdAt(self) -> float:
-        return self._createdAt
+    def createdAt[T: eTimeDeltaFormat](self) -> float:
+        return fromNanoSeconds(self._createdAt, T)
     
     @property
     def payload(self) -> bytes: 
         return self._payload
 
     @property
-    def format(self, format: eTimeDeltaFormat) -> float:
-        if format == eTimeDeltaFormat.SECONDS: 
-            return self._createdAt / 1_000_000_000
-        
-        elif format == eTimeDeltaFormat.MILLISECONDS:
-            return self._createdAt / 1_000_000
-        
-        elif format == eTimeDeltaFormat.MICROSECONDS:
-            return self._createdAt / 1_000
+    def width(self) -> int:
+        return self._width
 
-        return self._createdAt
+    @width.setter
+    def width(self, value: int) -> None:
+        self._width = value
+
+    @property
+    def height(self) -> int:
+        return self._height
+
+    @height.setter
+    def height(self, value: int) -> None:
+        self._height = value

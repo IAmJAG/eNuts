@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-07 05:36:39 UTC*
+*Auto-generated on: 2026-11-07 10:26:17 UTC*
 
 ## Current Directory Structure
 
@@ -183,7 +183,8 @@ eNuts/
 │   │   ├── devices/
 │   │   │   └── __scrcpy.py
 │   │   ├── emitters/
-│   │   │   └── __SCRCPYEmitter.py
+│   │   │   ├── __SCRCPYEmitter.py
+│   │   │   └── __SCRCPYOptions.py
 │   │   ├── geometry/
 │   │   │   ├── __circle.py
 │   │   │   ├── __point.py
@@ -210,11 +211,15 @@ eNuts/
 │   │   │   ├── __frameDecoder.py
 │   │   │   ├── __frameFlags.py
 │   │   │   ├── __frameHeader.py
-│   │   │   ├── __frameRing.py
 │   │   │   ├── __imageConverters.py
 │   │   │   ├── __ipcDeviceStream.py
 │   │   │   ├── __streamHelpers.py
-│   │   │   └── __streamPresenter.py
+│   │   │   ├── __streamPresenter.py
+│   │   │   └── frameRing/
+│   │   │       ├── __frameRing.py
+│   │   │       └── slot/
+│   │   │           ├── __slot.py
+│   │   │           └── __slotFlag.py
 │   │   ├── types/
 │   │   │   ├── .fff
 │   │   │   ├── __eDecodeFormat.py
@@ -431,6 +436,7 @@ eNuts/
 │       ├── __helpers.py
 │       ├── __module.py
 │       ├── __sysArguments.py
+│       ├── __time.py
 │       └── io/
 │           └── __io.py
 ├── typings/
@@ -870,6 +876,9 @@ src/fluxCore/emitters:
 	__SCRCPYEmitter.py - 
 		CLASSE(S):
 			SCRCPYEmitter -> : scrcpyemitter
+	__SCRCPYOptions.py - 
+		CLASSE(S):
+			SCRCPYOptions -> : scrcpyoptions
 		CONSTANTS(S)/GLOBAL(S)
 			JAR_NAME -> : jar_name
 			SERVER_PATH -> : server_path
@@ -898,7 +907,7 @@ src/fluxCore/packets:
 			Packet -> : packet
 	__tensorPacket.py - 
 		CLASSE(S):
-			ImagePacket -> : imagepacket
+			TensorPacket -> : tensorpacket
 
 src/fluxCore/policy:
 	__dcPolicy.py - 
@@ -972,9 +981,6 @@ src/fluxCore/stream:
 	__frameHeader.py - 
 		CLASSE(S):
 			FrameHeader -> : frameheader
-	__frameRing.py - 
-		CLASSE(S):
-			FrameRing -> : framering
 	__imageConverters.py - 
 		FUNCTION(S):
 			toPIL -> : topil
@@ -998,6 +1004,19 @@ src/fluxCore/stream:
 	__streamPresenter.py - 
 		CLASSE(S):
 			StreamPresenter -> : streampresenter
+
+src/fluxCore/stream/frameRing:
+	__frameRing.py - 
+		CLASSE(S):
+			FrameRing -> : framering
+
+src/fluxCore/stream/frameRing/slot:
+	__slot.py - 
+		CLASSE(S):
+			RingSlot -> : ringslot
+	__slotFlag.py - 
+		CLASSE(S):
+			eSlotFlag -> : eslotflag
 
 src/fluxCore/types:
 	__eDecodeFormat.py - 
@@ -1084,7 +1103,6 @@ src/fluxCore/utilities:
 			_parseFrameHeader -> : _parseframeheader
 			ReadSingleFrame -> : readsingleframe
 			AsyncReadSingleFrame -> : asyncreadsingleframe
-			createCudaDecoder -> : createcudadecoder
 		CONSTANTS(S)/GLOBAL(S)
 			C_MAX_FRAME_BYTES -> : c_max_frame_bytes
 			C_FLAG_CONFIG -> : c_flag_config
@@ -1752,6 +1770,9 @@ src/utilities:
 		FUNCTION(S):
 			RebuildArguments -> : rebuildarguments
 			ProcessArguments -> : processarguments
+	__time.py - 
+		FUNCTION(S):
+			fromNanoSeconds -> : fromnanoseconds
 
 src/utilities/io:
 	__io.py - 
@@ -1778,6 +1799,38 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+ea57e42:
+	Refactor geometry and packet structures
+		.docs/inventory.md
+		config/emitter/sizeBitrateMap.py
+		src/eNuts/UI/pages/__kgRecorder.py
+		src/eNuts/services/recorder/__kgRecorderService.py
+		src/fluxCore/action/android/gesture/__tap.py
+		src/fluxCore/action/android/gesture/__touch.py
+		src/fluxCore/emitters/__SCRCPYEmitter.py
+		src/fluxCore/types/geometry/__circle.py -> src/fluxCore/geometry/__circle.py
+		src/fluxCore/types/geometry/__point.py -> src/fluxCore/geometry/__point.py
+		src/fluxCore/types/geometry/__rectangle.py -> src/fluxCore/geometry/__rectangle.py
+		src/fluxCore/packets/__SCRCPYPacket.py
+		src/fluxCore/packets/__packet.py
+		src/fluxCore/packets/__tensorPacket.py
+		src/fluxCore/policy/vocabulary/__intent.py
+		src/fluxCore/types/sockets/__controlSocket.py -> src/fluxCore/sockets/__controlSocket.py
+		src/fluxCore/types/sockets/__socket.py -> src/fluxCore/sockets/__socket.py
+		src/fluxCore/types/sockets/__videoSocket.py -> src/fluxCore/sockets/__videoSocket.py
+		src/fluxCore/stream/__deviceStream.py
+		src/fluxCore/stream/__frameDecoder.py
+		src/fluxCore/stream/__frameHeader.py
+		src/fluxCore/stream/__frameRing.py
+		src/fluxCore/stream/__imageConverters.py
+		src/fluxCore/stream/__eDecodeFormat.py -> src/fluxCore/types/__eDecodeFormat.py
+		src/fluxCore/types/__eTimeDeltaFormat.py
+		src/fluxCore/types/interface/packets/__frame.py -> src/fluxCore/types/interface/packets/__imagePacket.py
+		src/fluxCore/types/interface/packets/__packet.py
+		src/fluxCore/types/packets/__frame.py
+		src/fluxCore/types/packets/__packet.py
+		src/fluxCore/utilities/__frame.py
+
 59e51de:
 	AI handoff: FrameRing-owned convert, slot states, LocalDeviceStream split
 		.docs/eNuts/recorder/streamPipeline/AI_HANDOFF.md
@@ -1818,9 +1871,5 @@ a47898f:
 1e12afc:
 	fix(UI): detach LocalDeviceStream view on KGRecorder hide; reattach on show
 		src/eNuts/UI/pages/__kgRecorder.py
-
-d82fb30:
-	fix(stream): clear view when CaptureGLImage C++ object is deleted
-		src/fluxCore/stream/__deviceStream.py
 
 ```

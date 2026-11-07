@@ -12,7 +12,6 @@ from .__frameFlags import FrameFlags
 
 # ==================================================================================
 class FrameHeader:
-    __slots__ = ("_sequence", "_pts", "_width", "_height", "_format", "_flags")
     def __init__(
         self, pts: int, width: int, height: int, sequence: Optional[int] = None,
         format: eDecodeFormat = eDecodeFormat.PIL, flags: FrameFlags = FrameFlags.NONE

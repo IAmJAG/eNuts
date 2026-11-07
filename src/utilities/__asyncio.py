@@ -60,8 +60,7 @@ def createTask(func: Callable[..., Any], *args, **kwargs) -> Task:
                 return
             if exc is not None:
                 try:
-                    error(
-                        f"createTask unhandled exception "
+                    error(f"createTask unhandled exception "
                         f"name={done.get_name()!r}: {exc}",
                         exc,
                     )

@@ -7,6 +7,7 @@ from .__frame import formatTrace, getCallableFromFrame, getCallersFrame, getFram
 from .__helpers import StripAnsi
 from .__module import launchModule
 from .__sysArguments import ProcessArguments, RebuildArguments
+from .__time import fromNanoSeconds
 
 # ==================================================================================================
 __all__ = [
@@ -22,4 +23,5 @@ __all__ = [
     "createTask",
     "getEventLoop",
     "getRunningLoop",
+    "fromNanoSeconds",
 ]

@@ -13,21 +13,21 @@ from PySide6.QtGui import QImage
 from torch import Tensor
 
 # ==================================================================================
-from fluxCore.types.interface.packets import iFrame
+from fluxCore.types.interface.packets import iImagePacket
 
 # ==================================================================================
 from ..types.__eDecodeFormat import eDecodeFormat
 
 
 # ==================================================================================
-def toPIL(frame: iFrame, codec: VideoCodecContext) -> Optional[QImage | Tensor | np.ndarray]:
+def toPIL(frame: iImagePacket, codec: VideoCodecContext) -> Optional[QImage | Tensor | np.ndarray]:
     try:
         return toVideoFrame(frame, codec)
 
     except Exception as ex:        
         raise ex
 
-def toQImage(frame: iFrame, codec: VideoCodecContext) -> Optional[QImage]:
+def toQImage(frame: iImagePacket, codec: VideoCodecContext) -> Optional[QImage]:
     try:
         imgArray: Optional[np.ndarray] = toNumpy(frame, codec)
         if imgArray is None: return None
@@ -40,14 +40,14 @@ def toQImage(frame: iFrame, codec: VideoCodecContext) -> Optional[QImage]:
     except Exception as ex:
         raise ex
 
-def toTensor(frame: iFrame, codec: VideoCodecContext) -> Optional[Tensor]:
+def toTensor(frame: iImagePacket, codec: VideoCodecContext) -> Optional[Tensor]:
     try:
         return toVideoFrame(frame, codec, True)
 
     except Exception as ex:
         raise ex
 
-def toNumpy(frame: iFrame, codec: VideoCodecContext) -> Optional[np.ndarray]:
+def toNumpy(frame: iImagePacket, codec: VideoCodecContext) -> Optional[np.ndarray]:
     try:
         videoFrame: Optional[VideoFrame] = toVideoFrame(frame, codec)
         if videoFrame is None: return None
@@ -56,7 +56,7 @@ def toNumpy(frame: iFrame, codec: VideoCodecContext) -> Optional[np.ndarray]:
     except Exception as ex:
         raise ex
 
-def toVideoFrame(frame: iFrame, codec: VideoCodecContext, gpu: bool = False) -> Optional[VideoFrame | Tensor]:
+def toVideoFrame(frame: iImagePacket, codec: VideoCodecContext, gpu: bool = False) -> Optional[VideoFrame | Tensor]:
     try:        
         return frame.decode(codec, gpu)
             

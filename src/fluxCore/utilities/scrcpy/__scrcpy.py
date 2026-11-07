@@ -128,8 +128,7 @@ def createCodecContext(
 ) -> VideoCodecContext:
     lCodec = (codecId or "h264").strip().lower() or "h264"
 
-    if not GPUReady:
-        return CodecContext.create(lCodec, "r")
+    if not GPUReady: return CodecContext.create(lCodec, "r")
 
     if not C_HAS_HWACCEL:
         raise RuntimeError(

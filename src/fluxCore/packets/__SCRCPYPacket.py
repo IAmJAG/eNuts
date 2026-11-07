@@ -4,8 +4,8 @@ from .__packet import Packet
 
 # ==================================================================================
 class SCRCPYPacket(Packet):
-    def __init__(self, data: bytes, pts: int, isConfig: bool, isKeyFrame: bool):
-        super().__init__(data)
+    def __init__(self, data: bytes, pts: int, isConfig: bool, isKeyFrame: bool, width: int = 0, height: int = 0):
+        super().__init__(data, width, height)
         self._isKeyFrame: bool = isKeyFrame
         self._isConfig: bool = isConfig
         self._pts: int = pts
