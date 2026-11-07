@@ -12,7 +12,6 @@ from uuid import uuid4
 # ==================================================================================
 from fluxCore.types.interface.emitters import iEmitter
 from fluxCore.types.interface.packets import iFrame
-from fluxCore.types.interface.policy.vocabulary import iVocabularyItem
 from jAGFx.services import AsyncService
 
 # ==================================================================================
@@ -31,7 +30,7 @@ C_MANIFEST_VERSION: int = 1
 
 
 # ==================================================================================
-class KGRecorderService(AsyncService): 
+class KGRecorderService(AsyncService):
     """
     Capture every emitter ON_FRAME packet + key/pointer events for one session.
 
@@ -80,27 +79,45 @@ class KGRecorderService(AsyncService):
     def frameCount(self) -> int:
         return self._frameCount
 
-    def bind(self, emitter: iEmitter) -> None:
+    def bind(
+        self,
+        emitter: iEmitter,
+        *,
+        serial: str,
+        width: int,
+        height: int,
+        codec: str = "h264",
+    ) -> None:
         if self.isRecording:
-            raise RuntimeError(f"cannot bind while recording sessionId={self._sessionId!r}")
-        
+            raise RuntimeError(
+                f"cannot bind while recording sessionId={self._sessionId!r}"
+            )
+
         if emitter is None:
             raise ValueError("emitter is required")
 
         self._detachFrame()
         self._emitter = emitter
 
-        serial: str = emitter.id.strip() or ""
-        width: int = emitter.width or 0
-        height: int = emitter.width or 0        
-        verbose(f"[{self.name}] bind serial={serial!r} {width}x{height}")
+        cleanedSerial = (serial or "").strip() or (
+            str(getattr(emitter, "id", "") or "").strip()
+        )
+        self._serial = cleanedSerial or None
+        self._width = int(width) if width else int(getattr(emitter, "width", 0) or 0)
+        self._height = int(height) if height else int(getattr(emitter, "height", 0) or 0)
+        self._codec = (codec or "h264").strip() or "h264"
 
-    def start(self, sessionDir: str | Path, intent: iVocabularyItem, *args, **kwargs) -> None:
+        verbose(
+            f"[{self.name}] bind serial={self._serial!r} "
+            f"{self._width}x{self._height} codec={self._codec!r}"
+        )
+
+    def start(self, sessionDir: str | Path, *args, **kwargs) -> None:
         if self.isRecording:
             raise RuntimeError(
                 f"[{self.name}] already recording sessionId={self._sessionId!r}"
             )
-        
+
         if self._emitter is None:
             raise RuntimeError(f"[{self.name}] start requires bind(emitter)")
 
@@ -109,7 +126,7 @@ class KGRecorderService(AsyncService):
 
         target = Path(sessionDir)
         target.mkdir(parents=True, exist_ok=True)
-    
+
         sessionId = target.name or uuid4().hex
         videoPath = target / C_VIDEO_NAME
         manifestPath = target / C_MANIFEST_NAME
@@ -117,7 +134,7 @@ class KGRecorderService(AsyncService):
         try:
             # 1 MiB buffer reduces syscall pressure on the emitter loop.
             videoFile = open(videoPath, "wb", buffering=1024 * 1024)
-            
+
         except OSError as ex:
             error(f"[{self.name}] open video failed path={videoPath}: {ex}")
             raise
@@ -177,7 +194,8 @@ class KGRecorderService(AsyncService):
         return result
 
     def logKey(self, action: str, key: str) -> None:
-        if not self._recording: return
+        if not self._recording:
+            return
         self._events.append(
             {
                 "t": self._relativeTs(),
@@ -256,7 +274,8 @@ class KGRecorderService(AsyncService):
     # helpers
     # -------------------------------------------------------------------------
     def _relativeTs(self) -> float:
-        if self._sessionStartMono is None: return 0.0
+        if self._sessionStartMono is None:
+            return 0.0
         return max(0.0, monotonic() - self._sessionStartMono)
 
     def _closeVideoFile(self) -> None:
