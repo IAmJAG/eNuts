@@ -19,9 +19,12 @@ class Packet(iPacket):
         self._payload: bytes = data
         self._width: int = width
         self._height: int = height
+
+    def getCreatedAt(self, format: eTimeDeltaFormat = eTimeDeltaFormat.NANOSECONDS) -> float:
+        return fromNanoSeconds(self._createdAt, format)
     
     @property
-    def createdAt[T: eTimeDeltaFormat](self) -> float:
+    def createdAt(self) -> float:
         return fromNanoSeconds(self._createdAt, T)
     
     @property
