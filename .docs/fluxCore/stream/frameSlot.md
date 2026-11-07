@@ -1,12 +1,12 @@
 ## Overview & Design Context
 
-Binary **per-slot header** for the GPU frame plane. Not a `Message` payload. Pixels are full reconstructed frames after decode; handles are opaque and platform-specific.
+Binary **per-slot header** design notes for the GPU/frame ring plane. Not a `Message` payload. Pixels are full reconstructed frames after decode; handles are opaque and platform-specific.
 
-Source: `src/fluxCore/emitters/scrcpy/__frameSlot.py`
+**Status:** Design / planned. No matching `src/fluxCore/**/frameSlot*` module on `development` today; active ring code is `src/fluxCore/stream/__frameRing.py`.
 
 ---
 
-## Constants
+## Constants (design)
 
 | Name | Value / meaning |
 |------|-----------------|
@@ -23,7 +23,7 @@ magic u32 | seq u64 | pts u64 | w u32 | h u32 | stride u32 | format u32 | flags 
 
 ---
 
-## Types
+## Types (design)
 
 ### `FramePresentFormat`
 
@@ -40,7 +40,7 @@ magic u32 | seq u64 | pts u64 | w u32 | h u32 | stride u32 | format u32 | flags 
 ### `FrameSlotHeader`
 
 - `pack()` / `unpack()` / `validateMagic()`
-- `pts` — presentation time µs (stream clock); used later for FPS pacing
+- `pts` — presentation time µs (stream clock)
 - Present skip: `shouldSkipPresent(seq, lastPresentedSeq)` — **not** content equality
 
 ### Ring helpers
@@ -48,22 +48,8 @@ magic u32 | seq u64 | pts u64 | w u32 | h u32 | stride u32 | format u32 | flags 
 - `pickWriteIndex(displayIndex=..., ringSize=...)` — never the display slot
 - `nextRingIndex`, `clampRingSize`
 
----
+## Related live code
 
-## Sample Usage
-
-```python
-from fluxCore.emitters.scrcpy import (
-    makeFrameSlotHeader, FrameSlotHeader, FramePresentFormat, FrameSlotFlags,
-    pickWriteIndex, shouldSkipPresent,
-)
-
-h = makeFrameSlotHeader(
-    seq=1, pts=0, width=1080, height=1920,
-    format=FramePresentFormat.RGBA8,
-    flags=FrameSlotFlags.KEYFRAME,
-)
-raw = h.pack()
-back = FrameSlotHeader.unpack(raw)
-writeIdx = pickWriteIndex(displayIndex=0, ringSize=3)
-```
+- `src/fluxCore/stream/__frameRing.py`
+- `src/fluxCore/stream/__deviceStream.py`
+- `.docs/AI_HANDOFF.md` — project-level stream/recorder decisions
