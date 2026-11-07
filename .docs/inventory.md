@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-06 03:39:13 UTC*
+*Auto-generated on: 2026-11-07 05:36:39 UTC*
 
 ## Current Directory Structure
 
@@ -70,6 +70,8 @@ eNuts/
 │   ├── .fff
 │   ├── eNuts/
 │   │   └── appconfig.json
+│   ├── emitter/
+│   │   └── sizeBitrateMap.py
 │   └── themes/
 │       ├── dark
 │       ├── dracula
@@ -80,11 +82,10 @@ eNuts/
 │       │   └── dark/
 │       │       ├── Animation.json
 │       │       └── SideBar.json
-│       ├── qss/
-│       │   ├── main.css
-│       │   ├── page.css
-│       │   └── sideBar.css
-│       └── superman/
+│       └── qss/
+│           ├── main.css
+│           ├── page.css
+│           └── sideBar.css
 ├── src/
 │   ├── __monkeyPatch.py
 │   ├── eNuts/
@@ -98,27 +99,25 @@ eNuts/
 │   │   │   ├── pages/
 │   │   │   │   ├── __annotator.py
 │   │   │   │   ├── __devicePage.py
+│   │   │   │   ├── __helper.py
 │   │   │   │   ├── __kgRecorder.py
 │   │   │   │   ├── __pageKeys.py
 │   │   │   │   ├── __playbackBase.py
+│   │   │   │   ├── __recorderState.py
 │   │   │   │   └── __smokePages.py
 │   │   │   ├── widgets/
 │   │   │   │   ├── __captureGLImage.py
 │   │   │   │   ├── __captureImage.py
-│   │   │   │   ├── spinners/
-│   │   │   │   │   ├── __evolvingNeuralBrain.py
-│   │   │   │   │   ├── __evolvingNeuralOrb.py
-│   │   │   │   │   └── __revolvingNeuralOrb.py
-│   │   │   │   └── streamer/
+│   │   │   │   └── spinners/
+│   │   │   │       ├── __evolvingNeuralBrain.py
+│   │   │   │       ├── __evolvingNeuralOrb.py
+│   │   │   │       └── __revolvingNeuralOrb.py
 │   │   │   └── windows/
 │   │   │       └── __mainWindow.py
 │   │   ├── application/
 │   │   │   ├── __applicationInformation.py
 │   │   │   ├── __eNutsApplications.py
 │   │   │   ├── __shell.py
-│   │   │   ├── device/
-│   │   │   │   └── __deviceManager.py
-│   │   │   ├── recorder/
 │   │   │   ├── theme/
 │   │   │   │   └── __theme.py
 │   │   │   └── workspace/
@@ -129,6 +128,11 @@ eNuts/
 │   │   ├── configuration/
 │   │   │   ├── __eNutsConfiguration.py
 │   │   │   └── __information.py
+│   │   ├── services/
+│   │   │   ├── device/
+│   │   │   │   └── __deviceManager.py
+│   │   │   └── recorder/
+│   │   │       └── __kgRecorderService.py
 │   │   ├── types/
 │   │   │   ├── .ff
 │   │   │   └── interface/
@@ -140,9 +144,13 @@ eNuts/
 │   │   │       │   ├── __applicationInformation.py
 │   │   │       │   ├── __shell.py
 │   │   │       │   └── device/
-│   │   │       │       └── __deviceManager.py
-│   │   │       └── configuration/
-│   │   │           └── __eNutsConfiguration.py
+│   │   │       ├── configuration/
+│   │   │       │   └── __eNutsConfiguration.py
+│   │   │       └── services/
+│   │   │           ├── device/
+│   │   │           │   └── __deviceManager.py
+│   │   │           └── recorder/
+│   │   │               └── __iKGRecorderService.py
 │   │   └── utilities/
 │   │       ├── .fff
 │   │       └── asyncADB/
@@ -176,17 +184,29 @@ eNuts/
 │   │   │   └── __scrcpy.py
 │   │   ├── emitters/
 │   │   │   └── __SCRCPYEmitter.py
+│   │   ├── geometry/
+│   │   │   ├── __circle.py
+│   │   │   ├── __point.py
+│   │   │   └── __rectangle.py
+│   │   ├── packets/
+│   │   │   ├── __SCRCPYPacket.py
+│   │   │   ├── __packet.py
+│   │   │   └── __tensorPacket.py
 │   │   ├── policy/
 │   │   │   ├── __dcPolicy.py
 │   │   │   ├── __dcPolicyCore.py
 │   │   │   ├── __policyOption.py
 │   │   │   ├── __utilities.py
 │   │   │   └── vocabulary/
+│   │   │       ├── __intent.py
 │   │   │       ├── __vocabulary.py
 │   │   │       └── __vocabularyItem.py
+│   │   ├── sockets/
+│   │   │   ├── __controlSocket.py
+│   │   │   ├── __socket.py
+│   │   │   └── __videoSocket.py
 │   │   ├── stream/
 │   │   │   ├── __deviceStream.py
-│   │   │   ├── __eDecodeFormat.py
 │   │   │   ├── __frameDecoder.py
 │   │   │   ├── __frameFlags.py
 │   │   │   ├── __frameHeader.py
@@ -197,43 +217,34 @@ eNuts/
 │   │   │   └── __streamPresenter.py
 │   │   ├── types/
 │   │   │   ├── .fff
-│   │   │   ├── geometry/
-│   │   │   │   ├── __circle.py
-│   │   │   │   ├── __point.py
-│   │   │   │   └── __rectangle.py
-│   │   │   ├── interface/
-│   │   │   │   ├── action/
-│   │   │   │   │   ├── __actionMetadata.py
-│   │   │   │   │   └── __androidAction.py
-│   │   │   │   ├── device/
-│   │   │   │   │   └── __device.py
-│   │   │   │   ├── devices/
-│   │   │   │   │   └── __scrcpy.py
-│   │   │   │   ├── emitters/
-│   │   │   │   │   ├── __SCRCPYEmitter.py
-│   │   │   │   │   └── __emitter.py
-│   │   │   │   ├── geometry/
-│   │   │   │   │   ├── __geoBase.py
-│   │   │   │   │   └── __point.py
-│   │   │   │   ├── packets/
-│   │   │   │   │   ├── __frame.py
-│   │   │   │   │   └── __packet.py
-│   │   │   │   ├── policy/
-│   │   │   │   │   ├── __policy.py
-│   │   │   │   │   └── vocabulary/
-│   │   │   │   │       ├── __vocabulary.py
-│   │   │   │   │       └── __vocabularyItem.py
-│   │   │   │   └── sockets/
-│   │   │   │       ├── __controlSocket.py
-│   │   │   │       ├── __socket.py
-│   │   │   │       └── __videoSocket.py
-│   │   │   ├── packets/
-│   │   │   │   ├── __frame.py
-│   │   │   │   └── __packet.py
-│   │   │   └── sockets/
-│   │   │       ├── __controlSocket.py
-│   │   │       ├── __socket.py
-│   │   │       └── __videoSocket.py
+│   │   │   ├── __eDecodeFormat.py
+│   │   │   ├── __eTimeDeltaFormat.py
+│   │   │   └── interface/
+│   │   │       ├── action/
+│   │   │       │   ├── __actionMetadata.py
+│   │   │       │   └── __androidAction.py
+│   │   │       ├── device/
+│   │   │       │   └── __device.py
+│   │   │       ├── devices/
+│   │   │       │   └── __scrcpy.py
+│   │   │       ├── emitters/
+│   │   │       │   ├── __SCRCPYEmitter.py
+│   │   │       │   └── __emitter.py
+│   │   │       ├── geometry/
+│   │   │       │   ├── __geoBase.py
+│   │   │       │   └── __point.py
+│   │   │       ├── packets/
+│   │   │       │   ├── __imagePacket.py
+│   │   │       │   └── __packet.py
+│   │   │       ├── policy/
+│   │   │       │   ├── __policy.py
+│   │   │       │   └── vocabulary/
+│   │   │       │       ├── __vocabulary.py
+│   │   │       │       └── __vocabularyItem.py
+│   │   │       └── sockets/
+│   │   │           ├── __controlSocket.py
+│   │   │           ├── __socket.py
+│   │   │           └── __videoSocket.py
 │   │   └── utilities/
 │   │       ├── __adbutils.py
 │   │       ├── __frame.py
@@ -561,6 +572,9 @@ eNuts/
 		CONSTANTS(S)/GLOBAL(S)
 			_REPO_SRC -> : _repo_src
 
+config/emitter:
+	sizeBitrateMap.py - 
+
 src:
 	__monkeyPatch.py - 
 	main.py - 
@@ -584,16 +598,6 @@ src/eNuts/application:
 	__shell.py - 
 		CLASSE(S):
 			Shell -> : shell
-
-src/eNuts/application/device:
-	__deviceManager.py - 
-		CLASSE(S):
-			DeviceManager -> : devicemanager
-		CONSTANTS(S)/GLOBAL(S)
-			DEVICE_ADDED_EVENT -> : device_added_event
-			DEVICE_REMOVED_EVENT -> : device_removed_event
-			DEVICE_INITIALIZED_EVENT -> : device_initialized_event
-			POLL_INTERVAL -> : poll_interval
 
 src/eNuts/application/theme:
 	__theme.py - 
@@ -636,6 +640,29 @@ src/eNuts/configuration:
 		CLASSE(S):
 			ApplicationInformation -> : applicationinformation
 
+src/eNuts/services/device:
+	__deviceManager.py - 
+		CLASSE(S):
+			DeviceManager -> : devicemanager
+		CONSTANTS(S)/GLOBAL(S)
+			DEVICE_ADDED_EVENT -> : device_added_event
+			DEVICE_REMOVED_EVENT -> : device_removed_event
+			DEVICE_INITIALIZED_EVENT -> : device_initialized_event
+			POLL_INTERVAL -> : poll_interval
+
+src/eNuts/services/recorder:
+	__kgRecorderService.py - 
+		CLASSE(S):
+			KGRecorderService -> : kgrecorderservice
+		CONSTANTS(S)/GLOBAL(S)
+			C_ON_FRAME -> : c_on_frame
+			C_ON_SESSION_STARTED -> : c_on_session_started
+			C_ON_SESSION_STOPPED -> : c_on_session_stopped
+			C_ON_ERROR -> : c_on_error
+			C_VIDEO_NAME -> : c_video_name
+			C_MANIFEST_NAME -> : c_manifest_name
+			C_MANIFEST_VERSION -> : c_manifest_version
+
 src/eNuts/types/interface/application:
 	__applicationInformation.py - 
 		CLASSE(S):
@@ -644,15 +671,20 @@ src/eNuts/types/interface/application:
 		CLASSE(S):
 			iShell -> : ishell
 
-src/eNuts/types/interface/application/device:
-	__deviceManager.py - 
-		CLASSE(S):
-			iDeviceManager -> : idevicemanager
-
 src/eNuts/types/interface/configuration:
 	__eNutsConfiguration.py - 
 		CLASSE(S):
 			iENUTSConfiguration -> : ienutsconfiguration
+
+src/eNuts/types/interface/services/device:
+	__deviceManager.py - 
+		CLASSE(S):
+			iDeviceManager -> : idevicemanager
+
+src/eNuts/types/interface/services/recorder:
+	__iKGRecorderService.py - 
+		CLASSE(S):
+			iKGRecorderService -> : ikgrecorderservice
 
 src/eNuts/types/interface/UI/windows:
 	__mainWindow.py - 
@@ -704,17 +736,22 @@ src/eNuts/UI/pages:
 		FUNCTION(S):
 			buildDevicePage -> : builddevicepage
 			_applyFrame -> : _applyframe
+	__helper.py - 
+		CONSTANTS(S)/GLOBAL(S)
+			C_QT_TO_ANDROID -> : c_qt_to_android
 	__kgRecorder.py - 
 		CLASSE(S):
-			eKGRecorderState -> : ekgrecorderstate
 			KGRecorder -> : kgrecorder
 		CONSTANTS(S)/GLOBAL(S)
 			C_SETTINGS_DEVICE_ID -> : c_settings_device_id
-			_C_QT_TO_ANDROID -> : _c_qt_to_android
+			C_RECORDINGS_DIR -> : c_recordings_dir
 	__pageKeys.py - 
 	__playbackBase.py - 
 		CLASSE(S):
 			PlaybackBase -> : playbackbase
+	__recorderState.py - 
+		CLASSE(S):
+			eKGRecorderState -> : ekgrecorderstate
 	__smokePages.py - 
 		FUNCTION(S):
 			buildSmokeTestPages -> : buildsmoketestpages
@@ -841,6 +878,28 @@ src/fluxCore/emitters:
 			MAX_FPS -> : max_fps
 			BITRATE -> : bitrate
 
+src/fluxCore/geometry:
+	__circle.py - 
+		CLASSE(S):
+			Circle -> : circle
+	__point.py - 
+		CLASSE(S):
+			Point -> : point
+	__rectangle.py - 
+		CLASSE(S):
+			Rectangle -> : rectangle
+
+src/fluxCore/packets:
+	__SCRCPYPacket.py - 
+		CLASSE(S):
+			SCRCPYPacket -> : scrcpypacket
+	__packet.py - 
+		CLASSE(S):
+			Packet -> : packet
+	__tensorPacket.py - 
+		CLASSE(S):
+			ImagePacket -> : imagepacket
+
 src/fluxCore/policy:
 	__dcPolicy.py - 
 		CLASSE(S):
@@ -867,12 +926,26 @@ src/fluxCore/policy:
 			G_DEFAULT_FEATURE_DIMENSION -> : g_default_feature_dimension
 
 src/fluxCore/policy/vocabulary:
+	__intent.py - 
+		CLASSE(S):
+			Intent -> : intent
 	__vocabulary.py - 
 		CLASSE(S):
 			Vocabulary -> : vocabulary
 	__vocabularyItem.py - 
 		CLASSE(S):
 			VocabularyItem -> : vocabularyitem
+
+src/fluxCore/sockets:
+	__controlSocket.py - 
+		CLASSE(S):
+			ControlSocket -> : controlsocket
+	__socket.py - 
+		CLASSE(S):
+			SocketBase -> : socketbase
+	__videoSocket.py - 
+		CLASSE(S):
+			VideoSocket -> : videosocket
 
 src/fluxCore/stream:
 	__deviceStream.py - 
@@ -890,11 +963,6 @@ src/fluxCore/stream:
 			C_ON_PAUSED -> : c_on_paused
 			C_ON_RESUMED -> : c_on_resumed
 			C_LIFECYCLE_EVENTS -> : c_lifecycle_events
-	__eDecodeFormat.py - 
-		CLASSE(S):
-			eDecodeFormat -> : edecodeformat
-		CONSTANTS(S)/GLOBAL(S)
-			DECODEFORMAT -> : decodeformat
 	__frameDecoder.py - 
 		CLASSE(S):
 			FrameDecoder -> : framedecoder
@@ -931,16 +999,13 @@ src/fluxCore/stream:
 		CLASSE(S):
 			StreamPresenter -> : streampresenter
 
-src/fluxCore/types/geometry:
-	__circle.py - 
+src/fluxCore/types:
+	__eDecodeFormat.py - 
 		CLASSE(S):
-			Circle -> : circle
-	__point.py - 
+			eDecodeFormat -> : edecodeformat
+	__eTimeDeltaFormat.py - 
 		CLASSE(S):
-			Point -> : point
-	__rectangle.py - 
-		CLASSE(S):
-			Rectangle -> : rectangle
+			eTimeDeltaFormat -> : etimedeltaformat
 
 src/fluxCore/types/interface/action:
 	__actionMetadata.py - 
@@ -979,9 +1044,9 @@ src/fluxCore/types/interface/geometry:
 			iPoint -> : ipoint
 
 src/fluxCore/types/interface/packets:
-	__frame.py - 
+	__imagePacket.py - 
 		CLASSE(S):
-			iFrame -> : iframe
+			iImagePacket -> : iimagepacket
 	__packet.py - 
 		CLASSE(S):
 			iPacket -> : ipacket
@@ -1010,25 +1075,6 @@ src/fluxCore/types/interface/sockets:
 		CLASSE(S):
 			iVideoSocket -> : ivideosocket
 
-src/fluxCore/types/packets:
-	__frame.py - 
-		CLASSE(S):
-			Frame -> : frame
-	__packet.py - 
-		CLASSE(S):
-			Packet -> : packet
-
-src/fluxCore/types/sockets:
-	__controlSocket.py - 
-		CLASSE(S):
-			ControlSocket -> : controlsocket
-	__socket.py - 
-		CLASSE(S):
-			SocketBase -> : socketbase
-	__videoSocket.py - 
-		CLASSE(S):
-			VideoSocket -> : videosocket
-
 src/fluxCore/utilities:
 	__adbutils.py - 
 		FUNCTION(S):
@@ -1038,6 +1084,7 @@ src/fluxCore/utilities:
 			_parseFrameHeader -> : _parseframeheader
 			ReadSingleFrame -> : readsingleframe
 			AsyncReadSingleFrame -> : asyncreadsingleframe
+			createCudaDecoder -> : createcudadecoder
 		CONSTANTS(S)/GLOBAL(S)
 			C_MAX_FRAME_BYTES -> : c_max_frame_bytes
 			C_FLAG_CONFIG -> : c_flag_config
@@ -1731,43 +1778,49 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-b236829:
+59e51de:
+	AI handoff: FrameRing-owned convert, slot states, LocalDeviceStream split
+		.docs/eNuts/recorder/streamPipeline/AI_HANDOFF.md
+
+5065938:
 	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
 
-b019bdf:
-	config: reduce default video settings for SCRCPY emitter
-		src/fluxCore/emitters/__SCRCPYEmitter.py
+79181f1:
+	refactor(KGRecorderService): clean up code structure and improve readability by removing unnecessary comments and simplifying method definitions
+		src/eNuts/services/recorder/__kgRecorderService.py
 
-d091032:
-	Docs: CaptureGLImage inherits GLImage mapToContent; page owns inject
-		.docs/eNuts/UI/widgets/captureGLImage.md
+7ab5fbf:
+	fix(logging): close stream before rotate rename (WinError 32)
+		src/jAGFx/logging/handlers/__dateRotatingFileHandler.py
 
-6f3d926:
-	Docs: GLImage mapToContent / fittedRect / contentSize for input mapping
-		.docs/jAGQt/widgets/Image/glImage.md
-
-c534390:
-	Docs: fit-aware touch mapping via GLImage.mapToContent
-		.docs/eNuts/UI/pages/kgRecorderPage.md
-
-c1a5ed6:
-	KGRecorder: fit-aware widgetâ†’contentâ†’device touch mapping via GLImage.mapToContent
+a47898f:
+	refactor(KGRecorder): simplify logging and improve readability by removing class name references
 		src/eNuts/UI/pages/__kgRecorder.py
 
-71df0a5:
-	GLImage: public fittedRect/contentSize/mapToContent for touch inject
-		src/jAGQt/widgets/Image/__glImage.py
+586ddf3:
+	fix(stream): handle view validity and prevent errors on deleted widgets
 
-a807aef:
-	Docs: KGRecorder page owns recording session, inject, event log
-		.docs/eNuts/UI/pages/kgRecorderPage.md
+3d7a631:
+	feat: refactor and organize UI components; add helper and recorder state management
+		src/eNuts/UI/pages/__devicePage.py
+		src/eNuts/UI/pages/__helper.py
+		src/eNuts/UI/pages/__kgRecorder.py
+		src/eNuts/UI/pages/__recorderState.py
+		src/eNuts/UI/widgets/__captureImage.py
+		src/eNuts/application/__shell.py
+		src/eNuts/application/workspace/__workSpace.py
+		src/eNuts/services/device/__deviceManager.py
 
-bfb993e:
-	Reconstruct KGRecorder page: session state, inject+event log, CaptureGLImage wiring
+5c88ce9:
+	fix(UI): restore KGRecorder page with hide/show view detach
 		src/eNuts/UI/pages/__kgRecorder.py
 
-9673a89:
-	Remove obsolete recorder interface docs
-		.docs/eNuts/types/interface/recorder/implementation.md
+1e12afc:
+	fix(UI): detach LocalDeviceStream view on KGRecorder hide; reattach on show
+		src/eNuts/UI/pages/__kgRecorder.py
+
+d82fb30:
+	fix(stream): clear view when CaptureGLImage C++ object is deleted
+		src/fluxCore/stream/__deviceStream.py
 
 ```

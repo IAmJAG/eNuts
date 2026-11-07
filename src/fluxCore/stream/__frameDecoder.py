@@ -14,7 +14,7 @@ from av import VideoCodecContext
 from fluxCore.types.interface.packets import iFrame
 
 # ==================================================================================
-from .__eDecodeFormat import DECODEFORMAT, eDecodeFormat
+from ..types.__eDecodeFormat import DECODEFORMAT, eDecodeFormat
 from .__imageConverters import G_DECODE_FORMAT_MAP
 
 

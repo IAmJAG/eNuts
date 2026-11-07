@@ -1,14 +1,16 @@
 # ==================================================================================
-# src/fluxCore/types/interface/sockets/__frame.py
-# ==================================================================================
 from typing import Protocol, runtime_checkable
+
+# ==================================================================================
+from ...__eTimeDeltaFormat import eTimeDeltaFormat
 
 
 # ==================================================================================
 @runtime_checkable
 class iPacket(Protocol):
-    def __init__(self, data: bytes): ...
     @property
     def createdAt(self) -> float: ...
     @property
     def payload(self) -> bytes: ...
+    @property
+    def format(self, format: eTimeDeltaFormat) -> float: ...

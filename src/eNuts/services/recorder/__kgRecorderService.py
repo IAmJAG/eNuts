@@ -12,6 +12,7 @@ from uuid import uuid4
 # ==================================================================================
 from fluxCore.types.interface.emitters import iEmitter
 from fluxCore.types.interface.packets import iFrame
+from fluxCore.types.interface.policy.vocabulary import iVocabularyItem
 from jAGFx.services import AsyncService
 
 # ==================================================================================
@@ -31,7 +32,8 @@ C_MANIFEST_VERSION: int = 1
 
 # ==================================================================================
 class KGRecorderService(AsyncService): 
-    """Capture every emitter ON_FRAME packet + key/pointer events for one session.
+    """
+    Capture every emitter ON_FRAME packet + key/pointer events for one session.
 
     Video is the raw encoded elementary stream (scrcpy/h264 payloads as they
     arrive). Display path (LocalDeviceStream ring) is not used — no skip.
@@ -78,45 +80,36 @@ class KGRecorderService(AsyncService):
     def frameCount(self) -> int:
         return self._frameCount
 
-    def bind(
-        self, emitter: iEmitter, *, serial: str, 
-        width: int, height: int,  codec: str = "h264",
-    ) -> None:
+    def bind(self, emitter: iEmitter) -> None:
         if self.isRecording:
-            raise RuntimeError(f"cannot bind while recording sessionId={self._sessionId!r}"
-            )
+            raise RuntimeError(f"cannot bind while recording sessionId={self._sessionId!r}")
         
-        if emitter is None: raise ValueError("emitter is required")
-
-        cleaned = (serial or "").strip()
-        if not cleaned:
-            raise ValueError("serial is required")
+        if emitter is None:
+            raise ValueError("emitter is required")
 
         self._detachFrame()
         self._emitter = emitter
-        self._serial = cleaned
-        self._width = int(width) if width else 0
-        self._height = int(height) if height else 0
-        self._codec = (codec or "h264").strip() or "h264"
-        verbose(
-            f"[{self.name}] bind serial={cleaned!r} "
-            f"{self._width}x{self._height} codec={self._codec!r}"
-        )
 
-    def start(self, sessionDir: str | Path = None, *args, **kwargs) -> None:
-        if self._recording:
+        serial: str = emitter.id.strip() or ""
+        width: int = emitter.width or 0
+        height: int = emitter.width or 0        
+        verbose(f"[{self.name}] bind serial={serial!r} {width}x{height}")
+
+    def start(self, sessionDir: str | Path, intent: iVocabularyItem, *args, **kwargs) -> None:
+        if self.isRecording:
             raise RuntimeError(
                 f"[{self.name}] already recording sessionId={self._sessionId!r}"
             )
-        if self._emitter is None or not self._serial:
-            raise RuntimeError(f"[{self.name}] start requires bind(emitter, serial=...)")
+        
+        if self._emitter is None:
+            raise RuntimeError(f"[{self.name}] start requires bind(emitter)")
 
         if sessionDir is None:
             raise ValueError("sessionDir is required")
 
         target = Path(sessionDir)
         target.mkdir(parents=True, exist_ok=True)
-
+    
         sessionId = target.name or uuid4().hex
         videoPath = target / C_VIDEO_NAME
         manifestPath = target / C_MANIFEST_NAME
@@ -124,6 +117,7 @@ class KGRecorderService(AsyncService):
         try:
             # 1 MiB buffer reduces syscall pressure on the emitter loop.
             videoFile = open(videoPath, "wb", buffering=1024 * 1024)
+            
         except OSError as ex:
             error(f"[{self.name}] open video failed path={videoPath}: {ex}")
             raise

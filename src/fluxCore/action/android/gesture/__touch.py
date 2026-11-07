@@ -3,7 +3,7 @@
 # ==================================================================================
 from struct import pack
 
-from ....types.geometry import Point
+from ....geometry import Point
 from ....types.interface.geometry import iPoint
 
 # ==================================================================================

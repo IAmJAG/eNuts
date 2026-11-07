@@ -16,7 +16,7 @@ from torch import Tensor
 from fluxCore.types.interface.packets import iFrame
 
 # ==================================================================================
-from .__eDecodeFormat import eDecodeFormat
+from ..types.__eDecodeFormat import eDecodeFormat
 
 
 # ==================================================================================

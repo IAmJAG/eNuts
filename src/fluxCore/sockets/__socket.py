@@ -4,9 +4,10 @@
 from asyncio import AbstractEventLoop, get_running_loop
 from socket import socket
 
+from ..types.interface.sockets import iSocket
+
 # ==================================================================================
-from ...utilities import AsyncReadExact
-from ..interface.sockets import iSocket
+from ..utilities import AsyncReadExact
 
 
 # ==================================================================================

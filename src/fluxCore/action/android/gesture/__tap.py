@@ -8,7 +8,7 @@ import random
 from struct import pack
 
 # ==================================================================================
-from ....types.geometry import Point
+from ....geometry import Point
 from ....types.interface.geometry import iPoint
 from ....types.interface.sockets import iControlSocket
 from ..__androidAction import AndroidAction as Action

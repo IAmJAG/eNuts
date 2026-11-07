@@ -1,25 +1,25 @@
 # ==================================================================================
-# src/fluxCore/types/interface/sockets/__frame.py
-# ==================================================================================
-from typing import TYPE_CHECKING, Protocol, runtime_checkable
+from __future__ import annotations
 
 # ==================================================================================
-from av import VideoCodecContext, VideoFrame
-from torch import Tensor
+from typing import Protocol, runtime_checkable
 
 # ==================================================================================
+from av import CodecContext
+
+# ==================================================================================
+from ...__eDecodeFormat import DECODEFORMAT
 from .__packet import iPacket
 
 
 # ==================================================================================
 @runtime_checkable
-class iFrame(iPacket, Protocol):
-    def __init__(self, data: bytes, pts: int, isConfig: bool,isKeyFrame: bool, device: str = "GPU"): ...
+class iImagePacket[T: DECODEFORMAT](iPacket, Protocol):
     @property
     def isKeyFrame(self) -> bool: ...
     @property
     def isConfig(self) -> bool: ...
     @property
     def pts(self) -> int: ...
-    def decode(self, decoder: VideoCodecContext, gpu: bool = False) -> VideoFrame | Tensor: ...
+    def decode(self, decoder: CodecContext) -> T: ...
     

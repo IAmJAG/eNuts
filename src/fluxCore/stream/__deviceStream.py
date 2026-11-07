@@ -16,7 +16,7 @@ from fluxCore.types.interface.packets import iFrame
 from jAGFx.services import AsyncSubscription
 
 # ==================================================================================
-from .__eDecodeFormat import eDecodeFormat
+from ..types.__eDecodeFormat import eDecodeFormat
 from .__frameDecoder import FrameDecoder
 from .__frameFlags import FrameFlags
 from .__frameHeader import FrameHeader

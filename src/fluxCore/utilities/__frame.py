@@ -4,6 +4,10 @@ from socket import socket
 from struct import unpack
 
 # ==================================================================================
+from av import VideoCodecContext
+from av.codec.hwaccel import HWAccel
+
+# ==================================================================================
 from .__socket import AsyncReadExact, ReadExact
 
 # ==================================================================================
@@ -48,3 +52,10 @@ async def AsyncReadSingleFrame(sckt: socket, loop: AbstractEventLoop) -> tuple[i
     lPts, lIsConfig, lIsKeyFrame, lSize = _parseFrameHeader(lHeader)
     lPayload = await AsyncReadExact(sckt, lSize, loop) if lSize else b""
     return lPts, lIsConfig, lIsKeyFrame, lPayload
+
+def createCudaDecoder(codecName: str = "h264") -> VideoCodecContext:
+    lCodecContext = VideoCodecContext.create(codecName, "r")
+    lHwAccel = HWAccel(device_type="cuda", is_hw_owned=True, allow_software_fallback=False)
+    lCodecContext.hwaccel = lHwAccel
+    lCodecContext.open()
+    return lCodecContext

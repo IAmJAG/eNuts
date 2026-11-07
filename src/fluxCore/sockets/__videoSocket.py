@@ -1,10 +1,10 @@
 # ==================================================================================
 # src/fluxCore/types/sockets/__videoSocket.py
 # ==================================================================================
-from ...types.interface.packets import iFrame
-from ...utilities import AsyncReadSingleFrame, ReadSingleFrame
-from ..interface.sockets import iVideoSocket
-from ..packets.__frame import Frame
+from ..packets.__SCRCPYPacket import Frame
+from ..types.interface.packets import iFrame
+from ..types.interface.sockets import iVideoSocket
+from ..utilities import AsyncReadSingleFrame, ReadSingleFrame
 from .__socket import SocketBase
 
 

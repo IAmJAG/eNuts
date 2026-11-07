@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import List, Optional, Tuple
 
 # ==================================================================================
-from .__eDecodeFormat import DECODEFORMAT
+from ..types.__eDecodeFormat import DECODEFORMAT
 from .__frameHeader import FrameHeader
 from .__streamHelpers import C_DEFAULT_RING_SIZE, validateRingSize
 

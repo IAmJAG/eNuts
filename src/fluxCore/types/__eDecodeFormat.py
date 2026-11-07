@@ -11,7 +11,7 @@ from PySide6.QtGui import QImage
 from torch import Tensor
 
 # ==================================================================================
-DECODEFORMAT: Type = Union[Image | QImage | ndarray | Tensor]
+type DECODEFORMAT = Image | QImage | ndarray | Tensor
 # ==================================================================================
 
 # ==================================================================================

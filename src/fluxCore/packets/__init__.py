@@ -1,10 +1,8 @@
 # ==================================================================================
-# src/fluxCore/types/sockets/__controlSocket.py
+# fluxCore/sockets/__init__.py
 # ==================================================================================
-from ...types.interface.sockets import iControlSocket
-from .__socket import SocketBase
-
+from .__packet import Packet
+from .__SCRCPYPacket import Frame
 
 # ==================================================================================
-class ControlSocket(SocketBase, iControlSocket): ...
-    
+__all__ = ["Packet", "Frame"]

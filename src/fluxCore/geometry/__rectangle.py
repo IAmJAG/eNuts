@@ -5,7 +5,7 @@ import random
 from jAGFx.serializer import Serializable
 
 # ==================================================================================
-from ...types.interface.geometry import iPoint
+from ..types.interface.geometry import iPoint
 from .__point import Point
 
 

@@ -6,7 +6,7 @@ from time import monotonic_ns
 from typing import Optional
 
 # ==================================================================================
-from .__eDecodeFormat import eDecodeFormat
+from ..types.__eDecodeFormat import eDecodeFormat
 from .__frameFlags import FrameFlags
 
 

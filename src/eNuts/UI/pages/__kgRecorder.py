@@ -22,8 +22,8 @@ from PySide6.QtWidgets import (
 from fluxCore.action.android.enums import eKeyCode, eKeyState
 from fluxCore.action.android.gesture import Touch
 from fluxCore.action.android.injectKey import InjectKeyPress, InjectKeyRelease
+from fluxCore.geometry import Point
 from fluxCore.stream import LocalDeviceStream
-from fluxCore.types.geometry import Point
 from fluxCore.types.interface.device import iDevice
 from jAGQt.widgets.commandBar import CommandBarButton
 

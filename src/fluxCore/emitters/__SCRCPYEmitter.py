@@ -23,11 +23,11 @@ from jAGFx.services.__subscription import AsyncSubscription
 
 # ==================================================================================
 from ..devices import SCRCPY
+from ..sockets import ControlSocket, VideoSocket
 from ..types.interface.device import iDevice
 from ..types.interface.emitters import iSCRCPYEmitter
 from ..types.interface.packets import iFrame
 from ..types.interface.sockets import iControlSocket, iVideoSocket
-from ..types.sockets import ControlSocket, VideoSocket
 from ..utilities.scrcpy import (
     SCRCPYServerConfig,
     createCodecContext,
@@ -39,7 +39,7 @@ from ..utilities.scrcpy import (
 JAR_NAME = "scrcpy-server.jar"
 SERVER_PATH = os.path.join(os.getcwd(), ".bin", JAR_NAME)
 ANDROID_PATH = "/data/local/tmp/"
-MAX_SIZE = 720
+MAX_SIZE = 1920
 MAX_FPS = 60
 BITRATE = 4000000
 # ==================================================================================

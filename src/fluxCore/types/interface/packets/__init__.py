@@ -1,10 +1,6 @@
 # ==================================================================================
-# src/fluxCore/types/interface/packet/__init__.py
-# ==================================================================================
-from ..packets.__frame import iFrame
-from ..packets.__packet import iPacket
+from .__imagePacket import iImagePacket
+from .__packet import iPacket
 
 # ==================================================================================
-__all__ = [
-    "iFrame", "iPacket"
-]
+__all__ = ["iImagePacket", "iPacket"]

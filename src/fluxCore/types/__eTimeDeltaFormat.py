@@ -1,8 +1,13 @@
 # ==================================================================================
-# fluxCore/sockets/__init__.py
-# ==================================================================================
-from .__frame import Frame
-from .__packet import Packet
+from enum import Enum, auto
+
 
 # ==================================================================================
-__all__ = ["Packet", "Frame"]
+class eTimeDeltaFormat(Enum):
+    SECONDS = auto()
+    MILLISECONDS = auto()
+    MICROSECONDS = auto()
+    NANOSECONDS = auto()
+
+# ==================================================================================
+__all__ = ["eTimeDeltaFormat"]
