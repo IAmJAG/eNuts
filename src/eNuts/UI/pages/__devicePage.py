@@ -7,7 +7,7 @@ from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import QSizePolicy
 
 # ==================================================================================
-from jAGQt.widgets.image import Image
+from jAGQt.widgets.Canvas import Canvas
 from jAGQt.widgets.page import Page
 
 # ==================================================================================
@@ -23,7 +23,7 @@ class DeviceFrameBridge(QObject):
 # ==================================================================================
 def buildDevicePage(key: str, title: str, serial: str) -> Page:
     page = buildBlankPage(key, title, f"Device {serial}")
-    view = Image(bg="#1a1a1a", backend="software")
+    view = Canvas(bg="#1a1a1a")
     view.setObjectName("W_DEVICE_STREAM")
     view.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
     page.addWidget(view, stretch=1)
@@ -41,7 +41,7 @@ def buildDevicePage(key: str, title: str, serial: str) -> Page:
     return page
 
 # ==================================================================================
-def _applyFrame(view: Image, img: object) -> None:
+def _applyFrame(view: Canvas, img: object) -> None:
     try:
         if isinstance(img, QImage):
             view.image = img
