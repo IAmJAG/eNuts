@@ -1,24 +1,23 @@
 # Requirements & Design Specifications
 
 ## 1. Project Overview
-In-process frame ring that decodes image packets into cached slots without blocking the emitter receive loop, serving both latest-frame present and sequential capture consumers.
+Frame ring as implemented in `src/fluxCore/stream/frameRing/__frameRing.py`.
 
-## 2. Functional Requirements
-- **FR-1:** `publish` must not block on decode; schedule decode asynchronously.
-- **FR-2:** Slot states: EMPTY | FREE | WRITING | FILLED. Ready-for-write = EMPTY | FREE.
-- **FR-3:** Cache processed payload plus pts and created time from the packet contract (`pts`, `createdAt`, `width`, `height`).
-- **FR-4:** `latest()` for present (may skip); `next()` + `release` for sequential recorder (must not skip).
-- **FR-5:** Consumers must not tag slot state; only ring APIs change flags.
-- **FR-6:** Grow when no writable slot; consecutive growth in a time window warns once then errors/refuses.
+## 2. Functional Requirements (as coded)
+- **FR-1:** `publish` schedules decode with `createTask`; does not await decode on the caller.
+- **FR-2:** Slots use `eSlotFlag`: EMPTY, FREE, WRITING, FILLED.
+- **FR-3:** Write metadata from `packet.createdAt`, `packet.pts`, `packet.width`, `packet.height`.
+- **FR-4:** `latest()` returns newest FILLED payload clone; `next()` returns sequential head payload clone when FILLED.
+- **FR-5:** `release(slot)` frees only when `slot` is the current `_order` head instance.
+- **FR-6:** Grow by `C_GROW_STEP` up to `C_GROW_MAX` when no writable index; consecutive grows in window warn then refuse.
 
 ## 3. Non-Functional Requirements
-- **NFR-1:** Prefer contract property access over `getattr` for packet fields.
-- **NFR-2:** Payload getter must not mutate state.
+- **NFR-1:** Decode runs in `to_thread` so the event loop is not blocked by sync `packet.decode`.
 
 ## 4. Design Decisions & Standards Deviations
 
-### Issue / Item 1: Decode ownership on the ring
-- **Affected Modules:** `fluxCore/stream/frameRing/__frameRing.py`
-- **Divergence:** Ring invokes `packet.decode` instead of only storing foreign buffers.
-- **Design Decision & Justification:** GPU path starts at decode; process-before-cache keeps one conversion point before FILLED.
-- **Code Doc Cross-Reference:** `frameRing.md`, `slot/ringSlot.md`.
+### Issue / Item 1: `next` vs `release` API shape
+- **Affected Modules:** `frameRing/__frameRing.py`
+- **Divergence:** `next` does not return the `RingSlot`; `release` requires the slot object.
+- **Design Decision & Justification:** Documented as implemented; any API change is a code change, not a doc-only fix.
+- **Code Doc Cross-Reference:** `frameRing.md`.
