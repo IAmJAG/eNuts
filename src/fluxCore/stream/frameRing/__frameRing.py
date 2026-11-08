@@ -40,7 +40,7 @@ class FrameRing:
         self._lastGrowNs: int = 0
         self._consecutiveGrows: int = 0
 
-    def publish(self, packet: iImagePacket, decoder: VideoCodecContext, imageSize: int = -1) -> None:
+    def publish(self, packet: iImagePacket, decoder: VideoCodecContext) -> None:
         idx = self._pickWriteIndex()
         if idx is None:
             if not self._tryGrow():
@@ -59,12 +59,12 @@ class FrameRing:
         )
         self._order.append(idx)
         
-        createTask(self._decode, idx, slot, packet, decoder, imageSize)
+        createTask(self._decode, idx, slot, packet, decoder)
 
 
-    async def _decode(self, idx: int, slot: RingSlot, packet: iImagePacket, decoder: VideoCodecContext, imageSize: int = -1) -> None:
+    async def _decode(self, idx: int, slot: RingSlot, packet: iImagePacket, decoder: VideoCodecContext) -> None:
         try:
-            frame: DECODEFORMAT = await to_thread(packet.decode, decoder, imageSize)
+            frame: DECODEFORMAT = await to_thread(packet.decode, decoder)
             if frame is None:
                 self._abandonWrite(idx, slot)
                 return
