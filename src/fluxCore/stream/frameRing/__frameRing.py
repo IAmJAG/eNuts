@@ -3,6 +3,7 @@ from __future__ import annotations
 
 # ==================================================================================
 from asyncio import Queue, Task, create_task, to_thread
+from math import ceil
 from time import monotonic_ns
 from typing import List, Optional
 
@@ -17,32 +18,30 @@ from ..__streamHelpers import C_DEFAULT_RING_SIZE, validateRingSize
 from .slot import RingSlot
 
 # ==================================================================================
-C_GROW_STEP: int = 4
-C_GROW_MAX: int = 256
-C_GROW_WINDOW_NS: int = 1_000_000_000
 C_DECODE_QUEUE_SIZE: int = 64
+C_EVICT_PERCENT: float = 0.20
+C_RING_HIGH_WATERMARK: float = 0.80
 C_STOP_TOKEN: object = object()
 
 
 # ==================================================================================
 class FrameRing:
-    """Bounded, serial decoder feeding a zero-copy latest-frame ring.
+    """Fixed-capacity, serial decoder feeding a zero-copy latest-frame ring."""
 
-    Packet submission applies backpressure when the decode queue is full; it
-    never drops arbitrary inter-frame packets and therefore preserves codec
-    dependency order. Consumers acquire a RingSlot lease through latest() and
-    must return it with release() after using its payload.
-    """
-
-    def __init__(self, size: int = C_DEFAULT_RING_SIZE, maxGrow: int = C_GROW_MAX) -> None:
+    def __init__(self, size: int = C_DEFAULT_RING_SIZE) -> None:
         self._size: int = validateRingSize(size)
-        self._canGrow: bool = maxGrow >= 0
         self._slots: List[RingSlot] = [RingSlot() for _ in range(self._size)]
         self._queue: Queue = Queue(maxsize=C_DECODE_QUEUE_SIZE)
         self._worker: Optional[Task] = None
         self._running: bool = False
-        self._lastGrowNs: int = 0
-        self._consecutiveGrows: int = 0
+        self._decodedFrames: int = 0
+        self._publishedFrames: int = 0
+        self._evictedFrames: int = 0
+        self._droppedFrames: int = 0
+        self._decodeErrors: int = 0
+        self._decodeTimeNs: int = 0
+        self._maxDecodeTimeNs: int = 0
+        self._maxPending: int = 0
 
     def start(self) -> None:
         if self._running:
@@ -70,6 +69,7 @@ class FrameRing:
         if not self._running or self._worker is None:
             self.start()
         await self._queue.put((packet, decoder))
+        self._maxPending = max(self._maxPending, self._queue.qsize())
 
     async def _decodeLoop(self) -> None:
         while True:
@@ -78,35 +78,57 @@ class FrameRing:
                 if item is C_STOP_TOKEN:
                     return
                 packet, decoder = item
+                decodeStartNs = monotonic_ns()
                 try:
                     frame: DECODEFORMAT = await to_thread(packet.decode, decoder)
                     if frame is not None:
-                        self._publishFrame(
-                            frame=frame,
-                            sequence=packet.createdAt,
-                            pts=packet.pts,
-                            width=packet.width,
-                            height=packet.height,
-                        )
+                        self._decodedFrames += 1
+                        self._publishFrame(frame, packet.createdAt, packet.pts, packet.width, packet.height)
                 except Exception as ex:
+                    self._decodeErrors += 1
                     warning(f"[FrameRing] decode failed pts={getattr(packet, 'pts', None)}: {ex}")
+                finally:
+                    decodeTimeNs = monotonic_ns() - decodeStartNs
+                    self._decodeTimeNs += decodeTimeNs
+                    self._maxDecodeTimeNs = max(self._maxDecodeTimeNs, decodeTimeNs)
             finally:
                 self._queue.task_done()
 
-    def _publishFrame(self, frame: DECODEFORMAT, sequence: int, pts: int, width: int, height: int,) -> None:
+    def _publishFrame(self, frame: DECODEFORMAT, sequence: int, pts: int, width: int, height: int) -> None:
+        filledCount = sum(slot.state is eSlotFlag.FILLED for slot in self._slots)
+        highWatermark = max(1, ceil(self._size * C_RING_HIGH_WATERMARK))
+        if filledCount >= highWatermark:
+            self._evictOldest()
         idx = self._pickWriteIndex()
         if idx is None:
-            if not self._tryGrow():
-                warning("[FrameRing] no writable slot; decoded frame skipped")
-                return
+            self._evictOldest()
             idx = self._pickWriteIndex()
-            if idx is None:
-                warning("[FrameRing] growth produced no writable slot")
-                return
-
+        if idx is None:
+            self._droppedFrames += 1
+            warning("[FrameRing] no writable slot; decoded frame skipped")
+            return
         slot = self._slots[idx]
         slot.beginWrite(sequence=sequence, pts=pts, width=width, height=height)
         slot.completeWrite(frame, width=width, height=height, pts=pts)
+        self._publishedFrames += 1
+
+    def _evictOldest(self) -> int:
+        filledSlots = [slot for slot in self._slots if slot.state is eSlotFlag.FILLED]
+        if len(filledSlots) <= 1:
+            return 0
+        newestSequence = max(slot.sequence for slot in filledSlots)
+        eligibleSlots = sorted(
+            (slot for slot in filledSlots if slot.sequence != newestSequence and slot.readers == 0),
+            key=lambda slot: slot.sequence,
+        )
+        if not eligibleSlots:
+            return 0
+        targetCount = max(1, ceil(len(filledSlots) * C_EVICT_PERCENT))
+        evictedCount = min(targetCount, len(eligibleSlots))
+        for slot in eligibleSlots[:evictedCount]:
+            slot.markFree()
+        self._evictedFrames += evictedCount
+        return evictedCount
 
     def latest(self) -> Optional[iRingSlot]:
         best: Optional[RingSlot] = None
@@ -135,38 +157,7 @@ class FrameRing:
         for idx, slot in enumerate(self._slots):
             if slot.isWritable:
                 return idx
-
-        oldestIdx: Optional[int] = None
-        oldestSeq: Optional[int] = None
-        for idx, slot in enumerate(self._slots):
-            if slot.state is not eSlotFlag.FILLED or slot.readers:
-                continue
-            if oldestSeq is None or slot.sequence < oldestSeq:
-                oldestSeq = slot.sequence
-                oldestIdx = idx
-        return oldestIdx
-
-    def _tryGrow(self) -> bool:
-        if not self._canGrow or self._size >= C_GROW_MAX:
-            return False
-        now = monotonic_ns()
-        if self._lastGrowNs and now - self._lastGrowNs < C_GROW_WINDOW_NS:
-            self._consecutiveGrows += 1
-            if self._consecutiveGrows == 1:
-                warning("FrameRing: consecutive growth (warning)")
-            elif self._consecutiveGrows >= 2:
-                error("FrameRing: consecutive growth (error) — refusing grow")
-                return False
-        else:
-            self._consecutiveGrows = 0
-        step = min(C_GROW_STEP, C_GROW_MAX - self._size)
-        if step <= 0:
-            return False
-        self._slots.extend(RingSlot() for _ in range(step))
-        self._size += step
-        self._lastGrowNs = now
-        verbose(f"FrameRing: grew by {step} → size={self._size}")
-        return True
+        return None
 
     @property
     def size(self) -> int:
@@ -176,7 +167,25 @@ class FrameRing:
     def pending(self) -> int:
         return self._queue.qsize()
 
+    @property
+    def stats(self) -> dict[str, int]:
+        """Return a point-in-time snapshot of ring and decoder counters."""
+        return {
+            "capacity": self._size,
+            "filled": sum(slot.state is eSlotFlag.FILLED for slot in self._slots),
+            "leased": sum(slot.readers > 0 for slot in self._slots),
+            "pending": self._queue.qsize(),
+            "maxPending": self._maxPending,
+            "decodedFrames": self._decodedFrames,
+            "publishedFrames": self._publishedFrames,
+            "evictedFrames": self._evictedFrames,
+            "droppedFrames": self._droppedFrames,
+            "decodeErrors": self._decodeErrors,
+            "decodeTimeNs": self._decodeTimeNs,
+            "maxDecodeTimeNs": self._maxDecodeTimeNs,
+        }
+
 
 # ==================================================================================
-__all__ = ["FrameRing"]
+__all__ = ["FrameRing", "C_DECODE_QUEUE_SIZE", "C_EVICT_PERCENT", "C_RING_HIGH_WATERMARK"]
 # ==================================================================================

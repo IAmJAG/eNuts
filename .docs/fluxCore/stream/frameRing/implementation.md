@@ -5,42 +5,45 @@
 ```text
 LocalDeviceStream._onFrame(packet)
   await FrameRing.publish(packet, codec)
-    bounded asyncio.Queue(maxsize=64)  # backpressure; no arbitrary packet drops
+    bounded asyncio.Queue(maxsize=64)
       one _decodeLoop task
-        await to_thread(packet.decode, codec)  # one codec call at a time
+        await to_thread(packet.decode, codec)
         _publishFrame(decodedTensor)
-          choose an unleased RingSlot
+          fixed-capacity RingSlot collection
+          evict oldest 20% under pressure
           completeWrite -> FILLED
 
 Presenter._present()
   slot = ring.latest()  # acquire reader lease
-  view.present(slot.payload)  # original tensor; no clone
+  view.present(slot.payload)
   ring.release(slot)  # release lease in finally
 ```
 
-The recorder remains independent: `KGRecorderService` subscribes to the emitter's raw `ON_FRAME` packets and writes encoded payloads directly. It does not consume decoded ring slots.
-
-## Ownership and API
+## Ownership and presentation
 
 - `latest()` returns the newest filled `iRingSlot` and increments its reader count.
 - The caller must call `release(slot)` exactly once, preferably in `finally`.
 - A slot with active readers cannot be reused, freed, or cleared.
-- `next()` remains as a compatibility alias for `latest()`; it now returns a leased slot, not a cloned tensor.
-- Read the tensor through `slot.payload`. `latest()` and `next()` no longer return tensors.
-- The view must finish using the tensor before `present()` returns. A view that retains the tensor beyond that point must clone it itself or retain an explicit ownership mechanism.
+- `next()` remains an alias for `latest()` and returns a leased slot, not a cloned tensor.
+- `Canvas.present()` and `GLCanvas.present()` synchronously convert the tensor into an owned `QImage` copy. They do not retain the input tensor after returning, so Presenter can release the lease when `present()` returns.
+- Any future view that retains the tensor asynchronously must provide its own ownership mechanism.
 
-## Decode ordering and backpressure
+## Fixed-capacity eviction guard
 
-- `publish()` is asynchronous and awaits insertion into a bounded queue.
-- A single worker decodes packets in submission order using the associated codec context. No per-packet decode tasks are created.
-- When the queue is full, the emitter callback waits for capacity. Packets are not dropped, avoiding arbitrary H.264/H.265 inter-frame loss and broken reference chains.
-- Queue capacity is `C_DECODE_QUEUE_SIZE` (64).
-- Decode exceptions are logged and the worker continues with subsequent packets.
-- `start()` starts the worker. `stop()` enqueues a sentinel and awaits the worker, allowing already queued packets to finish before shutdown.
+- Capacity is fixed at the validated constructor size; automatic growth is disabled.
+- At or above 80% filled-slot occupancy, the ring invalidates the oldest 20% of filled slots, rounded up.
+- If no writable slot exists, it performs the same eviction pass as a fallback.
+- The newest filled slot and all slots with active readers are protected.
+- If no slot can be made writable, the newly decoded display frame is dropped and counted. The ring never grows.
+- Eviction happens after decoding. Encoded packets remain in the bounded FIFO queue and are not arbitrarily discarded.
 
-## Ring capacity
+## Measurements
 
-The ring prefers EMPTY/FREE slots, then reuses the oldest FILLED slot with no active readers. If every slot is leased, it uses the existing guarded growth policy up to `C_GROW_MAX`. If growth is refused, the just-decoded display frame is skipped and a warning is logged; packet decoding itself remains ordered.
+- `ring.stats`: capacity, filled slots, active leases, current/maximum queue depth, decoded/published/evicted/dropped frame counts, decode errors, and cumulative/maximum decode duration.
+- `presenter.stats`: presented/skipped/error counts and cumulative/maximum synchronous `view.present()` duration.
+- The current Canvas and GLCanvas `present()` duration includes CUDA-to-CPU transfer and tensor-to-QImage conversion/copy.
+- Rising `maxPending` indicates packet arrival is outpacing decoding. High `maxDecodeTimeNs` indicates decode/conversion latency. High `maxPresentTimeNs` indicates view conversion/presentation cost.
+- Rising `droppedFrames` indicates no slot could safely be reused because candidate slots were leased or unavailable.
 
 ## Usage
 
@@ -55,6 +58,7 @@ if slot is not None:
             view.present(tensor)
     finally:
         ring.release(slot)
-```
 
-`LocalDeviceStream` starts and stops the ring worker with its emitter lifecycle. Do not call `publish()` as a synchronous method anymore.
+print(ring.stats)
+print(presenter.stats)
+```
