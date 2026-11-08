@@ -16,12 +16,18 @@ MAX_FPS = 60
 BITRATE = 4000000
 # ==================================================================================
 
+
 # ==================================================================================
 class SCRCPYOptions(Serializable):
     def __init__(
-            self, serverPath: str = SERVER_PATH, androidPath: str = ANDROID_PATH, 
-            maxSize: int = MAX_SIZE, maxFps: int = MAX_FPS, bitrate: int = BITRATE
-        ) -> None:
+        self,
+        serverPath: str = SERVER_PATH,
+        androidPath: str = ANDROID_PATH,
+        maxSize: int = MAX_SIZE,
+        maxFps: int = MAX_FPS,
+        bitrate: int = BITRATE,
+    ) -> None:
+        super().__init__()
         self._serverPath: str = serverPath
         self._androidPath: str = androidPath
         self._maxSize: int = maxSize
@@ -29,7 +35,9 @@ class SCRCPYOptions(Serializable):
         self._bitrate: int = bitrate
         self._jarName: str = JAR_NAME
 
-        self.Properties.extend(["serverPath", "androidPath", "maxSize", "maxFps", "bitrate"])
+        self.Properties.extend(
+            ["serverPath", "androidPath", "maxSize", "maxFps", "bitrate"]
+        )
 
     @property
     def serverPath(self) -> str:
