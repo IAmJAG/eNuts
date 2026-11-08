@@ -81,6 +81,8 @@ class LocalDeviceStream(AsyncSubscription):
         self._ring = FrameRing(size=ringSize)
         self._decoder = FrameDecoder()
         self._consumers: List[iFrameConsumer] = []
+        self._running: bool = False
+
         self._presenter = Presenter(displayFps=displayFps, name="StreamPresenter")
         self.registerConsumer(self._presenter)
 
@@ -90,7 +92,6 @@ class LocalDeviceStream(AsyncSubscription):
         self._switchEpoch: int = 0
         self._switchLock = Lock()
         self._frameSubscribed: bool = False
-        self._running: bool = False
 
     @classmethod
     def classname(cls) -> str:
