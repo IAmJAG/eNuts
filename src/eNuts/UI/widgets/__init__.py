@@ -1,6 +1,6 @@
 # ==================================================================================
-from .__captureGLImage import CaptureGLImage
-from .__captureImage import CaptureImage
+# CaptureImage / CaptureGLImage removed — use jAGQt.widgets.Canvas / GLCanvas.
+# ==================================================================================
 
 # ==================================================================================
-__all__ = ["CaptureImage", "CaptureGLImage"]
+__all__: list[str] = []
