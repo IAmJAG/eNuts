@@ -9,13 +9,13 @@ from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import QSizePolicy, QWidget
 
 # ==================================================================================
-from jAGQt.widgets import GLImage, ImageBase
+from jAGQt.widgets import CanvasBase, GLCanvas
 from jAGQt.widgets.page import Page
 
 
 # ==================================================================================
 class PlaybackBase(Page):
-    """Page with a single expanding GLImage stream host.
+    """Page with a single expanding GLCanvas stream host.
 
     Subclasses that build a custom content row (e.g. stream + side strip) should
     call ``Page._wInitializeUI`` themselves and must not rely on this default
@@ -32,10 +32,10 @@ class PlaybackBase(Page):
             commandBarOn=commandBarOn, id=id, *args, **kwargs,
         )
 
-    def _wInitializeUI(self, view: Type[ImageBase] = GLImage) -> None:
+    def _wInitializeUI(self, view: Type[CanvasBase] = GLCanvas) -> None:
         super()._wInitializeUI()
 
-        streamView: ImageBase | QWidget = view(bg="#1a1a1a")
+        streamView: CanvasBase | QWidget = view(bg="#1a1a1a")
         streamView.setObjectName(f"{self.OBJECT_NAME}_STREAM")
         streamView.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
