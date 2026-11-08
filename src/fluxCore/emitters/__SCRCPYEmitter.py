@@ -169,15 +169,12 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         await self.asyncRaiseEvent("ON_METADATA_UPDATE", me)
 
     async def initialize(self, GPUID: int = 0, GPUReady: bool = True) -> None:
-        """Deploy scrcpy server and open sockets. Default SW decode (GPUReady=False).
+        """Deploy scrcpy server and open sockets.
 
         Blocking ADB deploy and abstract-socket connect run in ``to_thread`` so the
         UI event loop is not stalled for multi-second sleeps/retries.
         """
         try:
-            if T is None:
-                T = VideoSocket
-                
             self.setSuppressEvent(True)
 
             device: AdbDevice = await to_thread(adb.device, serial=self.id)
