@@ -210,7 +210,9 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
                 vSCKT: socket = await to_thread(
                     getSCRCPYADBSocket, device, cfg.Scid, 3000
                 )
-                self._vSocket = VideoSocket[TensorPacket](vSCKT, loop=asyncLoop)
+                self._vSocket = VideoSocket(
+                    vSCKT, loop=asyncLoop, packetType=TensorPacket
+                )
 
                 cSCKT: socket = await to_thread(
                     getSCRCPYADBSocket, device, cfg.Scid, 3000
