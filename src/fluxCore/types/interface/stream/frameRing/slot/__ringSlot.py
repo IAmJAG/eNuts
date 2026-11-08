@@ -1,0 +1,36 @@
+# ==================================================================================
+from __future__ import annotations
+
+# ==================================================================================
+from typing import Optional, Protocol, runtime_checkable
+
+# ==================================================================================
+from .....__eDecodeFormat import DECODEFORMAT
+from .....__eSlotFlag import eSlotFlag
+
+
+# ==================================================================================
+@runtime_checkable
+class iRingSlot(Protocol):
+    def beginWrite( self, sequence: int, pts: int, width: int = 0, height: int = 0) -> None: ...
+    def completeWrite( self, payload: DECODEFORMAT,width: int, height: int, pts: Optional[int] = None) -> None: ...
+    def markFree(self) -> None: ...
+    def clear(self) -> None: ...
+    @property
+    def state(self) -> eSlotFlag: ...
+    @property
+    def sequence(self) -> int: ...
+    @property
+    def pts(self) -> int: ...
+    @property
+    def width(self) -> int: ...
+    @property
+    def height(self) -> int: ...
+    @property
+    def payload(self) -> Optional[DECODEFORMAT]: ...
+    @property
+    def isWritable(self) -> bool: ...
+
+# ==================================================================================
+__all__ = ["iRingSlot"]
+# ==================================================================================

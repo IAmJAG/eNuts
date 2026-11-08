@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-07 10:26:17 UTC*
+*Auto-generated on: 2026-11-08 03:36:08 UTC*
 
 ## Current Directory Structure
 
@@ -218,11 +218,11 @@ eNuts/
 │   │   │   └── frameRing/
 │   │   │       ├── __frameRing.py
 │   │   │       └── slot/
-│   │   │           ├── __slot.py
-│   │   │           └── __slotFlag.py
+│   │   │           └── __ringSlot.py
 │   │   ├── types/
 │   │   │   ├── .fff
 │   │   │   ├── __eDecodeFormat.py
+│   │   │   ├── __eSlotFlag.py
 │   │   │   ├── __eTimeDeltaFormat.py
 │   │   │   └── interface/
 │   │   │       ├── action/
@@ -246,10 +246,16 @@ eNuts/
 │   │   │       │   └── vocabulary/
 │   │   │       │       ├── __vocabulary.py
 │   │   │       │       └── __vocabularyItem.py
-│   │   │       └── sockets/
-│   │   │           ├── __controlSocket.py
-│   │   │           ├── __socket.py
-│   │   │           └── __videoSocket.py
+│   │   │       ├── sockets/
+│   │   │       │   ├── __controlSocket.py
+│   │   │       │   ├── __socket.py
+│   │   │       │   └── __videoSocket.py
+│   │   │       └── stream/
+│   │   │           ├── __frameConsumer.py
+│   │   │           └── frameRing/
+│   │   │               ├── __frameRing.py
+│   │   │               └── slot/
+│   │   │                   └── __ringSlot.py
 │   │   └── utilities/
 │   │       ├── __adbutils.py
 │   │       ├── __frame.py
@@ -1009,19 +1015,23 @@ src/fluxCore/stream/frameRing:
 	__frameRing.py - 
 		CLASSE(S):
 			FrameRing -> : framering
+		CONSTANTS(S)/GLOBAL(S)
+			C_GROW_STEP -> : c_grow_step
+			C_GROW_MAX -> : c_grow_max
+			C_GROW_WINDOW_NS -> : c_grow_window_ns
 
 src/fluxCore/stream/frameRing/slot:
-	__slot.py - 
+	__ringSlot.py - 
 		CLASSE(S):
 			RingSlot -> : ringslot
-	__slotFlag.py - 
-		CLASSE(S):
-			eSlotFlag -> : eslotflag
 
 src/fluxCore/types:
 	__eDecodeFormat.py - 
 		CLASSE(S):
 			eDecodeFormat -> : edecodeformat
+	__eSlotFlag.py - 
+		CLASSE(S):
+			eSlotFlag -> : eslotflag
 	__eTimeDeltaFormat.py - 
 		CLASSE(S):
 			eTimeDeltaFormat -> : etimedeltaformat
@@ -1093,6 +1103,21 @@ src/fluxCore/types/interface/sockets:
 	__videoSocket.py - 
 		CLASSE(S):
 			iVideoSocket -> : ivideosocket
+
+src/fluxCore/types/interface/stream:
+	__frameConsumer.py - 
+		CLASSE(S):
+			iFrameConsumer -> : iframeconsumer
+
+src/fluxCore/types/interface/stream/frameRing:
+	__frameRing.py - 
+		CLASSE(S):
+			iFrameRing -> : iframering
+
+src/fluxCore/types/interface/stream/frameRing/slot:
+	__ringSlot.py - 
+		CLASSE(S):
+			iRingSlot -> : iringslot
 
 src/fluxCore/utilities:
 	__adbutils.py - 
@@ -1799,77 +1824,45 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-ea57e42:
-	Refactor geometry and packet structures
-		.docs/inventory.md
-		config/emitter/sizeBitrateMap.py
-		src/eNuts/UI/pages/__kgRecorder.py
-		src/eNuts/services/recorder/__kgRecorderService.py
-		src/fluxCore/action/android/gesture/__tap.py
-		src/fluxCore/action/android/gesture/__touch.py
-		src/fluxCore/emitters/__SCRCPYEmitter.py
-		src/fluxCore/types/geometry/__circle.py -> src/fluxCore/geometry/__circle.py
-		src/fluxCore/types/geometry/__point.py -> src/fluxCore/geometry/__point.py
-		src/fluxCore/types/geometry/__rectangle.py -> src/fluxCore/geometry/__rectangle.py
-		src/fluxCore/packets/__SCRCPYPacket.py
-		src/fluxCore/packets/__packet.py
-		src/fluxCore/packets/__tensorPacket.py
-		src/fluxCore/policy/vocabulary/__intent.py
-		src/fluxCore/types/sockets/__controlSocket.py -> src/fluxCore/sockets/__controlSocket.py
-		src/fluxCore/types/sockets/__socket.py -> src/fluxCore/sockets/__socket.py
-		src/fluxCore/types/sockets/__videoSocket.py -> src/fluxCore/sockets/__videoSocket.py
-		src/fluxCore/stream/__deviceStream.py
-		src/fluxCore/stream/__frameDecoder.py
-		src/fluxCore/stream/__frameHeader.py
-		src/fluxCore/stream/__frameRing.py
-		src/fluxCore/stream/__imageConverters.py
-		src/fluxCore/stream/__eDecodeFormat.py -> src/fluxCore/types/__eDecodeFormat.py
-		src/fluxCore/types/__eTimeDeltaFormat.py
-		src/fluxCore/types/interface/packets/__frame.py -> src/fluxCore/types/interface/packets/__imagePacket.py
-		src/fluxCore/types/interface/packets/__packet.py
-		src/fluxCore/types/packets/__frame.py
-		src/fluxCore/types/packets/__packet.py
-		src/fluxCore/utilities/__frame.py
+5057ad3:
+	Refactor publish and decode methods to remove imageSize parameter for simplification
+		src/fluxCore/stream/frameRing/__frameRing.py
+		src/fluxCore/types/interface/packets/__imagePacket.py
 
-59e51de:
-	AI handoff: FrameRing-owned convert, slot states, LocalDeviceStream split
+c686878:
+	Refactor TensorPacket.decode method to remove size parameter and simplify frame handling
+		src/fluxCore/packets/__tensorPacket.py
+
+3c02269:
+	AI handoff: code is SoT; FrameRing revalidated after revert
 		.docs/eNuts/recorder/streamPipeline/AI_HANDOFF.md
 
-5065938:
-	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
+4b32b49:
+	Docs: RingSlot as implemented
+		.docs/fluxCore/stream/frameRing/slot/ringSlot.md
 
-79181f1:
-	refactor(KGRecorderService): clean up code structure and improve readability by removing unnecessary comments and simplifying method definitions
-		src/eNuts/services/recorder/__kgRecorderService.py
+008c347:
+	Docs: FrameRing implementation from code
+		.docs/fluxCore/stream/frameRing/implementation.md
 
-7ab5fbf:
-	fix(logging): close stream before rotate rename (WinError 32)
-		src/jAGFx/logging/handlers/__dateRotatingFileHandler.py
+1b16546:
+	Docs: FrameRing requirements from implementation
+		.docs/fluxCore/stream/frameRing/requirement.md
 
-a47898f:
-	refactor(KGRecorder): simplify logging and improve readability by removing class name references
-		src/eNuts/UI/pages/__kgRecorder.py
+e1f9d95:
+	Docs: FrameRing as implemented (code is source of truth)
+		.docs/fluxCore/stream/frameRing/frameRing.md
 
-586ddf3:
-	fix(stream): handle view validity and prevent errors on deleted widgets
+f31a955:
+	Revert RingSlot to prior source-of-truth implementation
+		src/fluxCore/stream/frameRing/slot/__ringSlot.py
 
-3d7a631:
-	feat: refactor and organize UI components; add helper and recorder state management
-		src/eNuts/UI/pages/__devicePage.py
-		src/eNuts/UI/pages/__helper.py
-		src/eNuts/UI/pages/__kgRecorder.py
-		src/eNuts/UI/pages/__recorderState.py
-		src/eNuts/UI/widgets/__captureImage.py
-		src/eNuts/application/__shell.py
-		src/eNuts/application/workspace/__workSpace.py
-		src/eNuts/services/device/__deviceManager.py
+50f9f1c:
+	Revert FrameRing to prior source-of-truth implementation
+		src/fluxCore/stream/frameRing/__frameRing.py
 
-5c88ce9:
-	fix(UI): restore KGRecorder page with hide/show view detach
-		src/eNuts/UI/pages/__kgRecorder.py
-
-1e12afc:
-	fix(UI): detach LocalDeviceStream view on KGRecorder hide; reattach on show
-		src/eNuts/UI/pages/__kgRecorder.py
+0f240a0:
+	AI handoff: validated FrameRing on development
+		.docs/eNuts/recorder/streamPipeline/AI_HANDOFF.md
 
 ```

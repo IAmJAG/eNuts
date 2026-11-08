@@ -2,19 +2,17 @@
 from __future__ import annotations
 
 # ==================================================================================
-from asyncio import Task, to_thread
-from collections import deque
+from asyncio import to_thread
 from time import monotonic_ns
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional
 
 # ==================================================================================
 from av import VideoCodecContext
 from torch import Tensor
 
 # ==================================================================================
-from ...types import DECODEFORMAT, eTimeDeltaFormat
+from ...types import DECODEFORMAT
 from ...types.interface.packets import iImagePacket
-from ..__frameHeader import FrameHeader
 from ..__streamHelpers import C_DEFAULT_RING_SIZE, validateRingSize
 from .slot import RingSlot, eSlotFlag
 
