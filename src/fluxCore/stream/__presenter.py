@@ -8,7 +8,7 @@ from typing import Any, Optional
 from jAGFx.services import AsyncService
 
 # ==================================================================================
-from ..types.interface.stream import iFrameView
+from ..types.interface.stream.__frameView import iFrameView
 from ..types.interface.stream.frameRing import iFrameRing
 
 # ==================================================================================
