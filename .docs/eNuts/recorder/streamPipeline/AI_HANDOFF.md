@@ -2,42 +2,28 @@
 
 **Branch:** `development`  
 **Updated:** 2026-11-08  
-**Scope:** IAmJAG/eNuts only
+**Rule:** **Code is source of truth.** Docs adjust to code; do not change implementation to match design notes without an explicit code change request.
 
-## Locked product decisions
+## FrameRing (revalidated after revert)
 
-- **One emitter** only (no dual-emitter).
-- View and record share the **same** decoded frames.
-- **UI / Presenter:** `latest()`; may skip.
-- **Recorder:** `next()` + `release(slot)`; must not skip.
-- Decode on ring publish path via `createTask` + `to_thread` (non-blocking for emitter).
-- Packet fields: **contract properties only** (`createdAt`, `pts`, `width`, `height`).
-- Display widgets out of ring design.
-
-## Live FrameRing (validated 2026-11-08)
-
-**Paths**
-
+**Sources**
 - `src/fluxCore/stream/frameRing/__frameRing.py`
 - `src/fluxCore/stream/frameRing/slot/__ringSlot.py`
 - `src/fluxCore/stream/frameRing/slot/__slotFlag.py`
 
-**Slot states:** EMPTY | FREE | WRITING | FILLED  
-**Ready-for-write:** EMPTY | FREE  
-**Growth:** step 4, `maxGrow` (default 256), consecutive window warn → refuse  
-**Sequence:** `packet.createdAt`  
-**latest/next:** return `(RingSlot, payload)`; recorder must `release(slot)`
+**Behavior as coded**
+- `publish`: contract fields `createdAt`/`pts`/`width`/`height`; `createTask(_decode)`; non-blocking.
+- `_decode`: `await to_thread(packet.decode, ...)`; FILLED or abandon FREE.
+- States: EMPTY | FREE | WRITING | FILLED.
+- `latest()` / `next()` → `Optional[DECODEFORMAT]` (Tensor clone), **not** `(slot, payload)`.
+- `release(slot: RingSlot)` requires the slot object; `next` does not return it.
+- Grow: `_canGrow = maxGrow >= 0`; cap `C_GROW_MAX`; consecutive window warn then refuse.
 
-## Still pending
-
-- Wire `LocalDeviceStream` so `ON_FRAME` calls `FrameRing.publish(packet, decoder)` (stream keeps non-frame events/errors).
-- Parent stream docs still mention older QImage decode-in-stream path — partial drift flagged in `implementation.md`.
-- Smoke tests under `.test/smoke/scrcpy/test_frame_ring.py` still target old emitters.scrcpy API — need rewrite.
-- Full GPU present path (no host RGB for UI) not done.
-- `iPacket.createdAt` generic property implementation may need care when comparing sequences.
+**Open gaps visible in code (document only unless asked to change code)**
+- `release` vs `next` return type mismatch for sequential consumers.
+- `maxGrow` value not used as numeric cap (only enables/disables via `>= 0`).
+- `LocalDeviceStream` may still use older decode path until wired to this `publish`.
+- Smoke tests may still target old ring APIs.
 
 ## Docs
-
-- `.docs/fluxCore/stream/frameRing/` (+ `slot/`)
-- `.docs/fluxCore/stream/implementation.md` (updated mapping)
-- `.docs/fluxCore/stream/frameSlot.md` (IPC design archive only)
+`.docs/fluxCore/stream/frameRing/` mirrors the above implementation.
