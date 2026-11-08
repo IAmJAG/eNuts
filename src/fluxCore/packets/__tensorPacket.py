@@ -17,7 +17,7 @@ from .__SCRCPYPacket import SCRCPYPacket
 
 # ==================================================================================
 class TensorPacket(SCRCPYPacket, iImagePacket[Tensor]):
-    def decode(self, decoder: VideoCodecContext, size: int = -1) -> Tensor | None: 
+    def decode(self, decoder: VideoCodecContext) -> Tensor | None: 
         if decoder is None:
             raise RuntimeError("decoder is is required.")
 
@@ -40,29 +40,17 @@ class TensorPacket(SCRCPYPacket, iImagePacket[Tensor]):
             raise RuntimeError("decode() decoded more than one frame.")
 
         vFrame: VideoFrame = vFrames[0]
+        self.width = vFrame.width
+        self.height = vFrame.height
+
         cudaTensor: Tensor
         if self._isHwFrame(vFrame):
             cudaTensor = self._frameToCudaTensor(vFrame)
 
         else:
             cudaTensor =  self._cpuFrameToCudaTensor(vFrame)
-
-        if size != -1:
-            batch = cudaTensor.permute(2, 0, 1).unsqueeze(0).float()            
-            lOriginalHeight, lOriginalWidth = batch.shape[2], batch.shape[3]            
-            if lOriginalWidth > lOriginalHeight:
-                newWidth = size
-                newHeight = int(lOriginalHeight * (size / lOriginalWidth))
-                
-            else:
-                newHeight = size
-                newWidth = int(lOriginalWidth * (size / lOriginalHeight))
-
-            self.width = newWidth
-            self.height = newHeight
-
-            resized = F.interpolate(batch, size=(newHeight, newWidth), mode='bilinear', align_corners=False)
-            cudaTensor = resized.squeeze(0).permute(1, 2, 0)
+        
+        return cudaTensor
 
     @staticmethod
     def _isHwFrame(frame: VideoFrame) -> bool:
