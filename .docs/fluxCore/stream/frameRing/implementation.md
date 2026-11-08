@@ -3,29 +3,25 @@
 ## 1. Architecture Overview
 
 ```text
-publish(packet, decoder)
-  → pick EMPTY|FREE (or grow / overwrite FILLED not in order)
-  → beginWrite(createdAt, pts, w, h)  # WRITING
-  → append idx to _order
-  → createTask(_decode)
-       → to_thread(packet.decode)
-       → completeWrite → FILLED  |  abandon → FREE
+publish(packet, decoder, imageSize=-1)
+  _pickWriteIndex() → EMPTY|FREE, else oldest FILLED not in _order
+  beginWrite(createdAt, pts, w, h)  # WRITING
+  _order.append(idx)
+  createTask(_decode, idx, slot, packet, decoder, imageSize)
+    to_thread(packet.decode, decoder, imageSize)
+    completeWrite → FILLED  |  _abandonWrite → FREE + remove from _order
 
-latest()  → max sequence among FILLED
-next()    → head of _order if FILLED; None if WRITING
-release() → pop head, markFree
+latest() → max sequence FILLED → payload.detach().clone()
+next()   → while _order: head WRITING→None; non-FILLED→pop; FILLED→clone (no pop)
+release(slot) → if head is slot: pop, markFree
 ```
 
 ## 2. Directory & Module Mapping
 | Source Path | Documentation Path | Primary Responsibility |
 | :--- | :--- | :--- |
-| `src/fluxCore/stream/frameRing/__frameRing.py` | `.docs/fluxCore/stream/frameRing/frameRing.md` | Ring + publish/decode/grow |
-| `src/fluxCore/stream/frameRing/slot/__ringSlot.py` | `.docs/fluxCore/stream/frameRing/slot/ringSlot.md` | Slot cell |
-| `src/fluxCore/stream/frameRing/slot/__slotFlag.py` | `.docs/fluxCore/stream/frameRing/slot/slotFlag.md` | EMPTY/FREE/WRITING/FILLED |
-| `src/fluxCore/types/interface/packets/__imagePacket.py` | — | publish contract |
+| `src/fluxCore/stream/frameRing/__frameRing.py` | `.docs/fluxCore/stream/frameRing/frameRing.md` | Ring |
+| `src/fluxCore/stream/frameRing/slot/__ringSlot.py` | `.docs/fluxCore/stream/frameRing/slot/ringSlot.md` | Slot |
+| `src/fluxCore/stream/frameRing/slot/__slotFlag.py` | `.docs/fluxCore/stream/frameRing/slot/slotFlag.md` | Flags |
 
 ## 3. Core Workflows & Data Flow
-1. Emitter delivers `iImagePacket` → `FrameRing.publish`.
-2. Slot locked WRITING before task schedule so pick cannot reuse it.
-3. `_order` records publish order at WRITING time so recorder order is preserved if decode finishes out of order.
-4. Present reads `latest` only; recorder `next`/`release` drives FREE for rewrite.
+As in architecture diagram above. `_canGrow` is `maxGrow >= 0`; size limit for grow is always `C_GROW_MAX` in `_tryGrow`.
