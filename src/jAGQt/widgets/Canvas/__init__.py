@@ -1,14 +1,8 @@
 # ==================================================================================
 from .__canvas import Canvas
 from .__canvasBase import CanvasBase
-from .__fitMode import CanvasFitMode, ImageFitMode
+from .__fitMode import CanvasFitMode
 from .__glCanvas import GLCanvas
-
-# ==================================================================================
-# Backward-compatible aliases
-Image = Canvas
-GLImage = GLCanvas
-ImageBase = CanvasBase
 
 # ==================================================================================
 __all__ = [
@@ -16,8 +10,4 @@ __all__ = [
     "GLCanvas",
     "CanvasBase",
     "CanvasFitMode",
-    "Image",
-    "GLImage",
-    "ImageBase",
-    "ImageFitMode",
 ]
