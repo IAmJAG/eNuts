@@ -1,5 +1,5 @@
 # ==================================================================================
-from .__eFitMode import eCanvasFitMode, eImageFitMode
+from .__eFitMode import eCanvasFitMode
 
 # ==================================================================================
-__all__ = ["eCanvasFitMode", "eImageFitMode"]
+__all__ = ["eCanvasFitMode"]
