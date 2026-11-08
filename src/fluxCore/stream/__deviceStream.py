@@ -4,31 +4,22 @@ from __future__ import annotations
 # ==================================================================================
 from asyncio import Lock
 from functools import partial
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Optional
 
 # ==================================================================================
-from PySide6.QtGui import QImage
+from av import VideoCodecContext
 
 # ==================================================================================
 from fluxCore.types.interface.device import iDevice
 from fluxCore.types.interface.emitters import iEmitter
-from fluxCore.types.interface.packets import iFrame
+from fluxCore.types.interface.packets import iImagePacket
 from jAGFx.services import AsyncSubscription
 
 # ==================================================================================
-from ..types.__eDecodeFormat import eDecodeFormat
+from ..types.interface.stream.__frameConsumer import iFrameConsumer
 from .__frameDecoder import FrameDecoder
-from .__frameFlags import FrameFlags
-from .__frameHeader import FrameHeader
-from .__streamPresenter import StreamPresenter
+from .__presenter import Presenter
 from .frameRing.__frameRing import FrameRing
-
-# ==================================================================================
-try:
-    from shiboken6 import isValid as _qtIsValid
-except ImportError:  # pragma: no cover
-    def _qtIsValid(obj: Any) -> bool:  # type: ignore[misc]
-        return obj is not None
 
 # ==================================================================================
 C_ON_FRAME: str = "ON_FRAME"
@@ -60,7 +51,11 @@ C_LIFECYCLE_EVENTS: List[str] = [
 
 # ==================================================================================
 class LocalDeviceStream(AsyncSubscription):
-    """In-process stream: one emitter, decode once, ring + optional view present.
+    """In-process stream: one emitter, ring publish, registered frame consumers.
+
+    ``_onFrame`` only publishes the packet into the ring (decode is scheduled
+    inside ``FrameRing``). Presentation is owned by ``Presenter`` (default
+    consumer); the stream does not decode to QImage or call the view.
 
     ``switchDevice`` is coalesced: rapid combo changes only apply the **latest**
     serial. In-flight ``ensureRunning`` work for a superseded serial is abandoned
@@ -81,33 +76,98 @@ class LocalDeviceStream(AsyncSubscription):
         C_ON_RESUMED,
     ]
 
-    def __init__(self, ringSize: int = 8) -> None:
+    def __init__(self, ringSize: int = 8, displayFps: float = 30.0) -> None:
         super().__init__()
         self._ring = FrameRing(size=ringSize)
         self._decoder = FrameDecoder()
-        self._presenter = StreamPresenter()
-        self._view: Any = None
+        self._consumers: List[iFrameConsumer] = []
+        self._presenter = Presenter(displayFps=displayFps, name="StreamPresenter")
+        self.registerConsumer(self._presenter)
+
         self._emitter: Optional[iEmitter] = None
         self._serial: Optional[str] = None
         self._desiredSerial: Optional[str] = None
         self._switchEpoch: int = 0
         self._switchLock = Lock()
         self._frameSubscribed: bool = False
-        self._previousSize: Tuple[int, int] = (0, 0)
+        self._running: bool = False
 
     @classmethod
     def classname(cls) -> str:
         return cls.__name__
 
     # -------------------------------------------------------------------------
-    # view
+    # ring / default presenter
     # -------------------------------------------------------------------------
+    @property
+    def ring(self) -> FrameRing:
+        return self._ring
+
+    @property
+    def presenter(self) -> Presenter:
+        return self._presenter
+
     def attachView(self, view: Any) -> None:
-        self._view = view
+        """Convenience: bind view to the default Presenter."""
+        self._presenter.attachView(view)
         verbose(f"[{self.classname()}] attachView type={type(view).__name__}")
 
     def detachView(self) -> None:
-        self._view = None
+        self._presenter.detachView()
+
+    # -------------------------------------------------------------------------
+    # consumers (iFrameConsumer)
+    # -------------------------------------------------------------------------
+    def registerConsumer(self, consumer: iFrameConsumer) -> None:
+        if consumer in self._consumers:
+            return
+        consumer.attachRing(self._ring)
+        self._consumers.append(consumer)
+        if self._running:
+            try:
+                consumer.start()
+            except Exception as ex:
+                warning(f"[{self.classname()}] consumer.start failed: {ex}")
+        verbose(
+            f"[{self.classname()}] registerConsumer "
+            f"type={type(consumer).__name__} n={len(self._consumers)}"
+        )
+
+    def unregisterConsumer(self, consumer: iFrameConsumer) -> None:
+        if consumer not in self._consumers:
+            return
+        try:
+            if getattr(consumer, "isRunning", False):
+                consumer.stop()
+        except Exception as ex:
+            warning(f"[{self.classname()}] consumer.stop failed: {ex}")
+        try:
+            consumer.detachRing()
+        except Exception as ex:
+            warning(f"[{self.classname()}] consumer.detachRing failed: {ex}")
+        self._consumers.remove(consumer)
+
+    def _startConsumers(self) -> None:
+        for consumer in list(self._consumers):
+            try:
+                if not getattr(consumer, "isRunning", False):
+                    consumer.start()
+            except Exception as ex:
+                warning(
+                    f"[{self.classname()}] start consumer "
+                    f"{type(consumer).__name__} failed: {ex}"
+                )
+
+    def _stopConsumers(self) -> None:
+        for consumer in list(self._consumers):
+            try:
+                if getattr(consumer, "isRunning", False):
+                    consumer.stop()
+            except Exception as ex:
+                warning(
+                    f"[{self.classname()}] stop consumer "
+                    f"{type(consumer).__name__} failed: {ex}"
+                )
 
     # -------------------------------------------------------------------------
     # codec
@@ -190,6 +250,9 @@ class LocalDeviceStream(AsyncSubscription):
                 pass
 
     async def stop(self) -> None:
+        self._running = False
+        self._stopConsumers()
+
         emitter = self._emitter
         if emitter is None:
             return
@@ -209,11 +272,6 @@ class LocalDeviceStream(AsyncSubscription):
         if emitter is None:
             return
 
-        if self._decoder is None:
-            return
-
-        self._previousSize = (0, 0)
-
         if self._frameSubscribed:
             try:
                 emitter.unsubscribe(C_ON_FRAME, self._onFrame)
@@ -223,6 +281,8 @@ class LocalDeviceStream(AsyncSubscription):
 
         emitter.subscribe(C_ON_FRAME, self._onFrame)
         self._frameSubscribed = True
+        self._running = True
+        self._startConsumers()
 
         if not emitter.isRunning:
             emitter.start()
@@ -230,80 +290,19 @@ class LocalDeviceStream(AsyncSubscription):
         serial = getattr(emitter, "id", None)
         verbose(f"[{self.classname()}] start serial={serial!r}")
 
-    async def _onFrame(self, frame: iFrame) -> None:
+    async def _onFrame(self, packet: iImagePacket) -> None:
+        """Publish only — decode is scheduled inside the ring; consumers pull."""
         try:
-            decoder: FrameDecoder = self._decoder
-            if decoder.codec is None:
+            codec: Optional[VideoCodecContext] = self._decoder.codec
+            if codec is None:
                 return
 
-            prevSize: Tuple[int, int] = self._previousSize
-
-            qimg: QImage = decoder.decode(frame, eDecodeFormat.QIMAGE)
-            if qimg is None or qimg.isNull():
-                return
-
-            newSize: Tuple[int, int] = (qimg.width(), qimg.height())
-
-            flag: FrameFlags = FrameFlags.NONE
-            if getattr(frame, "isKeyFrame", False):
-                flag |= FrameFlags.KEYFRAME
-            if newSize != prevSize:
-                emitter = self._emitter
-                if emitter is not None and hasattr(emitter, "toDevice"):
-                    device: iDevice = emitter.toDevice(emitter)
-                    self.raiseEvent(C_ON_METADATA_UPDATE, device)
-                flag |= FrameFlags.RESOLUTION_CHANGED
-
-            header: FrameHeader = FrameHeader(
-                pts=getattr(frame, "pts", 0),
-                width=newSize[0],
-                height=newSize[1],
-                format=eDecodeFormat.QIMAGE,
-                flags=flag,
-            )
-
-            self._previousSize = newSize
-            self._ring.publish(header, qimg)
-            self._presentLatest()
-            self.raiseEvent(C_ON_FRAME, header, qimg)
+            self._ring.publish(packet, codec)
+            # Optional fan-out for stream-level subscribers (packet, not Tensor).
+            self.raiseEvent(C_ON_FRAME, packet)
 
         except Exception as ex:
-            warning(f"[{self.classname()}] _onFrame failed", ex)
-
-    def _presentLatest(self) -> None:
-        view = self._view
-        if view is None:
-            return
-        if not _qtIsValid(view):
-            # Page/widget destroyed while emitter still streaming.
-            self._view = None
-            return
-
-        latest = self._ring.latest()
-        if latest is None:
-            return
-
-        header, image = latest
-        meta = {
-            "seq": header.sequence,
-            "pts": header.pts,
-            "w": header.width,
-            "h": header.height,
-        }
-
-        if hasattr(view, "presentExternal"):
-            self._presenter.present(view, meta, image)
-            return
-
-        try:
-            view.image = image
-        except RuntimeError as ex:
-            if "already deleted" in str(ex).lower():
-                self._view = None
-                return
-            warning(f"[{self.classname()}] present fallback failed: {ex}")
-        except Exception as ex:
-            warning(f"[{self.classname()}] present fallback failed: {ex}")
+            warning(f"[{self.classname()}] _onFrame failed: {ex}")
 
     # -------------------------------------------------------------------------
     # device switch (page entry point)
@@ -331,7 +330,6 @@ class LocalDeviceStream(AsyncSubscription):
         )
 
         async with self._switchLock:
-            # Another waiter may have already satisfied a newer epoch.
             if requestEpoch != self._switchEpoch:
                 verbose(
                     f"[{self.classname()}] switchDevice superseded "
@@ -351,6 +349,7 @@ class LocalDeviceStream(AsyncSubscription):
                     return
 
                 prev = self._emitter
+                await self.stop()
                 self.detachedEmitter()
 
                 if (stopPrevious or target is None) and prev is not None:
@@ -378,9 +377,6 @@ class LocalDeviceStream(AsyncSubscription):
                         f"has no ensureRunning"
                     )
 
-                # Long wait: user may change selection while this runs.
-                # Connection / init failures must not escape as unretrieved tasks
-                # (createTask has no caller await).
                 try:
                     emitter = await ensure(target)
                 except Exception as ex:
@@ -399,7 +395,6 @@ class LocalDeviceStream(AsyncSubscription):
                         f"target={target!r} desired={self._desiredSerial!r} "
                         f"epoch={epochAtStart}->{self._switchEpoch}"
                     )
-                    # Do not attach the stale emitter; loop for the new target.
                     continue
 
                 try:
@@ -410,6 +405,7 @@ class LocalDeviceStream(AsyncSubscription):
                         f"[{self.classname()}] switchDevice attach/start "
                         f"failed serial={target!r}: {ex}"
                     )
+                    await self.stop()
                     self.detachedEmitter()
                     self._serial = None
                     self.raiseEvent(C_ON_ERROR, ex)
@@ -418,10 +414,10 @@ class LocalDeviceStream(AsyncSubscription):
                     return
 
                 if self._desiredSerial != target or self._switchEpoch != epochAtStart:
-                    # Desired changed during attach/start — detach and retry.
                     verbose(
                         f"[{self.classname()}] switchDevice race after start; retry"
                     )
+                    await self.stop()
                     self.detachedEmitter()
                     self._serial = None
                     continue

@@ -1,26 +1,28 @@
 ## Overview & Design Context
-`LocalDeviceStream` is the in-process stream layer between a `SCRCPYEmitter` and UI (or other) consumers. It owns decode, a `FrameRing`, and optional `StreamPresenter` presentation.
+`LocalDeviceStream` is the in-process stream layer between a `SCRCPYEmitter` and registered `iFrameConsumer`s. It owns the `FrameRing`, codec sync, and consumer lifecycle. Decode is scheduled inside the ring; the stream does not present frames.
 
-* **Design Decision / Deviation Notes:** Device switches are serialized via `switchDevice` + `asyncio.Lock`. Raw emitter `ON_FRAME` is not re-raised; only decoded `(FrameHeader, QImage)` is raised after ring publish/present. View presentation prefers `presentExternal`, falls back to `view.image`.
+* **Design Decision / Deviation Notes:** `_onFrame` only calls `ring.publish(packet, codec)` then optional stream-level `ON_FRAME` fan-out with the **packet** (not a Tensor/QImage). A default `Presenter` is registered at construction; `attachView` / `detachView` forward to that presenter. Additional consumers use `registerConsumer` / `unregisterConsumer`.
 
 ---
 
 ## Classes
 
 ### `LocalDeviceStream`
-- **Purpose:** Single attach point for one emitter; decode once; present latest frame to an optional view.
+- **Purpose:** Single attach point for one emitter; publish packets to the ring; start/stop frame consumers.
+- **Properties:** `ring`, `presenter`
 - **Methods:**
-  - `attachView(view)` / `detachView()` — bind capture surface.
-  - `attachedEmitter(emitter)` / `detachedEmitter()` — subscribe lifecycle + codec init; frame path armed in `start`.
-  - `start()` / `stop()` — arm `ON_FRAME` handler; forward stop to emitter.
-  - `switchDevice(deviceManager, serial)` — serialized detach/stop → `ensureRunning` → attach/start.
-  - `_onFrame(frame)` — decode, ring publish, present, raise decoded `ON_FRAME`.
+  - `registerConsumer` / `unregisterConsumer` — attach/detach ring; start if stream running.
+  - `attachView` / `detachView` — convenience on the default `Presenter`.
+  - `attachedEmitter` / `detachedEmitter` — lifecycle + codec wiring.
+  - `start` / `stop` — arm `ON_FRAME`; start/stop all consumers.
+  - `switchDevice(deviceManager, serial)` — coalesced detach/stop → `ensureRunning` → attach/start.
+  - `_onFrame(packet)` — `ring.publish(packet, codec)` only.
 
 ## Sample Usage
 
 ```python
 stream = LocalDeviceStream(ringSize=8)
-stream.attachView(captureView)
+stream.attachView(glCanvas)   # → stream.presenter.attachView
 await stream.switchDevice(deviceManager, serial)
 # clear
 await stream.switchDevice(deviceManager, None)
