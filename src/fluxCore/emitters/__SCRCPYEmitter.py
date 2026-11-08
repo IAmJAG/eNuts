@@ -193,8 +193,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
 
             try:
                 streamServer: AdbConnection = await to_thread(
-                    deployServer, device,
-                    cfg, options.serverPath, 3000,
+                    deployServer, device, cfg, options.serverPath, 3000,
                 )
 
             except Exception as ex:

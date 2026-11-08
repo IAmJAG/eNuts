@@ -157,6 +157,7 @@ class Endpoint(iEndpoint):
                 break
             try:
                 await to_thread(send, message)
+                
             except Exception as ex:
                 self._onTransportError(ex, where="drain")
                 break
