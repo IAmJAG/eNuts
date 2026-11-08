@@ -14,7 +14,6 @@ from ..navigation.__pageKeys import (
 )
 from .__annotator import Annotator
 from .__devicePage import DeviceFrameBridge, buildDevicePage
-from .__kgRecorder import KGRecorder
 from .__playbackBase import PlaybackBase
 
 # ==================================================================================
@@ -29,7 +28,6 @@ __all__ = [
     "PAGE_TOOLS",
     "Annotator",
     "DeviceFrameBridge",
-    "KGRecorder",
     "PlaybackBase",
     "buildBlankPage",
     "buildDevicePage",

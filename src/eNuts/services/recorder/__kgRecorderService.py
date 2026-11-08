@@ -11,7 +11,7 @@ from uuid import uuid4
 
 # ==================================================================================
 from fluxCore.types.interface.emitters import iEmitter
-from fluxCore.types.interface.packets import iFrame
+from fluxCore.types.interface.packets import iPacket
 from jAGFx.services import AsyncService
 
 # ==================================================================================
@@ -80,18 +80,12 @@ class KGRecorderService(AsyncService):
         return self._frameCount
 
     def bind(
-        self,
-        emitter: iEmitter,
-        *,
-        serial: str,
-        width: int,
-        height: int,
-        codec: str = "h264",
+        self, emitter: iEmitter, *, serial: str,
+        width: int, height: int, codec: str = "h264",
     ) -> None:
+        
         if self.isRecording:
-            raise RuntimeError(
-                f"cannot bind while recording sessionId={self._sessionId!r}"
-            )
+            raise RuntimeError(f"cannot bind while recording sessionId={self._sessionId!r}")
 
         if emitter is None:
             raise ValueError("emitter is required")
@@ -99,9 +93,7 @@ class KGRecorderService(AsyncService):
         self._detachFrame()
         self._emitter = emitter
 
-        cleanedSerial = (serial or "").strip() or (
-            str(getattr(emitter, "id", "") or "").strip()
-        )
+        cleanedSerial = (serial or "").strip() or (str(getattr(emitter, "id", "") or "").strip())
         self._serial = cleanedSerial or None
         self._width = int(width) if width else int(getattr(emitter, "width", 0) or 0)
         self._height = int(height) if height else int(getattr(emitter, "height", 0) or 0)

@@ -23,9 +23,8 @@ from torch import Tensor
 # ==================================================================================
 from jAGFx.workflow import workflow
 
-from ...types.__eFitMode import CanvasFitMode
-
 # ==================================================================================
+from ...types import eCanvasFitMode
 from ..components import ComponentBase
 from .__canvasBase import BACKGROUND_COLOR, CanvasBase
 
@@ -40,12 +39,12 @@ class Canvas(QWidget, ComponentBase, CanvasBase):
     mouseReleased: SignalInstance = Signal(object)
 
     def __init__(
-        self, bg: Union[str, QColor] = BACKGROUND_COLOR, 
-        fitMode: CanvasFitMode = CanvasFitMode.Scale, *args, **kwargs,
+        self, bg: Union[str, QColor] = BACKGROUND_COLOR, fitMode: eCanvasFitMode = eCanvasFitMode.Scale,
+        *args, **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
         self._backgroundColor = QColor(bg) if isinstance(bg, str) else bg
-        self._fitMode: CanvasFitMode = fitMode
+        self._fitMode: eCanvasFitMode = fitMode
         self._scaled: Optional[QPixmap] = None
         self._liveImage: Optional[QImage] = None
 

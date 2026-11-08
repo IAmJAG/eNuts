@@ -1,5 +1,5 @@
 # ==================================================================================
-from .__frame import AsyncReadSingleFrame, ReadSingleFrame, createCudaDecoder
+from .__frame import AsyncReadSingleFrame, ReadSingleFrame
 from .__socket import AsyncReadAll, AsyncReadExact, ReadAll, ReadExact
 from .__torch import (
     G_DEFAULT_EMBED_DIM,
@@ -28,6 +28,5 @@ __all__ = [
     "G_NORMALIZE_MEAN",
     "G_NORMALIZE_STD",
     "G_FRAME_SIZE",
-    "G_PARAM_DIM",
-    "createCudaDecoder",
+    "G_PARAM_DIM"
 ]

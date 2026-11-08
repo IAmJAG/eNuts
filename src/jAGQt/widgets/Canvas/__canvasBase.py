@@ -10,7 +10,7 @@ from PySide6.QtCore import QPointF, QRect
 from PySide6.QtGui import QColor, QImage, QPixmap
 
 # ==================================================================================
-from ...types.__eFitMode import CanvasFitMode
+from ...types import eCanvasFitMode
 
 # ==================================================================================
 BACKGROUND_COLOR = QColor("lightgray")
@@ -35,11 +35,11 @@ class CanvasBase:
         self.setBackgroundColor(bg)
 
     @property
-    def fitMode(self) -> CanvasFitMode:
+    def fitMode(self) -> eCanvasFitMode:
         return self._fitMode
 
     @fitMode.setter
-    def fitMode(self, value: CanvasFitMode) -> None:
+    def fitMode(self, value: eCanvasFitMode) -> None:
         if value is self._fitMode: return
         self._fitMode = value
         self._markDirty()
@@ -94,10 +94,10 @@ class CanvasBase:
 
         mode = self._fitMode
 
-        if mode is CanvasFitMode.Fill:
+        if mode is eCanvasFitMode.Fill:
             return (x / vw) * iw, (y / vh) * ih
 
-        if mode is CanvasFitMode.Scale:
+        if mode is eCanvasFitMode.Scale:
             rect = self._fitRect(vw, vh, iw, ih)
             if rect.isEmpty():
                 return None
@@ -131,9 +131,6 @@ class CanvasBase:
         self._onImageCleared()
         self._markDirty()
 
-    # ------------------------------------------------------------------
-    # HOOKS
-    # ------------------------------------------------------------------
     def _onImageCleared(self) -> None:
         self._drawRect = QRect()
 
@@ -153,9 +150,9 @@ class CanvasBase:
         if vw <= 0 or vh <= 0 or iw <= 0 or ih <= 0:
             return QRect()
         mode = self._fitMode
-        if mode is CanvasFitMode.Fill:
+        if mode is eCanvasFitMode.Fill:
             return QRect(0, 0, vw, vh)
-        if mode is CanvasFitMode.Scale:
+        if mode is eCanvasFitMode.Scale:
             scale = min(vw / iw, vh / ih)
             tw = max(1, int(iw * scale))
             th = max(1, int(ih * scale))

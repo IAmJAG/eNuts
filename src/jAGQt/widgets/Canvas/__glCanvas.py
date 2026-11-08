@@ -23,9 +23,8 @@ from torch import Tensor
 # ==================================================================================
 from jAGFx.workflow import workflow
 
-from ...types.__eFitMode import CanvasFitMode
-
 # ==================================================================================
+from ...types import eCanvasFitMode
 from ..components import ComponentBase
 from .__canvasBase import BACKGROUND_COLOR, CanvasBase
 
@@ -47,13 +46,13 @@ class GLCanvas(QOpenGLWidget, ComponentBase, CanvasBase):
     def __init__(
         self,
         bg: Union[str, QColor] = BACKGROUND_COLOR,
-        fitMode: CanvasFitMode = CanvasFitMode.Scale,
+        fitMode: eCanvasFitMode = eCanvasFitMode.Scale,
         *args,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
         self._backgroundColor = QColor(bg) if isinstance(bg, str) else bg
-        self._fitMode: CanvasFitMode = fitMode
+        self._fitMode: eCanvasFitMode = fitMode
         self._drawImage: Optional[QImage] = None
         self._glIntialized: bool = False
         self._liveImage: Optional[QImage] = None
@@ -146,7 +145,7 @@ class GLCanvas(QOpenGLWidget, ComponentBase, CanvasBase):
         self._drawRect = self._fitRect(w, h, iw, ih)
         mode = self._fitMode
 
-        if mode is CanvasFitMode.Fill:
+        if mode is eCanvasFitMode.Fill:
             self._drawImage = src.scaled(
                 w, h,
                 Qt.AspectRatioMode.IgnoreAspectRatio,
@@ -154,7 +153,7 @@ class GLCanvas(QOpenGLWidget, ComponentBase, CanvasBase):
             )
             return
 
-        if mode is CanvasFitMode.Scale:
+        if mode is eCanvasFitMode.Scale:
             self._drawImage = src.scaled(
                 self._drawRect.size(),
                 Qt.AspectRatioMode.IgnoreAspectRatio,
@@ -217,9 +216,6 @@ class GLCanvas(QOpenGLWidget, ComponentBase, CanvasBase):
         painter.drawImage(self._drawRect, self._drawImage)
         painter.end()
 
-    # ------------------------------------------------------------------
-    # input (from former CaptureGLImage)
-    # ------------------------------------------------------------------
     def focusInEvent(self, event: QFocusEvent) -> None:
         super().focusInEvent(event)
 
@@ -248,3 +244,4 @@ class GLCanvas(QOpenGLWidget, ComponentBase, CanvasBase):
 
 # ==================================================================================
 __all__ = ["GLCanvas"]
+# ==================================================================================
