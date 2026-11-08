@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-08 04:26:37 UTC*
+*Auto-generated on: 2026-11-08 06:08:08 UTC*
 
 ## Current Directory Structure
 
@@ -106,8 +106,6 @@ eNuts/
 │   │   │   │   ├── __recorderState.py
 │   │   │   │   └── __smokePages.py
 │   │   │   ├── widgets/
-│   │   │   │   ├── __captureGLImage.py
-│   │   │   │   ├── __captureImage.py
 │   │   │   │   └── spinners/
 │   │   │   │       ├── __evolvingNeuralBrain.py
 │   │   │   │       ├── __evolvingNeuralOrb.py
@@ -213,6 +211,7 @@ eNuts/
 │   │   │   ├── __frameHeader.py
 │   │   │   ├── __imageConverters.py
 │   │   │   ├── __ipcDeviceStream.py
+│   │   │   ├── __presenter.py
 │   │   │   ├── __streamHelpers.py
 │   │   │   ├── __streamPresenter.py
 │   │   │   └── frameRing/
@@ -367,6 +366,7 @@ eNuts/
 │   │   │   └── __sideBarOptions.py
 │   │   ├── types/
 │   │   │   ├── .fff
+│   │   │   ├── __eFitMode.py
 │   │   │   └── interface/
 │   │   │       ├── .fff
 │   │   │       ├── animations/
@@ -394,6 +394,10 @@ eNuts/
 │   │   │   ├── __layout.py
 │   │   │   └── __pushButton.py
 │   │   ├── widgets/
+│   │   │   ├── canvas/
+│   │   │   │   ├── __canvas.py
+│   │   │   │   ├── __canvasBase.py
+│   │   │   │   └── __glCanvas.py
 │   │   │   ├── commandBar/
 │   │   │   │   ├── __base.py
 │   │   │   │   ├── __commandBar.py
@@ -771,14 +775,6 @@ src/eNuts/UI/pages:
 		CONSTANTS(S)/GLOBAL(S)
 			PAGE_KEYS -> : page_keys
 
-src/eNuts/UI/widgets:
-	__captureGLImage.py - 
-		CLASSE(S):
-			CaptureGLImage -> : captureglimage
-	__captureImage.py - 
-		CLASSE(S):
-			CaptureImage -> : captureimage
-
 src/eNuts/UI/widgets/spinners:
 	__evolvingNeuralBrain.py - 
 		CLASSE(S):
@@ -1000,6 +996,11 @@ src/fluxCore/stream:
 	__ipcDeviceStream.py - 
 		CLASSE(S):
 			IpcDeviceStream -> : ipcdevicestream
+	__presenter.py - 
+		CLASSE(S):
+			Presenter -> : presenter
+		CONSTANTS(S)/GLOBAL(S)
+			C_DEFAULT_DISPLAY_FPS -> : c_default_display_fps
 	__streamHelpers.py - 
 		FUNCTION(S):
 			validateRingSize -> : validateringsize
@@ -1544,6 +1545,13 @@ src/jAGQt/options:
 			C_DEFAULT_MENU_ITEM_MARGIN -> : c_default_menu_item_margin
 			C_DEFAULT_MENU_CHILD_INDENT -> : c_default_menu_child_indent
 
+src/jAGQt/types:
+	__eFitMode.py - 
+		CLASSE(S):
+			eCanvasFitMode -> : ecanvasfitmode
+		CONSTANTS(S)/GLOBAL(S)
+			eImageFitMode -> : eimagefitmode
+
 src/jAGQt/types/interface/animations:
 	__animation.py - 
 		CLASSE(S):
@@ -1610,6 +1618,19 @@ src/jAGQt/utilities:
 			_pushButton -> : _pushbutton
 		FUNCTION(S):
 			createButton -> : createbutton
+
+src/jAGQt/widgets/canvas:
+	__canvas.py - 
+		CLASSE(S):
+			Canvas -> : canvas
+	__canvasBase.py - 
+		CLASSE(S):
+			CanvasBase -> : canvasbase
+		CONSTANTS(S)/GLOBAL(S)
+			BACKGROUND_COLOR -> : background_color
+	__glCanvas.py - 
+		CLASSE(S):
+			GLCanvas -> : glcanvas
 
 src/jAGQt/widgets/commandBar:
 	__base.py - 
@@ -1828,53 +1849,41 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-9bb2b4f:
-	Refactor frameRing and slot structures: consolidate imports, remove eSlotFlag, and introduce iFrameRing and iRingSlot interfaces
-		.docs/inventory.md
-		src/fluxCore/stream/__frameHeader.py
-		src/fluxCore/stream/frameRing/__frameRing.py
-		src/fluxCore/stream/frameRing/slot/__ringSlot.py
-		src/fluxCore/stream/frameRing/slot/__slotFlag.py -> src/fluxCore/types/__eSlotFlag.py
-		src/fluxCore/types/interface/sockets/__controlSocket.py
-		src/fluxCore/types/interface/stream/__frameConsumer.py
-		src/fluxCore/types/interface/stream/frameRing/__frameRing.py
-		src/fluxCore/types/interface/stream/frameRing/slot/__ringSlot.py
+50cd302:
+	devicePage uses Canvas instead of Image
+		src/eNuts/UI/pages/__devicePage.py
 
-5057ad3:
-	Refactor publish and decode methods to remove imageSize parameter for simplification
-		src/fluxCore/stream/frameRing/__frameRing.py
-		src/fluxCore/types/interface/packets/__imagePacket.py
+42c96d6:
+	Remove CaptureImage; input lives on Canvas
+		src/eNuts/UI/widgets/__captureImage.py
 
-c686878:
-	Refactor TensorPacket.decode method to remove size parameter and simplify frame handling
-		src/fluxCore/packets/__tensorPacket.py
+7ff54b6:
+	PlaybackBase defaults to GLCanvas
+		src/eNuts/UI/pages/__playbackBase.py
 
-3c02269:
-	AI handoff: code is SoT; FrameRing revalidated after revert
-		.docs/eNuts/recorder/streamPipeline/AI_HANDOFF.md
+0f4687d:
+	Remove CaptureGLImage; input lives on GLCanvas
+		src/eNuts/UI/widgets/__captureGLImage.py
 
-4b32b49:
-	Docs: RingSlot as implemented
-		.docs/fluxCore/stream/frameRing/slot/ringSlot.md
+2e63f56:
+	Remove Capture* exports from eNuts UI widgets
 
-008c347:
-	Docs: FrameRing implementation from code
-		.docs/fluxCore/stream/frameRing/implementation.md
+1c815f7:
+	Point widgets package at Canvas; keep Image/GLImage aliases
 
-1b16546:
-	Docs: FrameRing requirements from implementation
-		.docs/fluxCore/stream/frameRing/requirement.md
+03032d3:
+	Export Canvas package public API
 
-e1f9d95:
-	Docs: FrameRing as implemented (code is source of truth)
-		.docs/fluxCore/stream/frameRing/frameRing.md
+ee909e1:
+	Add GLCanvas widget (OpenGL path + input signals + present)
+		src/jAGQt/widgets/Canvas/__glCanvas.py
 
-f31a955:
-	Revert RingSlot to prior source-of-truth implementation
-		src/fluxCore/stream/frameRing/slot/__ringSlot.py
+6aa5298:
+	Add Canvas widget (QImage path + input signals)
+		src/jAGQt/widgets/Canvas/__canvas.py
 
-50f9f1c:
-	Revert FrameRing to prior source-of-truth implementation
-		src/fluxCore/stream/frameRing/__frameRing.py
+d19d3dc:
+	Add CanvasBase shared fit, content, and clear helpers
+		src/jAGQt/widgets/Canvas/__canvasBase.py
 
 ```

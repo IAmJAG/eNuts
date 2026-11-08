@@ -1,7 +1,7 @@
 # ==================================================================================
+from ...types.__eFitMode import CanvasFitMode, ImageFitMode
 from .__canvas import Canvas
 from .__canvasBase import CanvasBase
-from .__fitMode import CanvasFitMode, ImageFitMode
 from .__glCanvas import GLCanvas
 
 # ==================================================================================

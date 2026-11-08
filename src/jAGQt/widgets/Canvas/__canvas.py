@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Optional, Union
 
 # ==================================================================================
-from PySide6.QtCore import Qt, Signal, SignalInstance
+from PySide6.QtCore import QRect, Qt, Signal, SignalInstance
 from PySide6.QtGui import (
     QColor,
     QFocusEvent,
@@ -23,17 +23,16 @@ from torch import Tensor
 # ==================================================================================
 from jAGFx.workflow import workflow
 
+from ...types.__eFitMode import CanvasFitMode
+
 # ==================================================================================
 from ..components import ComponentBase
 from .__canvasBase import BACKGROUND_COLOR, CanvasBase
-from .__fitMode import CanvasFitMode
 
 
 # ==================================================================================
 @workflow("InitializeUI", "InitializeBase")
 class Canvas(QWidget, ComponentBase, CanvasBase):
-    """Software canvas: static image + live present(Tensor|QImage) + input signals."""
-
     keyPressed: SignalInstance = Signal(object)
     keyReleased: SignalInstance = Signal(object)
     mousePressed: SignalInstance = Signal(object)
@@ -41,32 +40,25 @@ class Canvas(QWidget, ComponentBase, CanvasBase):
     mouseReleased: SignalInstance = Signal(object)
 
     def __init__(
-        self,
-        bg: Union[str, QColor] = BACKGROUND_COLOR,
-        fitMode: CanvasFitMode = CanvasFitMode.Scale,
-        *args,
-        **kwargs,
+        self, bg: Union[str, QColor] = BACKGROUND_COLOR, 
+        fitMode: CanvasFitMode = CanvasFitMode.Scale, *args, **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
         self._backgroundColor = QColor(bg) if isinstance(bg, str) else bg
         self._fitMode: CanvasFitMode = fitMode
         self._scaled: Optional[QPixmap] = None
         self._liveImage: Optional[QImage] = None
-        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        self.setMouseTracking(True)
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
     def _wInitializeUI(self) -> None:
         self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, True)
         self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground, True)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)        
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.setMouseTracking(True)
 
-    # ------------------------------------------------------------------
-    # iFrameView
-    # ------------------------------------------------------------------
     def present(self, frame: Tensor | object) -> bool:
         image = self._frameToQImage(frame)
-        if image is None or image.isNull():
-            return False
+        if image is None or image.isNull(): return False
         self._liveImage = image
         self._contentW = image.width()
         self._contentH = image.height()
@@ -91,42 +83,41 @@ class Canvas(QWidget, ComponentBase, CanvasBase):
     def _frameToQImage(self, frame: object) -> Optional[QImage]:
         if isinstance(frame, QImage):
             return frame if not frame.isNull() else None
+        
         if isinstance(frame, QPixmap):
             return frame.toImage() if not frame.isNull() else None
+        
         if isinstance(frame, Tensor):
             try:
                 t = frame.detach()
-                if t.is_cuda:
-                    t = t.cpu()
+                if t.is_cuda: t = t.cpu()
                 arr = t.numpy()
                 if arr.ndim == 3 and arr.shape[-1] == 3:
                     h, w, _ = arr.shape
-                    if not arr.flags["C_CONTIGUOUS"]:
-                        arr = arr.copy()
+                    if not arr.flags["C_CONTIGUOUS"]: arr = arr.copy()
                     return QImage(arr.data, w, h, 3 * w, QImage.Format.Format_RGB888).copy()
+                
             except Exception as ex:
                 warning(f"[Canvas] Tensor→QImage failed: {ex}")
                 return None
+
         return None
 
     def _recompute(self) -> None:
         self._dirty = False
         self._scaled = None
-        from PySide6.QtCore import QRect
 
         self._drawRect = QRect()
 
         src = self._sourceImage()
-        if src is None or src.isNull():
-            return
+
+        if src is None or src.isNull(): return
 
         w = self.width()
         h = self.height()
         iw, ih = self.contentSize()
-        if iw <= 0 or ih <= 0:
-            iw, ih = src.width(), src.height()
-        if w <= 0 or h <= 0 or iw <= 0 or ih <= 0:
-            return
+        if iw <= 0 or ih <= 0: iw, ih = src.width(), src.height()
+        if w <= 0 or h <= 0 or iw <= 0 or ih <= 0: return
 
         mode = self._fitMode
         pm = QPixmap.fromImage(src)
@@ -137,6 +128,7 @@ class Canvas(QWidget, ComponentBase, CanvasBase):
                 Qt.AspectRatioMode.IgnoreAspectRatio,
                 Qt.TransformationMode.SmoothTransformation,
             )
+
             self._drawRect = QRect(0, 0, w, h)
             return
 
@@ -149,6 +141,7 @@ class Canvas(QWidget, ComponentBase, CanvasBase):
                 Qt.AspectRatioMode.KeepAspectRatio,
                 Qt.TransformationMode.SmoothTransformation,
             )
+
             self._drawRect = QRect((w - tw) // 2, (h - th) // 2, tw, th)
             return
 
@@ -160,6 +153,7 @@ class Canvas(QWidget, ComponentBase, CanvasBase):
             Qt.AspectRatioMode.KeepAspectRatio,
             Qt.TransformationMode.SmoothTransformation,
         )
+
         self._scaled = scaled.copy((tw - w) // 2, (th - h) // 2, w, h)
         self._drawRect = QRect(0, 0, w, h)
 
@@ -168,8 +162,7 @@ class Canvas(QWidget, ComponentBase, CanvasBase):
         super().resizeEvent(event)
 
     def paintEvent(self, event: QPaintEvent) -> None:
-        if self._dirty:
-            self._recompute()
+        if self._dirty: self._recompute()
 
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
@@ -180,9 +173,6 @@ class Canvas(QWidget, ComponentBase, CanvasBase):
 
         painter.end()
 
-    # ------------------------------------------------------------------
-    # input (from former CaptureImage)
-    # ------------------------------------------------------------------
     def focusInEvent(self, event: QFocusEvent) -> None:
         super().focusInEvent(event)
 
@@ -195,8 +185,7 @@ class Canvas(QWidget, ComponentBase, CanvasBase):
         super().keyReleaseEvent(event)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
-        if not self.hasFocus():
-            self.setFocus(Qt.FocusReason.MouseFocusReason)
+        if not self.hasFocus(): self.setFocus(Qt.FocusReason.MouseFocusReason)
         self.mousePressed.emit(event)
         super().mousePressEvent(event)
 
@@ -211,3 +200,4 @@ class Canvas(QWidget, ComponentBase, CanvasBase):
 
 # ==================================================================================
 __all__ = ["Canvas"]
+# ==================================================================================

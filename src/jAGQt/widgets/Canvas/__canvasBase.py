@@ -10,16 +10,16 @@ from PySide6.QtCore import QPointF, QRect
 from PySide6.QtGui import QColor, QImage, QPixmap
 
 # ==================================================================================
-from .__fitMode import CanvasFitMode
+from ...types.__eFitMode import CanvasFitMode
 
 # ==================================================================================
 BACKGROUND_COLOR = QColor("lightgray")
 # ==================================================================================
 
-
 # ==================================================================================
 class CanvasBase:
-    """Shared non-paint state for Canvas and GLCanvas.
+    """
+    Shared non-paint state for Canvas and GLCanvas.
 
     Fit geometry, content size, dirty flag, static image storage, and clear hooks.
     Input signals and paint live on the concrete QWidget / QOpenGLWidget subclasses.
@@ -34,17 +34,13 @@ class CanvasBase:
         bg: Union[str, QColor] = self._backgroundColor
         self.setBackgroundColor(bg)
 
-    # ------------------------------------------------------------------
-    # PROPERTIES
-    # ------------------------------------------------------------------
     @property
     def fitMode(self) -> CanvasFitMode:
         return self._fitMode
 
     @fitMode.setter
     def fitMode(self, value: CanvasFitMode) -> None:
-        if value is self._fitMode:
-            return
+        if value is self._fitMode: return
         self._fitMode = value
         self._markDirty()
 
@@ -73,7 +69,7 @@ class CanvasBase:
     # ------------------------------------------------------------------
     def setBackgroundColor(self, color: Union[str, QColor]) -> None:
         self._backgroundColor = QColor(color) if isinstance(color, str) else color
-        self.update()  # type: ignore[attr-defined]
+        self.update()
 
     def contentSize(self) -> Tuple[int, int]:
         if self._contentW > 0 and self._contentH > 0:
@@ -84,16 +80,14 @@ class CanvasBase:
         return src.width(), src.height()
 
     def fittedRect(self) -> QRect:
-        vw = self.width()  # type: ignore[attr-defined]
-        vh = self.height()  # type: ignore[attr-defined]
+        vw = self.width()
+        vh = self.height()
         iw, ih = self.contentSize()
         return self._fitRect(vw, vh, iw, ih)
 
-    def mapToContent(
-        self, x: float, y: float
-    ) -> Optional[Tuple[float, float]]:
-        vw = self.width()  # type: ignore[attr-defined]
-        vh = self.height()  # type: ignore[attr-defined]
+    def mapToContent(self, x: float, y: float) -> Optional[Tuple[float, float]]:
+        vw = self.width()
+        vh = self.height()
         iw, ih = self.contentSize()
         if vw <= 0 or vh <= 0 or iw <= 0 or ih <= 0:
             return None
@@ -183,3 +177,4 @@ class CanvasBase:
 
 # ==================================================================================
 __all__ = ["CanvasBase", "BACKGROUND_COLOR"]
+# ==================================================================================

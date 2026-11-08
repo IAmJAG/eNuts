@@ -23,10 +23,11 @@ from torch import Tensor
 # ==================================================================================
 from jAGFx.workflow import workflow
 
+from ...types.__eFitMode import CanvasFitMode
+
 # ==================================================================================
 from ..components import ComponentBase
 from .__canvasBase import BACKGROUND_COLOR, CanvasBase
-from .__fitMode import CanvasFitMode
 
 
 # ==================================================================================
