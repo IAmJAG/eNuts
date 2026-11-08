@@ -25,7 +25,7 @@ from fluxCore.action.android.injectKey import InjectKeyPress, InjectKeyRelease
 from fluxCore.geometry import Point
 from fluxCore.stream import LocalDeviceStream
 from fluxCore.types.interface.device import iDevice
-from jAGQt.widgets.Canvas import GLCanvas
+from jAGQt.widgets.canvas import GLCanvas
 from jAGQt.widgets.commandBar import CommandBarButton
 
 # ==================================================================================

@@ -11,10 +11,10 @@ from av import VideoCodecContext
 from torch import Tensor
 
 # ==================================================================================
-from ...types import DECODEFORMAT
+from ...types import DECODEFORMAT, eSlotFlag
 from ...types.interface.packets import iImagePacket
 from ..__streamHelpers import C_DEFAULT_RING_SIZE, validateRingSize
-from .slot import RingSlot, eSlotFlag
+from .slot import RingSlot
 
 # ==================================================================================
 # Growth policy
