@@ -158,14 +158,13 @@ class KGRecorder(PlaybackBase):
         verbose("session events cleared")
 
     def save(self, name: Optional[str] = None) -> None:
-        if self._state is eKGRecorderState.Recording:
-            self.stop()
+        if self._state is eKGRecorderState.Recording: self.stop()
         result = self._lastSessionResult
-
+        
         if result is None:
             warning(f"save: no session result name={name!r}")
             return
-
+        
         self._syncCommandBar()
         verbose(
             f"save name={name!r} "
@@ -218,7 +217,7 @@ class KGRecorder(PlaybackBase):
             if mgr is None:
                 warning("refresh device combo: deviceManager unavailable")
                 return
-
+            
             self.blockWidgetSignals(deviceCombo)
 
             deviceCombo.clear()
@@ -234,9 +233,9 @@ class KGRecorder(PlaybackBase):
 
             deviceId = self.settings.value(C_SETTINGS_DEVICE_ID, EMPTY)
             idx = deviceCombo.findData(deviceId)
+            
+            if idx >= 0: deviceCombo.setCurrentIndex(idx)
 
-            if idx >= 0:
-                deviceCombo.setCurrentIndex(idx)
             elif deviceCombo.count() > 0:
                 deviceCombo.setCurrentIndex(0)
                 deviceId = deviceCombo.itemData(0)
@@ -255,7 +254,7 @@ class KGRecorder(PlaybackBase):
         if self._state is eKGRecorderState.Recording:
             warning("setDevice blocked while Recording")
             return
-
+        
         cleaned: Optional[str] = (str(deviceId).strip() if deviceId else "") or None
         self._persistDeviceId(cleaned)
 
@@ -316,21 +315,19 @@ class KGRecorder(PlaybackBase):
             deviceName: str = device.name.strip().lower()
             verbose(f"removed device={deviceId!r}:{deviceName!r}")
             if self._stream._serial == deviceId:
-                if self._state is eKGRecorderState.Recording:
-                    self.stop()
+                if self._state is eKGRecorderState.Recording: self.stop()
                 self._setDevice(None)
 
     def _wireCaptureSignals(self) -> None:
         view = getattr(self, "_streamView", None)
-        if view is None or self._captureWired:
-            return
+        if view is None or self._captureWired: return
         if not isinstance(view, GLCanvas):
             warning(
                 "streamView is not GLCanvas; "
                 "input signals not wired"
             )
             return
-
+        
         try:
             view.keyPressed.connect(self._onKeyPressed)
             view.keyReleased.connect(self._onKeyReleased)
@@ -345,16 +342,13 @@ class KGRecorder(PlaybackBase):
 
     def _controlSocket(self) -> Any:
         serial = self._stream._serial
-        if not serial:
-            return None
+        if not serial: return None
         mgr = self.deviceManager
 
-        if mgr is None:
-            return None
+        if mgr is None: return None
         emitter = mgr.get(serial)
 
-        if emitter is None:
-            return None
+        if emitter is None: return None
         return getattr(emitter, "ControlSocket", None)
 
     def _deviceResolution(self) -> Point:
@@ -364,18 +358,16 @@ class KGRecorder(PlaybackBase):
             if emitter is not None:
                 w = int(getattr(emitter, "width", 0) or 0)
                 h = int(getattr(emitter, "height", 0) or 0)
-                if w > 0 and h > 0:
-                    return Point(w, h)
+                if w > 0 and h > 0: return Point(w, h)
 
         view = getattr(self, "_streamView", None)
         if view is not None and hasattr(view, "contentSize"):
             cw, ch = view.contentSize()
-            if cw > 0 and ch > 0:
-                return Point(cw, ch)
+            if cw > 0 and ch > 0: return Point(cw, ch)
 
         if view is not None:
             return Point(max(1, view.width()), max(1, view.height()))
-
+        
         return Point(1080, 1920)
 
     def _widgetToDevice(self, event: QMouseEvent) -> Optional[Tuple[int, int]]:
@@ -388,8 +380,7 @@ class KGRecorder(PlaybackBase):
         if hasattr(view, "mapToContent"):
             mapped = view.mapToContent(float(pos.x()), float(pos.y()))
 
-        if mapped is None:
-            return None
+        if mapped is None: return None
 
         cx, cy = mapped
         res = self._deviceResolution()
@@ -400,8 +391,10 @@ class KGRecorder(PlaybackBase):
         if contentW > 0 and contentH > 0 and (
             contentW != int(res.x) or contentH != int(res.y)
         ):
+            
             x = int(cx * (res.x / contentW))
             y = int(cy * (res.y / contentH))
+
         else:
             x = int(cx)
             y = int(cy)
@@ -412,11 +405,9 @@ class KGRecorder(PlaybackBase):
 
     def _onKeyPressed(self, event: QKeyEvent) -> None:
         code = C_QT_TO_ANDROID.get(int(event.key()))
-        if code is None:
-            return
+        if code is None: return
         control = self._controlSocket()
-        if control is None:
-            return
+        if control is None: return
 
         try:
             InjectKeyPress(code).execute(control)
@@ -427,12 +418,10 @@ class KGRecorder(PlaybackBase):
 
     def _onKeyReleased(self, event: QKeyEvent) -> None:
         code = C_QT_TO_ANDROID.get(int(event.key()))
-        if code is None:
-            return
+        if code is None: return
 
         control = self._controlSocket()
-        if control is None:
-            return
+        if control is None: return
 
         try:
             InjectKeyRelease(code).execute(control)
@@ -442,16 +431,13 @@ class KGRecorder(PlaybackBase):
             warning(f"inject key release failed: {ex}")
 
     def _onMousePressed(self, event: QMouseEvent) -> None:
-        if event.button() != Qt.MouseButton.LeftButton:
-            return
+        if event.button() != Qt.MouseButton.LeftButton: return
         control = self._controlSocket()
 
-        if control is None:
-            return
+        if control is None: return
         mapped = self._widgetToDevice(event)
-
-        if mapped is None:
-            return
+        
+        if mapped is None: return
 
         x, y = mapped
         res = self._deviceResolution()
@@ -463,16 +449,13 @@ class KGRecorder(PlaybackBase):
             warning(f"inject touch down failed: {ex}")
 
     def _onMouseMoved(self, event: QMouseEvent) -> None:
-        if not (event.buttons() & Qt.MouseButton.LeftButton):
-            return
+        if not (event.buttons() & Qt.MouseButton.LeftButton): return
 
         control = self._controlSocket()
-        if control is None:
-            return
+        if control is None: return
 
         mapped = self._widgetToDevice(event)
-        if mapped is None:
-            return
+        if mapped is None: return
 
         x, y = mapped
         res = self._deviceResolution()
@@ -484,16 +467,13 @@ class KGRecorder(PlaybackBase):
             warning(f"inject touch move failed: {ex}")
 
     def _onMouseReleased(self, event: QMouseEvent) -> None:
-        if event.button() != Qt.MouseButton.LeftButton:
-            return
+        if event.button() != Qt.MouseButton.LeftButton: return
         control = self._controlSocket()
-
-        if control is None:
-            return
+        
+        if control is None: return
         mapped = self._widgetToDevice(event)
 
-        if mapped is None:
-            return
+        if mapped is None: return
         x, y = mapped
         res = self._deviceResolution()
 
@@ -547,29 +527,30 @@ class KGRecorder(PlaybackBase):
         self._wInitializeCommandBar()
 
     def _wInitializeCommandBar(self) -> None:
-        btnRecord = CommandBarButton(text="Record", objectName=f"{self.OBJECT_NAME}_BTN_RECORD")
-        btnStop = CommandBarButton(text="Stop", objectName=f"{self.OBJECT_NAME}_BTN_STOP")
-        btnClear = CommandBarButton(text="Clear", objectName=f"{self.OBJECT_NAME}_BTN_CLEAR")
-        btnSave = CommandBarButton(text="Save", objectName=f"{self.OBJECT_NAME}_BTN_SAVE")
+        btnRecord = CommandBarButton("Record")
+        btnStop = CommandBarButton("Stop")
+        btnClear = CommandBarButton("Clear")
+        btnSave = CommandBarButton("Save")
 
         btnRecord.clicked.connect(self.start)
         btnStop.clicked.connect(self.stop)
         btnClear.clicked.connect(self.clear)
-        btnSave.clicked.connect(lambda: self.save(None))
+        btnSave.clicked.connect(self._onSaveClicked)
+
+        self.addCommandGroup("Session")
+        self.addCommand(btnRecord, "Session")
+        self.addCommand(btnStop, "Session")
+        self.addCommand(btnClear, "Session")
+        self.addCommand(btnSave, "Session")
 
         self._btnRecord = btnRecord
         self._btnStop = btnStop
         self._btnClear = btnClear
         self._btnSave = btnSave
-
-        if self.commandBar is not None:
-            group = self.commandBar.addGroup("Session")
-            group.addButton(btnRecord)
-            group.addButton(btnStop)
-            group.addButton(btnClear)
-            group.addButton(btnSave)
-
         self._syncCommandBar()
+
+    def _onSaveClicked(self) -> None:
+        self.save(None)
 
     def _syncCommandBar(self) -> None:
         recording = self._state is eKGRecorderState.Recording
