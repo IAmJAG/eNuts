@@ -17,8 +17,4 @@ class CanvasFitMode(Enum):
 
 
 # ==================================================================================
-# Backward-compatible alias
-ImageFitMode = CanvasFitMode
-
-# ==================================================================================
-__all__ = ["CanvasFitMode", "ImageFitMode"]
+__all__ = ["CanvasFitMode"]
