@@ -1,14 +1,5 @@
 # ==================================================================================
-from .Canvas import (
-    Canvas,
-    CanvasBase,
-    CanvasFitMode,
-    GLCanvas,
-    GLImage,
-    Image,
-    ImageBase,
-    ImageFitMode,
-)
+from .Canvas import Canvas, CanvasBase, CanvasFitMode, GLCanvas
 
 # ==================================================================================
 __all__ = [
@@ -16,8 +7,4 @@ __all__ = [
     "GLCanvas",
     "CanvasBase",
     "CanvasFitMode",
-    "Image",
-    "GLImage",
-    "ImageBase",
-    "ImageFitMode",
 ]
