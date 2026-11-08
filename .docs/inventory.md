@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-08 06:08:08 UTC*
+*Auto-generated on: 2026-11-08 06:11:01 UTC*
 
 ## Current Directory Structure
 
@@ -415,10 +415,6 @@ eNuts/
 │   │   │   │   ├── __icon.py
 │   │   │   │   └── __stateFullIcon.py
 │   │   │   ├── image/
-│   │   │   │   ├── __fitMode.py
-│   │   │   │   ├── __glImage.py
-│   │   │   │   ├── __image.py
-│   │   │   │   └── __imageBase.py
 │   │   │   ├── page/
 │   │   │   │   └── __page.py
 │   │   │   ├── sideBar/
@@ -757,11 +753,6 @@ src/eNuts/UI/pages:
 		CONSTANTS(S)/GLOBAL(S)
 			C_QT_TO_ANDROID -> : c_qt_to_android
 	__kgRecorder.py - 
-		CLASSE(S):
-			KGRecorder -> : kgrecorder
-		CONSTANTS(S)/GLOBAL(S)
-			C_SETTINGS_DEVICE_ID -> : c_settings_device_id
-			C_RECORDINGS_DIR -> : c_recordings_dir
 	__pageKeys.py - 
 	__playbackBase.py - 
 		CLASSE(S):
@@ -1684,22 +1675,6 @@ src/jAGQt/widgets/icon:
 		CONSTANTS(S)/GLOBAL(S)
 			C_DEFAULT_WIPE_MS -> : c_default_wipe_ms
 
-src/jAGQt/widgets/image:
-	__fitMode.py - 
-		CLASSE(S):
-			ImageFitMode -> : imagefitmode
-	__glImage.py - 
-		CLASSE(S):
-			GLImage -> : glimage
-	__image.py - 
-		CLASSE(S):
-			Image -> : image
-	__imageBase.py - 
-		CLASSE(S):
-			ImageBase -> : imagebase
-		CONSTANTS(S)/GLOBAL(S)
-			BACKGROUND_COLOR -> : background_color
-
 src/jAGQt/widgets/page:
 	__page.py - 
 		CLASSE(S):
@@ -1849,41 +1824,44 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-50cd302:
-	devicePage uses Canvas instead of Image
-		src/eNuts/UI/pages/__devicePage.py
+d872a56:
+	Refactor eNuts UI Widgets and Remove Image Module
 
-42c96d6:
-	Remove CaptureImage; input lives on Canvas
-		src/eNuts/UI/widgets/__captureImage.py
-
-7ff54b6:
-	PlaybackBase defaults to GLCanvas
-		src/eNuts/UI/pages/__playbackBase.py
-
-0f4687d:
-	Remove CaptureGLImage; input lives on GLCanvas
-		src/eNuts/UI/widgets/__captureGLImage.py
-
-2e63f56:
-	Remove Capture* exports from eNuts UI widgets
-
-1c815f7:
-	Point widgets package at Canvas; keep Image/GLImage aliases
-
-03032d3:
-	Export Canvas package public API
-
-ee909e1:
-	Add GLCanvas widget (OpenGL path + input signals + present)
+5eaa11d:
+	Refactor Canvas and GLCanvas implementation; introduce eCanvasFitMode for content fitting
+		.docs/inventory.md
+		src/jAGQt/widgets/Canvas/__fitMode.py -> src/jAGQt/types/__eFitMode.py
+		src/jAGQt/widgets/Canvas/__canvas.py
+		src/jAGQt/widgets/Canvas/__canvasBase.py
 		src/jAGQt/widgets/Canvas/__glCanvas.py
 
-6aa5298:
-	Add Canvas widget (QImage path + input signals)
-		src/jAGQt/widgets/Canvas/__canvas.py
+f1bb8e8:
+	Remove obsolete captureGLImage docs
+		.docs/eNuts/UI/widgets/captureGLImage.md
 
-d19d3dc:
-	Add CanvasBase shared fit, content, and clear helpers
-		src/jAGQt/widgets/Canvas/__canvasBase.py
+5f63e12:
+	Docs: KGRecorder stream host is GLCanvas
+		.docs/eNuts/UI/pages/kgRecorderPage.md
+
+7097d51:
+	Docs: widgets implementation uses Canvas/GLCanvas
+		.docs/eNuts/UI/widgets/implementation.md
+
+d3a89ef:
+	Docs: Capture* removed; use Canvas/GLCanvas
+		.docs/eNuts/UI/widgets/requirement.md
+
+5946a42:
+	Remove ImageFitMode alias; CanvasFitMode only
+		src/jAGQt/widgets/Canvas/__fitMode.py
+
+c8c217f:
+	Export Canvas package names only (no Image aliases)
+
+882c513:
+	Drop Image/GLImage aliases; export Canvas names only
+
+4e1fb11:
+	Remove obsolete Image package: delete package __init__.py
 
 ```
