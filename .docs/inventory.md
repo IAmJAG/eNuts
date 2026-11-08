@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-08 03:36:08 UTC*
+*Auto-generated on: 2026-11-08 04:26:37 UTC*
 
 ## Current Directory Structure
 
@@ -252,6 +252,7 @@ eNuts/
 │   │   │       │   └── __videoSocket.py
 │   │   │       └── stream/
 │   │   │           ├── __frameConsumer.py
+│   │   │           ├── __frameView.py
 │   │   │           └── frameRing/
 │   │   │               ├── __frameRing.py
 │   │   │               └── slot/
@@ -1108,6 +1109,9 @@ src/fluxCore/types/interface/stream:
 	__frameConsumer.py - 
 		CLASSE(S):
 			iFrameConsumer -> : iframeconsumer
+	__frameView.py - 
+		CLASSE(S):
+			iFrameView -> : iframeview
 
 src/fluxCore/types/interface/stream/frameRing:
 	__frameRing.py - 
@@ -1824,6 +1828,18 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+9bb2b4f:
+	Refactor frameRing and slot structures: consolidate imports, remove eSlotFlag, and introduce iFrameRing and iRingSlot interfaces
+		.docs/inventory.md
+		src/fluxCore/stream/__frameHeader.py
+		src/fluxCore/stream/frameRing/__frameRing.py
+		src/fluxCore/stream/frameRing/slot/__ringSlot.py
+		src/fluxCore/stream/frameRing/slot/__slotFlag.py -> src/fluxCore/types/__eSlotFlag.py
+		src/fluxCore/types/interface/sockets/__controlSocket.py
+		src/fluxCore/types/interface/stream/__frameConsumer.py
+		src/fluxCore/types/interface/stream/frameRing/__frameRing.py
+		src/fluxCore/types/interface/stream/frameRing/slot/__ringSlot.py
+
 5057ad3:
 	Refactor publish and decode methods to remove imageSize parameter for simplification
 		src/fluxCore/stream/frameRing/__frameRing.py
@@ -1860,9 +1876,5 @@ f31a955:
 50f9f1c:
 	Revert FrameRing to prior source-of-truth implementation
 		src/fluxCore/stream/frameRing/__frameRing.py
-
-0f240a0:
-	AI handoff: validated FrameRing on development
-		.docs/eNuts/recorder/streamPipeline/AI_HANDOFF.md
 
 ```
