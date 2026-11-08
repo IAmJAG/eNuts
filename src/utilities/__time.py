@@ -3,7 +3,7 @@ from fluxCore.types import eTimeDeltaFormat
 
 
 # ==================================================================================================
-def fromNanoSeconds(nanoseconds: int, tdf: eTimeDeltaFormat) -> float:
+def fromNanoSeconds(nanoseconds: int, tdf: eTimeDeltaFormat = eTimeDeltaFormat.NANOSECONDS) -> float:
     if tdf == eTimeDeltaFormat.MILLISECONDS:
         return nanoseconds / 1e6
 

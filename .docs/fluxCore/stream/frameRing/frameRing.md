@@ -1,47 +1,35 @@
-## Overview & Design Context
-In-process frame ring under `fluxCore.stream.frameRing`. `publish` selects a slot, `beginWrite`s from packet contract fields, appends to `_order`, and schedules `_decode` via `createTask` (non-blocking). Decode uses `to_thread(packet.decode, ...)`. Present uses `latest()`; sequential path uses `next()` / `release(slot)`.
+# FrameRing
 
-* **Design Decision / Deviation Notes:** Documentation follows the implementation. `latest`/`next` return cloned `DECODEFORMAT` (Tensor), not `(RingSlot, payload)`. `release` still takes a `RingSlot` — callers that only hold the payload from `next()` cannot release by identity unless they retain the slot another way. `maxGrow` ctor arg is stored only as `_canGrow = maxGrow >= 0`; grow cap is constant `C_GROW_MAX`.
+`FrameRing` serializes packet decoding through one bounded asynchronous queue and stores decoded tensors in reusable `RingSlot` objects. It provides latest-frame access for display without cloning tensor storage.
 
----
+## API
 
-## Classes
+- `start() -> None`: start the decode worker.
+- `publish(packet, decoder) -> Awaitable[None]`: enqueue a packet; awaits capacity when the queue is full.
+- `latest() -> Optional[iRingSlot]`: acquire and return the newest filled slot.
+- `next() -> Optional[iRingSlot]`: compatibility alias for `latest()`.
+- `release(slot) -> None`: release a lease acquired through `latest()` or `next()`.
+- `stop() -> Awaitable[None]`: stop accepting new work at the stream lifecycle level, drain queued packets, and await worker completion.
+- `size`: current number of slots.
+- `pending`: number of queued packets.
 
-### `FrameRing`
-- **Purpose:** Slot list + publish/decode + latest/next/release + optional grow.
-- **Ctor:** `FrameRing(size=C_DEFAULT_RING_SIZE, maxGrow=C_GROW_MAX)`
-- **Methods:**
-  - `publish(packet, decoder, imageSize=-1)` — pick index, `beginWrite(sequence=packet.createdAt, pts, width, height)`, append `_order`, `createTask(_decode, ...)`.
-  - `_decode(idx, slot, packet, decoder, imageSize)` — async; `to_thread(packet.decode)`; `completeWrite` or `_abandonWrite`.
-  - `_abandonWrite(idx, slot)` — remove idx from `_order`, `markFree`.
-  - `latest()` → `Optional[DECODEFORMAT]` — max `sequence` among FILLED; `payload.detach().clone()`.
-  - `next()` → `Optional[DECODEFORMAT]` — head of `_order` if FILLED; `None` if WRITING; skips non-FILLED heads; returns clone only (does not pop or release).
-  - `release(slot)` — if head of `_order` is that slot instance, pop and `markFree`.
-  - `_pickWriteIndex()` — first `isWritable`, else oldest FILLED not in `_order`, else `None`.
-  - `_tryGrow()` — if `_canGrow` and size < `C_GROW_MAX`; consecutive growth in `C_GROW_WINDOW_NS` warns then refuses.
-- **Properties:** `size`
+## Consumer contract
 
----
-
-## Constants & Globals
-
-### `C_GROW_STEP`
-- **Type:** `int` — 4
-
-### `C_GROW_MAX`
-- **Type:** `int` — 256
-
-### `C_GROW_WINDOW_NS`
-- **Type:** `int` — 1_000_000_000
-
-## Sample Usage
+Always release a returned slot, even if presentation fails:
 
 ```python
-from fluxCore.stream import FrameRing
-
-ring = FrameRing(size=8)
-ring.publish(packet, decoder)
-
-image = ring.latest()   # Optional[DECODEFORMAT]
-image = ring.next()     # Optional[DECODEFORMAT]; release(slot) needs RingSlot
+slot = ring.latest()
+if slot is not None:
+    try:
+        frame = slot.payload
+        if frame is not None:
+            view.present(frame)
+    finally:
+        ring.release(slot)
 ```
+
+The payload is the original decoded tensor. Do not keep using it after releasing the slot unless the consumer has made its own copy.
+
+## Lifecycle
+
+`LocalDeviceStream.start()` starts the ring worker before subscribing to frame packets. `LocalDeviceStream.stop()` unsubscribes from the emitter and then drains/stops the worker. The raw encoded recorder path is separate from this ring.

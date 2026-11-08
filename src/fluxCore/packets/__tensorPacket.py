@@ -53,20 +53,22 @@ class TensorPacket(SCRCPYPacket, iImagePacket[Tensor]):
         return cudaTensor
 
     @staticmethod
+    @staticmethod
     def _isHwFrame(frame: VideoFrame) -> bool:
-        if getattr(frame, "hw_frames_ctx", None) is not None:
-            return True
+        if not frame.planes:
+            return False
 
-        if frame.planes:
-            lPlane0 = frame.planes[0]
-            if hasattr(lPlane0, "__dlpack__"):
-                try:
-                    lPlane0.__dlpack__()
-                    return True
-                except Exception:
-                    return False
+        lPlane0 = frame.planes[0]
 
-        return False
+        if hasattr(lPlane0, "__dlpack_device__"):
+            try:
+                lDeviceType, _ = lPlane0.__dlpack_device__()
+                return lDeviceType == 2  # kDLCUDA
+
+            except Exception:
+                return False
+
+        return getattr(frame, "hw_frames_ctx", None) is not None
 
     @staticmethod
     def _cpuFrameToCudaTensor(frame: VideoFrame) -> Tensor:

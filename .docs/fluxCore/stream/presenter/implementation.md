@@ -1,32 +1,15 @@
-# Implementation Details
+# Presenter Implementation
 
-## 1. Architecture Overview
+## Workflow
 
 ```text
-Presenter(AsyncService)
-  attachRing(iFrameRing) / detachRing()
-  attachView(iFrameView) / detachView()   # Presenter-owned
-  throttle = 1 / displayFps
-
-  _serviceLoop:
-    await pause gate
-    await _present()
-      if no ring or view: return
-      if view C++ deleted: drop view
-      frame = ring.latest()
-      if frame is None: return
-      if data_ptr == _lastDataPtr: return
-      view.present(frame)
-      remember data_ptr on success
-    await throttle wait
+_present()
+  validate ring and view
+  slot = ring.latest()  # leased RingSlot
+  skip if slot.sequence == _lastSequence
+  view.present(slot.payload)
+  remember slot.sequence on success
+  ring.release(slot) in finally
 ```
 
-## 2. Directory & Module Mapping
-| Source Path | Documentation Path | Primary Responsibility |
-| :--- | :--- | :--- |
-| `src/fluxCore/stream/__presenter.py` | `.docs/fluxCore/stream/presenter/presenter.md` | Presenter consumer |
-| `src/fluxCore/types/interface/stream/__frameConsumer.py` | (interface) | `iFrameConsumer` |
-| `src/fluxCore/types/interface/stream/__frameView.py` | (interface) | `iFrameView` |
-
-## 3. Core Workflows & Data Flow
-Stream registers the Presenter and calls `attachRing`. Page/widget calls `attachView`. Stream `start`/`stop` drive `Presenter.start`/`stop`. Presenter never touches the emitter or codec.
+Presenter compares the stable frame sequence rather than the tensor's `data_ptr()`. It holds the slot lease only while synchronously invoking the view, and it does not clone the tensor.
