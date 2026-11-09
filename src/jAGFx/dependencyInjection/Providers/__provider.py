@@ -13,7 +13,6 @@ class _provider(metaclass=SingletonM):
     def __init__(self):
         self._dependents: dict[type[iDependent], dict[type[iDependency], str]] = {}
         self._defaults: dict[type[iDependency], str] = {}
-
         self._dependencies: dict[type[iDependency], dict[str, LifeCycleBase]] = {}
 
     def _register(

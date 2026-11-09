@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-09 00:23:05 UTC*
+*Auto-generated on: 2026-11-09 02:58:01 UTC*
 
 ## Current Directory Structure
 
@@ -278,6 +278,16 @@ eNuts/
 │   │   ├── configuration/
 │   │   │   ├── __applicationConfig.py
 │   │   │   └── __configuration.py
+│   │   ├── dependencyInjection/
+│   │   │   ├── Providers/
+│   │   │   │   └── __provider.py
+│   │   │   ├── abstracts/
+│   │   │   │   └── __dependent.py
+│   │   │   └── lifecycle/
+│   │   │       ├── __factory.py
+│   │   │       ├── __lifecyclebase.py
+│   │   │       ├── __singleton.py
+│   │   │       └── __transient.py
 │   │   ├── globals/
 │   │   │   └── serializer.py
 │   │   ├── logging/
@@ -320,6 +330,10 @@ eNuts/
 │   │   │       ├── configuration/
 │   │   │       │   ├── __applicationConfiguration.py
 │   │   │       │   └── __configuration.py
+│   │   │       ├── dependencyInjection/
+│   │   │       │   ├── __dependency.py
+│   │   │       │   ├── __dependent.py
+│   │   │       │   └── __provider.py
 │   │   │       ├── logger/
 │   │   │       │   └── __sourceInformation.py
 │   │   │       ├── serializer/
@@ -1183,6 +1197,34 @@ src/jAGFx/configuration:
 		CLASSE(S):
 			Configuration -> : configuration
 
+src/jAGFx/dependencyInjection/abstracts:
+	__dependent.py - 
+		CLASSE(S):
+			Dependent -> : dependent
+
+src/jAGFx/dependencyInjection/lifecycle:
+	__factory.py - 
+		CLASSE(S):
+			Factory -> : factory
+	__lifecyclebase.py - 
+		CLASSE(S):
+			LifeCycleBase -> : lifecyclebase
+		CONSTANTS(S)/GLOBAL(S)
+			D -> : d
+	__singleton.py - 
+		CLASSE(S):
+			Singleton -> : singleton
+	__transient.py - 
+		CLASSE(S):
+			Transient -> : transient
+
+src/jAGFx/dependencyInjection/Providers:
+	__provider.py - 
+		CLASSE(S):
+			_provider -> : _provider
+		CONSTANTS(S)/GLOBAL(S)
+			Provider -> : provider
+
 src/jAGFx/globals:
 	serializer.py - 
 		CONSTANTS(S)/GLOBAL(S)
@@ -1378,6 +1420,17 @@ src/jAGFx/types/interface/configuration:
 	__configuration.py - 
 		CLASSE(S):
 			iConfiguration -> : iconfiguration
+
+src/jAGFx/types/interface/dependencyInjection:
+	__dependency.py - 
+		CLASSE(S):
+			iDependency -> : idependency
+	__dependent.py - 
+		CLASSE(S):
+			iDependent -> : idependent
+	__provider.py - 
+		CLASSE(S):
+			iProvider -> : iprovider
 
 src/jAGFx/types/interface/logger:
 	__sourceInformation.py - 
@@ -1818,6 +1871,30 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+c58e1f3:
+	feat: Implement dependency injection framework with Provider, Lifecycle management, and interfaces
+		src/eNuts/apps/main.py
+		src/jAGFx/dependencyInjection/Providers/__provider.py
+		src/jAGFx/dependencyInjection/abstracts/__dependent.py
+		src/jAGFx/dependencyInjection/lifecycle/__factory.py
+		src/jAGFx/dependencyInjection/lifecycle/__lifecyclebase.py
+		src/jAGFx/dependencyInjection/lifecycle/__singleton.py
+		src/jAGFx/dependencyInjection/lifecycle/__transient.py
+		src/jAGFx/types/interface/communication/__bridge.py
+		src/jAGFx/types/interface/dependencyInjection/__dependency.py
+		src/jAGFx/types/interface/dependencyInjection/__dependent.py
+		src/jAGFx/types/interface/dependencyInjection/__provider.py
+
+3531f0a:
+	feat: Update SCRCPY options for improved performance and enhance FrameRing eviction logic
+		.docs/inventory.md
+		src/fluxCore/emitters/__SCRCPYOptions.py
+		src/fluxCore/stream/__deviceStream.py
+		src/fluxCore/stream/__frameDecoder.py
+		src/fluxCore/stream/__presenter.py
+		src/fluxCore/stream/frameRing/__frameRing.py
+		src/fluxCore/stream/frameRing/slot/__ringSlot.py
+
 6cf23b7:
 	feat: Implement fixed-capacity eviction in FrameRing and enhance Presenter stats tracking
 		.docs/fluxCore/stream/frameRing/implementation.md
@@ -1866,14 +1943,5 @@ e04cbc7:
 
 728d91e:
 	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
-
-4f818fc:
-	Fix import path for GLCanvas and update imports in frameRing module
-		src/eNuts/UI/pages/__kgRecorder.py
-		src/fluxCore/stream/frameRing/__frameRing.py
-
-6d8815d:
-	LocalDeviceStream: init _running before registerConsumer
-		src/fluxCore/stream/__deviceStream.py
 
 ```

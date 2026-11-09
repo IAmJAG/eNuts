@@ -9,7 +9,7 @@ _SINGLETONINSTANCES: dict[type, object] = dict[type, object]()
 _INSTANCELOCK: RLock = RLock()
 
 # ==================================================================================
-class SingletonM: 
+class SingletonM(type): 
     def __call__(cls, *args, **kwargs) -> Any:
         if cls not in _SINGLETONINSTANCES:
             with _INSTANCELOCK:
