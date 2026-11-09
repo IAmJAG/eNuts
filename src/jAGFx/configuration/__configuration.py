@@ -37,19 +37,23 @@ class Configuration(Serializable, iConfiguration):
             file.write(cfgStr)
 
     def getSection(self, sectionPath: str) -> iConfiguration:
-        sectionPath: list[str] = sectionPath.split(".")
+        if not isinstance(sectionPath, str):
+            raise TypeError("sectionPath must be a string.")
 
-        # ResolveSection        
-        toTarget: str = EMPTY
-        for section in sectionPath:
-            toTarget += f".{section}" if toTarget == EMPTY else section
-            if section not in self._sections:
-                self._sections[section] = Configuration()
+        sections: list[str] = sectionPath.split(".")
 
-            if toTarget == sectionPath:
-                return self._sections[section]
+        if not sections or any(not section for section in sections):
+            raise ValueError("sectionPath must contain valid section names.")
 
-        return None
+        current: Configuration = self
+
+        for section in sections:
+            if section not in current._sections:
+                current._sections[section] = Configuration()
+
+            current = current._sections[section]
+
+        return current
 
     # region [PICKLE READINESS]
     def __getstate__(self):
