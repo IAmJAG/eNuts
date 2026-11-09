@@ -14,21 +14,21 @@ from ..types.interface.packets import iPacket
 
 # ==================================================================================
 class Packet(iPacket):
-    def __init__(self, data: bytes, width: int = 0, height: int = 0): 
-        self._createdAt: float = monotonic_ns()
+    def __init__(self, data: bytes, width: int = 0, height: int = 0):
+        self._createdAt: int = monotonic_ns()
         self._payload: bytes = data
         self._width: int = width
         self._height: int = height
 
     def getCreatedAt(self, format: eTimeDeltaFormat = eTimeDeltaFormat.NANOSECONDS) -> float:
         return fromNanoSeconds(self._createdAt, format)
-    
+
     @property
-    def createdAt(self) -> float:
-        return fromNanoSeconds(self._createdAt)
-    
+    def createdAt(self) -> int:
+        return self._createdAt
+
     @property
-    def payload(self) -> bytes: 
+    def payload(self) -> bytes:
         return self._payload
 
     @property

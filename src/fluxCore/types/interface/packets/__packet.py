@@ -1,16 +1,13 @@
 # ==================================================================================
 from typing import Protocol, runtime_checkable
 
-# ==================================================================================
-from ...__eTimeDeltaFormat import eTimeDeltaFormat
-
 
 # ==================================================================================
 @runtime_checkable
 class iPacket(Protocol):
     def __init__(self, data: bytes, width: int = 0, height: int = 0): ...
     @property
-    def createdAt(self) -> float: ...
+    def createdAt(self) -> int: ...
     @property
     def payload(self) -> bytes: ...
     @property

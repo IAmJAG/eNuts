@@ -24,7 +24,7 @@ def test_ring_slot_cannot_be_reused_while_leased() -> None:
 
     slot.release()
     assert slot.readers == 0
-    assert not slot.isWritable  # FILLED slots are reused only by the ring's eviction policy.
+    assert not slot.isWritable
 
 
 def test_ring_slot_becomes_writable_after_free() -> None:
@@ -35,4 +35,5 @@ def test_ring_slot_becomes_writable_after_free() -> None:
 
     assert slot.state is eSlotFlag.FREE
     assert slot.payload is None
+    assert slot.createdAt == 0
     assert slot.isWritable

@@ -12,7 +12,7 @@ from ....types import DECODEFORMAT, eSlotFlag
 class RingSlot:
     def __init__(self) -> None:
         self._state: eSlotFlag = eSlotFlag.EMPTY
-        self._sequence: int = 0
+        self._createdAt: int = 0
         self._pts: int = 0
         self._width: int = 0
         self._height: int = 0
@@ -22,8 +22,10 @@ class RingSlot:
     def beginWrite(self, sequence: int, pts: int, width: int = 0, height: int = 0) -> None:
         if self._readers:
             raise RuntimeError("RingSlot: cannot write while readers hold the slot")
+        if self._state not in (eSlotFlag.EMPTY, eSlotFlag.FREE):
+            raise RuntimeError("RingSlot: slot must be EMPTY or FREE before writing")
         self._state = eSlotFlag.WRITING
-        self._sequence = sequence
+        self._createdAt = sequence
         self._pts = pts
         self._width = width
         self._height = height
@@ -36,6 +38,8 @@ class RingSlot:
         height: int,
         pts: Optional[int] = None,
     ) -> None:
+        if self._state is not eSlotFlag.WRITING:
+            raise RuntimeError("RingSlot: completeWrite requires a WRITING slot")
         self._payload = payload
         self._width = width
         self._height = height
@@ -47,20 +51,24 @@ class RingSlot:
         if self._readers:
             raise RuntimeError("RingSlot: cannot free while readers hold the slot")
         self._payload = None
+        self._createdAt = 0
+        self._pts = 0
+        self._width = 0
+        self._height = 0
         self._state = eSlotFlag.FREE
 
     def clear(self) -> None:
         if self._readers:
             raise RuntimeError("RingSlot: cannot clear while readers hold the slot")
         self._payload = None
-        self._sequence = 0
+        self._createdAt = 0
         self._pts = 0
         self._width = 0
         self._height = 0
         self._state = eSlotFlag.EMPTY
 
     def acquire(self) -> None:
-        if self._state is not eSlotFlag.FILLED or self._payload is None: 
+        if self._state is not eSlotFlag.FILLED or self._payload is None:
             raise RuntimeError("RingSlot: only filled slots can be acquired")
         self._readers += 1
 
@@ -74,8 +82,13 @@ class RingSlot:
         return self._state
 
     @property
+    def createdAt(self) -> int:
+        return self._createdAt
+
+    @property
     def sequence(self) -> int:
-        return self._sequence
+        """Compatibility alias; sequence is the packet's monotonic createdAt timestamp."""
+        return self._createdAt
 
     @property
     def pts(self) -> int:

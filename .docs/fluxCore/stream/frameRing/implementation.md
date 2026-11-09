@@ -5,60 +5,44 @@
 ```text
 LocalDeviceStream._onFrame(packet)
   await FrameRing.publish(packet, codec)
-    bounded asyncio.Queue(maxsize=64)
+    elastic encoded-packet queue (minimum 4, maximum 256)
       one _decodeLoop task
         await to_thread(packet.decode, codec)
-        _publishFrame(decodedTensor)
+        await _publishFrame(decodedTensor, packet.createdAt)
           fixed-capacity RingSlot collection
-          evict oldest 20% under pressure
+          evict oldest eligible 20% under pressure
           completeWrite -> FILLED
 
-Presenter._present()
-  slot = ring.latest()  # acquire reader lease
-  view.present(slot.payload)
-  ring.release(slot)  # release lease in finally
+Consumer A: await ring.next(lastCreatedAtA)
+Consumer B: await ring.next(lastCreatedAtB)
+  timestamp cursor lookup -> acquire lease -> return slot
+  ring.release(slot)
+
+Default consumer: await ring.next()
+  lookup from _currentSequence -> acquire lease
+  update _currentSequence -> return slot
 ```
 
-## Ownership and presentation
+## Ownership and sequence semantics
 
-- `latest()` returns the newest filled `iRingSlot` and increments its reader count.
-- The caller must call `release(slot)` exactly once, preferably in `finally`.
-- A slot with active readers cannot be reused, freed, or cleared.
-- `next()` remains an alias for `latest()` and returns a leased slot, not a cloned tensor.
-- `Canvas.present()` and `GLCanvas.present()` synchronously convert the tensor into an owned `QImage` copy. They do not retain the input tensor after returning, so Presenter can release the lease when `present()` returns.
-- Any future view that retains the tensor asynchronously must provide its own ownership mechanism.
+- `packet.createdAt` is the raw integer monotonic-nanosecond timestamp and is the frame sequence identity.
+- Non-increasing timestamps are warned about and skipped before queue admission.
+- `latest()` returns the newest FILLED slot and increments its reader count.
+- `next(cursor)` returns the smallest available timestamp greater than `cursor`; an evicted cursor is advanced to the oldest available later frame.
+- Explicit consumer cursors are independent and do not update `_currentSequence`.
+- Default-cursor lookups are serialized and update `_currentSequence` only after successful lease acquisition.
+- Multiple consumers can acquire leases on the same frame. A leased slot cannot be freed or reused.
+- A WRITING candidate causes `next()` to wait for completion or invalidation. Stop wakes blocked readers.
 
-## Fixed-capacity eviction guard
+## Capacity and backpressure
 
-- Capacity is fixed at the validated constructor size; automatic growth is disabled.
-- At or above 80% filled-slot occupancy, the ring invalidates the oldest 20% of filled slots, rounded up.
-- If no writable slot exists, it performs the same eviction pass as a fallback.
-- The newest filled slot and all slots with active readers are protected.
-- If no slot can be made writable, the newly decoded display frame is dropped and counted. The ring never grows.
-- Eviction happens after decoding. Encoded packets remain in the bounded FIFO queue and are not arbitrarily discarded.
+- Ring capacity is fixed by the constructor and is not derived from decode queue capacity.
+- The decode queue starts at 4, grows on queue pressure up to 256 and shrinks as backlog drains, and remains hard-bounded at 256.
+- VRAM utilization uses CUDA free/total device memory. Above 85%, the ring attempts eviction and CUDA cache release before rejecting an incoming packet.
+- At 80% filled occupancy, evict the oldest eligible 20% (rounded up), excluding newest and leased slots.
+- If no writable slot exists, retry the same eviction policy and wait for lease release. Do not arbitrarily discard decoded frames merely because all slots are leased.
+- Stop rejects new submissions, wakes slot waiters, drains accepted packets, and then terminates the worker.
 
-## Measurements
+## Counters
 
-- `ring.stats`: capacity, filled slots, active leases, current/maximum queue depth, decoded/published/evicted/dropped frame counts, decode errors, and cumulative/maximum decode duration.
-- `presenter.stats`: presented/skipped/error counts and cumulative/maximum synchronous `view.present()` duration.
-- The current Canvas and GLCanvas `present()` duration includes CUDA-to-CPU transfer and tensor-to-QImage conversion/copy.
-- Rising `maxPending` indicates packet arrival is outpacing decoding. High `maxDecodeTimeNs` indicates decode/conversion latency. High `maxPresentTimeNs` indicates view conversion/presentation cost.
-- Rising `droppedFrames` indicates no slot could safely be reused because candidate slots were leased or unavailable.
-
-## Usage
-
-```python
-await ring.publish(packet, decoder)
-
-slot = ring.latest()
-if slot is not None:
-    try:
-        tensor = slot.payload
-        if tensor is not None:
-            view.present(tensor)
-    finally:
-        ring.release(slot)
-
-print(ring.stats)
-print(presenter.stats)
-```
+`ring.stats` reports ring occupancy, active leases, pending packets, current decode queue limit, maximum queue depth, decoded/published/evicted/dropped counts, skipped timestamp count, decode errors and timing, VRAM utilization, and `_currentSequence`.
