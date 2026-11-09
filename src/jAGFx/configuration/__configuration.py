@@ -36,6 +36,21 @@ class Configuration(Serializable, iConfiguration):
             cfgStr: str = dumps(self.encode())
             file.write(cfgStr)
 
+    def getSection(self, sectionPath: str) -> iConfiguration:
+        sectionPath: list[str] = sectionPath.split(".")
+
+        # ResolveSection        
+        toTarget: str = EMPTY
+        for section in sectionPath:
+            toTarget += f".{section}" if toTarget == EMPTY else section
+            if section not in self._sections:
+                self._sections[section] = Configuration()
+
+            if toTarget == sectionPath:
+                return self._sections[section]
+
+        return None
+
     # region [PICKLE READINESS]
     def __getstate__(self):
         lDicState = super().__getstate__()

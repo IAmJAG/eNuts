@@ -11,6 +11,10 @@ from typing import List, Optional
 from av import VideoCodecContext
 
 # ==================================================================================
+from jAGFx.dependencyInjection import Provider
+from jAGFx.types.interface.configuration import iConfiguration
+
+# ==================================================================================
 from ...types import DECODEFORMAT, eSlotFlag
 from ...types.interface.packets import iImagePacket
 from ...types.interface.stream.frameRing.slot import iRingSlot
@@ -26,9 +30,10 @@ C_STOP_TOKEN: object = object()
 
 # ==================================================================================
 class FrameRing:
-    """Fixed-capacity, serial decoder feeding a zero-copy latest-frame ring."""
-
     def __init__(self, size: int = C_DEFAULT_RING_SIZE) -> None:
+        cfg: iConfiguration = Provider.Resolve(iConfiguration)
+        
+
         self._size: int = validateRingSize(size)
         self._slots: List[RingSlot] = [RingSlot() for _ in range(self._size)]
         self._queue: Queue = Queue(maxsize=C_DECODE_QUEUE_SIZE)
