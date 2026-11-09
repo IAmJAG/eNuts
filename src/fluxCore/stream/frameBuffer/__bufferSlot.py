@@ -9,6 +9,7 @@ from typing import Optional, Set
 # ==================================================================================
 from ...types import DECODEFORMAT
 
+
 # ==================================================================================
 class BufferSlot:
     """Zero-copy decoded frame snapshot with multi-consumer lease and single timeout."""

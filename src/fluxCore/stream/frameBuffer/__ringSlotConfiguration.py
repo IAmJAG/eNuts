@@ -5,8 +5,9 @@ from __future__ import annotations
 from jAGFx.configuration import Configuration
 from jAGFx.types.interface.configuration import iConfiguration
 
+
 # ==================================================================================
-class RingSlotConfiguration(Configuration, iConfiguration):
+class FrameBufferConfiguration(Configuration, iConfiguration):
     """Configuration section for FrameBuffer / BufferSlot limits and timeout."""
 
     def __init__(self) -> None:
@@ -21,6 +22,15 @@ class RingSlotConfiguration(Configuration, iConfiguration):
             "vramCap",
             "defaultReleaseTimeout",
         ])
+        self._currentSize: int = self.bufferSizeMin
+
+    @property
+    def currentSize(self) -> int:
+        return self._currentSize
+
+    @currentSize.setter
+    def currentSize(self, value: int) -> None:
+        self._currentSize = value
 
     @property
     def bufferSizeMin(self) -> int:
@@ -39,5 +49,5 @@ class RingSlotConfiguration(Configuration, iConfiguration):
         return self._defaultReleaseTimeout
 
 # ==================================================================================
-__all__ = ["RingSlotConfiguration"]
+__all__ = ["FrameBufferConfiguration"]
 # ==================================================================================
