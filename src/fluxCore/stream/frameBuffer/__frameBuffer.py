@@ -85,10 +85,13 @@ class FrameBuffer:
         return None
 
     def _canGrow(self) -> bool:
-        return self._size < self._config.bufferSizeMax and self._vramUsage() < self._config.vramCap
+        return (
+            self.size < self._config.bufferSizeMax
+            and self._vramUsage() < self._config.vramCap
+        )
 
     def _grow(self) -> None:
-        newSize = min(self._size * 2, self._config.bufferSizeMax)
+        newSize = min(self.size * 2, self._config.bufferSizeMax)
 
         while len(self._slots) < newSize:
             self._slots.append(BufferSlot())
