@@ -23,3 +23,7 @@ class DecodeCapacity(Serializable, iConfiguration):
     @property
     def current(self) -> int:
         return self._current
+
+    @current.setter
+    def current(self, value: int) -> None:
+        self._current = value

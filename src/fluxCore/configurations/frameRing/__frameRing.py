@@ -21,3 +21,6 @@ class FrameRingConfiguration(Serializable, iConfiguration):
     @property
     def vramCap(self) -> float:
         return self._vramCap
+
+    def setCapacity(self, capacity: int) -> None:
+        self._decodeCapacity.current = capacity

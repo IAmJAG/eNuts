@@ -15,6 +15,7 @@ from jAGFx.dependencyInjection import Provider
 from jAGFx.types.interface.configuration import iConfiguration
 
 # ==================================================================================
+from ...configurations import FrameRingConfiguration
 from ...types import DECODEFORMAT, eSlotFlag
 from ...types.interface.packets import iImagePacket
 from ...types.interface.stream.frameRing.slot import iRingSlot
@@ -34,11 +35,21 @@ class FrameRing:
     def __init__(self, size: int = C_DEFAULT_RING_SIZE) -> None:
 
         cfg: iConfiguration = Provider.Resolve(iConfiguration)
-        cfg = cfg.getSection(self.CFG_SECTION_PATH)                
+        if not cfg.exist(self.CFG_SECTION_PATH):
+            cfg.addSection(self.CFG_SECTION_PATH, FrameRingConfiguration())
 
-        self._size: int = validateRingSize(size)
-        self._slots: List[RingSlot] = [RingSlot() for _ in range(self._size)]
-        self._queue: Queue = Queue(maxsize=C_DECODE_QUEUE_SIZE)
+        cfg: FrameRingConfiguration = cfg.getSection(self.CFG_SECTION_PATH)
+
+
+        size: int = validateRingSize(size)
+        cfg.setCapacity(size)
+
+        self._config: FrameRingConfiguration = cfg
+
+        self._size: int = size
+        self._queue: Queue = Queue(maxsize=size)
+        self._slots: List[RingSlot] = [RingSlot() for _ in range(size)]        
+
         self._worker: Optional[Task] = None
         self._running: bool = False
         self._decodedFrames: int = 0
@@ -57,8 +68,13 @@ class FrameRing:
     def start(self) -> None:
         if self._running: return
 
-        self._running = True
-        self._queue = Queue(maxsize=C_DECODE_QUEUE_SIZE)
+        cfg: FrameRingConfiguration = self._config
+
+        size: int = cfg.decodeCapacity.current
+        self._slots = [RingSlot() for _ in range(size)]
+        self._queue = Queue(maxsize=size)
+
+        self._running = True        
         self._worker = create_task(self._decodeLoop())
 
     async def stop(self) -> None:
@@ -80,16 +96,23 @@ class FrameRing:
         decoder: Optional[VideoCodecContext] = self._decoder
 
         if decoder is None: raise RuntimeError("decoder is not available")        
-        if not self._running or self._worker is None: self.start()        
+
+        # ensure the ring is running
+        if not self._running or self._worker is None: self.start()
+
         await self._queue.put(packet)
+
         self._maxPending = max(self._maxPending, self._queue.qsize())
 
     async def _decodeLoop(self) -> None:
         decoder: VideoCodecContext = self._decoder
-        while True:
-            packet: iImagePacket = await self._queue.get()
+
+        while True:            
             try:
+                packet: iImagePacket = await self._queue.get()
+
                 if packet is C_STOP_TOKEN: return
+
                 decodeStartNs = monotonic_ns()
                 try:
                     frame: DECODEFORMAT = await to_thread(packet.decode, decoder)
@@ -99,7 +122,7 @@ class FrameRing:
 
                 except Exception as ex:
                     self._decodeErrors += 1
-                    warning(f"decode failed pts={getattr(packet, 'pts', None)}: {ex}")
+                    warning("decode failed", ex)
 
                 finally:
                     decodeTimeNs = monotonic_ns() - decodeStartNs
@@ -109,7 +132,7 @@ class FrameRing:
             finally:
                 self._queue.task_done()
 
-    def _publishFrame(self, frame: DECODEFORMAT, sequence: int, pts: int, width: int, height: int) -> None:
+    def _publishFrame(self, frame: DECODEFORMAT, sequence: int, pts: int, width: int, height: int) -> None:        
         filledCount = sum(slot.state is eSlotFlag.FILLED for slot in self._slots)
         highWatermark = max(1, ceil(self._size * C_RING_HIGH_WATERMARK))
         if filledCount >= highWatermark: self._evictOldest()

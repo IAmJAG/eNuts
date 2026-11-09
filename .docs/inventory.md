@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-09 02:58:01 UTC*
+*Auto-generated on: 2026-11-09 05:21:56 UTC*
 
 ## Current Directory Structure
 
@@ -177,6 +177,10 @@ eNuts/
 │   │   │           ├── __injectKeyBase.py
 │   │   │           ├── __injectKeyPress.py
 │   │   │           └── __injectKeyRelease.py
+│   │   ├── configurations/
+│   │   │   └── frameRing/
+│   │   │       ├── __decodeCapacity.py
+│   │   │       └── __frameRing.py
 │   │   ├── device/
 │   │   │   └── __device.py
 │   │   ├── devices/
@@ -884,6 +888,14 @@ src/fluxCore/action/android/injectKey:
 		CLASSE(S):
 			InjectKeyRelease -> : injectkeyrelease
 
+src/fluxCore/configurations/frameRing:
+	__decodeCapacity.py - 
+		CLASSE(S):
+			DecodeCapacity -> : decodecapacity
+	__frameRing.py - 
+		CLASSE(S):
+			FrameRingConfiguration -> : frameringconfiguration
+
 src/fluxCore/device:
 	__device.py - 
 		CLASSE(S):
@@ -1195,6 +1207,7 @@ src/jAGFx/configuration:
 			CONFIG_FILENAME -> : config_filename
 	__configuration.py - 
 		CLASSE(S):
+			Configuration -> : configuration
 			Configuration -> : configuration
 
 src/jAGFx/dependencyInjection/abstracts:
@@ -1871,6 +1884,36 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+af0f157:
+	feat: Enhance Configuration class with section management methods and input validation
+		src/jAGFx/configuration/__configuration.py
+
+9901b55:
+	feat: Refactor FrameRing and Configuration classes to enhance section management and add new methods
+		src/fluxCore/configurations/frameRing/__frameRing.py
+		src/fluxCore/stream/frameRing/__frameRing.py
+		src/fluxCore/stream/frameRing/slot/__ringSlot.py
+		src/jAGFx/configuration/__configuration.py
+		src/jAGFx/types/interface/configuration/__configuration.py
+
+b612697:
+	feat: Enhance getSection method to validate input and ensure proper section resolution
+		src/jAGFx/configuration/__configuration.py
+
+ef7ec01:
+	feat: Enhance FrameRing configuration with DecodeCapacity and add getSection method to iConfiguration
+		src/fluxCore/configurations/frameRing/__decodeCapacity.py
+		src/fluxCore/configurations/frameRing/__frameRing.py
+		src/fluxCore/stream/frameRing/__frameRing.py
+		src/jAGFx/configuration/__configuration.py
+		src/jAGFx/types/interface/configuration/__configuration.py
+
+544bbf2:
+	feat: Update inventory documentation and refine dependency injection provider implementation
+		.docs/inventory.md
+		src/jAGFx/dependencyInjection/Providers/__provider.py
+		src/jAGFx/singleton/__singleton.py
+
 c58e1f3:
 	feat: Implement dependency injection framework with Provider, Lifecycle management, and interfaces
 		src/eNuts/apps/main.py
@@ -1924,24 +1967,5 @@ c4d59a2:
 4710b18:
 	SCRCPYEmitter: VideoSocket(..., packetType=TensorPacket)
 		src/fluxCore/emitters/__SCRCPYEmitter.py
-
-e39c88b:
-	VideoSocket: construct packets via packetType, not TypeVar T
-		src/fluxCore/sockets/__videoSocket.py
-
-e618f7c:
-	VideoSocket: unpack 4-tuple from ReadSingleFrame (pts, isConfig, isKeyFrame, payload)
-		src/fluxCore/sockets/__videoSocket.py
-
-104fd2e:
-	SCRCPYEmitter.initialize: remove unbound local T
-		src/fluxCore/emitters/__SCRCPYEmitter.py
-
-e04cbc7:
-	SCRCPYOptions: call Serializable.__init__ before Properties.extend
-		src/fluxCore/emitters/__SCRCPYOptions.py
-
-728d91e:
-	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
 
 ```
