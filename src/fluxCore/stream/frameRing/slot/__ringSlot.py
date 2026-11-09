@@ -10,8 +10,6 @@ from ....types import DECODEFORMAT, eSlotFlag
 
 # ==================================================================================
 class RingSlot:
-    """Reusable frame storage with explicit reader ownership."""
-
     def __init__(self) -> None:
         self._state: eSlotFlag = eSlotFlag.EMPTY
         self._sequence: int = 0

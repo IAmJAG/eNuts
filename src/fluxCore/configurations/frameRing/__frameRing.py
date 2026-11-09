@@ -7,8 +7,7 @@ from .__decodeCapacity import DecodeCapacity
 
 
 # ==================================================================================================
-class FrameRingConfiguration(Serializable, iConfiguration):
-    SECTION_PATH: str = "fluxCore.stream.frameRing"
+class FrameRingConfiguration(Serializable, iConfiguration):    
     def __init__(self) -> None:
         super().__init__()
         self._decodeCapacity: DecodeCapacity = DecodeCapacity()

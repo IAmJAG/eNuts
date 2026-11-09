@@ -30,9 +30,11 @@ C_STOP_TOKEN: object = object()
 
 # ==================================================================================
 class FrameRing:
+    CFG_SECTION_PATH: str = "fluxCore.stream.frameRing"
     def __init__(self, size: int = C_DEFAULT_RING_SIZE) -> None:
+
         cfg: iConfiguration = Provider.Resolve(iConfiguration)
-        
+        cfg = cfg.getSection(self.CFG_SECTION_PATH)                
 
         self._size: int = validateRingSize(size)
         self._slots: List[RingSlot] = [RingSlot() for _ in range(self._size)]
