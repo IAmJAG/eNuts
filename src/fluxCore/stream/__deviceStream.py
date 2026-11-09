@@ -79,10 +79,6 @@ class LocalDeviceStream(AsyncSubscription):
         self._switchLock = Lock()
         self._frameSubscribed: bool = False
 
-    @classmethod
-    def classname(cls) -> str:
-        return cls.__name__
-
     @property
     def ring(self) -> FrameRing:
         return self._ring
@@ -93,7 +89,7 @@ class LocalDeviceStream(AsyncSubscription):
 
     def attachView(self, view: Any) -> None:
         self._presenter.attachView(view)
-        verbose(f"[{self.classname()}] attachView type={type(view).__name__}")
+        verbose(f"attachView type={type(view).__name__}")
 
     def detachView(self) -> None:
         self._presenter.detachView()
@@ -107,8 +103,8 @@ class LocalDeviceStream(AsyncSubscription):
             try:
                 consumer.start()
             except Exception as ex:
-                warning(f"[{self.classname()}] consumer.start failed: {ex}")
-        verbose(f"[{self.classname()}] registerConsumer type={type(consumer).__name__} n={len(self._consumers)}")
+                warning(f"consumer.start failed: {ex}")
+        verbose(f"registerConsumer type={type(consumer).__name__} n={len(self._consumers)}")
 
     def unregisterConsumer(self, consumer: iFrameConsumer) -> None:
         if consumer not in self._consumers:
@@ -117,11 +113,11 @@ class LocalDeviceStream(AsyncSubscription):
             if getattr(consumer, "isRunning", False):
                 consumer.stop()
         except Exception as ex:
-            warning(f"[{self.classname()}] consumer.stop failed: {ex}")
+            warning(f"consumer.stop failed: {ex}")
         try:
             consumer.detachRing()
         except Exception as ex:
-            warning(f"[{self.classname()}] consumer.detachRing failed: {ex}")
+            warning(f"consumer.detachRing failed: {ex}")
         self._consumers.remove(consumer)
 
     def _startConsumers(self) -> None:
@@ -130,7 +126,7 @@ class LocalDeviceStream(AsyncSubscription):
                 if not getattr(consumer, "isRunning", False):
                     consumer.start()
             except Exception as ex:
-                warning(f"[{self.classname()}] start consumer {type(consumer).__name__} failed: {ex}")
+                warning(f"start consumer {type(consumer).__name__} failed: {ex}")
 
     def _stopConsumers(self) -> None:
         for consumer in list(self._consumers):
@@ -138,14 +134,14 @@ class LocalDeviceStream(AsyncSubscription):
                 if getattr(consumer, "isRunning", False):
                     consumer.stop()
             except Exception as ex:
-                warning(f"[{self.classname()}] stop consumer {type(consumer).__name__} failed: {ex}")
+                warning(f"stop consumer {type(consumer).__name__} failed: {ex}")
 
     def _syncCodecFromEmitter(self, emitter: iEmitter) -> None:
         codec = getattr(emitter, "_codecContext", None)
         if codec is None:
             return
         self._decoder.setCodecContext(codec)
-        verbose(f"[{self.classname()}] codec synced from emitter id={getattr(emitter, 'id', None)!r}")
+        verbose(f"codec synced from emitter id={getattr(emitter, 'id', None)!r}")
 
     def _clearCodec(self) -> None:
         self._decoder.setCodecContext(None)
@@ -208,7 +204,7 @@ class LocalDeviceStream(AsyncSubscription):
                 pass
             self._frameSubscribed = False
         await self._ring.stop()
-        verbose(f"[{self.classname()}] stop serial={getattr(emitter, 'id', None)!r}")
+        verbose(f"stop serial={getattr(emitter, 'id', None)!r}")
 
     async def start(self) -> None:
         emitter = self._emitter
@@ -227,17 +223,18 @@ class LocalDeviceStream(AsyncSubscription):
         self._startConsumers()
         if not emitter.isRunning:
             emitter.start()
-        verbose(f"[{self.classname()}] start serial={getattr(emitter, 'id', None)!r}")
+        verbose(f"start serial={getattr(emitter, 'id', None)!r}")
 
     async def _onFrame(self, packet: iImagePacket) -> None:
         try:
             codec: Optional[VideoCodecContext] = self._decoder.codec
-            if codec is None:
-                return
-            await self._ring.publish(packet, codec)
+            if codec is None: return
+
+            await self._ring.publish(packet, codec)            
             self.raiseEvent(C_ON_FRAME, packet)
+
         except Exception as ex:
-            warning(f"[{self.classname()}] _onFrame failed: {ex}")
+            warning(f"_onFrame failed: {ex}")
 
     async def switchDevice(
         self,
@@ -249,7 +246,7 @@ class LocalDeviceStream(AsyncSubscription):
         self._desiredSerial = cleaned
         self._switchEpoch += 1
         requestEpoch = self._switchEpoch
-        verbose(f"[{self.classname()}] switchDevice request serial={cleaned!r} epoch={requestEpoch}")
+        verbose(f"switchDevice request serial={cleaned!r} epoch={requestEpoch}")
 
         async with self._switchLock:
             if requestEpoch != self._switchEpoch:
@@ -267,10 +264,10 @@ class LocalDeviceStream(AsyncSubscription):
                         try:
                             previous.stop()
                         except Exception as ex:
-                            warning(f"[{self.classname()}] stop previous failed: {ex}")
+                            warning(f"stop previous failed: {ex}")
                 self._serial = None
                 if target is None:
-                    verbose(f"[{self.classname()}] switchDevice cleared")
+                    verbose("switchDevice cleared")
                     return
                 if deviceManager is None:
                     raise ValueError("deviceManager is required")
@@ -280,7 +277,7 @@ class LocalDeviceStream(AsyncSubscription):
                 try:
                     emitter = await ensure(target)
                 except Exception as ex:
-                    error(f"[{self.classname()}] switchDevice ensureRunning failed serial={target!r}: {ex}")
+                    error(f"switchDevice ensureRunning failed serial={target!r}: {ex}")
                     self.raiseEvent(C_ON_ERROR, ex)
                     if self._desiredSerial != target or self._switchEpoch != epochAtStart:
                         continue
@@ -291,7 +288,7 @@ class LocalDeviceStream(AsyncSubscription):
                     self.attachedEmitter(emitter)
                     await self.start()
                 except Exception as ex:
-                    error(f"[{self.classname()}] switchDevice attach/start failed serial={target!r}: {ex}")
+                    error(f"switchDevice attach/start failed serial={target!r}: {ex}")
                     await self.stop()
                     self.detachedEmitter()
                     self._serial = None
@@ -305,7 +302,7 @@ class LocalDeviceStream(AsyncSubscription):
                     self._serial = None
                     continue
                 self._serial = target
-                verbose(f"[{self.classname()}] switchDevice applied serial={target!r} running={getattr(emitter, 'isRunning', None)}")
+                verbose(f"switchDevice applied serial={target!r} running={getattr(emitter, 'isRunning', None)}")
                 return
 
 

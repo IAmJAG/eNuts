@@ -42,71 +42,81 @@ class FrameRing:
         self._decodeTimeNs: int = 0
         self._maxDecodeTimeNs: int = 0
         self._maxPending: int = 0
+        self._decoder: Optional[VideoCodecContext] = None
+
+    def setDecoder(self, decoder: VideoCodecContext) -> None:
+        self._decoder = decoder
 
     def start(self) -> None:
-        if self._running:
-            return
+        if self._running: return
+
         self._running = True
         self._queue = Queue(maxsize=C_DECODE_QUEUE_SIZE)
         self._worker = create_task(self._decodeLoop())
 
     async def stop(self) -> None:
-        if not self._running:
-            return
+        if not self._running: return
+
         self._running = False
-        worker = self._worker
-        if worker is None:
-            return
+        worker: Task = self._worker
+        if worker is None: return
+
         await self._queue.put(C_STOP_TOKEN)
+
         try:
             await worker
+
         finally:
             self._worker = None
 
-    async def publish(self, packet: iImagePacket, decoder: VideoCodecContext) -> None:
-        if decoder is None:
-            raise RuntimeError("FrameRing: decoder is not available")
-        if not self._running or self._worker is None:
-            self.start()
-        await self._queue.put((packet, decoder))
+    async def publish(self, packet: iImagePacket) -> None:        
+        decoder: Optional[VideoCodecContext] = self._decoder
+
+        if decoder is None: raise RuntimeError("decoder is not available")        
+        if not self._running or self._worker is None: self.start()        
+        await self._queue.put(packet)
         self._maxPending = max(self._maxPending, self._queue.qsize())
 
     async def _decodeLoop(self) -> None:
+        decoder: VideoCodecContext = self._decoder
         while True:
-            item = await self._queue.get()
+            packet: iImagePacket = await self._queue.get()
             try:
-                if item is C_STOP_TOKEN:
-                    return
-                packet, decoder = item
+                if packet is C_STOP_TOKEN: return
                 decodeStartNs = monotonic_ns()
                 try:
                     frame: DECODEFORMAT = await to_thread(packet.decode, decoder)
                     if frame is not None:
                         self._decodedFrames += 1
                         self._publishFrame(frame, packet.createdAt, packet.pts, packet.width, packet.height)
+
                 except Exception as ex:
                     self._decodeErrors += 1
-                    warning(f"[FrameRing] decode failed pts={getattr(packet, 'pts', None)}: {ex}")
+                    warning(f"decode failed pts={getattr(packet, 'pts', None)}: {ex}")
+
                 finally:
                     decodeTimeNs = monotonic_ns() - decodeStartNs
                     self._decodeTimeNs += decodeTimeNs
                     self._maxDecodeTimeNs = max(self._maxDecodeTimeNs, decodeTimeNs)
+
             finally:
                 self._queue.task_done()
 
     def _publishFrame(self, frame: DECODEFORMAT, sequence: int, pts: int, width: int, height: int) -> None:
         filledCount = sum(slot.state is eSlotFlag.FILLED for slot in self._slots)
         highWatermark = max(1, ceil(self._size * C_RING_HIGH_WATERMARK))
-        if filledCount >= highWatermark:
-            self._evictOldest()
+        if filledCount >= highWatermark: self._evictOldest()
         idx = self._pickWriteIndex()
+
         if idx is None:
             self._evictOldest()
             idx = self._pickWriteIndex()
+
         if idx is None:
             self._droppedFrames += 1
-            warning("[FrameRing] no writable slot; decoded frame skipped")
+            warning("no writable slot; decoded frame skipped")
             return
+        
         slot = self._slots[idx]
         slot.beginWrite(sequence=sequence, pts=pts, width=width, height=height)
         slot.completeWrite(frame, width=width, height=height, pts=pts)
@@ -114,43 +124,43 @@ class FrameRing:
 
     def _evictOldest(self) -> int:
         filledSlots = [slot for slot in self._slots if slot.state is eSlotFlag.FILLED]
-        if len(filledSlots) <= 1:
-            return 0
+        if len(filledSlots) <= 1: return 0
+
         newestSequence = max(slot.sequence for slot in filledSlots)
         eligibleSlots = sorted(
             (slot for slot in filledSlots if slot.sequence != newestSequence and slot.readers == 0),
             key=lambda slot: slot.sequence,
         )
-        if not eligibleSlots:
-            return 0
+
+        if not eligibleSlots: return 0
         targetCount = max(1, ceil(len(filledSlots) * C_EVICT_PERCENT))
         evictedCount = min(targetCount, len(eligibleSlots))
-        for slot in eligibleSlots[:evictedCount]:
-            slot.markFree()
+
+        for slot in eligibleSlots[:evictedCount]: slot.markFree()
         self._evictedFrames += evictedCount
         return evictedCount
 
     def latest(self) -> Optional[iRingSlot]:
         best: Optional[RingSlot] = None
         for slot in self._slots:
-            if slot.state is not eSlotFlag.FILLED or slot.payload is None:
-                continue
-            if best is None or slot.sequence > best.sequence:
-                best = slot
-        if best is None:
-            return None
+            if slot.state is not eSlotFlag.FILLED or slot.payload is None: continue
+            if best is None or slot.sequence > best.sequence: best = slot
+
+        if best is None: return None
+
         best.acquire()
         return best
 
     def next(self) -> Optional[iRingSlot]:
-        """Compatibility alias for latest(); returns a leased slot, not a clone."""
         return self.latest()
 
     def release(self, slot: iRingSlot) -> None:
         if not isinstance(slot, RingSlot):
             raise TypeError("FrameRing.release expects a RingSlot acquired from this ring")
+        
         if slot not in self._slots:
             raise ValueError("FrameRing.release received a slot owned by another ring")
+        
         slot.release()
 
     def _pickWriteIndex(self) -> Optional[int]:

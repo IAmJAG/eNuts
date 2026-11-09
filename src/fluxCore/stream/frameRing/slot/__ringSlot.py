@@ -62,7 +62,7 @@ class RingSlot:
         self._state = eSlotFlag.EMPTY
 
     def acquire(self) -> None:
-        if self._state is not eSlotFlag.FILLED or self._payload is None:
+        if self._state is not eSlotFlag.FILLED or self._payload is None: 
             raise RuntimeError("RingSlot: only filled slots can be acquired")
         self._readers += 1
 

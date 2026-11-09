@@ -21,7 +21,7 @@ except ImportError:  # pragma: no cover
         return obj is not None
 
 # ==================================================================================
-C_DEFAULT_DISPLAY_FPS: float = 30.0
+C_DEFAULT_DISPLAY_FPS: float = 120.0
 
 
 # ==================================================================================

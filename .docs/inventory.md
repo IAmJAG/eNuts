@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-08 06:11:01 UTC*
+*Auto-generated on: 2026-11-09 00:23:05 UTC*
 
 ## Current Directory Structure
 
@@ -46,6 +46,8 @@ eNuts/
 │       │   └── test_policy_persist.py
 │       └── scrcpy/
 │           ├── test_frame_ring.py
+│           ├── test_frame_ring_eviction.py
+│           ├── test_frame_ring_slot_lease.py
 │           ├── test_frame_slot.py
 │           └── test_scrcpy_bridge.py
 ├── README.md
@@ -177,7 +179,6 @@ eNuts/
 │   │   │           └── __injectKeyRelease.py
 │   │   ├── device/
 │   │   │   └── __device.py
-│   │   ├── deviceInput/
 │   │   ├── devices/
 │   │   │   └── __scrcpy.py
 │   │   ├── emitters/
@@ -207,13 +208,9 @@ eNuts/
 │   │   ├── stream/
 │   │   │   ├── __deviceStream.py
 │   │   │   ├── __frameDecoder.py
-│   │   │   ├── __frameFlags.py
-│   │   │   ├── __frameHeader.py
-│   │   │   ├── __imageConverters.py
 │   │   │   ├── __ipcDeviceStream.py
 │   │   │   ├── __presenter.py
 │   │   │   ├── __streamHelpers.py
-│   │   │   ├── __streamPresenter.py
 │   │   │   └── frameRing/
 │   │   │       ├── __frameRing.py
 │   │   │       └── slot/
@@ -561,6 +558,18 @@ eNuts/
 			test_write_avoids_display_slot -> : test_write_avoids_display_slot
 		CONSTANTS(S)/GLOBAL(S)
 			_REPO_SRC -> : _repo_src
+	test_frame_ring_eviction.py - 
+		FUNCTION(S):
+			_publish -> : _publish
+			test_ring_evicts_oldest_twenty_percent_without_growing -> : test_ring_evicts_oldest_twenty_percent_without_growing
+			test_eviction_does_not_reuse_a_leased_slot -> : test_eviction_does_not_reuse_a_leased_slot
+			test_ring_drops_decoded_frame_when_every_slot_is_leased -> : test_ring_drops_decoded_frame_when_every_slot_is_leased
+		CONSTANTS(S)/GLOBAL(S)
+			_REPO_SRC -> : _repo_src
+	test_frame_ring_slot_lease.py - 
+		FUNCTION(S):
+			test_ring_slot_cannot_be_reused_while_leased -> : test_ring_slot_cannot_be_reused_while_leased
+			test_ring_slot_becomes_writable_after_free -> : test_ring_slot_becomes_writable_after_free
 	test_frame_slot.py - 
 		FUNCTION(S):
 			test_header_size_is_40 -> : test_header_size_is_40
@@ -753,6 +762,11 @@ src/eNuts/UI/pages:
 		CONSTANTS(S)/GLOBAL(S)
 			C_QT_TO_ANDROID -> : c_qt_to_android
 	__kgRecorder.py - 
+		CLASSE(S):
+			KGRecorder -> : kgrecorder
+		CONSTANTS(S)/GLOBAL(S)
+			C_SETTINGS_DEVICE_ID -> : c_settings_device_id
+			C_RECORDINGS_DIR -> : c_recordings_dir
 	__pageKeys.py - 
 	__playbackBase.py - 
 		CLASSE(S):
@@ -969,21 +983,6 @@ src/fluxCore/stream:
 	__frameDecoder.py - 
 		CLASSE(S):
 			FrameDecoder -> : framedecoder
-	__frameFlags.py - 
-		CLASSE(S):
-			FrameFlags -> : frameflags
-	__frameHeader.py - 
-		CLASSE(S):
-			FrameHeader -> : frameheader
-	__imageConverters.py - 
-		FUNCTION(S):
-			toPIL -> : topil
-			toQImage -> : toqimage
-			toTensor -> : totensor
-			toNumpy -> : tonumpy
-			toVideoFrame -> : tovideoframe
-		CONSTANTS(S)/GLOBAL(S)
-			G_DECODE_FORMAT_MAP -> : g_decode_format_map
 	__ipcDeviceStream.py - 
 		CLASSE(S):
 			IpcDeviceStream -> : ipcdevicestream
@@ -995,23 +994,20 @@ src/fluxCore/stream:
 	__streamHelpers.py - 
 		FUNCTION(S):
 			validateRingSize -> : validateringsize
-			shouldSkipPresent -> : shouldskippresent
 		CONSTANTS(S)/GLOBAL(S)
 			C_DEFAULT_RING_SIZE -> : c_default_ring_size
 			C_RING_SIZES -> : c_ring_sizes
 			C_MIN_RING_SIZE -> : c_min_ring_size
-	__streamPresenter.py - 
-		CLASSE(S):
-			StreamPresenter -> : streampresenter
 
 src/fluxCore/stream/frameRing:
 	__frameRing.py - 
 		CLASSE(S):
 			FrameRing -> : framering
 		CONSTANTS(S)/GLOBAL(S)
-			C_GROW_STEP -> : c_grow_step
-			C_GROW_MAX -> : c_grow_max
-			C_GROW_WINDOW_NS -> : c_grow_window_ns
+			C_DECODE_QUEUE_SIZE -> : c_decode_queue_size
+			C_EVICT_PERCENT -> : c_evict_percent
+			C_RING_HIGH_WATERMARK -> : c_ring_high_watermark
+			C_STOP_TOKEN -> : c_stop_token
 
 src/fluxCore/stream/frameRing/slot:
 	__ringSlot.py - 
@@ -1540,8 +1536,6 @@ src/jAGQt/types:
 	__eFitMode.py - 
 		CLASSE(S):
 			eCanvasFitMode -> : ecanvasfitmode
-		CONSTANTS(S)/GLOBAL(S)
-			eImageFitMode -> : eimagefitmode
 
 src/jAGQt/types/interface/animations:
 	__animation.py - 
@@ -1824,44 +1818,62 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-d872a56:
-	Refactor eNuts UI Widgets and Remove Image Module
+6cf23b7:
+	feat: Implement fixed-capacity eviction in FrameRing and enhance Presenter stats tracking
+		.docs/fluxCore/stream/frameRing/implementation.md
+		.test/smoke/scrcpy/test_frame_ring_eviction.py
+		src/fluxCore/stream/__presenter.py
+		src/fluxCore/stream/frameRing/__frameRing.py
 
-5eaa11d:
-	Refactor Canvas and GLCanvas implementation; introduce eCanvasFitMode for content fitting
-		.docs/inventory.md
-		src/jAGQt/widgets/Canvas/__fitMode.py -> src/jAGQt/types/__eFitMode.py
-		src/jAGQt/widgets/Canvas/__canvas.py
-		src/jAGQt/widgets/Canvas/__canvasBase.py
-		src/jAGQt/widgets/Canvas/__glCanvas.py
+c4d59a2:
+	feat: Update FrameRing and Presenter for improved slot management and async publishing
+		.docs/fluxCore/stream/frameRing/frameRing.md
+		.docs/fluxCore/stream/frameRing/implementation.md
+		.docs/fluxCore/stream/frameRing/requirement.md
+		.docs/fluxCore/stream/presenter/implementation.md
+		.test/smoke/scrcpy/test_frame_ring_slot_lease.py
+		README.md
+		src/fluxCore/emitters/__SCRCPYOptions.py
+		src/fluxCore/packets/__packet.py
+		src/fluxCore/packets/__tensorPacket.py
+		src/fluxCore/stream/__deviceStream.py
+		src/fluxCore/stream/__presenter.py
+		src/fluxCore/stream/frameRing/__frameRing.py
+		src/fluxCore/stream/frameRing/slot/__ringSlot.py
+		src/fluxCore/types/interface/stream/frameRing/__frameRing.py
+		src/fluxCore/types/interface/stream/frameRing/slot/__ringSlot.py
+		src/utilities/__time.py
 
-f1bb8e8:
-	Remove obsolete captureGLImage docs
-		.docs/eNuts/UI/widgets/captureGLImage.md
+4710b18:
+	SCRCPYEmitter: VideoSocket(..., packetType=TensorPacket)
+		src/fluxCore/emitters/__SCRCPYEmitter.py
 
-5f63e12:
-	Docs: KGRecorder stream host is GLCanvas
-		.docs/eNuts/UI/pages/kgRecorderPage.md
+e39c88b:
+	VideoSocket: construct packets via packetType, not TypeVar T
+		src/fluxCore/sockets/__videoSocket.py
 
-7097d51:
-	Docs: widgets implementation uses Canvas/GLCanvas
-		.docs/eNuts/UI/widgets/implementation.md
+e618f7c:
+	VideoSocket: unpack 4-tuple from ReadSingleFrame (pts, isConfig, isKeyFrame, payload)
+		src/fluxCore/sockets/__videoSocket.py
 
-d3a89ef:
-	Docs: Capture* removed; use Canvas/GLCanvas
-		.docs/eNuts/UI/widgets/requirement.md
+104fd2e:
+	SCRCPYEmitter.initialize: remove unbound local T
+		src/fluxCore/emitters/__SCRCPYEmitter.py
 
-5946a42:
-	Remove ImageFitMode alias; CanvasFitMode only
-		src/jAGQt/widgets/Canvas/__fitMode.py
+e04cbc7:
+	SCRCPYOptions: call Serializable.__init__ before Properties.extend
+		src/fluxCore/emitters/__SCRCPYOptions.py
 
-c8c217f:
-	Export Canvas package names only (no Image aliases)
+728d91e:
+	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
 
-882c513:
-	Drop Image/GLImage aliases; export Canvas names only
+4f818fc:
+	Fix import path for GLCanvas and update imports in frameRing module
+		src/eNuts/UI/pages/__kgRecorder.py
+		src/fluxCore/stream/frameRing/__frameRing.py
 
-4e1fb11:
-	Remove obsolete Image package: delete package __init__.py
+6d8815d:
+	LocalDeviceStream: init _running before registerConsumer
+		src/fluxCore/stream/__deviceStream.py
 
 ```
