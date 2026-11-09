@@ -2,7 +2,15 @@
 from __future__ import annotations
 
 # ==================================================================================
-from typing import TYPE_CHECKING, Awaitable, Callable, Mapping, Protocol, Type, runtime_checkable
+from typing import (
+    TYPE_CHECKING,
+    Awaitable,
+    Callable,
+    Mapping,
+    Protocol,
+    Type,
+    runtime_checkable,
+)
 from uuid import UUID
 
 # ==================================================================================

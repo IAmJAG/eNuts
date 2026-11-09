@@ -10,6 +10,10 @@ from qasync import QEventLoop
 from rich import inspect, print
 
 # ==================================================================================================
+from jAGFx.dependencyInjection import Provider
+from jAGFx.types.interface.configuration import iConfiguration
+
+# ==================================================================================================
 from ..application import eNutsApplication
 from ..configuration import eNutsConfiguration
 from ..types.interface.configuration import iENUTSConfiguration
@@ -19,7 +23,10 @@ from ..UI.windows import ENUTSWindow
 # ==================================================================================================
 async def main(app: eNutsApplication, *args, **kwargs):
     try:
-        cfg: iENUTSConfiguration = eNutsConfiguration()
+        # Dependency Injection
+        Provider.RegisterSingleton(iConfiguration, eNutsConfiguration)
+
+        cfg: iENUTSConfiguration = Provider.Resolve(iConfiguration)
         if platform == "win32":
             windll.shell32.SetCurrentProcessExplicitAppUserModelID(cfg.applicationId)
 
