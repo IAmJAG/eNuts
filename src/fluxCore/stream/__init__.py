@@ -5,6 +5,7 @@ from .__frameDecoder import FrameDecoder
 from .__ipcDeviceStream import IpcDeviceStream
 from .__presenter import Presenter
 from .frameRing.__frameRing import FrameRing
+from .frameBuffer import FrameBuffer
 
 # ==================================================================================
 __all__ = [
@@ -13,5 +14,6 @@ __all__ = [
     "FrameDecoder",
     "eDecodeFormat",
     "FrameRing",
+    "FrameBuffer",
     "Presenter",
 ]
