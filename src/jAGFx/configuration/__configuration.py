@@ -10,6 +10,18 @@ from ..serializer import Serializable
 from ..types.interface.configuration import iConfiguration
 
 
+class Configuration(Serializable, iConfiguration):
+    def __init__(self):
+        super().__init__()
+        self._sections: Dict[str, iConfiguration] = {}
+
+    @property
+    def sections(self) -> Dict[str, iConfiguration]:
+        return self._sections
+
+    
+
+
 # ==================================================================================
 class Configuration(Serializable, iConfiguration):
     def __init__(self): 
@@ -37,11 +49,22 @@ class Configuration(Serializable, iConfiguration):
             cfgStr: str = dumps(self.encode())
             file.write(cfgStr)
 
-    def getSection(self, sectionPath: str) -> iConfiguration:
-        assert isinstance(sectionPath, str), "sectionPath must be a string."
+    @staticmethod
+    def _parseSectionPath(sectionPath: str) -> list[str]:
+        if not isinstance(sectionPath, str):
+            raise TypeError("sectionPath must be a string.")
 
-        sections: list[str] = sectionPath.split(".")        
-        current: Optional[iConfiguration] = None
+        sections = sectionPath.split(".")
+
+        if any(not section for section in sections):
+            raise ValueError("sectionPath must contain valid section names.")
+
+        return sections
+
+    def getSection(self, sectionPath: str) -> Optional[iConfiguration]:
+        sections = self._parseSectionPath(sectionPath)
+        current: iConfiguration = self
+
         for section in sections:
             if section not in current.sections:
                 return None
@@ -49,31 +72,45 @@ class Configuration(Serializable, iConfiguration):
             current = current.sections[section]
 
         return current
-    
-    def addSection(self, sectionPath: str, newSection: Optional[iConfiguration]) -> iConfiguration: 
-        assert isinstance(sectionPath, str), "sectionPath must be a string."
 
-        sections: list[str] = sectionPath.split(".")        
-        current: Optional[iConfiguration] = None
+    def exist(self, sectionPath: str) -> bool:
+        return self.getSection(sectionPath) is not None
+
+    def addSection(
+        self, sectionPath: str, newSection: Optional[iConfiguration]
+    ) -> iConfiguration:
+        sections = self._parseSectionPath(sectionPath)
+        current: iConfiguration = self
+
         for section in sections[:-1]:
             if section not in current.sections:
                 current.sections[section] = Configuration()
+
             current = current.sections[section]
+
+        if newSection is None:
+            newSection = Configuration()
 
         current.sections[sections[-1]] = newSection
-        
-    
-    def removeSection(self, sectionPath: str) -> iConfiguration: 
-        assert isinstance(sectionPath, str), "sectionPath must be a string."
 
-        sections: list[str] = sectionPath.split(".")        
-        current: Optional[iConfiguration] = None
+        return newSection
+
+    def removeSection(self, sectionPath: str) -> iConfiguration:
+        sections = self._parseSectionPath(sectionPath)
+        current: iConfiguration = self
+
         for section in sections[:-1]:
             if section not in current.sections:
-                current.sections[section] = Configuration()
+                raise KeyError(f"Configuration section not found: {sectionPath}")
+
             current = current.sections[section]
 
-        del current.sections[sections[-1]]
+        section = sections[-1]
+
+        if section not in current.sections:
+            raise KeyError(f"Configuration section not found: {sectionPath}")
+
+        return current.sections.pop(section)
 
     # region [PICKLE READINESS]
     def __getstate__(self):
