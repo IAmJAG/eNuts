@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 # ==================================================================================
-from asyncio import CancelledError, Task, create_task, get_running_loop, sleep
-from threading import Lock
-from typing import Optional, Set
+from asyncio import CancelledError, Task
+from asyncio import sleep as asyncSleep
+from time import monotonic_ns
+from typing import Dict, Optional, Tuple
 
 # ==================================================================================
 from ...types import DECODEFORMAT
@@ -12,55 +13,40 @@ from ...types import DECODEFORMAT
 
 # ==================================================================================
 class BufferSlot:
-    """Zero-copy decoded frame snapshot with multi-consumer lease and single timeout."""
+    """
+    Zero-copy decoded frame snapshot with multi-consumer lease and single timeout.
+    """
 
-    def __init__(self) -> None:
-        self._sequence: int = 0
-        self._pts: int = 0
-        self._width: int = 0
-        self._height: int = 0
-        self._payload: Optional[DECODEFORMAT] = None
-        self._consumers: Set[int] = set()
-        self._lock: Lock = Lock()
-        self._timeoutTask: Optional[Task] = None
-        self._timeout: float = 0.0
-
-    def write(self, sequence: int, payload: DECODEFORMAT, pts: int, width: int, height: int) -> None:
-        with self._lock:
-            self._sequence = sequence
-            self._payload = payload
-            self._pts = pts
-            self._width = width
-            self._height = height
-            self._consumers.clear()
-            self._cancelTimeout()
+    def __init__(
+        self,  sequence: Optional[int] = None,  payload: Optional[DECODEFORMAT] = None, 
+        pts: int = 0, width: int = 0, height: int = 0
+    ) -> None:
+        self._sequence: Optional[int] = monotonic_ns() if sequence is None else sequence
+        self._pts: int = pts
+        self._width: int = width
+        self._height: int = height
+        self._payload: Optional[DECODEFORMAT] = payload        
+        self._consumers: Dict[int, Tuple[int, Task]] = dict[int, Tuple[int, Task]]()
 
     def acquire(self, consumerId: int, timeout: float) -> None:
-        with self._lock:
-            if self._payload is None:
-                raise RuntimeError("BufferSlot: cannot acquire empty slot")
-            self._consumers.add(consumerId)
-            self._timeout = timeout
-            self._armTimeout(timeout)
+        if self._payload is None:
+            raise RuntimeError("cannot acquire empty slot")
+
+        self._armTimeout(consumerId, timeout)
 
     def release(self, consumerId: Optional[int] = None) -> None:
-        with self._lock:
-            if consumerId is None:
-                self._consumers.clear()
-            else:
-                self._consumers.discard(consumerId)
-            if not self._consumers:
-                self._cancelTimeout()
-                self._payload = None
+        if consumerId is None:
+            for _, task in self._consumers.values():
+                if not task.done(): task.cancel()
 
-    @property
-    def isLocked(self) -> bool:
-        with self._lock:
-            return len(self._consumers) > 0
+            self._consumers.clear()
+
+        else:            
+            self._cancelTimeout(consumerId)
 
     @property
     def isFree(self) -> bool:
-        return not self.isLocked
+        return len(self._consumers) == 0
 
     @property
     def sequence(self) -> int:
@@ -82,28 +68,33 @@ class BufferSlot:
     def height(self) -> int:
         return self._height
 
-    def _armTimeout(self, timeout: float) -> None:
-        self._cancelTimeout()
-        if timeout <= 0:
-            return
-        try:
-            loop = get_running_loop()
-        except RuntimeError:
-            return
-        self._timeoutTask = loop.create_task(self._timeoutWatcher(timeout))
+    def _armTimeout(self, cId, timeout: float) -> None:
+        if timeout <= 0.0: return
 
-    def _cancelTimeout(self) -> None:
-        task = self._timeoutTask
+        now: int = monotonic_ns()
+
+        newDeadline: int = int(now + int(timeout * 1e-9))
+        oldDeadline, task = self._consumers.get(cId, (0, None))
+
         if task is not None and not task.done():
-            task.cancel()
-        self._timeoutTask = None
+            if oldDeadline >= newDeadline: return 
+            newDeadline = oldDeadline
 
-    async def _timeoutWatcher(self, timeout: float) -> None:
-        try:
-            await sleep(timeout)
-            self.release()
-        except CancelledError:
-            pass
+        async def _watcher(deadline: int) -> None: 
+            try:
+                await asyncSleep(deadline)
+
+            except CancelledError:
+                pass
+        
+        self._cancelTimeout(cId) 
+        task: Task = createTask(_watcher, newDeadline)                
+        task.add_done_callback(lambda: self.release(cId))
+        self._consumers[cId] = (newDeadline, task)
+
+    def _cancelTimeout(self, cId: int) -> None:
+        _, task = self._consumers.pop(cId, (0, None))
+        if not task.done(): task.cancel()
 
 # ==================================================================================
 __all__ = ["BufferSlot"]

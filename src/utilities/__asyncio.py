@@ -56,8 +56,10 @@ def createTask(func: Callable[..., Any], *args, **kwargs) -> Task:
         def _logTaskException(done: Task) -> None:
             try:
                 exc = done.exception()
+
             except Exception:
                 return
+            
             if exc is not None:
                 try:
                     error(f"createTask unhandled exception "

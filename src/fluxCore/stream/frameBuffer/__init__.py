@@ -1,8 +1,8 @@
 # ==================================================================================
 from .__bufferSlot import BufferSlot
 from .__frameBuffer import FrameBuffer
-from .__ringSlotConfiguration import RingSlotConfiguration
+from .__frameBufferConfiguration import FrameBufferConfiguration
 
 # ==================================================================================
-__all__ = ["BufferSlot", "FrameBuffer", "RingSlotConfiguration"]
+__all__ = ["BufferSlot", "FrameBuffer", "FrameBufferConfiguration"]
 # ==================================================================================

@@ -48,7 +48,9 @@ C_LIFECYCLE_EVENTS: List[str] = [
 
 # ==================================================================================
 class LocalDeviceStream(AsyncSubscription):
-    """In-process stream with serial packet decoding and latest-frame presentation."""
+    """
+    In-process stream with serial packet decoding and latest-frame presentation.
+    """
 
     EVENTS: List[str] = [
         C_ON_FRAME,
@@ -104,6 +106,7 @@ class LocalDeviceStream(AsyncSubscription):
                 consumer.start()
             except Exception as ex:
                 warning(f"consumer.start failed: {ex}")
+
         verbose(f"registerConsumer type={type(consumer).__name__} n={len(self._consumers)}")
 
     def unregisterConsumer(self, consumer: iFrameConsumer) -> None:
@@ -138,8 +141,7 @@ class LocalDeviceStream(AsyncSubscription):
 
     def _syncCodecFromEmitter(self, emitter: iEmitter) -> None:
         codec = getattr(emitter, "_codecContext", None)
-        if codec is None:
-            return
+        if codec is None: return
         self._decoder.setCodecContext(codec)
         verbose(f"codec synced from emitter id={getattr(emitter, 'id', None)!r}")
 
@@ -213,6 +215,7 @@ class LocalDeviceStream(AsyncSubscription):
         if self._frameSubscribed:
             try:
                 emitter.unsubscribe(C_ON_FRAME, self._onFrame)
+
             except Exception:
                 pass
             self._frameSubscribed = False
@@ -229,9 +232,7 @@ class LocalDeviceStream(AsyncSubscription):
         try:
             codec: Optional[VideoCodecContext] = self._decoder.codec
             if codec is None: return
-
-            await self._ring.publish(packet, codec)            
-            self.raiseEvent(C_ON_FRAME, packet)
+            await self._ring.publish(packet, codec)
 
         except Exception as ex:
             warning(f"_onFrame failed: {ex}")

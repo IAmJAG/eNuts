@@ -3,7 +3,7 @@ from __future__ import annotations
 
 # ==================================================================================
 from math import ceil
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 # ==================================================================================
 from jAGFx.dependencyInjection import Provider
@@ -13,45 +13,44 @@ from jAGFx.types.interface.configuration import iConfiguration
 from ...types import DECODEFORMAT
 from ..__streamHelpers import C_DEFAULT_RING_SIZE, validateRingSize
 from .__bufferSlot import BufferSlot
-from .__ringSlotConfiguration import FrameBufferConfiguration
+from .__frameBufferConfiguration import FrameBufferConfiguration
 
 
 # ==================================================================================
 class FrameBuffer:
     """Multi-consumer zero-copy frame buffer with single next() access point."""
     CFG_SECTION_PATH: str = "fluxCore.stream.frameBuffer"
-    def __init__(self, size: int = C_DEFAULT_RING_SIZE, config: Optional[FrameBufferConfiguration] = None) -> None:
-        size: int = validateRingSize(size)        
-        config: iConfiguration = Provider.Resolve(iConfiguration)
-        if not config.exist(self.CFG_SECTION_PATH):
-            config.addSection(self.CFG_SECTION_PATH, FrameBufferConfiguration())
+    def __init__(self, size: int = C_DEFAULT_RING_SIZE, cfg: Optional[FrameBufferConfiguration] = None) -> None:
 
-        cfg: FrameBufferConfiguration = config.getSection(self.CFG_SECTION_PATH)
+        if cfg is None:
+            config: iConfiguration = Provider.Resolve(iConfiguration)
+            if not config.exist(self.CFG_SECTION_PATH):
+                config.addSection(self.CFG_SECTION_PATH, FrameBufferConfiguration())
+
+            cfg: FrameBufferConfiguration = config.getSection(self.CFG_SECTION_PATH)
+
+        size: int = validateRingSize(size)
         cfg.currentSize = size
-        
+
         self._config: FrameBufferConfiguration = cfg
         self._slots: List[BufferSlot] = [BufferSlot() for _ in range(size)]
 
     def publish(self, sequence: int, payload: DECODEFORMAT, pts: int, width: int, height: int) -> None:
-        free = self._findFreeSlot()
-        if free is None:
+        if not self._freeSlot():
+
             if self._canGrow(): 
                 self._grow()
-                free = self._findFreeSlot()
 
             else:
                 self._evictOldest()
-                free = self._findFreeSlot()
 
-        if free is None: return
-
-        free.write(sequence, payload, pts, width, height)
-        self._published += 1
+        newSlot: BufferSlot = BufferSlot(sequence=sequence, payload=payload, pts=pts, width=width, height=height)
+        self._slots.append(newSlot)
 
     def next(self, consumerId: int, sequence: Optional[int] = None, timeout: Optional[float] = None) -> Optional[BufferSlot]:
-        """Acquire and return the next or latest BufferSlot for the consumer."""
         timeout = timeout if timeout is not None else self._config.defaultReleaseTimeout
         target: Optional[BufferSlot] = None
+
         if sequence is None:
             target = self._latest()
 
@@ -78,12 +77,28 @@ class FrameBuffer:
         if not candidates: return None
         return min(candidates, key=lambda s: s.sequence)
 
-    def _findFreeSlot(self) -> Optional[BufferSlot]:
-        for slot in self._slots:
-            if slot.isFree and slot.payload is None:
-                return slot
-        return None
+    def _freeSlot(self) -> bool:
+        freeSlots: Dict[int, BufferSlot] = dict[int, BufferSlot]()        
+        for slot in self._slots:            
+            if slot.isFree():
+                if slot.payload is None: 
+                    freeSlots[-1] = slot
+                    break
 
+                freeSlots[slot.sequence] = slot
+
+        if len(freeSlots) == 0: return False # None has been freed
+
+        try:
+            seq: int = min(freeSlots.keys())
+            freeSlot: BufferSlot = freeSlots[seq]
+            freeSlot.release()
+            self._slots.remove(freeSlot)
+            return True
+        
+        except Exception:
+            error("failed to find free slot")
+   
     def _canGrow(self) -> bool:
         return (
             self.size < self._config.bufferSizeMax
@@ -98,11 +113,14 @@ class FrameBuffer:
 
         self._config.currentSize = len(self._slots)
 
-    def _evictOldest(self) -> BufferSlot:
-        filled = [s for s in self._slots] 
-        oldest: BufferSlot = self._slots[min(filled, key=lambda s: s.sequence)]
-        oldest.release()
-        return oldest
+    def _evictOldest(self) -> None:        
+        try:
+            oldest: BufferSlot = self._slots[min(self._slots, key=lambda s: s.sequence)]
+            oldest.release()
+            self._slots.remove(oldest)
+
+        except Exception:
+            error("failed to evict oldest slot")
 
     def _vramUsage(self) -> float:
         try:
@@ -118,10 +136,6 @@ class FrameBuffer:
     @property
     def size(self) -> int:
         return self._config.currentSize
-
-    @property
-    def published(self) -> int:
-        return self._published
 
 # ==================================================================================
 __all__ = ["FrameBuffer"]

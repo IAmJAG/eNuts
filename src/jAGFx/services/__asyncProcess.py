@@ -62,6 +62,7 @@ class AsyncProcess(AsyncSubscription, iService):
                 await self.asyncRaiseEvent("ON_STARTED")
                 try:
                     await self._work(shutdownEvent, *args, **kwargs)
+                    
                 finally:
                     await self.asyncRaiseEvent("ON_STOPPED")
 
