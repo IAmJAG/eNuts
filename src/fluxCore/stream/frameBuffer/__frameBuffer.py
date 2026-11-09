@@ -21,8 +21,6 @@ class FrameBuffer:
     """Multi-consumer zero-copy frame buffer with single next() access point."""
     CFG_SECTION_PATH: str = "fluxCore.stream.frameBuffer"
     def __init__(self, size: int = C_DEFAULT_RING_SIZE, config: Optional[FrameBufferConfiguration] = None) -> None:
-        
-
         size: int = validateRingSize(size)        
         config: iConfiguration = Provider.Resolve(iConfiguration)
         if not config.exist(self.CFG_SECTION_PATH):
@@ -33,7 +31,6 @@ class FrameBuffer:
         
         self._config: FrameBufferConfiguration = cfg
         self._slots: List[BufferSlot] = [BufferSlot() for _ in range(size)]
-        self._published: int = 0
 
     def publish(self, sequence: int, payload: DECODEFORMAT, pts: int, width: int, height: int) -> None:
         free = self._findFreeSlot()
@@ -61,8 +58,8 @@ class FrameBuffer:
         else:
             target = self._adjacentGreater(sequence)
 
-        if target is None or target.payload is None:
-            return None
+        if target is None or target.payload is None: return None
+
         target.acquire(consumerId, timeout)
         return target
 
@@ -96,15 +93,13 @@ class FrameBuffer:
         while len(self._slots) < newSize:
             self._slots.append(BufferSlot())
 
-        self._size = len(self._slots)
-        self._config.currentSize = self._size
+        self._config.currentSize = len(self._slots)
 
-    def _evictOldest(self) -> None:
-        filled = [s for s in self._slots if s.payload is not None]
-        if not filled:
-            return
-        oldest = min(filled, key=lambda s: s.sequence)
+    def _evictOldest(self) -> BufferSlot:
+        filled = [s for s in self._slots] 
+        oldest: BufferSlot = self._slots[min(filled, key=lambda s: s.sequence)]
         oldest.release()
+        return oldest
 
     def _vramUsage(self) -> float:
         try:
@@ -119,7 +114,7 @@ class FrameBuffer:
 
     @property
     def size(self) -> int:
-        return self._size
+        return self._config.currentSize
 
     @property
     def published(self) -> int:
