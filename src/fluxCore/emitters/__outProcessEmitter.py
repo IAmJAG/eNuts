@@ -47,24 +47,25 @@ class OPEmitter(SCRCPY, AsyncProcess, iSCRCPYEmitter):
     # Child-process entry point
     # --------------------------------------------------------------------------------
     async def work(self, shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queue, *args, **kwargs) -> None:
-        """Runs only inside the child process."""
         self._outQueue = outQueue
-
+        
         receiver = get_running_loop().create_task(
             self._receiver(shutdownEvent, inQueue)
         )
 
         try:
             await to_thread(shutdownEvent.wait)
+
         finally:
-            if not receiver.done():
-                receiver.cancel()
+            if not receiver.done(): receiver.cancel()
+
             try:
                 await receiver
+
             except (CancelledError, Exception):
                 pass
 
-            self._close_queue(outQueue)
+            self._closeQueue(outQueue)
 
     # --------------------------------------------------------------------------------
     # Shared receiver used by both parent and child
@@ -74,6 +75,7 @@ class OPEmitter(SCRCPY, AsyncProcess, iSCRCPYEmitter):
         while not shutdownEvent.is_set():
             try:
                 msg = queue.get_nowait()
+
             except Empty:
                 await asyncSleep(0.01)
                 continue
@@ -81,13 +83,13 @@ class OPEmitter(SCRCPY, AsyncProcess, iSCRCPYEmitter):
             # Base implementation just prints; subclasses override or subscribe
             print(msg)
 
-        self._drain_queue(queue)
+        self._drainQueue(queue)
 
-    def _drain_queue(self, queue: Queue) -> None:
-        """Non-blocking drain of leftover messages."""
+    def _drainQueue(self, queue: Queue) -> None:
         while True:
             try:
                 queue.get_nowait()
+
             except Empty:
                 break
 
@@ -107,8 +109,9 @@ class OPEmitter(SCRCPY, AsyncProcess, iSCRCPYEmitter):
 
         try:
             loop = get_running_loop()
+
         except RuntimeError as ex:
-            raise RuntimeError("OPEmitter.start() requires a running event loop") from ex
+            raise RuntimeError("requires a running event loop") from ex
 
         self._tasks = loop.create_task(
             self._receiver(self._shutdownEvent, inQueue)
@@ -121,14 +124,14 @@ class OPEmitter(SCRCPY, AsyncProcess, iSCRCPYEmitter):
 
         super().stop(timeout=timeout, forced=forced)
 
-        self._cancel_tasks()
+        self._cancelTasks()
 
-        self._close_queue(self._inQueue)
-        self._close_queue(self._outQueue)
+        self._closeQueue(self._inQueue)
+        self._closeQueue(self._outQueue)
         self._inQueue = None
         self._outQueue = None
 
-    def _cancel_tasks(self) -> None:
+    def _cancelTasks(self) -> None:
         task = self._tasks
         if task is None or task.done():
             self._tasks = None
@@ -138,12 +141,13 @@ class OPEmitter(SCRCPY, AsyncProcess, iSCRCPYEmitter):
         self._tasks = None
 
     @staticmethod
-    def _close_queue(queue: Optional[Queue]) -> None:
+    def _closeQueue(queue: Optional[Queue]) -> None:
         if queue is None:
             return
         try:
             queue.close()
             queue.cancel_join_thread()
+
         except Exception:
             pass
 
