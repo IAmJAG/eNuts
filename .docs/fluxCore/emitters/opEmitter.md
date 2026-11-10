@@ -14,20 +14,21 @@ Separate a heavy method/function into a different process than the main process.
 
 ## Key methods
 
-- `start()` — creates queues, starts child process, schedules parent receiver
-- `stop()` — sets Event, joins process, cancels parent receiver, closes queues
+- `start()` — requires a running loop; creates queues and starts the child only after the loop check succeeds
+- `stop()` / `stopAsync()` — set Event, wait for process exit, then cancel parent receiver and close queues
 - `work()` — child-process entry point (override in subclasses)
 
 ## Shutdown
 
 1. Shared `Event` is set.
-2. Both receivers exit their loops and drain remaining messages.
-3. Queues are closed (`close` + `cancel_join_thread`).
-4. Process is joined (or killed if forced).
+2. Process is joined (or killed if forced).
+3. Parent receiver is cancelled (hard cancel) and awaited.
+4. Both receivers drain remaining messages (drain is in `finally`, so hard cancel still drains).
+5. Queues are closed (`close` + `cancel_join_thread`).
 
 ## Notes
 
 - Queue attributes (`_inQueue`, `_outQueue`) use the same names on both sides; they do not collide because each process has its own instance after pickling.
 - `isRunning` reports only process liveness.
 - Base `_receiver` currently prints messages; subclasses replace the handling logic.
-- Requires a running event loop on the parent side when `start()` is called.
+- `start()` raises if called without a running event loop; no process is started in that case.
