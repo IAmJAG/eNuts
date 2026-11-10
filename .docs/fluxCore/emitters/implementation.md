@@ -8,19 +8,19 @@
 
 | Issue | Decision | Rationale |
 |-------|----------|-----------|
-| Parent task leaked | Store as `Task` created with `create_task` | Ensures the receiver is scheduled and can be cancelled |
-| Drain on shutdown | Drain after Event is observed | Loop exits on Event; drain always runs afterward |
+| Process started before loop check | Call `get_running_loop()` before `super().start()` | Failed start must not leave an orphaned child |
+| `stop()` closed queues too early | Override `stopAsync`; `stop()` delegates to it when a loop exists | Queues stay open until the process has exited |
+| `stopAsync` skipped OPEmitter cleanup | Both paths call the same finish + close sequence | Sync and async callers leave the same residual state |
+| Hard cancel skipped drain | Move `_drainQueue` into `_receiver` `finally` | Drain runs on normal exit and on cancellation |
 | Feeder thread leaks | `queue.close()` + `cancel_join_thread()` | Standard multiprocessing requirement after use |
-| Fragile `.result()` | Never call `.result()` on cancelled parent task | Avoids blocking or exceptions in mixed sync/async stop paths |
-| Attribute naming | Same names (`_inQueue`, `_outQueue`) on both sides | No collision; each process has its own instance after pickling |
 
 ## Shutdown sequence
 
 ```text
-stop()
+stop() / stopAsync()
   ├─ set shutdownEvent
-  ├─ AsyncProcess.stop()  → join / kill process
-  ├─ cancel parent Task
+  ├─ await process exit (join / kill)
+  ├─ cancel + await parent receiver (hard cancel)
   └─ close both queues
 ```
 
