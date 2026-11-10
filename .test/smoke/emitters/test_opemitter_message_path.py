@@ -1,5 +1,9 @@
 # ==================================================================================
-"""Parent puts 'ping' on its out queue. Child echoes 'echo:ping' on its out queue."""
+"""Parent puts 'ping' on its out queue. Child echoes 'echo:ping' on its out queue.
+
+parent._outQueue == child inQueue
+parent._inQueue  == child outQueue
+"""
 # ==================================================================================
 from __future__ import annotations
 
@@ -22,7 +26,7 @@ from fixtures.emitters.probe import ProbeEmitter  # noqa: E402
 
 # ==================================================================================
 async def _roundtrip() -> None:
-    emitter = ProbeEmitter()
+    emitter = ProbeEmitter(serial="probe")
     emitter.start()
     try:
         assert emitter.isRunning, "child did not start"
