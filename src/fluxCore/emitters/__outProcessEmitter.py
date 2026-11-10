@@ -31,7 +31,7 @@ class OPEmitter(SCRCPY, AsyncProcess, iSCRCPYEmitter):
         AsyncProcess.__init__(self, work=self.work, name=name)
         self._tasks: Optional[Future] = None
     
-    async def _receiver(self, shutdownEvent: syncEvent, queue: Queue) -> iSCRCPYEmitter:
+    async def _receiver(self, shutdownEvent: syncEvent, queue: Queue) -> None:
         def isShuttingDown() -> bool: ...
         isShuttingDown = shutdownEvent.is_set
         
