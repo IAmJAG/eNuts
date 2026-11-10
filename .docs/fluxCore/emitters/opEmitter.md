@@ -8,23 +8,28 @@ Separate a heavy method/function into a different process than the main process.
 
 ## Inheritance
 
-- `SCRCPY` — device metadata
 - `AsyncProcess` — process lifecycle
-- `iSCRCPYEmitter` — emitter protocol
+- `SCRCPY` — device metadata
+
+Satisfies `iSCRCPYEmitter` structurally. It is **not** an explicit base. The three protocol orders cannot be linearized:
+
+- `SCRCPY` contributes `iDevice` early
+- `AsyncProcess` contributes `iSubscription` before `iService`
+- `iEmitter` wants `iService`, `iSubscription`, `iDevice`
+
+Same pattern as `SCRCPYEmitter`.
 
 ## Key methods
 
 - `start()` — requires a running loop; creates queues and starts the child only after the loop check succeeds
-- `stop()` / `stopAsync()` — set Event, wait for process exit, then cancel parent receiver and close queues
+- `stop()` / `stopAsync()` — AsyncProcess owns process exit and events; OPEmitter then cancels the parent receiver and closes queues
 - `work()` — child-process entry point (override in subclasses)
 
 ## Shutdown
 
-1. Shared `Event` is set.
-2. Process is joined (or killed if forced).
-3. Parent receiver is cancelled (hard cancel) and awaited.
-4. Both receivers drain remaining messages (drain is in `finally`, so hard cancel still drains).
-5. Queues are closed (`close` + `cancel_join_thread`).
+1. `AsyncProcess.stop*` sets the Event, joins or kills, closes the handle, raises `ON_STOPPING` / `ON_STOPPED`.
+2. Parent receiver is cancelled (hard cancel) and awaited. Drain runs in `_receiver` `finally`.
+3. Queues are closed (`close` + `cancel_join_thread`).
 
 ## Notes
 
