@@ -1,9 +1,5 @@
 # ==================================================================================
-"""Parent puts 'ping' on its out queue. Child echoes 'echo:ping' on its out queue.
-
-parent._outQueue == child inQueue
-parent._inQueue  == child outQueue
-"""
+"""Parent puts 'ping'. Child echoes. Parent receiver records 'echo:ping'."""
 # ==================================================================================
 from __future__ import annotations
 
@@ -11,7 +7,6 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 import sys
-from queue import Empty
 
 # ==================================================================================
 _TEST_ROOT = Path(__file__).resolve().parents[2]
@@ -32,16 +27,13 @@ async def _roundtrip() -> None:
         assert emitter.isRunning, "child did not start"
         emitter._outQueue.put("ping")
 
-        reply = None
         for _ in range(100):
-            try:
-                reply = emitter._inQueue.get_nowait()
+            if emitter.received:
                 break
-            except Empty:
-                await asyncio.sleep(0.05)
+            await asyncio.sleep(0.05)
 
         assert emitter.isRunning, "child died before reply"
-        assert reply == "echo:ping", reply
+        assert emitter.received == ["echo:ping"], emitter.received
     finally:
         await emitter.stopAsync(timeout=2.0)
 
