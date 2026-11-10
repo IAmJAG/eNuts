@@ -30,7 +30,7 @@ class OPEmitter(SCRCPY, AsyncProcess, iSCRCPYEmitter):
 
     1. Shared Event is set.
     2. Both sides exit their receiver loops and drain remaining messages.
-    3. Queues are closed only after the child process has exited.
+    3. Queues are closed only after the child process has exited (or already exited).
     """
 
     def __init__(self, serial: str, name: str | None = None, options: SCRCPYOptions | None = None) -> None:
@@ -114,42 +114,85 @@ class OPEmitter(SCRCPY, AsyncProcess, iSCRCPYEmitter):
         inQueue: Queue = Queue()   # child writes here
         outQueue: Queue = Queue()  # parent writes here (child reads)
 
-        # Swap when handing to the child so each side's "in" is the other's "out"
-        super().start(inQueue=outQueue, outQueue=inQueue, *args, **kwargs)
-
+        # Assign early so a failed start can still close them
         self._inQueue = inQueue
         self._outQueue = outQueue
+
+        try:
+            # Swap when handing to the child so each side's "in" is the other's "out"
+            super().start(inQueue=outQueue, outQueue=inQueue, *args, **kwargs)
+
+        except Exception:
+            self._closeQueues()
+            raise
+
         self._tasks = loop.create_task(
             self._receiver(self._shutdownEvent, inQueue)
         )
 
     async def stopAsync(self, timeout: float = AsyncProcess.C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
-        """Async shutdown: set Event, wait for process exit, then clean parent resources."""
-        if self._shutdownEvent is not None:
-            self._shutdownEvent.set()
+        """Async shutdown: signal, reap process if needed, always clean parent resources."""
+        try:
+            await self._reapProcessAsync(timeout=timeout, forced=forced)
 
-        await super().stopAsync(timeout=timeout, forced=forced)
-
-        await self._finishParentReceiver()
-        self._closeQueues()
+        finally:
+            await self._finishParentReceiver()
+            self._closeQueues()
 
     def stop(self, timeout: float = AsyncProcess.C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
-        """Sync entry. When a loop is running, delegates to stopAsync so queues are not closed early."""
+        """Sync entry. When a loop is running, delegates to stopAsync."""
         try:
             loop = get_running_loop()
 
         except RuntimeError:
-            # No loop — AsyncProcess.stop joins synchronously
-            if self._shutdownEvent is not None:
-                self._shutdownEvent.set()
+            # No loop — reap synchronously, then clean
+            try:
+                self._reapProcessSync(timeout=timeout, forced=forced)
 
-            super().stop(timeout=timeout, forced=forced)
-            self._cancelTasks()
-            self._closeQueues()
+            finally:
+                self._cancelTasks()
+                self._closeQueues()
             return
 
         # Loop present — schedule the full coordinated sequence and return
         loop.create_task(self.stopAsync(timeout=timeout, forced=forced))
+
+    async def _reapProcessAsync(self, timeout: float, forced: bool) -> None:
+        """Set Event and wait for process exit. Tolerates already-exited process."""
+        process = self._process
+        if process is None:
+            # Never started — nothing to reap
+            return
+
+        if self._shutdownEvent is not None:
+            self._shutdownEvent.set()
+
+        if not process.is_alive():
+            # Already exited cooperatively; still close the handle
+            process.close()
+            self._process = None
+            self._shutdownEvent = None
+            return
+
+        # Still alive — let the base class join / kill
+        await super().stopAsync(timeout=timeout, forced=forced)
+
+    def _reapProcessSync(self, timeout: float, forced: bool) -> None:
+        """Synchronous counterpart of _reapProcessAsync."""
+        process = self._process
+        if process is None:
+            return
+
+        if self._shutdownEvent is not None:
+            self._shutdownEvent.set()
+
+        if not process.is_alive():
+            process.close()
+            self._process = None
+            self._shutdownEvent = None
+            return
+
+        super().stop(timeout=timeout, forced=forced)
 
     async def _finishParentReceiver(self) -> None:
         task = self._tasks
