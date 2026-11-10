@@ -16,12 +16,11 @@ from jAGFx.services import AsyncProcess
 
 # ==================================================================================
 from ..devices import SCRCPY
-from ..types.interface.emitters import iSCRCPYEmitter
 from .__SCRCPYOptions import SCRCPYOptions
 
 
 # ==================================================================================
-class OPEmitter(SCRCPY, AsyncProcess, iSCRCPYEmitter):
+class OPEmitter(AsyncProcess, SCRCPY):
     """
     Out-of-process emitter base.
 
@@ -30,11 +29,16 @@ class OPEmitter(SCRCPY, AsyncProcess, iSCRCPYEmitter):
 
     Process lifecycle and ON_STOPPING / ON_STOPPED are owned by AsyncProcess.
     OPEmitter only adds parent-receiver and queue cleanup.
+
+    Satisfies iSCRCPYEmitter structurally. It is not an explicit base:
+    SCRCPY contributes iDevice, AsyncProcess contributes iSubscription before
+    iService, and iEmitter wants iService / iSubscription / iDevice. Those
+    orders cannot be linearized together (same pattern as SCRCPYEmitter).
     """
 
     def __init__(self, serial: str, name: str | None = None, options: SCRCPYOptions | None = None) -> None:
-        SCRCPY.__init__(self, serial=serial, name=name)
         AsyncProcess.__init__(self, work=self.work, name=name)
+        SCRCPY.__init__(self, serial=serial, name=name)
 
         # Process-local after pickling; same names are safe.
         self._inQueue: Optional[Queue] = None
