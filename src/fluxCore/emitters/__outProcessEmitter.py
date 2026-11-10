@@ -2,18 +2,14 @@
 from __future__ import annotations
 
 # ==================================================================================
-import os
-
-# ==================================================================================
 from asyncio import CancelledError, Future, gather, to_thread
-from asyncio import Event as asyncEvent
 from asyncio import sleep as asyncSleep
 from multiprocessing import Queue
 from multiprocessing.synchronize import Event as syncEvent
 from queue import Empty
 
 # ==================================================================================
-from typing import List, Optional
+from typing import Optional
 
 # ==================================================================================
 from jAGFx.services import AsyncProcess
