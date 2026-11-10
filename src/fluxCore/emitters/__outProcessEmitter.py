@@ -75,3 +75,17 @@ class OPEmitter(SCRCPY, AsyncProcess, iSCRCPYEmitter):
         self._tasks = gather(
             self._receiver(self._shutdownEvent, inQueue),
         )
+
+    def stop(self, timeout: float = AsyncProcess.C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
+        super().stop(timeout=timeout, forced=forced)
+
+        if self._tasks is not None:
+            self._tasks.cancel()
+
+            try:
+                self._tasks.result()
+
+            except CancelledError:
+                pass
+
+            self._tasks = None
