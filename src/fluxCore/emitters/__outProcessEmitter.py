@@ -44,7 +44,7 @@ class OPEmitter(SCRCPY, AsyncProcess, iSCRCPYEmitter):
         tasks: List[Task] = [
             self._receiver(shutdownEvent, inQueue),
         ]
-        self._tasks = list(gather(*tasks))
+        self._tasks = gather(*tasks)
 
         try:
             await shutdownEvent.wait()
@@ -63,4 +63,4 @@ class OPEmitter(SCRCPY, AsyncProcess, iSCRCPYEmitter):
             self._receiver(self._shutdownEvent, inQueue),
         ]
 
-        self._tasks = list(gather(*tasks))
+        self._tasks = gather(*tasks)
