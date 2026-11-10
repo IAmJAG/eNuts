@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 # ==================================================================================
-from asyncio import CancelledError, Future, get_running_loop, to_thread
+from asyncio import CancelledError, Future, Task, get_running_loop, to_thread
 from asyncio import sleep as asyncSleep
 from multiprocessing import Queue
 from multiprocessing.synchronize import Event as syncEvent
@@ -26,11 +26,10 @@ class OPEmitter(SCRCPY, AsyncProcess, iSCRCPYEmitter):
     Out-of-process emitter base.
 
     Heavy work runs in a child process (AsyncProcess). Parent and child communicate
-    via two multiprocessing Queues. Shutdown is cooperative via the shared Event:
+    via two multiprocessing Queues.
 
-    1. Shared Event is set.
-    2. Both sides exit their receiver loops and drain remaining messages.
-    3. Queues are closed only after the child process has exited (or already exited).
+    Process lifecycle and ON_STOPPING / ON_STOPPED are owned by AsyncProcess.
+    OPEmitter only adds parent-receiver and queue cleanup.
     """
 
     def __init__(self, serial: str, name: str | None = None, options: SCRCPYOptions | None = None) -> None:
@@ -41,6 +40,7 @@ class OPEmitter(SCRCPY, AsyncProcess, iSCRCPYEmitter):
         self._inQueue: Optional[Queue] = None
         self._outQueue: Optional[Queue] = None
         self._tasks: Optional[Future] = None
+        self._stopTask: Optional[Task] = None
         self._options: SCRCPYOptions | None = options
 
     # --------------------------------------------------------------------------------
@@ -131,68 +131,64 @@ class OPEmitter(SCRCPY, AsyncProcess, iSCRCPYEmitter):
         )
 
     async def stopAsync(self, timeout: float = AsyncProcess.C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
-        """Async shutdown: signal, reap process if needed, always clean parent resources."""
+        """Async shutdown. Process lifecycle stays in AsyncProcess; emitter cleanup is additive."""
         try:
-            await self._reapProcessAsync(timeout=timeout, forced=forced)
+            await super().stopAsync(timeout=timeout, forced=forced)
 
         finally:
-            await self._finishParentReceiver()
-            self._closeQueues()
+            try:
+                await self._finishParentReceiver()
+
+            finally:
+                self._closeQueues()
 
     def stop(self, timeout: float = AsyncProcess.C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
-        """Sync entry. When a loop is running, delegates to stopAsync."""
+        """Sync entry. When a loop is running, schedules a retained stopAsync task."""
+        # Coalesce: if a shutdown is already in flight, do not start another
+        if self._stopTask is not None and not self._stopTask.done():
+            return
+
         try:
             loop = get_running_loop()
 
         except RuntimeError:
-            # No loop — reap synchronously, then clean
+            # No loop — use inherited sync stop, then emitter cleanup
             try:
-                self._reapProcessSync(timeout=timeout, forced=forced)
+                super().stop(timeout=timeout, forced=forced)
 
             finally:
                 self._cancelTasks()
                 self._closeQueues()
             return
 
-        # Loop present — schedule the full coordinated sequence and return
-        loop.create_task(self.stopAsync(timeout=timeout, forced=forced))
+        # Loop present — retain the task so failures are observable
+        self._stopTask = loop.create_task(self.stopAsync(timeout=timeout, forced=forced))
+        self._stopTask.add_done_callback(self._onStopTaskDone)
 
-    async def _reapProcessAsync(self, timeout: float, forced: bool) -> None:
-        """Set Event and wait for process exit. Tolerates already-exited process."""
-        process = self._process
-        if process is None:
-            # Never started — nothing to reap
+    def _onStopTaskDone(self, task: Task) -> None:
+        """Surface shutdown failures instead of silently dropping them."""
+        try:
+            task.result()
+
+        except Exception as ex:
+            # Re-raise on the loop so it is not an unretrieved task exception
+            get_running_loop().call_exception_handler({
+                "message": f"OPEmitter '{self.name}' stopAsync failed",
+                "exception": ex,
+                "task": task,
+            })
+
+        finally:
+            if self._stopTask is task:
+                self._stopTask = None
+
+    async def waitStopped(self) -> None:
+        """Await the scheduled shutdown task if one exists."""
+        task = self._stopTask
+        if task is None:
             return
 
-        if self._shutdownEvent is not None:
-            self._shutdownEvent.set()
-
-        if not process.is_alive():
-            # Already exited cooperatively; still close the handle
-            process.close()
-            self._process = None
-            self._shutdownEvent = None
-            return
-
-        # Still alive — let the base class join / kill
-        await super().stopAsync(timeout=timeout, forced=forced)
-
-    def _reapProcessSync(self, timeout: float, forced: bool) -> None:
-        """Synchronous counterpart of _reapProcessAsync."""
-        process = self._process
-        if process is None:
-            return
-
-        if self._shutdownEvent is not None:
-            self._shutdownEvent.set()
-
-        if not process.is_alive():
-            process.close()
-            self._process = None
-            self._shutdownEvent = None
-            return
-
-        super().stop(timeout=timeout, forced=forced)
+        await task
 
     async def _finishParentReceiver(self) -> None:
         task = self._tasks
