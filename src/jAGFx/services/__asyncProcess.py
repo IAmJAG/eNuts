@@ -48,7 +48,8 @@ class AsyncProcess(AsyncSubscription, iService):
             self._shutdownEvent = None
 
     def _assertStopReady(self) -> None:
-        if self._process is None or not self._process.is_alive():
+        # Only reject a missing handle. An already-exited process still needs reaping.
+        if self._process is None:
             raise RuntimeError(f"Service '{self._name}' is not running.")
 
     def start(self, *args, **kwargs) -> None:
