@@ -4,7 +4,7 @@ from asyncio import run as asyncioRun
 from inspect import iscoroutinefunction
 from multiprocessing import Event, Process
 from multiprocessing.synchronize import Event as SyncEvent
-from typing import Awaitable, Callable
+from typing import Any, Awaitable, Callable
 
 # ==================================================================================
 from jAGFx.names import getRandomName
@@ -12,6 +12,29 @@ from jAGFx.names import getRandomName
 # ==================================================================================
 from ..types.interface.services import iService
 from .__subscription import AsyncSubscription
+
+
+# ==================================================================================
+def _processEntry(
+    instance: "AsyncProcess",
+    shutdownEvent: SyncEvent,
+    args: tuple,
+    kwargs: dict,
+) -> None:
+    """Module-level entry so Windows spawn can pickle the Process target.
+
+    Nested functions are not importable by name and fail under spawn with
+    ``Can't get local object 'AsyncProcess.start.<locals>._processEntry'``.
+    """
+    async def _runner() -> None:
+        await instance.asyncRaiseEvent("ON_STARTED")
+        try:
+            await instance._work(shutdownEvent, *args, **kwargs)
+
+        finally:
+            await instance.asyncRaiseEvent("ON_STOPPED")
+
+    asyncioRun(_runner())
 
 
 # ==================================================================================
@@ -57,24 +80,9 @@ class AsyncProcess(AsyncSubscription, iService):
         self.raiseEvent("ON_STARTING")
         lShutdownEvent: SyncEvent = Event()
 
-        async def work(shutdownEvent: SyncEvent, *args, **kwargs) -> None: ...
-        work = self._work
-
-        def _processEntry(shutdownEvent: SyncEvent, *args, **kwargs) -> None:
-            async def _runner() -> None:
-                await self.asyncRaiseEvent("ON_STARTED")
-                try:
-                    await work(shutdownEvent, *args, **kwargs)
-                    
-                finally:
-                    await self.asyncRaiseEvent("ON_STOPPED")
-
-            asyncioRun(_runner())
-
         lProcess = Process(
             target=_processEntry,
-            args=(lShutdownEvent, *args),
-            kwargs=kwargs,
+            args=(self, lShutdownEvent, args, kwargs),
             daemon=True,
             name=self._name,
         )
