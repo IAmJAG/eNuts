@@ -104,6 +104,16 @@ class AsyncProcess(AsyncSubscription, iService):
         self._process = None
         self._shutdownEvent = None
 
+    async def stopAsync(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
+        self._assertStopReady()
+        self.raiseEvent("ON_STOPPING")
+
+        try:
+            await self._stopAsync(timeout=timeout, forced=forced)
+
+        finally:
+            self.raiseEvent("ON_STOPPED")
+
     def stop(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
         self._assertStopReady()
         self.raiseEvent("ON_STOPPING")
@@ -144,7 +154,7 @@ class AsyncProcess(AsyncSubscription, iService):
         def _onDone(t: Task) -> None:
             try:
                 t.result()
-                
+
             except Exception:
                 pass
             self.raiseEvent("ON_STOPPED")

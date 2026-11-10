@@ -71,7 +71,8 @@ class OPEmitter(SCRCPY, AsyncProcess, iSCRCPYEmitter):
         inQueue: Queue = Queue()
         outQueue: Queue = Queue()
         super().start(inQueue=outQueue, outQueue=inQueue, *args, **kwargs)
-
+        
+        self._outQueue = outQueue
         self._tasks = gather(
             self._receiver(self._shutdownEvent, inQueue),
         )
