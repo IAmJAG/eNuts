@@ -13,7 +13,10 @@ from fluxCore.emitters.__outProcessEmitter import OPEmitter
 
 # ==================================================================================
 class ProbeEmitter(OPEmitter):
-    """Child echoes on the out queue. No logging, no monkeypatch."""
+    """Child reads its in-queue and writes echo:<msg> on its out-queue."""
+
+    def __init__(self, serial: str = "probe", name: str | None = "probe") -> None:
+        super().__init__(serial=serial, name=name)
 
     async def work(self, shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queue, *args, **kwargs) -> None:
         print("CHILD up", flush=True)
