@@ -31,8 +31,26 @@ class BufferSlot:
     def acquire(self, consumerId: int, timeout: float) -> None:
         if self._payload is None:
             raise RuntimeError("cannot acquire empty slot")
+        
+        now: int = monotonic_ns()        
+        newDeadline: int = 100 if timeout <= 0 else int(now + int(timeout * 1e-9))
+                
+        oldDeadline, task = self._consumers.get(consumerId, (0, None))        
+        if task is not None and not task.done():
+            if oldDeadline >= newDeadline: return
+            newDeadline = oldDeadline
 
-        self._armTimeout(consumerId, timeout)
+        self._cancelTimeout(consumerId)
+        async def _watcher(deadline: int) -> None: 
+            try:
+                await asyncSleep(deadline)
+
+            except CancelledError:
+                pass
+
+        task: Task = createTask(_watcher, newDeadline)
+        task.add_done_callback(lambda: self.release(consumerId))
+        self._consumers[consumerId] = (newDeadline, task)
 
     def release(self, consumerId: Optional[int] = None) -> None:
         if consumerId is None:
@@ -68,30 +86,7 @@ class BufferSlot:
     def height(self) -> int:
         return self._height
 
-    def _armTimeout(self, cId, timeout: float) -> None:
-        if timeout <= 0.0: return
-
-        now: int = monotonic_ns()
-
-        newDeadline: int = int(now + int(timeout * 1e-9))
-        oldDeadline, task = self._consumers.get(cId, (0, None))
-
-        if task is not None and not task.done():
-            if oldDeadline >= newDeadline: return 
-            newDeadline = oldDeadline
-
-        async def _watcher(deadline: int) -> None: 
-            try:
-                await asyncSleep(deadline)
-
-            except CancelledError:
-                pass
-        
-        self._cancelTimeout(cId) 
-        task: Task = createTask(_watcher, newDeadline)                
-        task.add_done_callback(lambda: self.release(cId))
-        self._consumers[cId] = (newDeadline, task)
-
+    
     def _cancelTimeout(self, cId: int) -> None:
         _, task = self._consumers.pop(cId, (0, None))
         if not task.done(): task.cancel()

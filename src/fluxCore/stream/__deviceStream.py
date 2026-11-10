@@ -237,17 +237,12 @@ class LocalDeviceStream(AsyncSubscription):
         except Exception as ex:
             warning(f"_onFrame failed: {ex}")
 
-    async def switchDevice(
-        self,
-        deviceManager: Any,
-        serial: Optional[str],
-        stopPrevious: bool = False,
-    ) -> None:
+    async def switchDevice(self, deviceManager: Any, serial: Optional[str], stopPrevious: bool = False) -> None:
         cleaned: Optional[str] = (serial or "").strip() or None
         self._desiredSerial = cleaned
         self._switchEpoch += 1
         requestEpoch = self._switchEpoch
-        verbose(f"switchDevice request serial={cleaned!r} epoch={requestEpoch}")
+        verbose(f"request serial={cleaned!r} epoch={requestEpoch}")
 
         async with self._switchLock:
             if requestEpoch != self._switchEpoch:

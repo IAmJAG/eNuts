@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-09 10:09:36 UTC*
+*Auto-generated on: 2026-11-09 13:24:25 UTC*
 
 ## Current Directory Structure
 
@@ -218,7 +218,7 @@ eNuts/
 │   │   │   ├── frameBuffer/
 │   │   │   │   ├── __bufferSlot.py
 │   │   │   │   ├── __frameBuffer.py
-│   │   │   │   └── __ringSlotConfiguration.py
+│   │   │   │   └── __frameBufferConfiguration.py
 │   │   │   └── frameRing/
 │   │   │       ├── __frameRing.py
 │   │   │       └── slot/
@@ -1045,7 +1045,7 @@ src/fluxCore/stream/frameBuffer:
 	__frameBuffer.py - 
 		CLASSE(S):
 			FrameBuffer -> : framebuffer
-	__ringSlotConfiguration.py - 
+	__frameBufferConfiguration.py - 
 		CLASSE(S):
 			FrameBufferConfiguration -> : framebufferconfiguration
 
@@ -1918,6 +1918,19 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+a21a365:
+	feat: Introduce FrameBufferConfiguration and refactor FrameBuffer for improved management refactor: Enhance BufferSlot and LocalDeviceStream for better performance and readability chore: Clean up imports and remove unused RingSlotConfiguration
+		src/fluxCore/stream/__deviceStream.py
+		src/fluxCore/stream/frameBuffer/__bufferSlot.py
+		src/fluxCore/stream/frameBuffer/__frameBuffer.py
+		src/fluxCore/stream/frameBuffer/__ringSlotConfiguration.py -> src/fluxCore/stream/frameBuffer/__frameBufferConfiguration.py
+		src/jAGFx/services/__asyncProcess.py
+		src/utilities/__asyncio.py
+
+3aac624:
+	Implement code changes to enhance functionality and improve performance
+		.docs/inventory.md
+
 2c2c3af:
 	refactor: Improve _canGrow and _grow methods for consistency and readability
 		src/fluxCore/stream/frameBuffer/__frameBuffer.py
@@ -1975,18 +1988,6 @@ af0f157:
 		src/fluxCore/configurations/frameRing/__frameRing.py
 		src/fluxCore/stream/frameRing/__frameRing.py
 		src/fluxCore/stream/frameRing/slot/__ringSlot.py
-		src/jAGFx/configuration/__configuration.py
-		src/jAGFx/types/interface/configuration/__configuration.py
-
-b612697:
-	feat: Enhance getSection method to validate input and ensure proper section resolution
-		src/jAGFx/configuration/__configuration.py
-
-ef7ec01:
-	feat: Enhance FrameRing configuration with DecodeCapacity and add getSection method to iConfiguration
-		src/fluxCore/configurations/frameRing/__decodeCapacity.py
-		src/fluxCore/configurations/frameRing/__frameRing.py
-		src/fluxCore/stream/frameRing/__frameRing.py
 		src/jAGFx/configuration/__configuration.py
 		src/jAGFx/types/interface/configuration/__configuration.py
 

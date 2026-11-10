@@ -54,14 +54,16 @@ class AsyncProcess(AsyncSubscription, iService):
     def start(self, *args, **kwargs) -> None:
         self._assertStartReady()
         self.raiseEvent("ON_STARTING")
-
         lShutdownEvent: SyncEvent = Event()
+
+        async def work(shutdownEvent: SyncEvent, *args, **kwargs) -> None: ...
+        work = self._work
 
         def _processEntry(shutdownEvent: SyncEvent, *args, **kwargs) -> None:
             async def _runner() -> None:
                 await self.asyncRaiseEvent("ON_STARTED")
                 try:
-                    await self._work(shutdownEvent, *args, **kwargs)
+                    await work(shutdownEvent, *args, **kwargs)
                     
                 finally:
                     await self.asyncRaiseEvent("ON_STOPPED")
@@ -108,6 +110,7 @@ class AsyncProcess(AsyncSubscription, iService):
 
         try:
             lLoop: AbstractEventLoop = get_running_loop()
+
         except RuntimeError:
             # No running event loop – perform stop synchronously
             if self._shutdownEvent is not None:
@@ -141,6 +144,7 @@ class AsyncProcess(AsyncSubscription, iService):
         def _onDone(t: Task) -> None:
             try:
                 t.result()
+                
             except Exception:
                 pass
             self.raiseEvent("ON_STOPPED")
