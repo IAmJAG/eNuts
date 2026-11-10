@@ -9,6 +9,7 @@ from asyncio import CancelledError, Future, gather, to_thread
 from asyncio import Event as asyncEvent
 from asyncio import sleep as asyncSleep
 from multiprocessing import Queue
+from multiprocessing.synchronize import Event as SyncEvent
 from queue import Empty
 
 # ==================================================================================
@@ -45,14 +46,14 @@ class OPEmitter(SCRCPY, AsyncProcess, iSCRCPYEmitter):
     async def _dispatch(self, msg: str) -> None:
         self._outQueue.put(msg)
             
-    async def work(self, shutdownEvent: asyncEvent, inQueue: Queue, outQueue: Queue, *args, **kwargs) -> None:        
+    async def work(self, shutdownEvent: SyncEvent, inQueue: Queue, outQueue: Queue, *args, **kwargs) -> None:        
         self._outQueue = outQueue
         self._tasks = gather(
             self._receiver(shutdownEvent, inQueue),
         )
 
         async def waitForShutdown() -> bool: 
-            await to_thread(shutdownEvent.wait())
+            await to_thread(shutdownEvent.wait)
 
         try:
             await waitForShutdown()
