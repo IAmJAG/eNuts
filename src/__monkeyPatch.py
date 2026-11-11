@@ -32,6 +32,7 @@ from utilities import (
     createTask,
     getEventLoop,
     getRunningLoop,
+    logTaskException,
 )
 
 # ==================================================================================================
@@ -106,3 +107,4 @@ setattr(builtins, "StripAnsi", StripAnsi)
 setattr(builtins, "createTask", createTask)
 setattr(builtins, "getRunningLoop", getRunningLoop)
 setattr(builtins, "getEventLoop", getEventLoop)
+setattr(builtins, "logTaskException", logTaskException)
