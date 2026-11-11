@@ -73,24 +73,9 @@ class AsyncProcess(AsyncSubscription, iService):
             message = f"Service '{self._name}' is not running."
             raise RuntimeError(message)
 
-    def start(self, *args, **kwargs) -> None:
-        self._assertStartReady()
-
-        self.raiseEvent("ON_STARTING")
-        shutdownEvent: SyncEvent = Event()
-        name: str = self._name
-
-        process = Process(
-            target=_processEntry, args=(self, shutdownEvent, args, kwargs),
-            daemon=True, name=name,
-        )
-        process.start()
-
-        self._process = process
-        self._shutdownEvent = shutdownEvent
-
-    async def _asyncStop(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
-        if self._shutdownEvent is not None: self._shutdownEvent.set()
+    async def _asyncStop(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:        
+        if self._shutdownEvent is not None: 
+            self._shutdownEvent.set()
         
         process = self._process
         if process is None: return
@@ -107,7 +92,7 @@ class AsyncProcess(AsyncSubscription, iService):
 
         process.close()
         self._process = None
-        self._shutdownEvent = None        
+        self._shutdownEvent = None   
 
     async def asyncStop(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
         self._assertStopReady()
@@ -122,29 +107,34 @@ class AsyncProcess(AsyncSubscription, iService):
         finally:
             self.raiseEvent("ON_STOPPED")
 
-    def _syncStop(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:                
-        if self._shutdownEvent is not None:
-            self._shutdownEvent.set()
+    def _syncStop(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
+        try:
+            if self._shutdownEvent is not None:
+                self._shutdownEvent.set()
 
-        process = self._process
-        if process is not None:
-            if not forced:
-                process.join(timeout)
-
-            if process.is_alive():
-                process.terminate()
-                process.join(timeout)
+            process = self._process
+            if process is not None:
+                if not forced:
+                    process.join(timeout)
 
                 if process.is_alive():
-                    process.kill()
-                    process.join(1.0)
+                    process.terminate()
+                    process.join(timeout)
 
-            process.close()
+                    if process.is_alive():
+                        process.kill()
+                        process.join(1.0)
 
-        self._process = None
-        self._shutdownEvent = None
-        self.raiseEvent("ON_STOPPED")
-    
+                process.close()
+
+        except Exception:
+            raise
+
+        finally:
+            self._process = None
+            self._shutdownEvent = None
+            self.raiseEvent("ON_STOPPED")
+
     def stop(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
         self._assertStopReady()
         self.raiseEvent("ON_STOPPING")
@@ -165,6 +155,24 @@ class AsyncProcess(AsyncSubscription, iService):
 
         task.add_done_callback(logTaskException)
         task.add_done_callback(_onDone)
+
+    def start(self, *args, **kwargs) -> None:
+        self._assertStartReady()
+
+        self.raiseEvent("ON_STARTING")
+        shutdownEvent: SyncEvent = Event()
+        name: str = self._name
+
+        process = Process(
+            target=_processEntry,
+            args=(self, shutdownEvent, args, kwargs),
+            daemon=True,
+            name=name,
+        )
+        process.start()
+
+        self._process = process
+        self._shutdownEvent = shutdownEvent
 
 # ==================================================================================
 __all__ = ["AsyncProcess"]
