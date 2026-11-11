@@ -41,6 +41,23 @@ def _getCoroutine(func: Callable) -> Callable[..., Any]:
 
     return _task
 
+def logTaskException(done: Task) -> None:
+    try:
+        exc = done.exception()
+
+    except Exception:
+        return
+    
+    if exc is not None:
+        try:
+            error(f"asyncio task unhandled exception "
+                f"name={done.get_name()!r}",
+                exc,
+            )
+
+        except Exception:
+            pass
+
 # ==================================================================================================
 def createTask(func: Callable[..., Any], *args, **kwargs) -> Task:
     try:
@@ -52,24 +69,7 @@ def createTask(func: Callable[..., Any], *args, **kwargs) -> Task:
             runner = _getCoroutine(func)
 
         task: Task = loop.create_task(runner(*args, **kwargs))
-
-        def _logTaskException(done: Task) -> None:
-            try:
-                exc = done.exception()
-
-            except Exception:
-                return
-            
-            if exc is not None:
-                try:
-                    error(f"createTask unhandled exception "
-                        f"name={done.get_name()!r}: {exc}",
-                        exc,
-                    )
-                except Exception:
-                    pass
-
-        task.add_done_callback(_logTaskException)
+        task.add_done_callback(logTaskException)
         return task
 
     except Exception as ex:

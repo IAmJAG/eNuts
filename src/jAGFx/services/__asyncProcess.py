@@ -1,4 +1,7 @@
 # ==================================================================================
+from __future__ import annotations
+
+# ==================================================================================
 from asyncio import AbstractEventLoop, Task, get_running_loop, to_thread
 from asyncio import run as asyncioRun
 from inspect import iscoroutinefunction
@@ -13,43 +16,36 @@ from jAGFx.names import getRandomName
 from ..types.interface.services import iService
 from .__subscription import AsyncSubscription
 
+# ==================================================================================
+C_DEFAULT_STOP_TIMEOUT: float = 3.0
+# ==================================================================================
 
 # ==================================================================================
-def _processEntry(
-    instance: "AsyncProcess",
-    shutdownEvent: SyncEvent,
-    args: tuple,
-    kwargs: dict,
-) -> None:
-    """Module-level entry so Windows spawn can pickle the Process target.
-
-    Nested functions are not importable by name and fail under spawn with
-    ``Can't get local object 'AsyncProcess.start.<locals>._processEntry'``.
-    """
+def _processEntry(func: Callable[..., Awaitable], shutdownEvent: SyncEvent, *args, **kwargs) -> None:
     async def _runner() -> None:
-        await instance.asyncRaiseEvent("ON_STARTED")
-        try:
-            await instance._work(shutdownEvent, *args, **kwargs)
+        def work(shutdownEvent: SyncEvent, *args, **kwargs):...
+        work: Callable[..., Awaitable] = func
 
-        finally:
-            await instance.asyncRaiseEvent("ON_STOPPED")
+        await work(shutdownEvent, *args, **kwargs)
 
     asyncioRun(_runner())
 
-
 # ==================================================================================
 class AsyncProcess(AsyncSubscription, iService):
-    C_DEFAULT_STOP_TIMEOUT: float = 5.0
-
-    def __init__(self, work: Callable[..., Awaitable], name: str | None = None) -> None:
+    def __init__(
+        self, work: Callable[..., Awaitable],
+        name: str | None = None, timeout: float = C_DEFAULT_STOP_TIMEOUT
+    ) -> None:
         super().__init__()
         if work is None or not iscoroutinefunction(work):
             raise TypeError("AsyncProcess requires an awaitable (coroutine function) work argument")
 
         self._work: Callable[..., Awaitable] = work
-        self._name: str = name or getRandomName()
+        
         self._process: Process | None = None
         self._shutdownEvent: SyncEvent | None = None
+
+        self._name: str = name or getRandomName()
 
     @property
     def name(self) -> str:
@@ -60,116 +56,115 @@ class AsyncProcess(AsyncSubscription, iService):
         return self._process is not None and self._process.is_alive()
 
     # Intentionally left as a stub for IntelliSense / type-checker signature
-    async def work(self, shutdownEvent: SyncEvent, *args, **kwargs): ...
+    async def _work(self, shutdownEvent: SyncEvent, *args, **kwargs): ...
 
     def _assertStartReady(self) -> None:
         if self._process is not None:
             if self._process.is_alive():
-                raise RuntimeError(f"Service '{self._name}' is already running.")
+                message: str = f"Service '{self._name}' is already running."
+                raise RuntimeError(message)
+            
             self._process.close()
             self._process = None
             self._shutdownEvent = None
 
-    def _assertStopReady(self) -> None:
-        # Only reject a missing handle. An already-exited process still needs reaping.
+    def _assertStopReady(self) -> None:        
         if self._process is None:
-            raise RuntimeError(f"Service '{self._name}' is not running.")
+            message = f"Service '{self._name}' is not running."
+            raise RuntimeError(message)
 
     def start(self, *args, **kwargs) -> None:
         self._assertStartReady()
+
         self.raiseEvent("ON_STARTING")
-        lShutdownEvent: SyncEvent = Event()
+        shutdownEvent: SyncEvent = Event()
+        name: str = self._name
 
-        lProcess = Process(
-            target=_processEntry,
-            args=(self, lShutdownEvent, args, kwargs),
-            daemon=True,
-            name=self._name,
+        process = Process(
+            target=_processEntry, args=(self, shutdownEvent, args, kwargs),
+            daemon=True, name=name,
         )
-        lProcess.start()
+        process.start()
 
-        self._process = lProcess
-        self._shutdownEvent = lShutdownEvent
+        self._process = process
+        self._shutdownEvent = shutdownEvent
 
-    async def _stopAsync(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
-        if self._shutdownEvent is not None:
-            self._shutdownEvent.set()
+    async def _asyncStop(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
+        if self._shutdownEvent is not None: self._shutdownEvent.set()
+        
+        process = self._process
+        if process is None: return
 
-        lProcess = self._process
-        if lProcess is None:
-            return
-
-        if lProcess.is_alive():
+        if process.is_alive():
             if forced:
-                lProcess.terminate()
+                process.terminate()
 
-            await to_thread(lProcess.join, timeout)
+            await to_thread(process.join, timeout)
 
-            if lProcess.is_alive():
-                lProcess.kill()
-                await to_thread(lProcess.join, 1.0)
+            if process.is_alive():
+                process.kill()
+                await to_thread(process.join, 1.0)
 
-        lProcess.close()
+        process.close()
         self._process = None
-        self._shutdownEvent = None
+        self._shutdownEvent = None        
 
-    async def stopAsync(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
+    async def asyncStop(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
         self._assertStopReady()
-        self.raiseEvent("ON_STOPPING")
 
+        def asyncStop(timeout: float, forced: bool): ...
+        asyncStop: Callable[..., Awaitable] = self._asyncStop
+
+        self.raiseEvent("ON_STOPPING")
         try:
-            await self._stopAsync(timeout=timeout, forced=forced)
+            await asyncStop(timeout=timeout, forced=forced)
 
         finally:
             self.raiseEvent("ON_STOPPED")
 
+    def _syncStop(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:                
+        if self._shutdownEvent is not None:
+            self._shutdownEvent.set()
+
+        process = self._process
+        if process is not None:
+            if not forced:
+                process.join(timeout)
+
+            if process.is_alive():
+                process.terminate()
+                process.join(timeout)
+
+                if process.is_alive():
+                    process.kill()
+                    process.join(1.0)
+
+            process.close()
+
+        self._process = None
+        self._shutdownEvent = None
+        self.raiseEvent("ON_STOPPED")
+    
     def stop(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
         self._assertStopReady()
         self.raiseEvent("ON_STOPPING")
 
         try:
-            lLoop: AbstractEventLoop = get_running_loop()
+            loop: AbstractEventLoop = get_running_loop()
 
         except RuntimeError:
-            # No running event loop – perform stop synchronously
-            if self._shutdownEvent is not None:
-                self._shutdownEvent.set()
-
-            lProcess = self._process
-            if lProcess is not None:
-                if not forced:
-                    lProcess.join(timeout)
-
-                # Forced termination if the process is still alive after the timeout
-                if lProcess.is_alive():
-                    lProcess.terminate()
-                    lProcess.join(timeout)
-
-                    if lProcess.is_alive():
-                        lProcess.kill()
-                        lProcess.join(1.0)
-
-                lProcess.close()
-
-            self._process = None
-            self._shutdownEvent = None
-            self.raiseEvent("ON_STOPPED")
+            self._syncStop(timeout=timeout, forced=forced)
             return
 
-        lTask: Task = lLoop.create_task(
-            self._stopAsync(timeout=timeout, forced=forced)
+        task: Task = loop.create_task(
+            self._syncStop(timeout=timeout, forced=forced)
         )
 
         def _onDone(t: Task) -> None:
-            try:
-                t.result()
-
-            except Exception:
-                pass
             self.raiseEvent("ON_STOPPED")
 
-        lTask.add_done_callback(_onDone)
-
+        task.add_done_callback(logTaskException)
+        task.add_done_callback(_onDone)
 
 # ==================================================================================
 __all__ = ["AsyncProcess"]
