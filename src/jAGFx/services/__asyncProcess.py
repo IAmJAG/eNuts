@@ -21,8 +21,10 @@ C_DEFAULT_STOP_TIMEOUT: float = 3.0
 # ==================================================================================
 
 # ==================================================================================
-def _processEntry(func: Callable[..., Awaitable], shutdownEvent: SyncEvent, *args, **kwargs) -> None:
+def _processEntry(func: Callable[..., Awaitable], shutdownEvent: SyncEvent, args, kwargs) -> None:
     async def _runner() -> None:
+
+        # Intentionally left as a stub for IntelliSense / type-checker signature
         def work(shutdownEvent: SyncEvent, *args, **kwargs):...
         work: Callable[..., Awaitable] = func
 
@@ -32,10 +34,7 @@ def _processEntry(func: Callable[..., Awaitable], shutdownEvent: SyncEvent, *arg
 
 # ==================================================================================
 class AsyncProcess(AsyncSubscription, iService):
-    def __init__(
-        self, work: Callable[..., Awaitable],
-        name: str | None = None, timeout: float = C_DEFAULT_STOP_TIMEOUT
-    ) -> None:
+    def __init__(self, work: Callable[..., Awaitable], name: str | None = None) -> None:
         super().__init__()
         if work is None or not iscoroutinefunction(work):
             raise TypeError("AsyncProcess requires an awaitable (coroutine function) work argument")
@@ -105,6 +104,8 @@ class AsyncProcess(AsyncSubscription, iService):
             await asyncStop(timeout=timeout, forced=forced)
 
         finally:
+            self._process = None
+            self._shutdownEvent = None
             self.raiseEvent("ON_STOPPED")
 
     def _syncStop(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
@@ -129,11 +130,6 @@ class AsyncProcess(AsyncSubscription, iService):
 
         except Exception:
             raise
-
-        finally:
-            self._process = None
-            self._shutdownEvent = None
-            self.raiseEvent("ON_STOPPED")
 
     def stop(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
         self._assertStopReady()
@@ -162,12 +158,14 @@ class AsyncProcess(AsyncSubscription, iService):
         self.raiseEvent("ON_STARTING")
         shutdownEvent: SyncEvent = Event()
         name: str = self._name
+        
+        # Intentionally left as a stub for IntelliSense / type-checker signature
+        async def work(shutdownEvent: SyncEvent, *args, **kwargs): ...
+        work: Callable[..., Awaitable] = self._work
 
         process = Process(
-            target=_processEntry,
-            args=(self, shutdownEvent, args, kwargs),
-            daemon=True,
-            name=name,
+            target=_processEntry, args=(work, shutdownEvent, args, kwargs),
+            daemon=True, name=name,
         )
         process.start()
 
