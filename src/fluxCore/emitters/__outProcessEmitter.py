@@ -37,7 +37,6 @@ class OPEmitter(AsyncProcess, SCRCPY):
         self._stopTask: Optional[Task] = None
         self._options: Optional[SCRCPYOptions] = options
 
-        self._tasks: Optional[Future] = None
         self._receiverTask: Optional[Task] = None
         self._processes: Dict[str, Process] = dict[str, Process]()
 
@@ -48,18 +47,14 @@ class OPEmitter(AsyncProcess, SCRCPY):
         def isShuttingdown() -> bool: ...
         isShuttingdown: Callable[[], bool] = shutdownEvent.is_set
 
-        self._clientId = clientId 
+        def isClient() -> bool: 
+            return clientId is not None
+
+        self._clientId = clientId
         try:
             while not isShuttingdown():
-                try:
-                    msg = queue.get_nowait()
-
-                    # Base implementation just prints; subclasses override or subscribe
-                    print(msg)
-
-                except Empty:
-                    await asyncSleep(0.01)
-                    continue
+                msg = await to_thread(queue.get)  # queue.get
+                print(msg)
 
         except Exception:
             raise
@@ -95,36 +90,38 @@ class OPEmitter(AsyncProcess, SCRCPY):
             finally:
                 asyncCloseQueue(inQueue)
 
-    def _start(self, clientId: str, shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queue):
+    def _start(self, clientId: str, shutdownEvent: syncEvent, outQueue: Queue) -> Queue:
         # Intentionally left as a stub for IntelliSense / type-checker signature
         async def work(shutdownEvent: syncEvent, *args, **kwargs): ...
         work: Callable[..., Awaitable] = self._work
+
+        inQueue: Queue = Queue()
 
         process = Process(
             target=processEntry, args=(work, clientId, shutdownEvent, outQueue, inQueue),
             daemon=True, name=f"PROC_{clientId}",
         )
         self._processes[clientId] = process
-        self._outQueues[clientId] = outQueue
-        process.start()        
+        process.start()
+        return inQueue
 
     def start(self, clientId: str) -> None:
         # Intentionally left as a stub for IntelliSense / type-checker signature
-        def start(clientId: str, shutdonwEvent: syncEvent, inQueue: Queue, outQueue: Queue, *args, **kwargs) -> None: ...
+        def start(clientId: str, shutdonwEvent: syncEvent, outQueue: Queue) -> None: ...
         start: Callable[..., None] = self._start
 
         if self._shutdownEvent is None:
-            self._shutdownEvent = syncEvent()        
+            self._shutdownEvent = syncEvent()
         
         if self._inQueue is None:
             self._inQueue = Queue()  # parent writes here (child reads)
 
         shutdownEvent: syncEvent = self._shutdownEvent
         outQueue = self._inQueue
-        inQueue: Queue = Queue()        
 
         try:
-            start(clientId, shutdownEvent, inQueue, outQueue)
+            inQueue = start(clientId, shutdownEvent, outQueue)
+            self._outQueues[clientId] = inQueue
 
         except Exception:
             closeQueue(inQueue)
@@ -144,7 +141,7 @@ class OPEmitter(AsyncProcess, SCRCPY):
                 closeQueue(queue)
             closeQueue(outQueue)
 
-        receiver: Task = createTask(self._receiver, shutdownEvent, inQueue, clientId)
+        receiver: Task = createTask(self._receiver, shutdownEvent, outQueue)
         receiver.add_done_callback(_onParentReceiverDone)
         self._receiverTask = receiver
 
