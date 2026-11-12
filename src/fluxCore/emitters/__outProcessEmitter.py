@@ -1,246 +1,285 @@
-# ==================================================================================
 from __future__ import annotations
 
 # ==================================================================================
-from asyncio import (
-    AbstractEventLoop,
-    CancelledError,
-    Future,
-    Task,
-    get_running_loop,
-    to_thread,
-)
-from asyncio import sleep as asyncSleep
-from multiprocessing import Event, Process, Queue
+from asyncio import CancelledError, Task, get_running_loop, to_thread
+from multiprocessing import Process, Queue
 from multiprocessing.synchronize import Event as syncEvent
 from queue import Empty
-from typing import Any, Awaitable, Callable, Dict, Optional
+from typing import Any, Dict, Optional
 
 # ==================================================================================
 from jAGFx.services import C_DEFAULT_STOP_TIMEOUT, AsyncProcess, processEntry
+from utilities import createTask
 
 # ==================================================================================
 from ..devices import SCRCPY
-from .__helper import asyncCloseQueue, asyncDrainQueue, closeQueue, drainQueue
+from .__helper import asyncCloseQueue, closeQueue
 from .__SCRCPYOptions import SCRCPYOptions
 
 
 # ==================================================================================
-class OPEmitter(AsyncProcess, SCRCPY):
-    def __init__(self, serial: str, name: str | None = None, options: SCRCPYOptions | None = None) -> None:
-        SCRCPY.__init__(self, serial=serial, name=name)
-        AsyncProcess.__init__(self, work=self._work, name=name)        
+async def _clientWorker(
+    clientId: str,
+    shutdownEvent: syncEvent,
+    inQueue: Queue,
+    outQueue: Queue,
+) -> None:
+    try:
+        while not shutdownEvent.is_set():
+            try:
+                lMsg = await to_thread(inQueue.get, True, 0.1)
 
-        self._inQueue: Optional[Queue] = None
-        self._outQueues: Dict[str, Queue] = None
+            except Empty:
+                continue
+
+            print(f"[{clientId}] {lMsg}")
+
+    finally:
+        # These are the worker process's local queue handles.
+        await asyncCloseQueue(inQueue)
+        await asyncCloseQueue(outQueue)
+
+
+# ==================================================================================
+class OPEmitter(AsyncProcess, SCRCPY):
+    def __init__(
+        self,
+        serial: str,
+        name: str | None = None,
+        options: SCRCPYOptions | None = None,
+    ) -> None:
+        SCRCPY.__init__(self, serial=serial, name=name)
+        # A module-level worker is spawn-safe; passing a bound method would
+        # pickle the entire emitter (including its other Process instances).
+        AsyncProcess.__init__(self, work=_clientWorker, name=name)
+
+        # Parent -> clients: all client processes compete to consume this queue.
+        self._outQueue: Optional[Queue] = None
+
+        # Client -> parent: each client has a dedicated return queue.
+        self._outQueues: Dict[str, Queue] = {}
+        self._receiverTasks: Dict[str, Task] = {}
 
         self._stopTask: Optional[Task] = None
         self._options: Optional[SCRCPYOptions] = options
+        self._processes: Dict[str, Process] = {}
 
-        self._receiverTask: Optional[Task] = None
-        self._processes: Dict[str, Process] = dict[str, Process]()
-
-    async def _receiver(self, shutdownEvent: syncEvent, queue: Queue, clientId: Optional[str] = None) -> None:
-        # if clientId is None this is the server
-
-        # Intentionally left as a stub for IntelliSense / type-checker signature
-        def isShuttingdown() -> bool: ...
-        isShuttingdown: Callable[[], bool] = shutdownEvent.is_set
-
-        def isClient() -> bool: 
-            return clientId is not None
-
-        self._clientId = clientId
-        try:
-            while not isShuttingdown():
-                msg = await to_thread(queue.get)  # queue.get
-                print(msg)
-
-        except Exception:
-            raise
-
-        finally:
-            asyncDrainQueue(queue)
-
-    async def _work(self, clientId: str, shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queue) -> None:
-        self._outQueue = outQueue
-        try:            
-            receiver: Task = createTask(
-                self._receiver, shutdownEvent, inQueue, clientId
-            )
-            self._receiverTask = receiver
-
-        except Exception:
-            asyncCloseQueue(inQueue)
-            raise RuntimeError(f"failed to run client process: {clientId}")
-        
-        try:
-            await to_thread(shutdownEvent.wait)
-
-        finally:
-            if not receiver.done():
-                receiver.cancel()
-
+    async def _receiver(
+        self,
+        shutdownEvent: syncEvent,
+        queue: Queue,
+        clientId: Optional[str] = None,
+    ) -> None:
+        while not shutdownEvent.is_set():
             try:
-                await receiver
+                lMsg = await to_thread(queue.get, True, 0.1)
 
-            except (CancelledError, Exception):
-                pass
+            except Empty:
+                continue
 
-            finally:
-                asyncCloseQueue(inQueue)
+            if clientId is None:
+                print(lMsg)
+            else:
+                print(f"[{clientId}] {lMsg}")
 
-    def _start(self, clientId: str, shutdownEvent: syncEvent, outQueue: Queue) -> Queue:
-        # Intentionally left as a stub for IntelliSense / type-checker signature
-        async def work(shutdownEvent: syncEvent, *args, **kwargs): ...
-        work: Callable[..., Awaitable] = self._work
-
-        inQueue: Queue = Queue()
-
-        process = Process(
-            target=processEntry, args=(work, clientId, shutdownEvent, outQueue, inQueue),
-            daemon=True, name=f"PROC_{clientId}",
+    def _start(
+        self,
+        clientId: str,
+        shutdownEvent: syncEvent,
+        sharedQueue: Queue,
+        clientQueue: Queue,
+    ) -> Process:
+        lProcess = Process(
+            target=processEntry,
+            args=(
+                _clientWorker,
+                (clientId, shutdownEvent, sharedQueue, clientQueue),
+                {},
+            ),
+            daemon=True,
+            name=f"PROC_{clientId}",
         )
-        self._processes[clientId] = process
-        process.start()
-        return inQueue
+        lProcess.start()
+        self._processes[clientId] = lProcess
+        return lProcess
 
     def start(self, clientId: str) -> None:
-        # Intentionally left as a stub for IntelliSense / type-checker signature
-        def start(clientId: str, shutdonwEvent: syncEvent, outQueue: Queue) -> None: ...
-        start: Callable[..., None] = self._start
+        get_running_loop()
+
+        if clientId in self._processes:
+            raise RuntimeError(f"Client '{clientId}' has already been started.")
 
         if self._shutdownEvent is None:
             self._shutdownEvent = syncEvent()
-        
-        if self._inQueue is None:
-            self._inQueue = Queue()  # parent writes here (child reads)
 
-        shutdownEvent: syncEvent = self._shutdownEvent
-        outQueue = self._inQueue
+        if self._outQueue is None:
+            self._outQueue = Queue()
+
+        lShutdownEvent = self._shutdownEvent
+        lSharedQueue = self._outQueue
+        lClientQueue = Queue()
 
         try:
-            inQueue = start(clientId, shutdownEvent, outQueue)
-            self._outQueues[clientId] = inQueue
+            self._start(
+                clientId,
+                lShutdownEvent,
+                lSharedQueue,
+                lClientQueue,
+            )
+            self._outQueues[clientId] = lClientQueue
+            self._receiverTasks[clientId] = createTask(
+                self._receiver,
+                lShutdownEvent,
+                lClientQueue,
+                clientId,
+            )
 
         except Exception:
-            closeQueue(inQueue)
-            closeQueue(outQueue)
+            closeQueue(lClientQueue)
+            lProcess = self._processes.pop(clientId, None)
+            if lProcess is not None:
+                if lProcess.is_alive():
+                    lProcess.terminate()
+                    lProcess.join()
+                lProcess.close()
+
+            if not self._processes:
+                lShutdownEvent.set()
+                closeQueue(lSharedQueue)
+                self._outQueue = None
+                self._shutdownEvent = None
+
             raise
 
-        if self._receiverTask is not None and not self._receiverTask.done():
+    async def stopAsync(
+        self,
+        timeout: float = C_DEFAULT_STOP_TIMEOUT,
+        forced: bool = False,
+    ) -> None:
+        if not self._processes and not self._receiverTasks:
             return
 
-        def _onParentReceiverDone(task: Task) -> None:
-            if self._receiverTask is task:
-                self._receiverTask = None
+        self.raiseEvent("ON_STOPPING")
 
-            queKeys = list(self._outQueues.keys())
-            for key in queKeys:
-                queue: Queue = self._outQueues.pop(key)
-                closeQueue(queue)
-            closeQueue(outQueue)
-
-        receiver: Task = createTask(self._receiver, shutdownEvent, outQueue)
-        receiver.add_done_callback(_onParentReceiverDone)
-        self._receiverTask = receiver
-
-    async def stopAsync(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
         try:
-            await super().asyncStop(timeout=timeout, forced=forced)
+            if self._shutdownEvent is not None:
+                self._shutdownEvent.set()
+
+            # Receivers use a bounded queue.get timeout, so they can observe
+            # shutdown without leaving a worker thread blocked indefinitely.
+            for lTask in list(self._receiverTasks.values()):
+                try:
+                    await lTask
+
+                except (CancelledError, Exception):
+                    pass
+
+            await to_thread(self._stopProcesses, timeout, forced)
 
         finally:
-            try:
-                await self._endReceiver()
+            self._closeQueues()
+            self._shutdownEvent = None
+            self.raiseEvent("ON_STOPPED")
 
-            finally:
-                self._closeQueues()
-
-    def stop(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
-        """Sync entry. When a loop is running, schedules a retained stopAsync task."""
-        # Coalesce: if a shutdown is already in flight, do not start another
+    def stop(
+        self,
+        timeout: float = C_DEFAULT_STOP_TIMEOUT,
+        forced: bool = False,
+    ) -> None:
         if self._stopTask is not None and not self._stopTask.done():
             return
 
         try:
-            loop = get_running_loop()
+            lLoop = get_running_loop()
 
         except RuntimeError:
-            # No loop — use inherited sync stop, then emitter cleanup
-            try:
-                super().stop(timeout=timeout, forced=forced)
-
-            finally:
-                self._cancelTasks()
-                self._closeQueues()
-
+            self._stopSync(timeout=timeout, forced=forced)
             return
 
-        # Loop present — retain the task so failures are observable
-        self._stopTask = loop.create_task(self.stopAsync(timeout=timeout, forced=forced))
+        self._stopTask = lLoop.create_task(
+            self.stopAsync(timeout=timeout, forced=forced)
+        )
         self._stopTask.add_done_callback(self._onStopTaskDone)
 
+    def _stopSync(
+        self,
+        timeout: float = C_DEFAULT_STOP_TIMEOUT,
+        forced: bool = False,
+    ) -> None:
+        if not self._processes and not self._receiverTasks:
+            return
+
+        self.raiseEvent("ON_STOPPING")
+
+        try:
+            if self._shutdownEvent is not None:
+                self._shutdownEvent.set()
+
+            for lTask in self._receiverTasks.values():
+                if not lTask.done():
+                    lTask.cancel()
+
+            self._stopProcesses(timeout, forced)
+
+        finally:
+            self._closeQueues()
+            self._shutdownEvent = None
+            self.raiseEvent("ON_STOPPED")
+
+    def _stopProcesses(self, timeout: float, forced: bool) -> None:
+        for lProcess in self._processes.values():
+            if lProcess.is_alive():
+                if forced:
+                    lProcess.terminate()
+
+                lProcess.join(timeout)
+
+                if lProcess.is_alive():
+                    lProcess.terminate()
+                    lProcess.join(timeout)
+
+                if lProcess.is_alive():
+                    lProcess.kill()
+                    lProcess.join(1.0)
+
+            lProcess.close()
+
+        self._processes.clear()
+
     def _onStopTaskDone(self, task: Task) -> None:
-        """Surface shutdown failures instead of silently dropping them."""
         try:
             task.result()
 
         except Exception as ex:
-            # Re-raise on the loop so it is not an unretrieved task exception
-            get_running_loop().call_exception_handler({
+            task.get_loop().call_exception_handler({
                 "message": f"OPEmitter '{self.name}' stopAsync failed",
                 "exception": ex,
                 "task": task,
-            })
-
-        finally:
-            if self._stopTask is task:
                 self._stopTask = None
 
     async def waitStopped(self) -> None:
-        """Await the scheduled shutdown task if one exists."""
-        task = self._stopTask
-        if task is None:
-            return
-
-        await task
-
-    async def _endReceiver(self) -> None:
-        task = self._tasks
-
-        if task is None: return
-
-        if not task.done():
-            task.cancel()
-
-        try:
-            await task
-
-        except (CancelledError, Exception):
-            pass
-
-        finally:
-            self._tasks = None
-
-    def _cancelTasks(self) -> None:
-        """Sync cancel used only on the no-loop stop path."""
-        task = self._tasks
-        if task is None or task.done():
-            self._tasks = None
-            return
-
-        task.cancel()
-        self._tasks = None
+        lTask = self._stopTask
+        if lTask is not None:
+            await lTask
 
     def _closeQueues(self) -> None:
-        self._closeQueue(self._inQueue)
-        self._closeQueue(self._outQueue)
-        self._inQueue = None
+        for lQueue in self._outQueues.values():
+            closeQueue(lQueue)
+
+        self._outQueues.clear()
+        self._receiverTasks.clear()
+
+        closeQueue(self._outQueue)
         self._outQueue = None
 
-    
+    def running(self) -> bool:
+        return any(lProcess.is_alive() for lProcess in self._processes.values())
 
-    # Convenience for subclasses that want to send from the parent
+    # Convenience for subclasses that want to send from the parent.
     async def _dispatch(self, msg: Any) -> None:
         if self._outQueue is not None:
-            self._outQueue.put(msg)
+            await to_thread(self._outQueue.put, msg)
+
+
+# ==================================================================================
+__all__ = ["OPEmitter"]
