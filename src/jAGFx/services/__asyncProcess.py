@@ -21,14 +21,13 @@ C_DEFAULT_STOP_TIMEOUT: float = 3.0
 # ==================================================================================
 
 # ==================================================================================
-def _processEntry(func: Callable[..., Awaitable], shutdownEvent: SyncEvent, args, kwargs) -> None:
+def processEntry(func: Callable[..., Awaitable], args, kwargs) -> None:
     async def _runner() -> None:
-
         # Intentionally left as a stub for IntelliSense / type-checker signature
-        def work(shutdownEvent: SyncEvent, *args, **kwargs):...
+        def work(*args, **kwargs):...
         work: Callable[..., Awaitable] = func
 
-        await work(shutdownEvent, *args, **kwargs)
+        await work(*args, **kwargs)
 
     asyncioRun(_runner())
 
@@ -52,6 +51,9 @@ class AsyncProcess(AsyncSubscription, iService):
 
     @property
     def isRunning(self) -> bool:
+        return self.running()
+
+    def running(self) -> bool:
         return self._process is not None and self._process.is_alive()
 
     # Intentionally left as a stub for IntelliSense / type-checker signature
@@ -164,7 +166,7 @@ class AsyncProcess(AsyncSubscription, iService):
         work: Callable[..., Awaitable] = self._work
 
         process = Process(
-            target=_processEntry, args=(work, shutdownEvent, args, kwargs),
+            target=processEntry, args=(work, shutdownEvent, args, kwargs),
             daemon=True, name=name,
         )
         process.start()
@@ -173,4 +175,4 @@ class AsyncProcess(AsyncSubscription, iService):
         self._shutdownEvent = shutdownEvent
 
 # ==================================================================================
-__all__ = ["AsyncProcess"]
+__all__ = ["AsyncProcess", "processEntry", "C_DEFAULT_STOP_TIMEOUT"]

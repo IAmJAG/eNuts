@@ -46,27 +46,25 @@ def logTaskException(done: Task) -> None:
         exc = done.exception()
 
     except Exception:
-        return
+        raise
     
     if exc is not None:
         try:
-            error(f"asyncio task unhandled exception "
-                f"name={done.get_name()!r}",
-                exc,
-            )
+            error(f"asyncio task unhandled exception name={done.get_name()!r}", exc)
 
         except Exception:
-            pass
+            raise
 
 # ==================================================================================================
 def createTask(func: Callable[..., Any], *args, **kwargs) -> Task:
-    try:
-        loop: AbstractEventLoop = getRunningLoop()
+    try:        
+        loop: AbstractEventLoop = getRunningLoop()        
         if loop is None: raise Exception("No running loop")
 
-        runner: Callable[[...], Awaitable] = func
-        if not iscoroutinefunction(func):
-            runner = _getCoroutine(func)
+        # for stub intellisense
+        def runner(*args, **kwargs) -> Awaitable: ...
+        runner: Callable[..., Awaitable] = func
+        if not iscoroutinefunction(func): runner = _getCoroutine(func)
 
         task: Task = loop.create_task(runner(*args, **kwargs))
         task.add_done_callback(logTaskException)

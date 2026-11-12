@@ -73,6 +73,9 @@ class AsyncService(AsyncSubscription, iService):
 
     @property
     def isRunning(self) -> bool:
+        return self.running()
+
+    def running(self) -> bool:
         return self._isRunning
 
     @property

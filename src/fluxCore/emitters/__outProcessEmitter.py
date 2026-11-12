@@ -2,66 +2,87 @@
 from __future__ import annotations
 
 # ==================================================================================
-from asyncio import CancelledError, Future, Task, get_running_loop, to_thread
+from asyncio import (
+    AbstractEventLoop,
+    CancelledError,
+    Future,
+    Task,
+    get_running_loop,
+    to_thread,
+)
 from asyncio import sleep as asyncSleep
-from multiprocessing import Queue
+from multiprocessing import Event, Process, Queue
 from multiprocessing.synchronize import Event as syncEvent
 from queue import Empty
+from typing import Any, Awaitable, Callable, Dict, Optional
 
 # ==================================================================================
-from typing import Any, Optional
-
-# ==================================================================================
-from jAGFx.services import AsyncProcess
+from jAGFx.services import C_DEFAULT_STOP_TIMEOUT, AsyncProcess, processEntry
 
 # ==================================================================================
 from ..devices import SCRCPY
+from .__helper import asyncCloseQueue, asyncDrainQueue, closeQueue, drainQueue
 from .__SCRCPYOptions import SCRCPYOptions
 
 
 # ==================================================================================
 class OPEmitter(AsyncProcess, SCRCPY):
-    """
-    Out-of-process emitter base.
-
-    Heavy work runs in a child process (AsyncProcess). Parent and child communicate
-    via two multiprocessing Queues.
-
-    Process lifecycle and ON_STOPPING / ON_STOPPED are owned by AsyncProcess.
-    OPEmitter only adds parent-receiver and queue cleanup.
-
-    Satisfies iSCRCPYEmitter structurally. It is not an explicit base:
-    SCRCPY contributes iDevice, AsyncProcess contributes iSubscription before
-    iService, and iEmitter wants iService / iSubscription / iDevice. Those
-    orders cannot be linearized together (same pattern as SCRCPYEmitter).
-    """
-
     def __init__(self, serial: str, name: str | None = None, options: SCRCPYOptions | None = None) -> None:
-        AsyncProcess.__init__(self, work=self.work, name=name)
         SCRCPY.__init__(self, serial=serial, name=name)
+        AsyncProcess.__init__(self, work=self._work, name=name)        
 
-        # Process-local after pickling; same names are safe.
         self._inQueue: Optional[Queue] = None
-        self._outQueue: Optional[Queue] = None
-        self._tasks: Optional[Future] = None
+        self._outQueues: Dict[str, Queue] = None
+
         self._stopTask: Optional[Task] = None
-        self._options: SCRCPYOptions | None = options
+        self._options: Optional[SCRCPYOptions] = options
 
-    # --------------------------------------------------------------------------------
-    # Child-process entry point
-    # --------------------------------------------------------------------------------
-    async def work(self, shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queue, *args, **kwargs) -> None:
+        self._tasks: Optional[Future] = None
+        self._receiverTask: Optional[Task] = None
+        self._processes: Dict[str, Process] = dict[str, Process]()
+
+    async def _receiver(self, shutdownEvent: syncEvent, queue: Queue, clientId: Optional[str] = None) -> None:
+        # if clientId is None this is the server
+
+        # Intentionally left as a stub for IntelliSense / type-checker signature
+        def isShuttingdown() -> bool: ...
+        isShuttingdown: Callable[[], bool] = shutdownEvent.is_set
+
+        self._clientId = clientId 
+        try:
+            while not isShuttingdown():
+                try:
+                    msg = queue.get_nowait()
+
+                    # Base implementation just prints; subclasses override or subscribe
+                    print(msg)
+
+                except Empty:
+                    await asyncSleep(0.01)
+                    continue
+
+        except Exception:
+            raise
+
+        finally:
+            asyncDrainQueue(queue)
+
+    async def _work(self, clientId: str, shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queue) -> None:
         self._outQueue = outQueue
+        try:            
+            receiver: Task = createTask(
+                self._receiver, shutdownEvent, inQueue, clientId
+            )
+            self._receiverTask = receiver
 
-        receiver = get_running_loop().create_task(
-            self._receiver(shutdownEvent, inQueue)
-        )
-
+        except Exception:
+            asyncCloseQueue(inQueue)
+            raise RuntimeError(f"failed to run client process: {clientId}")
+        
         try:
             await to_thread(shutdownEvent.wait)
 
         finally:
-            # Hard cancel is still allowed; drain happens inside _receiver.finally
             if not receiver.done():
                 receiver.cancel()
 
@@ -71,82 +92,74 @@ class OPEmitter(AsyncProcess, SCRCPY):
             except (CancelledError, Exception):
                 pass
 
-            self._closeQueue(outQueue)
+            finally:
+                asyncCloseQueue(inQueue)
 
-    # --------------------------------------------------------------------------------
-    # Shared receiver used by both parent and child
-    # --------------------------------------------------------------------------------
-    async def _receiver(self, shutdownEvent: syncEvent, queue: Queue) -> None:
-        """Polls a queue until the shutdown Event is set or the task is cancelled.
+    def _start(self, clientId: str, shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queue):
+        # Intentionally left as a stub for IntelliSense / type-checker signature
+        async def work(shutdownEvent: syncEvent, *args, **kwargs): ...
+        work: Callable[..., Awaitable] = self._work
 
-        Drain always runs (normal exit or hard cancel).
-        """
-        try:
-            while not shutdownEvent.is_set():
-                try:
-                    msg = queue.get_nowait()
+        process = Process(
+            target=processEntry, args=(work, clientId, shutdownEvent, outQueue, inQueue),
+            daemon=True, name=f"PROC_{clientId}",
+        )
+        self._processes[clientId] = process
+        self._outQueues[clientId] = outQueue
+        process.start()        
 
-                except Empty:
-                    await asyncSleep(0.01)
-                    continue
+    def start(self, clientId: str) -> None:
+        # Intentionally left as a stub for IntelliSense / type-checker signature
+        def start(clientId: str, shutdonwEvent: syncEvent, inQueue: Queue, outQueue: Queue, *args, **kwargs) -> None: ...
+        start: Callable[..., None] = self._start
 
-                # Base implementation just prints; subclasses override or subscribe
-                print(msg)
+        if self._shutdownEvent is None:
+            self._shutdownEvent = syncEvent()        
+        
+        if self._inQueue is None:
+            self._inQueue = Queue()  # parent writes here (child reads)
 
-        finally:
-            self._drainQueue(queue)
-
-    def _drainQueue(self, queue: Queue) -> None:
-        while True:
-            try:
-                queue.get_nowait()
-
-            except Empty:
-                break
-
-    # --------------------------------------------------------------------------------
-    # Parent API
-    # --------------------------------------------------------------------------------
-    def start(self, *args, **kwargs) -> None:
-        # Fail fast before any side effects
-        try:
-            loop = get_running_loop()
-
-        except RuntimeError as ex:
-            raise RuntimeError("OPEmitter.start() requires a running event loop") from ex
-
-        inQueue: Queue = Queue()   # child writes here
-        outQueue: Queue = Queue()  # parent writes here (child reads)
-
-        # Assign early so a failed start can still close them
-        self._inQueue = inQueue
-        self._outQueue = outQueue
+        shutdownEvent: syncEvent = self._shutdownEvent
+        outQueue = self._inQueue
+        inQueue: Queue = Queue()        
 
         try:
-            # Swap when handing to the child so each side's "in" is the other's "out"
-            super().start(inQueue=outQueue, outQueue=inQueue, *args, **kwargs)
+            start(clientId, shutdownEvent, inQueue, outQueue)
 
         except Exception:
-            self._closeQueues()
+            closeQueue(inQueue)
+            closeQueue(outQueue)
             raise
 
-        self._tasks = loop.create_task(
-            self._receiver(self._shutdownEvent, inQueue)
-        )
+        if self._receiverTask is not None and not self._receiverTask.done():
+            return
 
-    async def stopAsync(self, timeout: float = AsyncProcess.C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
-        """Async shutdown. Process lifecycle stays in AsyncProcess; emitter cleanup is additive."""
+        def _onParentReceiverDone(task: Task) -> None:
+            if self._receiverTask is task:
+                self._receiverTask = None
+
+            queKeys = list(self._outQueues.keys())
+            for key in queKeys:
+                queue: Queue = self._outQueues.pop(key)
+                closeQueue(queue)
+            closeQueue(outQueue)
+
+        receiver: Task = createTask(self._receiver, shutdownEvent, inQueue, clientId)
+        receiver.add_done_callback(_onParentReceiverDone)
+        self._receiverTask = receiver
+
+    async def stopAsync(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
         try:
-            await super().stopAsync(timeout=timeout, forced=forced)
+            await super().asyncStop(timeout=timeout, forced=forced)
 
         finally:
             try:
-                await self._finishParentReceiver()
+                await self._endReceiver()
 
             finally:
                 self._closeQueues()
 
-    def stop(self, timeout: float = AsyncProcess.C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
+    def stop(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
         """Sync entry. When a loop is running, schedules a retained stopAsync task."""
         # Coalesce: if a shutdown is already in flight, do not start another
         if self._stopTask is not None and not self._stopTask.done():
@@ -163,6 +176,7 @@ class OPEmitter(AsyncProcess, SCRCPY):
             finally:
                 self._cancelTasks()
                 self._closeQueues()
+
             return
 
         # Loop present — retain the task so failures are observable
@@ -194,10 +208,10 @@ class OPEmitter(AsyncProcess, SCRCPY):
 
         await task
 
-    async def _finishParentReceiver(self) -> None:
+    async def _endReceiver(self) -> None:
         task = self._tasks
-        if task is None:
-            return
+
+        if task is None: return
 
         if not task.done():
             task.cancel()
@@ -208,7 +222,8 @@ class OPEmitter(AsyncProcess, SCRCPY):
         except (CancelledError, Exception):
             pass
 
-        self._tasks = None
+        finally:
+            self._tasks = None
 
     def _cancelTasks(self) -> None:
         """Sync cancel used only on the no-loop stop path."""
@@ -226,17 +241,7 @@ class OPEmitter(AsyncProcess, SCRCPY):
         self._inQueue = None
         self._outQueue = None
 
-    @staticmethod
-    def _closeQueue(queue: Optional[Queue]) -> None:
-        if queue is None:
-            return
-
-        try:
-            queue.close()
-            queue.cancel_join_thread()
-
-        except Exception:
-            pass
+    
 
     # Convenience for subclasses that want to send from the parent
     async def _dispatch(self, msg: Any) -> None:
