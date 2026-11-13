@@ -87,7 +87,8 @@ class SCRCPYConfig(Serializable):
         if self._videoCodec: cmds.append(f"video_codec={self._videoCodec}")
         if self._tunnelForward: cmds.append(f"tunnel_forward={str(self._tunnelForward).lower()}")
         if self._sendFrameMeta: cmds.append(f"send_frame_meta={str(self._sendFrameMeta).lower()}")
-        if self._control: cmds.append(f"control={str(self._control).lower()}")
+        # Always explicit so the server does not keep a hidden default.
+        cmds.append(f"control={str(self._control).lower()}")
         if self._audio: cmds.append(f"audio={str(self._audio).lower()}")
         if self._showTouches: cmds.append(f"show_touches={str(self._showTouches).lower()}")
         if self._stayAwake: cmds.append(f"stay_awake={str(self._stayAwake).lower()}")
