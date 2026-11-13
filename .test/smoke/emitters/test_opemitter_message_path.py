@@ -1,5 +1,9 @@
 # ==================================================================================
-"""One run. Every acceptance check. Message path is recorded and traced.
+"""One run. Every acceptance check. Message path is recorded via trace.
+
+trace is the logging builtin installed by src/__monkeyPatch.py
+(setattr(builtins, "trace", trace) from jAGFx.logging) and declared in
+typings/__builtins__.pyi. It is not print.
 
     parent put(client) -> that client's inbound -> echo -> shared inbound -> parent
 """
@@ -20,8 +24,7 @@ if str(_REPO_SRC) not in sys.path:
 if str(_TEST_ROOT) not in sys.path:
     sys.path.insert(0, str(_TEST_ROOT))
 
-import __monkeyPatch  # noqa: E402, F401
-from jAGFx.logging import setupLogging  # noqa: E402
+import __monkeyPatch  # noqa: E402, F401  — installs builtins.trace
 from fixtures.emitters.echoWorker import echoWorker  # noqa: E402
 from fixtures.emitters.probe import ProbeEmitter  # noqa: E402
 from fluxCore.emitters.__clientWorker import _clientWorker  # noqa: E402
@@ -141,7 +144,7 @@ async def run() -> None:
         trace(f"  {step}")
 
     if _FAILED:
-        trace(f"---- {_FAILED.__len__()} FAILED ----")
+        trace(f"---- {len(_FAILED)} FAILED ----")
         raise AssertionError("\n".join(_FAILED))
 
     trace("---- all passed ----")
