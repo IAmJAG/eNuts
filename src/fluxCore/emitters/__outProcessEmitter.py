@@ -21,10 +21,7 @@ from .__SCRCPYOptions import SCRCPYOptions
 # ==================================================================================
 class outOfProcessEmitter(AsyncProcess, SCRCPY):
     def __init__(
-        self,
-        serial: str,
-        name: str | None = None,
-        options: SCRCPYOptions | None = None,
+        self, serial: str, name: str | None = None, options: SCRCPYOptions | None = None,
         worker: Callable[..., Awaitable] | None = None,
     ) -> None:
         SCRCPY.__init__(self, serial=serial, name=name)
@@ -57,11 +54,8 @@ class outOfProcessEmitter(AsyncProcess, SCRCPY):
             return
 
     def _startProcess(
-        self,
-        clientId: str,
-        shutdownEvent: syncEvent,
-        clientQueue: Queue,
-        sharedQueue: Queue,
+        self, clientId: str, shutdownEvent: syncEvent,
+        clientQueue: Queue, sharedQueue: Queue,
     ) -> Process:
         lProcess = Process(
             target=processEntry,
@@ -83,30 +77,29 @@ class outOfProcessEmitter(AsyncProcess, SCRCPY):
         if clientId in self._processes:
             raise RuntimeError(f"Client '{clientId}' has already been started.")
 
-        lCreatedEvent = False
-        lCreatedInbound = False
+        shutdownEvent: Optional[syncEvent] = self._shutdownEvent
+        sharedQueue: Optional[Queue] = self._inQueue
 
-        if self._shutdownEvent is None:
-            self._shutdownEvent = Event()
-            lCreatedEvent = True
+        if shutdownEvent is None:
+            shutdownEvent = Event()            
+            self._shutdownEvent = shutdownEvent
 
-        if self._inQueue is None:
-            self._inQueue = Queue()
-            lCreatedInbound = True
+        if sharedQueue is None:
+            sharedQueue = Queue()
+            self._inQueue = sharedQueue
 
-        lShutdownEvent = self._shutdownEvent
-        lSharedQueue = self._inQueue
-        lClientQueue = Queue()
+        clientQueue = Queue()
 
         try:
-            self._startProcess(clientId, lShutdownEvent, lClientQueue, lSharedQueue)
-            self._outQueues[clientId] = lClientQueue
+            self._startProcess(clientId, shutdownEvent, clientQueue, sharedQueue)
+            self._outQueues[clientId] = clientQueue
 
             if self._receiverTask is None:
-                self._receiverTask = createTask(self._receiver, lShutdownEvent, lSharedQueue)
+                self._receiverTask = createTask(self._receiver, shutdownEvent, sharedQueue)
 
         except Exception:
-            closeQueue(lClientQueue)
+            closeQueue(clientQueue)
+
             lProcess = self._processes.pop(clientId, None)
             if lProcess is not None:
                 if lProcess.is_alive():
@@ -117,20 +110,16 @@ class outOfProcessEmitter(AsyncProcess, SCRCPY):
             if not self._processes:
                 if self._receiverTask is not None and not self._receiverTask.done():
                     self._receiverTask.cancel()
+
                 self._receiverTask = None
-                if lCreatedInbound:
-                    closeQueue(lSharedQueue)
-                    self._inQueue = None
-                if lCreatedEvent:
-                    self._shutdownEvent = None
+
+                closeQueue(sharedQueue)                    
+                self._inQueue = None
+                self._shutdownEvent = None
 
             raise
 
-    async def stopAsync(
-        self,
-        timeout: float = C_DEFAULT_STOP_TIMEOUT,
-        forced: bool = False,
-    ) -> None:
+    async def stopAsync( self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
         if not self._processes and self._receiverTask is None:
             return
 
@@ -148,11 +137,7 @@ class outOfProcessEmitter(AsyncProcess, SCRCPY):
             self._shutdownEvent = None
             self.raiseEvent("ON_STOPPED")
 
-    def stop(
-        self,
-        timeout: float = C_DEFAULT_STOP_TIMEOUT,
-        forced: bool = False,
-    ) -> None:
+    def stop(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
         if self._stopTask is not None and not self._stopTask.done():
             return
 
@@ -166,13 +151,8 @@ class outOfProcessEmitter(AsyncProcess, SCRCPY):
         self._stopTask = lLoop.create_task(self.stopAsync(timeout=timeout, forced=forced))
         self._stopTask.add_done_callback(self._onStopTaskDone)
 
-    def _stopSync(
-        self,
-        timeout: float = C_DEFAULT_STOP_TIMEOUT,
-        forced: bool = False,
-    ) -> None:
-        if not self._processes and self._receiverTask is None:
-            return
+    def _stopSync(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
+        if not self._processes and self._receiverTask is None: return
 
         self.raiseEvent("ON_STOPPING")
 
@@ -192,8 +172,7 @@ class outOfProcessEmitter(AsyncProcess, SCRCPY):
 
     async def _finishReceiver(self) -> None:
         lTask = self._receiverTask
-        if lTask is None:
-            return
+        if lTask is None: return
 
         try:
             await lTask
