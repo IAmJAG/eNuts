@@ -11,6 +11,7 @@ from asyncio import (
     Task,
     TimeoutError as AsyncTimeoutError,
     get_running_loop,
+    sleep as asyncSleep,
     to_thread,
     wait_for,
 )
@@ -64,6 +65,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         self._codecContext: Optional[VideoCodecContext] = None
         self._serverLogThread: Optional[Thread] = None
         self._serverLogStop: ThreadEvent = ThreadEvent()
+        self._adbDevice: Optional[AdbDevice] = None
 
     @classmethod
     def toSCRCPY(cls, emitter: SCRCPYEmitter) -> SCRCPY:
@@ -123,6 +125,32 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
 
         self._serverLogThread = None
 
+    async def _dumpLogcat(self, tag: str = "metadata-timeout") -> None:
+        """Best-effort logcat slice for scrcpy / runtime errors."""
+        device = self._adbDevice
+        if device is None:
+            return
+        try:
+            def _pull() -> str:
+                # last ~200 lines mentioning scrcpy or fatal exceptions
+                raw = device.shell(
+                    "logcat -d -t 200 -s scrcpy:V AndroidRuntime:E *:S"
+                )
+                return (raw or "").strip()
+
+            text = await to_thread(_pull)
+            if not text:
+                text = await to_thread(
+                    lambda: (device.shell("logcat -d -t 80") or "").strip()[-2000:]
+                )
+            if text:
+                for line in text.splitlines()[-40:]:
+                    trace(f"logcat[{tag}] id={self.id!r} {line}")
+            else:
+                trace(f"logcat[{tag}] id={self.id!r} (empty)")
+        except Exception as ex:
+            trace(f"logcat[{tag}] id={self.id!r} failed err={ex!r}")
+
     async def work(self, *args, **kwargs):
         sckt: iVideoSocket = self._vSocket
         if sckt is None:
@@ -168,6 +196,25 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
                 f"waiting for {numBytes}B id={self.id!r}"
             ) from ex
 
+    async def _probePartial(self, sckt: iVideoSocket) -> None:
+        """Log any bytes sitting on the video socket without requiring an exact size."""
+        try:
+            raw = getattr(sckt, "_socket", None)
+            loop = getattr(sckt, "_loop", None)
+            if raw is None or loop is None:
+                return
+
+            async def _once() -> bytes:
+                return await loop.sock_recv(raw, 256)
+
+            chunk = await wait_for(_once(), timeout=0.3)
+            trace(
+                f"metadata probe id={self.id!r} partial={len(chunk)}B "
+                f"head={chunk[:16]!r}"
+            )
+        except Exception as ex:
+            trace(f"metadata probe id={self.id!r} none err={type(ex).__name__}")
+
     async def _updateMetadata(
         self,
         sckt: iVideoSocket,
@@ -186,19 +233,25 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
             f"tunnelForward={tunnelForward}"
         )
 
-        if tunnelForward:
-            dummy = await self._recvExact(sckt, 1, "dummy", timeout)
-            trace(f"metadata dummy id={self.id!r} byte={dummy[0]!r}")
+        try:
+            if tunnelForward:
+                dummy = await self._recvExact(sckt, 1, "dummy", timeout)
+                trace(f"metadata dummy id={self.id!r} byte={dummy[0]!r}")
 
-        deviceName: bytes = await self._recvExact(sckt, 64, "deviceName", timeout)
-        if deviceName and deviceName[0] == 0x00:
-            deviceName = deviceName[1:] + await self._recvExact(
-                sckt, 1, "deviceName.pad", timeout
-            )
+            deviceName: bytes = await self._recvExact(sckt, 64, "deviceName", timeout)
+            if deviceName and deviceName[0] == 0x00:
+                deviceName = deviceName[1:] + await self._recvExact(
+                    sckt, 1, "deviceName.pad", timeout
+                )
 
-        codecIdRaw: bytes = await self._recvExact(sckt, 4, "codecId", timeout)
-        widthRaw: bytes = await self._recvExact(sckt, 4, "width", timeout)
-        heightRaw: bytes = await self._recvExact(sckt, 4, "height", timeout)
+            codecIdRaw: bytes = await self._recvExact(sckt, 4, "codecId", timeout)
+            widthRaw: bytes = await self._recvExact(sckt, 4, "width", timeout)
+            heightRaw: bytes = await self._recvExact(sckt, 4, "height", timeout)
+
+        except ConnectionError:
+            await self._probePartial(sckt)
+            await self._dumpLogcat("metadata-timeout")
+            raise
 
         lCodecId: str = (
             codecIdRaw.decode("ascii", errors="replace").strip("\x00") or "h264"
@@ -224,6 +277,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
             self.setSuppressEvent(True)
 
             device: AdbDevice = await to_thread(adb.device, serial=self.id)
+            self._adbDevice = device
             cfg: SCRCPYConfig = self._options
             cfg.logLevel = "info"
             # Diagnostic: disable control so the server does not block on a second
@@ -237,6 +291,12 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
             )
 
             try:
+                # Clear old scrcpy noise so the post-timeout dump is relevant.
+                try:
+                    await to_thread(device.shell, "logcat -c")
+                except Exception:
+                    pass
+
                 streamServer: AdbConnection = await to_thread(
                     deployServer, device, cfg, cfg.serverPath, 3000,
                 )
@@ -252,6 +312,8 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
                 raise RuntimeError("Failed to deploy scrcpy server")
 
             self._startServerLogDrain(streamServer)
+            # Give the drain thread a tick so early server lines are not lost.
+            await asyncSleep(0.05)
             asyncLoop: AbstractEventLoop = get_running_loop()
 
             try:
