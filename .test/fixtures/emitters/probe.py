@@ -2,46 +2,35 @@
 from __future__ import annotations
 
 # ==================================================================================
-import asyncio
+from asyncio import to_thread
 from multiprocessing import Queue
 from multiprocessing.synchronize import Event as syncEvent
 from queue import Empty
 
 # ==================================================================================
 from fluxCore.emitters.__outProcessEmitter import outOfProcessEmitter
+from .echoWorker import echoWorker
 
 
 # ==================================================================================
 class ProbeEmitter(outOfProcessEmitter):
-    """Child echoes. Parent receiver records what comes back."""
+    """Uses the module-level echo worker. Records the shared inbound."""
 
     def __init__(self, serial: str = "probe", name: str | None = "probe") -> None:
-        super().__init__(serial=serial, name=name)
+        super().__init__(serial=serial, name=name, worker=echoWorker)
         self.received: list[str] = []
-
-    async def work(self, shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queue, *args, **kwargs) -> None:
-        print("CHILD up", flush=True)
-        try:
-            while not shutdownEvent.is_set():
-                try:
-                    msg = inQueue.get_nowait()
-                except Empty:
-                    await asyncio.sleep(0.01)
-                    continue
-                print(f"CHILD got {msg!r}", flush=True)
-                outQueue.put(f"echo:{msg}")
-        finally:
-            print("CHILD down", flush=True)
 
     async def _receiver(self, shutdownEvent: syncEvent, queue: Queue) -> None:
         try:
             while not shutdownEvent.is_set():
                 try:
-                    msg = queue.get_nowait()
+                    msg = await to_thread(queue.get, True, 0.1)
+
                 except Empty:
-                    await asyncio.sleep(0.01)
                     continue
+
                 print(f"PARENT got {msg!r}", flush=True)
                 self.received.append(msg)
+
         finally:
-            self._drainQueue(queue)
+            return
