@@ -42,7 +42,7 @@ from ..utilities.scrcpy import deployServer, getSCRCPYADBSocket
 
 
 # ==================================================================================
-C_METADATA_TIMEOUT_S: float = 5.0
+C_METADATA_TIMEOUT_S: float = 8.0
 # ==================================================================================
 
 
@@ -174,26 +174,25 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         timeout: float = C_METADATA_TIMEOUT_S,
         *,
         tunnelForward: bool = True,
-        consumeDummy: bool = True,
     ) -> None:
-        """Read scrcpy device header (name + codec + size) with a hard timeout.
+        """Read scrcpy device header from the video socket (timed).
 
-        With ``tunnel_forward=true`` the server writes one dummy byte on the
-        video socket as soon as that connection is accepted (before control).
-        That dummy must be consumed before the 64-byte device name. Each field
-        is guarded by ``wait_for`` so a silent server fails fast.
+        tunnel_forward: server sends 1 dummy byte as soon as video is accepted.
+        Device name (64) + codec (4) + width (4) + height (4) follow once the
+        session is ready. On this host, opening the control socket *before*
+        finishing the header left deviceName hanging; call this while only the
+        video socket is connected, then open control afterward.
         """
         trace(
             f"metadata begin id={self.id!r} timeout={timeout:.1f}s "
-            f"tunnelForward={tunnelForward} consumeDummy={consumeDummy}"
+            f"tunnelForward={tunnelForward}"
         )
 
-        if tunnelForward and consumeDummy:
+        if tunnelForward:
             dummy = await self._recvExact(sckt, 1, "dummy", timeout)
             trace(f"metadata dummy id={self.id!r} byte={dummy[0]!r}")
 
         deviceName: bytes = await self._recvExact(sckt, 64, "deviceName", timeout)
-        # Tolerate a leading NUL if dummy was already consumed elsewhere.
         if deviceName and deviceName[0] == 0x00:
             deviceName = deviceName[1:] + await self._recvExact(
                 sckt, 1, "deviceName.pad", timeout
@@ -213,7 +212,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         self._name = lName
 
         self.update(codecId=lCodecId, width=lWidth, height=lHeight)
-        headerBytes = (1 if (tunnelForward and consumeDummy) else 0) + len(deviceName) + 12
+        headerBytes = (1 if tunnelForward else 0) + len(deviceName) + 12
         trace(
             f"metadata id={self.id!r} name={lName!r} codec={lCodecId!r} "
             f"{lWidth}x{lHeight} header={headerBytes}B"
@@ -228,9 +227,9 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
 
             device: AdbDevice = await to_thread(adb.device, serial=self.id)
             cfg: SCRCPYConfig = self._options
-            # info so server lifecycle lines reach the drain during diagnosis
             cfg.logLevel = "info"
             tunnelForward = bool(cfg.tunnelForward)
+            wantControl = bool(cfg.control)
             trace(f"initialize id={self.id!r} field_scid={cfg._scid!r} before deploy")
 
             try:
@@ -254,7 +253,8 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
             try:
                 trace(
                     f"initialize id={self.id!r} socket scid={cfg.scid!r} "
-                    f"field_scid={cfg._scid!r} tunnelForward={tunnelForward}"
+                    f"field_scid={cfg._scid!r} tunnelForward={tunnelForward} "
+                    f"control={wantControl}"
                 )
                 vSCKT: socket = await to_thread(
                     getSCRCPYADBSocket, device, cfg.scid, 3000
@@ -263,34 +263,22 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
                     vSCKT, loop=asyncLoop, packetType=TensorPacket
                 )
 
-                # tunnel_forward: server writes a dummy byte on video as soon as
-                # that socket is accepted, *before* accepting control. Consume it
-                # here so the later device-name read is aligned.
-                if tunnelForward:
-                    await self._recvExact(
-                        self._vSocket, 1, "dummy-pre-control", C_METADATA_TIMEOUT_S
-                    )
-                    trace(f"metadata dummy-pre-control id={self.id!r} ok")
-
-                cSCKT: socket = await to_thread(
-                    getSCRCPYADBSocket, device, cfg.scid, 3000
+                # Full device header on video *before* opening control.
+                # Opening control first caused deviceName to time out on this host
+                # even though the tunnel_forward dummy had already arrived.
+                await self._updateMetadata(
+                    self._vSocket, tunnelForward=tunnelForward
                 )
-                self._cSocket = ControlSocket(cSCKT, loop=asyncLoop)
+
+                if wantControl:
+                    cSCKT: socket = await to_thread(
+                        getSCRCPYADBSocket, device, cfg.scid, 3000
+                    )
+                    self._cSocket = ControlSocket(cSCKT, loop=asyncLoop)
+                    trace(f"initialize control socket id={self.id!r} ok")
 
             except Exception as ex:
                 await self._raiseError("initialize.socket", str(ex))
-                raise
-
-            try:
-                # Dummy already consumed above when tunnel_forward is set.
-                await self._updateMetadata(
-                    self._vSocket,
-                    tunnelForward=tunnelForward,
-                    consumeDummy=False,
-                )
-
-            except Exception as ex:
-                await self._raiseError("initialize.metadata", str(ex))
                 raise
 
             try:
