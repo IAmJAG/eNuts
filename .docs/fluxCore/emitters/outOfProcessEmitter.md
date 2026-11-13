@@ -2,7 +2,7 @@
 
 Out-of-process emitter base. Heavy work runs in one or more child processes. The parent (normally the UI event loop) stays responsive.
 
-This document states the contract. It does not prescribe how to implement it.
+This document states the contract. As-built notes are `implementation.md`.
 
 ---
 
@@ -20,6 +20,7 @@ Move a heavy method off the main process. Give the parent a way to talk to those
 | Protocol | Satisfies `iSCRCPYEmitter` structurally. It is not an explicit base. |
 | Device identity | Carries a SCRCPY serial and optional name. |
 | Options | Optional `SCRCPYOptions`. |
+| Worker | Optional module-level coroutine. Default is `_clientWorker`. |
 
 The protocol is structural because the three interface orders cannot be linearized together: `SCRCPY` contributes `iDevice` early, `AsyncProcess` contributes `iSubscription` before `iService`, and `iEmitter` wants `iService`, then `iSubscription`, then `iDevice`.
 
@@ -29,26 +30,26 @@ The protocol is structural because the three interface orders cannot be lineariz
 
 One parent. Many clients. Two directions of traffic. The parent owns every queue.
 
-- **Parent → client.** One outbound queue per client. That queue is the client's inbound. The parent writes to a specific client. Clients do not compete.
-- **Client → parent.** One inbound queue on the parent. That queue is the clients' single shared outbound. Every client writes to it. The parent has one receiver on it.
+- **Parent → client.** One outbound queue per client (`_outQueues[clientId]`). That queue is the client's inbound. The parent writes to a specific client. Clients do not compete.
+- **Client → parent.** One inbound queue on the parent (`_inQueue`). That queue is the clients' single shared outbound. Every client writes to it. The parent has one receiver on it.
 - **Shutdown.** One shared event. Setting it tells every client and the parent receiver to stop.
 - **`_clientWorker`.** The only code that runs in a client. A module-level coroutine in its own module, given that client's queues.
 
-A client is identified by `clientId`. Starting the same id twice is an error. Starting the first client creates the parent's shared inbound queue and the shared shutdown event. Each start creates that client's dedicated outbound queue. Later clients reuse the shared inbound queue and the event.
+A client is identified by `clientId`. Starting the same id twice is an error. Starting the first client creates the parent's shared inbound queue and the shared shutdown event. Each start creates that client's dedicated outbound queue and a daemon process named `PROC_{clientId}`. Later clients reuse the shared inbound queue and the event.
 
 Message travel:
 
 ```text
-parent put(clientId) ──► that client's inbound queue ──► that client only
-any client put       ──► parent's single inbound queue ──► parent receiver
+parent _dispatch(clientId) ──► _outQueues[clientId] ──► that client only
+any client put             ──► _inQueue              ──► parent receiver
 ```
 
 Ownership, named from the parent:
 
 | Queue | Parent sees it as | Client sees it as | Cardinality |
 |-------|-------------------|-------------------|-------------|
-| Per-client | outbound to that client | its inbound | one per client |
-| Shared | the inbound | its outbound | one for all clients |
+| `_outQueues[clientId]` | outbound to that client | its inbound | one per client |
+| `_inQueue` | the inbound | its outbound | one for all clients |
 
 ---
 
@@ -61,17 +62,17 @@ Ownership, named from the parent:
 - The first successful start creates the parent's shared inbound queue and the shared shutdown event.
 - Each start creates one child process and one dedicated outbound queue for that client.
 - The parent has one receiver on the shared inbound queue. It is started with the first client and serves every client.
-- Child processes are daemons.
-- The child target is `_clientWorker`, a module-level coroutine in its own module. A method or a nested function is not acceptable.
+- Child processes are daemons, named `PROC_{clientId}`.
+- The child target is a module-level coroutine. Default is `_clientWorker`. A method or a nested function is not acceptable.
 - If start fails after resources were created, those resources are released. A failed start does not leave an orphaned process or an open queue. If the failure leaves zero clients, the shared inbound queue and the shutdown event are released too.
 
 ### 4.2 Messaging
 
-- The parent sends to a client by putting on that client's dedicated outbound queue.
+- The parent sends with `_dispatch(clientId, msg)`, which puts on that client's dedicated outbound queue, off the loop.
 - A client receives only from its own inbound queue. It does not see another client's traffic.
 - A client sends to the parent by putting on the shared outbound queue.
 - The parent receives every client's messages on its single inbound receiver.
-- Payloads are opaque. The base worker observes the message. A subclass supplies a different module-level worker.
+- Payloads are opaque. The base worker prints the message. A different module-level worker replaces that observation.
 - Parent-to-client delivery is addressed, not competing. Client-to-parent delivery is shared.
 
 ### 4.3 Shutdown
@@ -84,11 +85,11 @@ Ownership, named from the parent:
 - Shutdown order:
   1. Raise `ON_STOPPING`.
   2. Set the shared event.
-  3. Finish the parent receiver (it exits because the event is set).
+  3. Finish the parent receiver (it exits because the event is set; the no-loop path cancels it).
   4. Join each child. If `forced`, terminate first. If still alive after the timeout, terminate, then kill.
   5. Close every queue and clear client state.
   6. Raise `ON_STOPPED`.
-- Cleanup runs even if a step fails. An already-exited process handle is still reaped. "Never started" and "already exited" are different states.
+- Cleanup runs even if a step fails.
 - Queue close includes cancelling the feeder thread, so a closed queue does not leave a background thread behind.
 
 ### 4.4 Liveness
@@ -118,13 +119,13 @@ Lifecycle notifications that must be raised exactly once per stop:
 
 ### Rule
 
-- It is a module-level coroutine.
-- It lives in its own module, not in the `outOfProcessEmitter` module.
+- It is a module-level coroutine in `src/fluxCore/emitters/__clientWorker.py`.
 - It is not a method of `outOfProcessEmitter`. It is not a nested function. It is not a bound method.
 - Spawn imports it by name from that module. The child process loads the worker module, not the emitter class.
 - It receives the shutdown event, that client's inbound queue, and the shared outbound queue. It does not receive the emitter.
 - It exits when the event is set. It does not own process lifetime.
 - It reads only its inbound queue and writes only the shared outbound queue.
+- On exit it closes only its dedicated inbound. It does not close the shared outbound.
 
 ### Why it must be module level
 
@@ -141,9 +142,9 @@ The emitter module imports the device, the process base, and the parent class. T
 ### Policy
 
 - One worker for every client. Per-client state is the queues it is given, not a different function.
-- The base worker observes a message. A subclass replaces the observation by supplying a different module-level worker, not by overriding a method.
-- On exit it releases its own queue handles. The parent still owns and closes the queues it created.
-- A failing worker does not skip that release. The parent still reaps the process.
+- The base worker prints a message. A different module-level worker is passed as `worker=`. Not a method override.
+- On exit the worker closes its dedicated inbound only. The parent closes the shared inbound and every outbound queue.
+- A failing worker does not skip that close. The parent still reaps the process.
 
 ---
 
@@ -155,6 +156,7 @@ The emitter module imports the device, the process base, and the parent class. T
 | One owner per client id | A second `start` for the same id fails. |
 | Shared in, private out | Parent→client is dedicated per client. Client→parent is one shared queue. |
 | Spawn-safe worker | `_clientWorker` is a module-level coroutine in its own module. Not a method. Not nested. |
+| Worker closes its inbound only | The shared outbound stays open until the parent closes it. |
 | Cooperative first | Shutdown is signaled by the event. Force is an explicit option. |
 | No early close | Queues stay open until the parent receiver has finished and processes have been joined. |
 | No leaked handle | Every started process is joined or killed, then closed. Every created queue is closed. |
@@ -167,15 +169,15 @@ The emitter module imports the device, the process base, and the parent class. T
 
 ## 7. Policies
 
-**Worker policy.** `_clientWorker` is the child. It is one module-level coroutine in its own module, shared by every client, given that client's inbound queue and the shared outbound queue. It observes the shutdown event and exits. It does not own the process, the event, or the parent's queues. The emitter imports the worker. The worker does not import the emitter.
+**Worker policy.** `_clientWorker` is the child. It is one module-level coroutine in its own module, shared by every client, given that client's inbound queue and the shared outbound queue. It observes the shutdown event and exits. It closes only its inbound. It does not own the process, the event, or the parent's queues. The emitter imports the worker. The worker does not import the emitter.
 
-**Process policy.** Children are daemons. They exit when the parent exits. They are still explicitly joined on stop so handles and feeder threads are released.
+**Process policy.** Children are daemons named `PROC_{clientId}`. They exit when the parent exits. They are still explicitly joined on stop so handles and feeder threads are released.
 
 **Failure policy.** A failed start rolls back only what that start created. Shared resources are dropped only when the last client is gone.
 
 **Timeout policy.** Stop waits up to the default stop timeout, then escalates to terminate, then to kill. The kill join is short.
 
-**Message policy.** The base emitter does not interpret payloads. It transports them. Interpretation belongs to a subclass.
+**Message policy.** The base emitter does not interpret payloads. It transports them. Interpretation belongs to a supplied worker or a subclass receiver.
 
 **Concurrency policy.** The parent receiver is an asyncio task on the parent's loop. `_clientWorker` is an asyncio coroutine inside the child process. The two sides share only queues and the shutdown event.
 
@@ -189,15 +191,16 @@ The emitter module imports the device, the process base, and the parent class. T
 | Process | `multiprocessing.Process` | Child process |
 | Signal | `multiprocessing.Event` | Shared shutdown |
 | Transport | `multiprocessing.Queue` | Cross-process messages |
-| Empty signal | `queue.Empty` | Non-blocking and timed gets |
-| Process base | `jAGFx.services.AsyncProcess` | Process lifecycle, name, running, events |
-| Spawn entry | `jAGFx.services.processEntry` | Module-level bootstrap that runs `_clientWorker` |
+| Empty signal | `queue.Empty` | Timed gets |
+| Process base | `jAGFx.services.AsyncProcess` | Name, events |
+| Spawn entry | `jAGFx.services.processEntry` | Module-level bootstrap that runs the worker |
 | Stop timeout | `jAGFx.services.C_DEFAULT_STOP_TIMEOUT` | Default join budget |
 | Task helper | `utilities.createTask` | Schedule the parent receiver |
-| Device | `fluxCore.devices.SCRCPY` | Serial, name, codec, size |
+| Device | `fluxCore.devices.SCRCPY` | Serial, name |
 | Options | `SCRCPYOptions` | Optional emitter options |
 | Queue helpers | `closeQueue`, `asyncCloseQueue` | Close plus cancel feeder thread |
 | Protocol | `iSCRCPYEmitter` / `iEmitter` | Structural contract: service, subscription, device |
+| Trace | builtin `trace` | Logging. Installed by `__monkeyPatch`, declared in `typings/__builtins__.pyi`. |
 
 Not used by this base, and not required by the contract: a sentinel value, a second process-lifecycle implementation, or an explicit `iSCRCPYEmitter` base.
 
@@ -217,7 +220,7 @@ In scope:
 Out of scope:
 
 - What a message means.
-- How a subclass worker interprets a message.
+- How a supplied worker interprets a message.
 - UI binding.
 - Persistence.
 - Broadcasting one message to every client.
@@ -226,9 +229,9 @@ Out of scope:
 
 ## 10. Acceptance checks
 
-A correct outOfProcessEmitter meets all of these:
+One script: `.test/smoke/emitters/test_opemitter_message_path.py`. It `trace`s every check and every hop.
 
-1. `start` with no running loop creates nothing.
+1. `start` with no running loop creates nothing. This check runs before `asyncio.run`.
 2. Two starts with the same `clientId` — the second fails, the first keeps running.
 3. A message put on a client's dedicated outbound queue is received by that client only.
 4. A message put by any client on the shared outbound queue is received by the parent's single inbound receiver.
