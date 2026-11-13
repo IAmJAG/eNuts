@@ -32,7 +32,7 @@ One parent. Many clients. Two directions of traffic. The parent owns every queue
 - **Parent → client.** One outbound queue per client. That queue is the client's inbound. The parent writes to a specific client. Clients do not compete.
 - **Client → parent.** One inbound queue on the parent. That queue is the clients' single shared outbound. Every client writes to it. The parent has one receiver on it.
 - **Shutdown.** One shared event. Setting it tells every client and the parent receiver to stop.
-- **Work.** The only code that runs in a client. One module-level coroutine, given that client's queues.
+- **`_clientWorker`.** The only code that runs in a client. A module-level coroutine in its own module, given that client's queues.
 
 A client is identified by `clientId`. Starting the same id twice is an error. Starting the first client creates the parent's shared inbound queue and the shared shutdown event. Each start creates that client's dedicated outbound queue. Later clients reuse the shared inbound queue and the event.
 
@@ -62,7 +62,7 @@ Ownership, named from the parent:
 - Each start creates one child process and one dedicated outbound queue for that client.
 - The parent has one receiver on the shared inbound queue. It is started with the first client and serves every client.
 - Child processes are daemons.
-- Work is a module-level coroutine. A bound method is not acceptable, because spawn must import the target by name and must not pickle the emitter.
+- The child target is `_clientWorker`, a module-level coroutine in its own module. A method or a nested function is not acceptable.
 - If start fails after resources were created, those resources are released. A failed start does not leave an orphaned process or an open queue. If the failure leaves zero clients, the shared inbound queue and the shutdown event are released too.
 
 ### 4.2 Messaging
@@ -71,7 +71,7 @@ Ownership, named from the parent:
 - A client receives only from its own inbound queue. It does not see another client's traffic.
 - A client sends to the parent by putting on the shared outbound queue.
 - The parent receives every client's messages on its single inbound receiver.
-- Payloads are opaque. The base work observes the message. A subclass replaces the observation.
+- Payloads are opaque. The base worker observes the message. A subclass supplies a different module-level worker.
 - Parent-to-client delivery is addressed, not competing. Client-to-parent delivery is shared.
 
 ### 4.3 Shutdown
@@ -112,25 +112,38 @@ Lifecycle notifications that must be raised exactly once per stop:
 
 ---
 
-## 5. Work — rule and policy
+## 5. `_clientWorker` — rule and policy
 
-Work is the heavy method. It is the only code that runs inside a client process. Everything else stays on the parent.
+`_clientWorker` is the child entry. It is the only code that runs inside a client process.
 
 ### Rule
 
-- Work is a module-level coroutine. It is not a bound method and it is not a nested function.
-- Spawn must be able to import it by name. A bound method would pickle the emitter, including its other process handles. That is forbidden.
-- Work receives the shutdown event, that client's inbound queue, and the shared outbound queue. It does not receive the parent, and it does not reach into parent state.
-- Work watches the shutdown event and exits when it is set. It does not decide process lifetime.
-- Work reads only its inbound queue and writes only the shared outbound queue.
-- Blocking waits inside work stay in the child. They never touch the parent loop.
+- It is a module-level coroutine.
+- It lives in its own module, not in the `outOfProcessEmitter` module.
+- It is not a method of `outOfProcessEmitter`. It is not a nested function. It is not a bound method.
+- Spawn imports it by name from that module. The child process loads the worker module, not the emitter class.
+- It receives the shutdown event, that client's inbound queue, and the shared outbound queue. It does not receive the emitter.
+- It exits when the event is set. It does not own process lifetime.
+- It reads only its inbound queue and writes only the shared outbound queue.
+
+### Why it must be module level
+
+Windows starts children with `spawn`, not `fork`. The child is a new interpreter. It rebuilds the process target by importing it.
+
+- A nested function has no import path. Spawn fails with `Can't get local object`.
+- A bound method pickles the emitter. That pulls in the parent, its other process handles, and its queues. That is forbidden.
+- A module-level function has a stable import path: `module._clientWorker`. Spawn imports that and calls it.
+
+### Why its own module
+
+The emitter module imports the device, the process base, and the parent class. The child does not need any of that. A separate worker module means the child imports only the worker. The emitter imports the worker. The worker does not import the emitter.
 
 ### Policy
 
-- The base work observes a message and does nothing else. Meaning belongs to a subclass, which replaces the observation, not the transport.
-- Work is the same function for every client. Per-client state is the queues it is given, not a different function.
-- On exit, work releases its own queue handles. The parent still owns and closes the queues it created.
-- A failing work does not skip handle release. The process may die; the parent still reaps it.
+- One worker for every client. Per-client state is the queues it is given, not a different function.
+- The base worker observes a message. A subclass replaces the observation by supplying a different module-level worker, not by overriding a method.
+- On exit it releases its own queue handles. The parent still owns and closes the queues it created.
+- A failing worker does not skip that release. The parent still reaps the process.
 
 ---
 
@@ -141,7 +154,7 @@ Work is the heavy method. It is the only code that runs inside a client process.
 | Loop before side effects | No process, queue, or task is created until a running loop is confirmed. |
 | One owner per client id | A second `start` for the same id fails. |
 | Shared in, private out | Parent→client is dedicated per client. Client→parent is one shared queue. |
-| Spawn-safe work | Work is a module-level coroutine. Not a bound method. Not a nested function. |
+| Spawn-safe worker | `_clientWorker` is a module-level coroutine in its own module. Not a method. Not nested. |
 | Cooperative first | Shutdown is signaled by the event. Force is an explicit option. |
 | No early close | Queues stay open until the parent receiver has finished and processes have been joined. |
 | No leaked handle | Every started process is joined or killed, then closed. Every created queue is closed. |
@@ -154,7 +167,7 @@ Work is the heavy method. It is the only code that runs inside a client process.
 
 ## 7. Policies
 
-**Work policy.** Work is the child. It is one module-level coroutine, shared by every client, given that client's inbound queue and the shared outbound queue. It observes the shutdown event and exits. It does not own the process, the event, or the parent's queues. The base observes messages; a subclass replaces that observation.
+**Worker policy.** `_clientWorker` is the child. It is one module-level coroutine in its own module, shared by every client, given that client's inbound queue and the shared outbound queue. It observes the shutdown event and exits. It does not own the process, the event, or the parent's queues. The emitter imports the worker. The worker does not import the emitter.
 
 **Process policy.** Children are daemons. They exit when the parent exits. They are still explicitly joined on stop so handles and feeder threads are released.
 
@@ -164,7 +177,7 @@ Work is the heavy method. It is the only code that runs inside a client process.
 
 **Message policy.** The base emitter does not interpret payloads. It transports them. Interpretation belongs to a subclass.
 
-**Concurrency policy.** The parent receiver is an asyncio task on the parent's loop. Work is an asyncio coroutine inside the child process. The two sides share only queues and the shutdown event.
+**Concurrency policy.** The parent receiver is an asyncio task on the parent's loop. `_clientWorker` is an asyncio coroutine inside the child process. The two sides share only queues and the shutdown event.
 
 ---
 
@@ -178,7 +191,7 @@ Work is the heavy method. It is the only code that runs inside a client process.
 | Transport | `multiprocessing.Queue` | Cross-process messages |
 | Empty signal | `queue.Empty` | Non-blocking and timed gets |
 | Process base | `jAGFx.services.AsyncProcess` | Process lifecycle, name, running, events |
-| Spawn entry | `jAGFx.services.processEntry` | Module-level child bootstrap for work |
+| Spawn entry | `jAGFx.services.processEntry` | Module-level bootstrap that runs `_clientWorker` |
 | Stop timeout | `jAGFx.services.C_DEFAULT_STOP_TIMEOUT` | Default join budget |
 | Task helper | `utilities.createTask` | Schedule the parent receiver |
 | Device | `fluxCore.devices.SCRCPY` | Serial, name, codec, size |
@@ -195,7 +208,7 @@ Not used by this base, and not required by the contract: a sentinel value, a sec
 In scope:
 
 - Starting and stopping named client processes.
-- The work coroutine that runs in each client.
+- `_clientWorker`, in its own module, running in each client.
 - Bidirectional queue transport.
 - Cooperative and forced shutdown.
 - Parent-side receiver on the shared inbound queue.
@@ -204,7 +217,7 @@ In scope:
 Out of scope:
 
 - What a message means.
-- How a subclass replaces the observation inside work.
+- How a subclass worker interprets a message.
 - UI binding.
 - Persistence.
 - Broadcasting one message to every client.
@@ -223,4 +236,4 @@ A correct outOfProcessEmitter meets all of these:
 6. A second `stop` while the first is in flight does not start a second shutdown.
 7. A start that fails midway leaves no process and no open queue.
 8. `running()` is false after the shutdown event is set, and false when no processes remain. `running(clientId)` is true only while that client's process is alive.
-9. Work is a module-level coroutine. Starting a client on spawn does not pickle the emitter.
+9. `_clientWorker` is a module-level coroutine in its own module. Starting a client on spawn imports that module and does not pickle the emitter.
