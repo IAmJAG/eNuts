@@ -85,17 +85,16 @@ class SCRCPYConfig(Serializable):
         if self._maxFps > 0: cmds.append(f"max_fps={self._maxFps}")
         if self._bitrate > 0: cmds.append(f"video_bit_rate={self._bitrate}")
         if self._videoCodec: cmds.append(f"video_codec={self._videoCodec}")
-        if self._tunnelForward: cmds.append(f"tunnel_forward={str(self._tunnelForward).lower()}")
-        if self._sendFrameMeta: cmds.append(f"send_frame_meta={str(self._sendFrameMeta).lower()}")
-        # Always explicit so the server does not keep a hidden default.
+        cmds.append(f"tunnel_forward={str(self._tunnelForward).lower()}")
+        cmds.append(f"send_frame_meta={str(self._sendFrameMeta).lower()}")
         cmds.append(f"control={str(self._control).lower()}")
-        if self._audio: cmds.append(f"audio={str(self._audio).lower()}")
+        cmds.append(f"audio={str(self._audio).lower()}")
+        cmds.append(f"cleanup={str(self._cleanup).lower()}")
         if self._showTouches: cmds.append(f"show_touches={str(self._showTouches).lower()}")
         if self._stayAwake: cmds.append(f"stay_awake={str(self._stayAwake).lower()}")
         if self._powerOffOnClose: cmds.append(f"power_off_on_close={str(self._powerOffOnClose).lower()}")
         if self._clipboardAutosync: cmds.append(f"clipboard_autosync={str(self._clipboardAutosync).lower()}")        
         if self._displayId > 0: cmds.append(f"display_id={self._displayId}")
-        if self._cleanup: cmds.append(f"cleanup={str(self._cleanup).lower()}")        
         
         return cmds
 
@@ -130,6 +129,8 @@ class SCRCPYConfig(Serializable):
     @maxSize.setter
     def maxSize(self, value: int) -> None:
         self._maxSize = value
+        if value in G_SCRCPY_BITRATEMAP:
+            self._bitrate = G_SCRCPY_BITRATEMAP[value]
 
     @maxFps.setter
     def maxFps(self, value: int) -> None:
