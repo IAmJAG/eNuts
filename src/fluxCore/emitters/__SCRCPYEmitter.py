@@ -177,11 +177,9 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
     ) -> None:
         """Read scrcpy device header from the video socket (timed).
 
-        tunnel_forward: server sends 1 dummy byte as soon as video is accepted.
-        Device name (64) + codec (4) + width (4) + height (4) follow once the
-        session is ready. On this host, opening the control socket *before*
-        finishing the header left deviceName hanging; call this while only the
-        video socket is connected, then open control afterward.
+        Call only after video (and, when control=true, control) sockets are up.
+        With tunnel_forward the server writes one dummy byte on video accept;
+        device name + codec + size are written after the session is fully open.
         """
         trace(
             f"metadata begin id={self.id!r} timeout={timeout:.1f}s "
@@ -228,9 +226,15 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
             device: AdbDevice = await to_thread(adb.device, serial=self.id)
             cfg: SCRCPYConfig = self._options
             cfg.logLevel = "info"
+            # Diagnostic: disable control so the server does not block on a second
+            # accept before sendDeviceMeta. Re-enable once video header + frames work.
+            cfg.control = False
             tunnelForward = bool(cfg.tunnelForward)
             wantControl = bool(cfg.control)
-            trace(f"initialize id={self.id!r} field_scid={cfg._scid!r} before deploy")
+            trace(
+                f"initialize id={self.id!r} field_scid={cfg._scid!r} "
+                f"before deploy control={wantControl}"
+            )
 
             try:
                 streamServer: AdbConnection = await to_thread(
@@ -262,13 +266,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
                 self._vSocket = VideoSocket(
                     vSCKT, loop=asyncLoop, packetType=TensorPacket
                 )
-
-                # Full device header on video *before* opening control.
-                # Opening control first caused deviceName to time out on this host
-                # even though the tunnel_forward dummy had already arrived.
-                await self._updateMetadata(
-                    self._vSocket, tunnelForward=tunnelForward
-                )
+                trace(f"initialize video socket id={self.id!r} ok")
 
                 if wantControl:
                     cSCKT: socket = await to_thread(
@@ -276,6 +274,10 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
                     )
                     self._cSocket = ControlSocket(cSCKT, loop=asyncLoop)
                     trace(f"initialize control socket id={self.id!r} ok")
+
+                await self._updateMetadata(
+                    self._vSocket, tunnelForward=tunnelForward
+                )
 
             except Exception as ex:
                 await self._raiseError("initialize.socket", str(ex))
