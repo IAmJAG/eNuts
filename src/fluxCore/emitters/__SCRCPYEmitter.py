@@ -5,7 +5,15 @@ from __future__ import annotations
 import os
 
 # ==================================================================================
-from asyncio import AbstractEventLoop, CancelledError, Task, get_running_loop, to_thread
+from asyncio import (
+    AbstractEventLoop,
+    CancelledError,
+    Task,
+    TimeoutError as AsyncTimeoutError,
+    get_running_loop,
+    to_thread,
+    wait_for,
+)
 from socket import socket
 from threading import Event as ThreadEvent
 from threading import Thread
@@ -31,6 +39,11 @@ from ..types.interface.packets import iImagePacket
 from ..types.interface.sockets import iControlSocket, iVideoSocket
 from ..utilities.pyav import createCodecContext
 from ..utilities.scrcpy import deployServer, getSCRCPYADBSocket
+
+
+# ==================================================================================
+C_METADATA_TIMEOUT_S: float = 5.0
+# ==================================================================================
 
 
 # ==================================================================================
@@ -143,14 +156,40 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         finally:
             self._stopServerLogDrain()
 
-    async def _updateMetadata(self, sckt: iVideoSocket) -> None:
-        deviceName: bytes = await sckt.receive(64)
-        if deviceName and deviceName[0] == 0x00:
-            deviceName = deviceName[1:] + await sckt.receive(1)
+    async def _recvExact(
+        self, sckt: iVideoSocket, numBytes: int, phase: str, timeout: float
+    ) -> bytes:
+        """Read exactly numBytes from the video socket or raise with phase context."""
+        try:
+            return await wait_for(sckt.receive(numBytes), timeout=timeout)
+        except AsyncTimeoutError as ex:
+            raise ConnectionError(
+                f"metadata {phase}: timed out after {timeout:.1f}s "
+                f"waiting for {numBytes}B id={self.id!r}"
+            ) from ex
 
-        codecIdRaw: bytes = await sckt.receive(4)
-        widthRaw: bytes = await sckt.receive(4)
-        heightRaw: bytes = await sckt.receive(4)
+    async def _updateMetadata(
+        self, sckt: iVideoSocket, timeout: float = C_METADATA_TIMEOUT_S
+    ) -> None:
+        """Read scrcpy device header (name + codec + size) with a hard timeout.
+
+        Without a timeout, AsyncReadExact can hang forever if the server accepts
+        the abstract sockets but never writes the header on the video channel.
+        That left ensureRunning / switchDevice blocked and suppressed the
+        metadata / frame traces.
+        """
+        trace(f"metadata begin id={self.id!r} timeout={timeout:.1f}s")
+
+        deviceName: bytes = await self._recvExact(sckt, 64, "deviceName", timeout)
+        if deviceName and deviceName[0] == 0x00:
+            deviceName = deviceName[1:] + await self._recvExact(
+                sckt, 1, "deviceName.pad", timeout
+            )
+
+        codecIdRaw: bytes = await self._recvExact(sckt, 4, "codecId", timeout)
+        widthRaw: bytes = await self._recvExact(sckt, 4, "width", timeout)
+        heightRaw: bytes = await self._recvExact(sckt, 4, "height", timeout)
+
         lCodecId: str = (
             codecIdRaw.decode("ascii", errors="replace").strip("\x00") or "h264"
         )
