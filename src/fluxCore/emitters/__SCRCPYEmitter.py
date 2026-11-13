@@ -97,10 +97,15 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
                 while not self._serverLogStop.is_set():
                     try:
                         lChunk = streamServer.read(4096)
-                    except Exception:
+                    except Exception as ex:
+                        trace(f"server log read failed id={self.id!r} err={ex!r}")
                         break
                     if not lChunk:
+                        trace(f"server log eof id={self.id!r}")
                         break
+                    text = lChunk.decode("utf-8", errors="replace").rstrip()
+                    if text:
+                        trace(f"server id={self.id!r} {text}")
             finally:
                 pass
 
@@ -178,6 +183,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
             device: AdbDevice = await to_thread(adb.device, serial=self.id)            
             cfg: SCRCPYConfig = self._options
             cfg.logLevel = "warn"
+            trace(f"initialize id={self.id!r} field_scid={cfg._scid!r} before deploy")
 
             try:
                 streamServer: AdbConnection = await to_thread(
@@ -198,6 +204,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
             asyncLoop: AbstractEventLoop = get_running_loop()
 
             try:
+                trace(f"initialize id={self.id!r} socket scid={cfg.scid!r} field_scid={cfg._scid!r}")
                 vSCKT: socket = await to_thread(
                     getSCRCPYADBSocket, device, cfg.scid, 3000
                 )
