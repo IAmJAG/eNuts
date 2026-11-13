@@ -2,7 +2,7 @@
 """Module-level worker. Spawn imports this. It must not import the emitter.
 
 trace is the logging builtin from src/__monkeyPatch.py, declared in
-typings/__builtins__.pyi. The child imports the patch so trace exists here.
+ typings/__builtins__.pyi. The child imports the patch so trace exists here.
 """
 # ==================================================================================
 from __future__ import annotations
@@ -39,7 +39,11 @@ async def echoWorker(
 
             trace(f"FLOW  client {clientId} inbound got {msg!r}")
             reply = f"{clientId}:{msg}"
-            outQueue.put(reply)
+
+            # Queue.put may block (for example when its bounded capacity is
+            # exhausted). Keep the child asyncio loop responsive and perform
+            # the cross-process write through the worker thread pool.
+            await to_thread(outQueue.put, reply)
             trace(f"FLOW  client {clientId} outbound put {reply!r}")
 
     finally:
