@@ -28,6 +28,7 @@ async def _clientWorker(
 
     inQueue is the parent's dedicated outbound to this client.
     outQueue is the parent's single inbound, shared by every client.
+    Only the dedicated inbound is closed here. The parent closes the shared queue.
     """
     try:
         while not shutdownEvent.is_set():
@@ -41,7 +42,6 @@ async def _clientWorker(
 
     finally:
         await asyncCloseQueue(inQueue)
-        await asyncCloseQueue(outQueue)
 
 
 # ==================================================================================
