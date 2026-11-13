@@ -56,9 +56,22 @@ async def _wait(emitter: ProbeEmitter, count: int) -> bool:
     return False
 
 
+def _checkNoLoop() -> None:
+    """Must run with no event loop. asyncio.run already has one."""
+    cold = ProbeEmitter(serial="probe")
+    try:
+        cold.start("a")
+        noLoop = False
+    except RuntimeError:
+        noLoop = True
+    _check(
+        "start without loop creates nothing",
+        noLoop and not cold._processes and cold._inQueue is None,
+    )
+
+
 # ==================================================================================
 async def run() -> None:
-    setupLogging("outOfProcessEmitter")
     trace("---- outOfProcessEmitter acceptance ----")
 
     # 1. Worker is module-level, in its own module.
@@ -75,14 +88,7 @@ async def run() -> None:
         echoWorker.__module__,
     )
 
-    # 2. Start with no loop creates nothing.
-    cold = ProbeEmitter(serial="probe")
-    try:
-        cold.start("a")
-        noLoop = False
-    except RuntimeError:
-        noLoop = True
-    _check("start without loop creates nothing", noLoop and not cold._processes and cold._inQueue is None)
+    # 2. Start with no loop creates nothing. Done before this coroutine.
 
     # 3–8. One live emitter. Message path is recorded as it happens.
     emitter = ProbeEmitter(serial="probe")
@@ -151,8 +157,12 @@ async def run() -> None:
 
 
 def test_all() -> None:
+    setupLogging("outOfProcessEmitter")
+    _checkNoLoop()
     asyncio.run(run())
 
 
 if __name__ == "__main__":
+    setupLogging("outOfProcessEmitter")
+    _checkNoLoop()
     asyncio.run(run())
