@@ -169,18 +169,31 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
             ) from ex
 
     async def _updateMetadata(
-        self, sckt: iVideoSocket, timeout: float = C_METADATA_TIMEOUT_S
+        self,
+        sckt: iVideoSocket,
+        timeout: float = C_METADATA_TIMEOUT_S,
+        *,
+        tunnelForward: bool = True,
+        consumeDummy: bool = True,
     ) -> None:
         """Read scrcpy device header (name + codec + size) with a hard timeout.
 
-        Without a timeout, AsyncReadExact can hang forever if the server accepts
-        the abstract sockets but never writes the header on the video channel.
-        That left ensureRunning / switchDevice blocked and suppressed the
-        metadata / frame traces.
+        With ``tunnel_forward=true`` the server writes one dummy byte on the
+        video socket as soon as that connection is accepted (before control).
+        That dummy must be consumed before the 64-byte device name. Each field
+        is guarded by ``wait_for`` so a silent server fails fast.
         """
-        trace(f"metadata begin id={self.id!r} timeout={timeout:.1f}s")
+        trace(
+            f"metadata begin id={self.id!r} timeout={timeout:.1f}s "
+            f"tunnelForward={tunnelForward} consumeDummy={consumeDummy}"
+        )
+
+        if tunnelForward and consumeDummy:
+            dummy = await self._recvExact(sckt, 1, "dummy", timeout)
+            trace(f"metadata dummy id={self.id!r} byte={dummy[0]!r}")
 
         deviceName: bytes = await self._recvExact(sckt, 64, "deviceName", timeout)
+        # Tolerate a leading NUL if dummy was already consumed elsewhere.
         if deviceName and deviceName[0] == 0x00:
             deviceName = deviceName[1:] + await self._recvExact(
                 sckt, 1, "deviceName.pad", timeout
@@ -200,9 +213,10 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         self._name = lName
 
         self.update(codecId=lCodecId, width=lWidth, height=lHeight)
+        headerBytes = (1 if (tunnelForward and consumeDummy) else 0) + len(deviceName) + 12
         trace(
             f"metadata id={self.id!r} name={lName!r} codec={lCodecId!r} "
-            f"{lWidth}x{lHeight} header={len(deviceName) + 12}B"
+            f"{lWidth}x{lHeight} header={headerBytes}B"
         )
 
         me: SCRCPY = self.toSCRCPY(self)
@@ -214,7 +228,9 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
 
             device: AdbDevice = await to_thread(adb.device, serial=self.id)
             cfg: SCRCPYConfig = self._options
-            cfg.logLevel = "warn"
+            # info so server lifecycle lines reach the drain during diagnosis
+            cfg.logLevel = "info"
+            tunnelForward = bool(cfg.tunnelForward)
             trace(f"initialize id={self.id!r} field_scid={cfg._scid!r} before deploy")
 
             try:
@@ -236,14 +252,25 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
             asyncLoop: AbstractEventLoop = get_running_loop()
 
             try:
-                trace(f"initialize id={self.id!r} socket scid={cfg.scid!r} field_scid={cfg._scid!r}")
+                trace(
+                    f"initialize id={self.id!r} socket scid={cfg.scid!r} "
+                    f"field_scid={cfg._scid!r} tunnelForward={tunnelForward}"
+                )
                 vSCKT: socket = await to_thread(
                     getSCRCPYADBSocket, device, cfg.scid, 3000
                 )
-
                 self._vSocket = VideoSocket(
                     vSCKT, loop=asyncLoop, packetType=TensorPacket
                 )
+
+                # tunnel_forward: server writes a dummy byte on video as soon as
+                # that socket is accepted, *before* accepting control. Consume it
+                # here so the later device-name read is aligned.
+                if tunnelForward:
+                    await self._recvExact(
+                        self._vSocket, 1, "dummy-pre-control", C_METADATA_TIMEOUT_S
+                    )
+                    trace(f"metadata dummy-pre-control id={self.id!r} ok")
 
                 cSCKT: socket = await to_thread(
                     getSCRCPYADBSocket, device, cfg.scid, 3000
@@ -255,7 +282,12 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
                 raise
 
             try:
-                await self._updateMetadata(self._vSocket)
+                # Dummy already consumed above when tunnel_forward is set.
+                await self._updateMetadata(
+                    self._vSocket,
+                    tunnelForward=tunnelForward,
+                    consumeDummy=False,
+                )
 
             except Exception as ex:
                 await self._raiseError("initialize.metadata", str(ex))
