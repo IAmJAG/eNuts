@@ -35,19 +35,6 @@ from ..utilities.scrcpy import deployServer, getSCRCPYADBSocket
 
 # ==================================================================================
 class SCRCPYEmitter(AsyncService, SCRCPY):
-    """
-    Async video/control emitter. Satisfies iSCRCPYEmitter structurally.
-
-    Events never pass the emitter instance:
-    - ON_METADATA_UPDATE → base SCRCPY via toScrcpy
-    - ON_FRAME → iFrame (in-process only)
-    - ON_ERROR → SCRCPYError
-    plus AsyncService lifecycle events (no args).
-
-    Blocking ADB (deploy / abstract sockets) runs in a worker thread via
-    ``asyncio.to_thread`` so the qasync UI loop stays responsive during init.
-    """
-    
     def __init__(
             self, serial: str, name: Optional[str] = None, options: Optional[SCRCPYConfig] = None
         ) -> None:
@@ -127,10 +114,17 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         sckt: iVideoSocket = self._vSocket
         if sckt is None:
             return
+        n = 0
         try:
             while self.isRunning:
                 try:
                     frame: iImagePacket = await sckt.asyncReceiveSingleFrame()
+                    n += 1
+                    if n <= 3 or n % 30 == 0:
+                        trace(
+                            f"frame id={self.id!r} n={n} bytes={len(frame.payload)} "
+                            f"config={frame.isConfig} key={frame.isKeyFrame}"
+                        )
                     await self.asyncRaiseEvent("ON_FRAME", frame)
 
                 except CancelledError:
@@ -167,20 +161,19 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         self._name = lName
 
         self.update(codecId=lCodecId, width=lWidth, height=lHeight)
+        trace(
+            f"metadata id={self.id!r} name={lName!r} codec={lCodecId!r} "
+            f"{lWidth}x{lHeight} header={len(deviceName) + 12}B"
+        )
 
         me: SCRCPY = self.toSCRCPY(self)
         await self.asyncRaiseEvent("ON_METADATA_UPDATE", me)
 
     async def initialize(self, GPUID: int = 0, GPUReady: bool = True) -> None:
-        """Deploy scrcpy server and open sockets.
-
-        Blocking ADB deploy and abstract-socket connect run in ``to_thread`` so the
-        UI event loop is not stalled for multi-second sleeps/retries.
-        """
         try:
             self.setSuppressEvent(True)
 
-            device: AdbDevice = await to_thread(adb.device, serial=self.id)            
+            device: AdbDevice = await to_thread(adb.device, serial=self.id)
             cfg: SCRCPYConfig = self._options
             cfg.logLevel = "warn"
             trace(f"initialize id={self.id!r} field_scid={cfg._scid!r} before deploy")
@@ -253,7 +246,6 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         if task is None:
             return super().start(*args, **kwargs)
 
-        # add_done_callback only receives the finished task
         def _onInitDone(t: Task) -> None:
             try:
                 t.result()
