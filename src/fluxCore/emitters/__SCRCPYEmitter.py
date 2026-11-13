@@ -43,7 +43,7 @@ from ..utilities.scrcpy import deployServer, getSCRCPYADBSocket
 
 
 # ==================================================================================
-C_METADATA_TIMEOUT_S: float = 8.0
+C_METADATA_TIMEOUT_S: float = 15.0
 # ==================================================================================
 
 
@@ -148,10 +148,8 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
             trace(f"ps[{tag}] id={self.id!r} failed err={ex!r}")
 
         try:
-            # Unfiltered recent buffer — scrcpy may log under other tags after Device:
             text = await to_thread(_shell, "logcat -d -t 120")
             if text:
-                # Prefer lines that look related; fall back to the tail.
                 lines = text.splitlines()
                 interesting = [
                     ln
@@ -205,7 +203,6 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
     async def _recvExact(
         self, sckt: iVideoSocket, numBytes: int, phase: str, timeout: float
     ) -> bytes:
-        """Read exactly numBytes from the video socket or raise with phase context."""
         try:
             return await wait_for(sckt.receive(numBytes), timeout=timeout)
         except AsyncTimeoutError as ex:
@@ -215,7 +212,6 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
             ) from ex
 
     async def _probePartial(self, sckt: iVideoSocket) -> None:
-        """Log any bytes sitting on the video socket without requiring an exact size."""
         try:
             raw = getattr(sckt, "_socket", None)
             loop = getattr(sckt, "_loop", None)
@@ -240,12 +236,6 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         *,
         tunnelForward: bool = True,
     ) -> None:
-        """Read scrcpy device header from the video socket (timed).
-
-        Call only after video (and, when control=true, control) sockets are up.
-        With tunnel_forward the server writes one dummy byte on video accept;
-        device name + codec + size are written after the session is fully open.
-        """
         trace(
             f"metadata begin id={self.id!r} timeout={timeout:.1f}s "
             f"tunnelForward={tunnelForward}"
@@ -298,14 +288,19 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
             self._adbDevice = device
             cfg: SCRCPYConfig = self._options
             cfg.logLevel = "info"
-            # Diagnostic: disable control so the server does not block on a second
-            # accept before sendDeviceMeta. Re-enable once video header + frames work.
+            # Diagnostic path for Android 9 AVD: no control, no cleanup child,
+            # modest max_size so encoder setup is lighter if it runs before meta.
             cfg.control = False
+            cfg.cleanup = False
+            cfg.audio = False
+            if not cfg.maxSize:
+                cfg.maxSize = 1024
             tunnelForward = bool(cfg.tunnelForward)
             wantControl = bool(cfg.control)
             trace(
                 f"initialize id={self.id!r} field_scid={cfg._scid!r} "
-                f"before deploy control={wantControl}"
+                f"before deploy control={wantControl} cleanup={cfg.cleanup} "
+                f"maxSize={cfg.maxSize}"
             )
 
             try:
