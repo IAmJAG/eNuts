@@ -33,4 +33,3 @@ async def echoWorker(
 
     finally:
         await asyncCloseQueue(inQueue)
-        await asyncCloseQueue(outQueue)
