@@ -69,6 +69,7 @@ class SCRCPYConfig(Serializable):
     # -------------------------------------------------------------------------
     def buildCommands(self) -> list[str]:
         androidPath = os.path.join(self._androidPath, self._jarName).replace("\\", "/")
+        scid = self.scid
 
         cmds = [
             f"CLASSPATH={androidPath}",
@@ -77,7 +78,7 @@ class SCRCPYConfig(Serializable):
             "com.genymobile.scrcpy.Server",
             self._version,
             f"log_level={self._logLevel}",
-            f"scid={self._scid}",
+            f"scid={scid}",
         ]
 
         if self._maxSize > 0: cmds.append(f"max_size={self._maxSize}")
@@ -255,7 +256,7 @@ class SCRCPYConfig(Serializable):
 
 
     @property
-    def scid(self) -> set[int]:        
+    def scid(self) -> int:
         if not self._scid:
             self._scid = 1
             while self._scid in self._scidSet:
@@ -263,4 +264,3 @@ class SCRCPYConfig(Serializable):
             self._scidSet.add(self._scid)
 
         return self._scid
-    
