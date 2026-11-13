@@ -8,19 +8,12 @@ from multiprocessing.synchronize import Event as syncEvent
 from queue import Empty
 
 # ==================================================================================
-from fluxCore.emitters.__outProcessEmitter import OPEmitter
+from fluxCore.emitters.__outProcessEmitter import outOfProcessEmitter
 
 
 # ==================================================================================
-class ProbeEmitter(OPEmitter):
-    """Child echoes. Parent receiver records what comes back.
-
-    parent._outQueue == child inQueue
-    parent._inQueue  == child outQueue
-
-    start() launches the parent receiver on _inQueue. If the test also
-    reads that queue, the receiver wins the race and the test sees nothing.
-    """
+class ProbeEmitter(outOfProcessEmitter):
+    """Child echoes. Parent receiver records what comes back."""
 
     def __init__(self, serial: str = "probe", name: str | None = "probe") -> None:
         super().__init__(serial=serial, name=name)
@@ -41,7 +34,6 @@ class ProbeEmitter(OPEmitter):
             print("CHILD down", flush=True)
 
     async def _receiver(self, shutdownEvent: syncEvent, queue: Queue) -> None:
-        # Parent side only. Child work() does not start this.
         try:
             while not shutdownEvent.is_set():
                 try:
