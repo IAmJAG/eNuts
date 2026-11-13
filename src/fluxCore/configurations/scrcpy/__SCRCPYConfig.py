@@ -11,14 +11,23 @@ from typing import Optional
 from jAGFx.serializer import Serializable
 
 # ==================================================================================
-from ...utilities.scrcpy import (
-    G_SCRCPY_ANDROID_PATH,
-    G_SCRCPY_BITRATEMAP,
-    G_SCRCPY_JAR_NAME,
-    G_SCRCPY_MAX_FPS,
-    G_SCRCPY_MAX_SIZE,
-    G_SCRCPY_SERVER_PATH,
-)
+G_SCRCPY_JAR_NAME = "scrcpy-server.jar"
+G_SCRCPY_SERVER_PATH = os.path.join(os.getcwd(), ".bin", G_SCRCPY_JAR_NAME)
+G_SCRCPY_ANDROID_PATH = "/data/local/tmp/"
+G_SCRCPY_MAX_SIZE = 0
+G_SCRCPY_MAX_FPS = 0
+G_SCRCPY_BITRATEMAP: dict[int, int] = {
+    540: 2000000,
+    720: 4000000,
+    900: 6000000,
+    1080: 8000000,
+    1280: 10000000,
+    1440: 12000000,
+    1600: 14000000,
+    1920: 12000000,
+    2560: 16000000,
+    3200: 24000000,
+}
 
 
 # ==================================================================================
@@ -35,7 +44,7 @@ class SCRCPYConfig(Serializable):
         self._maxFps: int = maxFps        
         self._jarName: str = G_SCRCPY_JAR_NAME
 
-        self._bitrate: int = G_SCRCPY_BITRATEMAP[maxSize]
+        self._bitrate: int = G_SCRCPY_BITRATEMAP[maxSize] if maxSize in G_SCRCPY_BITRATEMAP.keys() else 0
         
         self.Properties.extend(
             ["serverPath", "androidPath", "maxSize", "maxFps", "bitrate"]
@@ -245,11 +254,9 @@ class SCRCPYConfig(Serializable):
 
 
     @property
-    def scid(self) -> set[int]:
-        if not hasattr(self, "_scid"):
-            self._scid = None
-
-        if self._scid is None:
+    def scid(self) -> set[int]:        
+        if not self._scid:
+            self._scid = 1
             while self._scid in self._scidSet:
                 self._scid += 1
             self._scidSet.add(self._scid)

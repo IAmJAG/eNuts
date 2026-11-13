@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-13 03:55:33 UTC*
+*Auto-generated on: 2026-11-13 04:04:06 UTC*
 
 ## Current Directory Structure
 
@@ -953,6 +953,13 @@ src/fluxCore/configurations/scrcpy:
 	__SCRCPYConfig.py - 
 		CLASSE(S):
 			SCRCPYConfig -> : scrcpyconfig
+		CONSTANTS(S)/GLOBAL(S)
+			G_SCRCPY_JAR_NAME -> : g_scrcpy_jar_name
+			G_SCRCPY_SERVER_PATH -> : g_scrcpy_server_path
+			G_SCRCPY_ANDROID_PATH -> : g_scrcpy_android_path
+			G_SCRCPY_MAX_SIZE -> : g_scrcpy_max_size
+			G_SCRCPY_MAX_FPS -> : g_scrcpy_max_fps
+			G_SCRCPY_BITRATEMAP -> : g_scrcpy_bitratemap
 
 src/fluxCore/device:
 	__device.py - 
@@ -1279,13 +1286,6 @@ src/fluxCore/utilities/scrcpy:
 			pushSCRCPYServer -> : pushscrcpyserver
 			deployServer -> : deployserver
 			getSCRCPYADBSocket -> : getscrcpyadbsocket
-		CONSTANTS(S)/GLOBAL(S)
-			G_SCRCPY_JAR_NAME -> : g_scrcpy_jar_name
-			G_SCRCPY_SERVER_PATH -> : g_scrcpy_server_path
-			G_SCRCPY_ANDROID_PATH -> : g_scrcpy_android_path
-			G_SCRCPY_MAX_SIZE -> : g_scrcpy_max_size
-			G_SCRCPY_MAX_FPS -> : g_scrcpy_max_fps
-			G_SCRCPY_BITRATEMAP -> : g_scrcpy_bitratemap
 
 src/jAGFx/collections:
 	__tsDictionary.py - 
@@ -1986,6 +1986,10 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+c483129:
+	docs: update asset inventory with new timestamp and SCRCPY configuration changes
+		.docs/inventory.md
+
 57674bd:
 	refactor: restructure SCRCPY configuration and options handling
 		.docs/inventory.md
@@ -2030,9 +2034,5 @@ efc5aba:
 	docs: update README to reflect changes in echoWorker and clarify queue handling
 		.test/fixtures/emitters/echoWorker.py
 		README.md
-
-1b20181:
-	test: no-loop check runs outside asyncio.run
-		.test/smoke/emitters/test_opemitter_message_path.py
 
 ```

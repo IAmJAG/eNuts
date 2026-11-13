@@ -7,28 +7,15 @@ from time import sleep
 from adbutils import AdbConnection, AdbDevice, AdbError, Network
 
 # ==================================================================================
-from ...configurations.scrcpy.__scrcpyConfig import SCRCPYServerConfig
+from ...configurations.scrcpy import (
+    G_SCRCPY_ANDROID_PATH,
+    G_SCRCPY_JAR_NAME,
+    G_SCRCPY_SERVER_PATH,
+    SCRCPYConfig,
+)
 
 # ==================================================================================
-G_SCRCPY_JAR_NAME = "scrcpy-server.jar"
-G_SCRCPY_SERVER_PATH = path.join(getcwd(), ".bin", G_SCRCPY_JAR_NAME)
-G_SCRCPY_ANDROID_PATH = "/data/local/tmp/"
-G_SCRCPY_MAX_SIZE = 0
-G_SCRCPY_MAX_FPS = 0
-G_SCRCPY_BITRATEMAP: dict[int, int] = {
-    540: 2000000,
-    720: 4000000,
-    900: 6000000,
-    1080: 8000000,
-    1280: 10000000,
-    1440: 12000000,
-    1600: 14000000,
-    1920: 12000000,
-    2560: 16000000,
-    3200: 24000000,
-}
 
-#================================,
 try:
     from av.codec.hwaccel import HWAccel, hwdevices_available
 
@@ -53,7 +40,6 @@ def isSCRCPYServerDeployed( device: AdbDevice, path: str = G_SCRCPY_ANDROID_PATH
 
     except AdbError:
         return False
-
 
 # ==================================================================================
 def pushSCRCPYServer(
@@ -85,13 +71,13 @@ def pushSCRCPYServer(
 
 def deployServer(
     device: AdbDevice,
-    cfg: SCRCPYServerConfig,
+    cfg: SCRCPYConfig,
     serverPath: str = G_SCRCPY_SERVER_PATH,
     timeout: int = 3000,
 ) -> AdbConnection:
     try:
-        androidPath: str = cfg.AndroidPath
-        jarName: str = cfg.JarName
+        androidPath: str = cfg.androidPath
+        jarName: str = cfg.jarName
 
         if not pushSCRCPYServer(device, androidPath, serverPath, jarName, timeout):
             raise Exception("Could not deploy scrcpy server")
@@ -111,7 +97,13 @@ def deployServer(
 # ==================================================================================
 def getSCRCPYADBSocket(device: AdbDevice, scid: str, timeout: int = 3000) -> socket:
     sSocket: socket = None
-    name = "scrcpy" if scid < 0 else f"scrcpy_{scid:08x}"
+    if scid is None:
+        name = "scrcpy"
+    else:
+        scid = int(scid)
+        name = f"scrcpy_{scid:08x}"
+
+    
     # retry every 100ms
     for _ in range(timeout // 100):
         try:

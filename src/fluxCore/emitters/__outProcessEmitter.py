@@ -11,7 +11,7 @@ from typing import Any, Awaitable, Callable, Dict, Optional
 from jAGFx.services import C_DEFAULT_STOP_TIMEOUT, AsyncProcess, processEntry
 from utilities import createTask
 
-from ..configurations.scrcpy.__SCRCPYConfig import SCRCPYOptions
+from ..configurations.scrcpy import SCRCPYConfig
 
 # ==================================================================================
 from ..devices import SCRCPY
@@ -22,7 +22,7 @@ from .__helper import closeQueue
 # ==================================================================================
 class outOfProcessEmitter(AsyncProcess, SCRCPY):
     def __init__(
-        self, serial: str, name: str | None = None, options: SCRCPYOptions | None = None,
+        self, serial: str, name: str | None = None, options: SCRCPYConfig | None = None,
         worker: Callable[..., Awaitable] | None = None,
     ) -> None:
         SCRCPY.__init__(self, serial=serial, name=name)
@@ -36,7 +36,7 @@ class outOfProcessEmitter(AsyncProcess, SCRCPY):
         self._receiverTask: Optional[Task] = None
 
         self._stopTask: Optional[Task] = None
-        self._options: Optional[SCRCPYOptions] = options
+        self._options: Optional[SCRCPYConfig] = options
         self._processes: Dict[str, Process] = {}
         self._worker: Callable[..., Awaitable] = worker or _clientWorker
 
