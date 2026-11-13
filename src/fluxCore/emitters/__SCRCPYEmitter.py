@@ -125,26 +125,44 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
 
         self._serverLogThread = None
 
-    async def _dumpLogcat(self, tag: str = "metadata-timeout") -> None:
-        """Best-effort logcat slice for scrcpy / runtime errors."""
+    async def _dumpDiagnostics(self, tag: str = "metadata-timeout") -> None:
+        """logcat + process list after a metadata stall."""
         device = self._adbDevice
         if device is None:
             return
-        try:
-            def _pull() -> str:
-                # last ~200 lines mentioning scrcpy or fatal exceptions
-                raw = device.shell(
-                    "logcat -d -t 200 -s scrcpy:V AndroidRuntime:E *:S"
-                )
-                return (raw or "").strip()
 
-            text = await to_thread(_pull)
-            if not text:
-                text = await to_thread(
-                    lambda: (device.shell("logcat -d -t 80") or "").strip()[-2000:]
-                )
+        def _shell(cmd: str) -> str:
+            try:
+                return (device.shell(cmd) or "").strip()
+            except Exception as ex:
+                return f"<shell failed {ex!r}>"
+
+        try:
+            ps = await to_thread(
+                _shell,
+                "ps -A 2>/dev/null | grep -E 'app_process|scrcpy' || ps | grep -E 'app_process|scrcpy' || true",
+            )
+            for line in (ps or "(no matching process)").splitlines()[:20]:
+                trace(f"ps[{tag}] id={self.id!r} {line}")
+        except Exception as ex:
+            trace(f"ps[{tag}] id={self.id!r} failed err={ex!r}")
+
+        try:
+            # Unfiltered recent buffer — scrcpy may log under other tags after Device:
+            text = await to_thread(_shell, "logcat -d -t 120")
             if text:
-                for line in text.splitlines()[-40:]:
+                # Prefer lines that look related; fall back to the tail.
+                lines = text.splitlines()
+                interesting = [
+                    ln
+                    for ln in lines
+                    if any(
+                        k in ln.lower()
+                        for k in ("scrcpy", "androidruntime", "fatal", "exception", "codec", "media")
+                    )
+                ]
+                chosen = interesting[-50:] if interesting else lines[-30:]
+                for line in chosen:
                     trace(f"logcat[{tag}] id={self.id!r} {line}")
             else:
                 trace(f"logcat[{tag}] id={self.id!r} (empty)")
@@ -250,7 +268,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
 
         except ConnectionError:
             await self._probePartial(sckt)
-            await self._dumpLogcat("metadata-timeout")
+            await self._dumpDiagnostics("metadata-timeout")
             raise
 
         lCodecId: str = (
@@ -291,7 +309,6 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
             )
 
             try:
-                # Clear old scrcpy noise so the post-timeout dump is relevant.
                 try:
                     await to_thread(device.shell, "logcat -c")
                 except Exception:
@@ -312,7 +329,6 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
                 raise RuntimeError("Failed to deploy scrcpy server")
 
             self._startServerLogDrain(streamServer)
-            # Give the drain thread a tick so early server lines are not lost.
             await asyncSleep(0.05)
             asyncLoop: AbstractEventLoop = get_running_loop()
 
