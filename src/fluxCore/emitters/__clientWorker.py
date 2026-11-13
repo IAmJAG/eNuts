@@ -19,12 +19,11 @@ from .__helper import asyncCloseQueue
 
 # ==================================================================================
 async def _clientWorker(
-    clientId: str,
-    shutdownEvent: syncEvent,
-    inQueue: Queue,
-    outQueue: Queue,
+    clientId: str, shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queue,
 ) -> None:
-    """Read this client's inbound queue. Write the shared outbound queue.
+    """
+    DEFAULT/DUMMY client worker. Must implement worker the do the real work.
+    Read this client's inbound queue. Write the shared outbound queue.
 
     inQueue is the parent's dedicated outbound to this client.
     outQueue is the parent's single inbound, shared by every client.
