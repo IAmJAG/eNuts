@@ -84,6 +84,7 @@ def deployServer(
 
         cmds: list[str] = cfg.buildCommands()
         lCmd: str = " ".join(cmds)
+        trace(f"deployServer cmd={lCmd!r} field_scid={cfg._scid!r}")
         strmServer: AdbConnection = device.shell(lCmd, stream=True)
         if strmServer is None:
             raise Exception("Could not start scrcpy server")
@@ -103,14 +104,18 @@ def getSCRCPYADBSocket(device: AdbDevice, scid: str, timeout: int = 3000) -> soc
         scid = int(scid)
         name = f"scrcpy_{scid:08x}"
 
-    
+    trace(f"getSCRCPYADBSocket scid={scid!r} name={name!r} timeout={timeout}")
+
     # retry every 100ms
-    for _ in range(timeout // 100):
+    for i in range(timeout // 100):
         try:
             sSocket: socket = device.create_connection(Network.LOCAL_ABSTRACT, name)
+            trace(f"getSCRCPYADBSocket connected name={name!r} attempt={i}")
             break
 
-        except AdbError:
+        except AdbError as ex:
+            if i == 0 or i == (timeout // 100) - 1:
+                trace(f"getSCRCPYADBSocket miss name={name!r} attempt={i} err={ex!r}")
             sleep(0.01)
 
     else:
