@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-13 02:49:37 UTC*
+*Auto-generated on: 2026-11-13 03:55:33 UTC*
 
 ## Current Directory Structure
 
@@ -191,8 +191,7 @@ eNuts/
 │   │   │   │   ├── __decodeCapacity.py
 │   │   │   │   └── __frameRing.py
 │   │   │   └── scrcpy/
-│   │   │       ├── __SCRCPYOptions.py
-│   │   │       └── __scrcpyConfig.py
+│   │   │       └── __SCRCPYConfig.py
 │   │   ├── device/
 │   │   │   └── __device.py
 │   │   ├── devices/
@@ -951,19 +950,9 @@ src/fluxCore/configurations/frameRing:
 			FrameRingConfiguration -> : frameringconfiguration
 
 src/fluxCore/configurations/scrcpy:
-	__SCRCPYOptions.py - 
+	__SCRCPYConfig.py - 
 		CLASSE(S):
 			SCRCPYConfig -> : scrcpyconfig
-		CONSTANTS(S)/GLOBAL(S)
-			JAR_NAME -> : jar_name
-			SERVER_PATH -> : server_path
-			ANDROID_PATH -> : android_path
-			MAX_SIZE -> : max_size
-			MAX_FPS -> : max_fps
-			BITRATE -> : bitrate
-	__scrcpyConfig.py - 
-		CLASSE(S):
-			SCRCPYServerConfig -> : scrcpyserverconfig
 
 src/fluxCore/device:
 	__device.py - 
@@ -1296,7 +1285,7 @@ src/fluxCore/utilities/scrcpy:
 			G_SCRCPY_ANDROID_PATH -> : g_scrcpy_android_path
 			G_SCRCPY_MAX_SIZE -> : g_scrcpy_max_size
 			G_SCRCPY_MAX_FPS -> : g_scrcpy_max_fps
-			G_BITRATEMAP -> : g_bitratemap
+			G_SCRCPY_BITRATEMAP -> : g_scrcpy_bitratemap
 
 src/jAGFx/collections:
 	__tsDictionary.py - 
@@ -1997,6 +1986,17 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+57674bd:
+	refactor: restructure SCRCPY configuration and options handling
+		.docs/inventory.md
+		src/fluxCore/configurations/scrcpy/__SCRCPYConfig.py
+		src/fluxCore/emitters/__SCRCPYEmitter.py
+		src/fluxCore/emitters/__SCRCPYOptions.py
+		src/fluxCore/emitters/__outProcessEmitter.py
+		src/fluxCore/utilities/pyav/__pyAV.py
+		src/fluxCore/utilities/scrcpy/__scrcpy.py
+		src/fluxCore/utilities/scrcpy/__scrcpyConfig.py
+
 42d28b9:
 	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
 
@@ -2034,9 +2034,5 @@ efc5aba:
 1b20181:
 	test: no-loop check runs outside asyncio.run
 		.test/smoke/emitters/test_opemitter_message_path.py
-
-04fe153:
-	docs: update asset inventory with new directory structure and file additions
-		.docs/inventory.md
 
 ```
