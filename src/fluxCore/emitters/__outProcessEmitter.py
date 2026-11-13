@@ -41,7 +41,7 @@ async def _clientWorker(
 
 
 # ==================================================================================
-class OPEmitter(AsyncProcess, SCRCPY):
+class outOfProcessEmitter(AsyncProcess, SCRCPY):
     def __init__(
         self,
         serial: str,
@@ -252,9 +252,13 @@ class OPEmitter(AsyncProcess, SCRCPY):
 
         except Exception as ex:
             task.get_loop().call_exception_handler({
-                "message": f"OPEmitter '{self.name}' stopAsync failed",
+                "message": f"outOfProcessEmitter '{self.name}' stopAsync failed",
                 "exception": ex,
                 "task": task,
+            })
+
+        finally:
+            if self._stopTask is task:
                 self._stopTask = None
 
     async def waitStopped(self) -> None:
@@ -282,4 +286,4 @@ class OPEmitter(AsyncProcess, SCRCPY):
 
 
 # ==================================================================================
-__all__ = ["OPEmitter"]
+__all__ = ["outOfProcessEmitter"]
