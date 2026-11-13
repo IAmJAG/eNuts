@@ -1,17 +1,26 @@
-# outOfProcessEmitter — Requirements, Rules, and Mental Model
+# outOfProcessEmitter — Requirements
 
-Out-of-process emitter base. Heavy work runs in one or more child processes. The parent (normally the UI event loop) stays responsive.
+Out-of-process emitter base. Heavy work runs in one or more child processes. The parent stays responsive.
 
-This document states the contract. It does not prescribe how to implement it.
+The full contract is `outOfProcessEmitter.md`.
 
-The full contract, including the mental model, rules, policies, available technology, and acceptance checks, lives in `outOfProcessEmitter.md` in this directory.
+## Work — rule and policy
+
+Work is the heavy method. It is the only code that runs inside a client process.
+
+- Work is a module-level coroutine. Not a bound method. Not a nested function.
+- Spawn must import it by name. A bound method would pickle the emitter.
+- It receives the shutdown event, that client's inbound queue, and the shared outbound queue. It does not receive the parent.
+- It exits when the event is set. It does not own process lifetime.
+- One function for every client. Per-client state is the queues it is given.
+- Base work observes a message. A subclass replaces the observation, not the transport.
+- On exit it releases its own queue handles. The parent still owns and closes the queues it created.
 
 ## Functional
 
-- Run heavy work in one or more child processes.
-- Parent → client: one dedicated outbound queue per client. That queue is the client's inbound.
-- Client → parent: one shared inbound queue on the parent. That queue is every client's outbound.
-- One parent receiver on the shared inbound queue.
+- Run that work in one or more child processes.
+- Parent → client: one dedicated outbound queue per client.
+- Client → parent: one shared inbound queue, one parent receiver.
 - Cooperative shutdown via one shared event. Forced stop is explicit.
 - `running()` and `running(clientId)` as specified in the contract.
 
@@ -21,7 +30,6 @@ The full contract, including the mental model, rules, policies, available techno
 - Must not leave a process, a queue, or a feeder thread after stop.
 - Must tolerate forced termination.
 - Must be usable as a base class.
-- Child entry must be spawn-safe.
 
 ## Constraints
 
