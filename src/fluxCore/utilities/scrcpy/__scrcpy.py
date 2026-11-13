@@ -1,25 +1,34 @@
 # ==================================================================================
 from os import getcwd, path
-from socket import AF_INET, SOCK_STREAM, socket
+from socket import socket
 from time import sleep
-from typing import Optional, Union
 
 # ==================================================================================
 from adbutils import AdbConnection, AdbDevice, AdbError, Network
-from av import CodecContext, VideoCodecContext
 
 # ==================================================================================
-from .__scrcpyConfig import SCRCPYServerConfig
+from ...configurations.scrcpy.__scrcpyConfig import SCRCPYServerConfig
 
 # ==================================================================================
-JAR_NAME = "scrcpy-server.jar"
-SERVER_PATH = path.join(getcwd(), ".bin", JAR_NAME)
-ANDROID_PATH = "/data/local/tmp/"
-MAX_SIZE = 0
-MAX_FPS = 0
-BITRATE = 4000000
-# ==================================================================================
+G_SCRCPY_JAR_NAME = "scrcpy-server.jar"
+G_SCRCPY_SERVER_PATH = path.join(getcwd(), ".bin", G_SCRCPY_JAR_NAME)
+G_SCRCPY_ANDROID_PATH = "/data/local/tmp/"
+G_SCRCPY_MAX_SIZE = 0
+G_SCRCPY_MAX_FPS = 0
+G_SCRCPY_BITRATEMAP: dict[int, int] = {
+    540: 2000000,
+    720: 4000000,
+    900: 6000000,
+    1080: 8000000,
+    1280: 10000000,
+    1440: 12000000,
+    1600: 14000000,
+    1920: 12000000,
+    2560: 16000000,
+    3200: 24000000,
+}
 
+#================================,
 try:
     from av.codec.hwaccel import HWAccel, hwdevices_available
 
@@ -34,9 +43,7 @@ except ImportError:
     C_HAS_HWACCEL = False
 
 # ==================================================================================
-def isSCRCPYServerDeployed(
-    device: AdbDevice, path: str = ANDROID_PATH, JARName: str = JAR_NAME
-):
+def isSCRCPYServerDeployed( device: AdbDevice, path: str = G_SCRCPY_ANDROID_PATH, JARName: str = G_SCRCPY_JAR_NAME):
     try:
         for info in device.sync.list(path):
             if info.path == JARName:
@@ -51,10 +58,8 @@ def isSCRCPYServerDeployed(
 # ==================================================================================
 def pushSCRCPYServer(
     device: AdbDevice,
-    androidPath: str = ANDROID_PATH,
-    serverPath: str = SERVER_PATH,
-    JARName: str = JAR_NAME,
-    timeout: int = 3000,
+    androidPath: str = G_SCRCPY_ANDROID_PATH, serverPath: str = G_SCRCPY_SERVER_PATH,
+    JARName: str = G_SCRCPY_JAR_NAME, timeout: int = 3000,
 ):
     # retry every 100ms
     for _ in range(timeout // 100):
@@ -81,7 +86,7 @@ def pushSCRCPYServer(
 def deployServer(
     device: AdbDevice,
     cfg: SCRCPYServerConfig,
-    serverPath: str = SERVER_PATH,
+    serverPath: str = G_SCRCPY_SERVER_PATH,
     timeout: int = 3000,
 ) -> AdbConnection:
     try:
@@ -122,39 +127,3 @@ def getSCRCPYADBSocket(device: AdbDevice, scid: str, timeout: int = 3000) -> soc
     return sSocket
 
 
-# ==================================================================================
-def createCodecContext(
-    codecId: str, GPUID: int = 0, GPUReady: bool = True
-) -> VideoCodecContext:
-    lCodec = (codecId or "h264").strip().lower() or "h264"
-
-    if not GPUReady: return CodecContext.create(lCodec, "r")
-
-    if not C_HAS_HWACCEL:
-        raise RuntimeError(
-            "decodeToGpu=True requires a PyAV build with av.codec.hwaccel.HWAccel. "
-            "Upgrade PyAV or set decodeToGpu=False."
-        )
-
-    lDevices = list(hwdevices_available() or [])
-    if "cuda" not in lDevices:
-        raise RuntimeError(
-            f"decodeToGpu=True needs FFmpeg/PyAV CUDA hwaccel; available={lDevices}. "
-            "Rebuild FFmpeg with NVDEC/cuvid support or set decodeToGpu=False."
-        )
-
-    lHwaccel = HWAccel(
-        device_type="cuda",
-        device=str(GPUID),
-        allow_software_fallback=False,
-        is_hw_owned=True,
-    )
-    lCtx = CodecContext.create(lCodec, "r", hwaccel=lHwaccel)
-
-    try:
-        lCtx.options = {"flags": "low_delay"}
-
-    except Exception:
-        pass
-
-    return lCtx

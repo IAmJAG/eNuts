@@ -1,14 +1,16 @@
 # ==================================================================================
-# src/fluxCore/utilities/scrcpy/__init__.py
-# ==================================================================================
 from .__scrcpy import (
-    createCodecContext,
+    G_SCRCPY_ANDROID_PATH,
+    G_SCRCPY_BITRATEMAP,
+    G_SCRCPY_JAR_NAME,
+    G_SCRCPY_MAX_FPS,
+    G_SCRCPY_MAX_SIZE,
+    G_SCRCPY_SERVER_PATH,
     deployServer,
     getSCRCPYADBSocket,
     isSCRCPYServerDeployed,
     pushSCRCPYServer,
 )
-from .__scrcpyConfig import SCRCPYServerConfig
 
 # ==================================================================================
 __all__ = [
@@ -16,6 +18,10 @@ __all__ = [
     "getSCRCPYADBSocket",
     "isSCRCPYServerDeployed",
     "pushSCRCPYServer",
-    "SCRCPYServerConfig",
-    "createCodecContext",
+    "G_SCRCPY_BITRATEMAP",
+    "G_SCRCPY_ANDROID_PATH",
+    "G_SCRCPY_JAR_NAME",
+    "G_SCRCPY_MAX_FPS",
+    "G_SCRCPY_MAX_SIZE",
+    "G_SCRCPY_SERVER_PATH",
 ]

@@ -11,11 +11,12 @@ from typing import Any, Awaitable, Callable, Dict, Optional
 from jAGFx.services import C_DEFAULT_STOP_TIMEOUT, AsyncProcess, processEntry
 from utilities import createTask
 
+from ..configurations.scrcpy.__SCRCPYConfig import SCRCPYOptions
+
 # ==================================================================================
 from ..devices import SCRCPY
 from .__clientWorker import _clientWorker
 from .__helper import closeQueue
-from .__SCRCPYOptions import SCRCPYOptions
 
 
 # ==================================================================================

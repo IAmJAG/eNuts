@@ -22,20 +22,15 @@ from jAGFx.services import AsyncService
 from jAGFx.services.__subscription import AsyncSubscription
 
 # ==================================================================================
+from ..configurations.scrcpy import SCRCPYConfig
 from ..devices import SCRCPY
 from ..packets import TensorPacket
 from ..sockets import ControlSocket, VideoSocket
 from ..types.interface.device import iDevice
-from ..types.interface.emitters import iSCRCPYEmitter
 from ..types.interface.packets import iImagePacket
 from ..types.interface.sockets import iControlSocket, iVideoSocket
-from ..utilities.scrcpy import (
-    SCRCPYServerConfig,
-    createCodecContext,
-    deployServer,
-    getSCRCPYADBSocket,
-)
-from .__SCRCPYOptions import SCRCPYOptions
+from ..utilities.pyav import createCodecContext
+from ..utilities.scrcpy import deployServer, getSCRCPYADBSocket
 
 
 # ==================================================================================
@@ -52,20 +47,23 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
     Blocking ADB (deploy / abstract sockets) runs in a worker thread via
     ``asyncio.to_thread`` so the qasync UI loop stays responsive during init.
     """
+    
+    def __init__(
+            self, serial: str, name: Optional[str] = None, options: Optional[SCRCPYConfig] = None
+        ) -> None:
 
-    def __init__(self, serial: str, name: str | None = None, options: SCRCPYOptions | None = None) -> None:
         AsyncService.__init__(self, work=self.work, name=name)
         SCRCPY.__init__(self, serial=serial, name=name)
         AsyncSubscription.__init__(self)
 
-        if options is None: options = SCRCPYOptions()
+        self._options: SCRCPYConfig = options or SCRCPYConfig()
+
         self._vSocket: Optional[iVideoSocket] = None
         self._cSocket: Optional[iControlSocket] = None
         self._streamServer: Optional[AdbConnection] = None
         self._codecContext: Optional[VideoCodecContext] = None
         self._serverLogThread: Optional[Thread] = None
         self._serverLogStop: ThreadEvent = ThreadEvent()
-        self._options: SCRCPYOptions = options
 
     @classmethod
     def toSCRCPY(cls, emitter: SCRCPYEmitter) -> SCRCPY:
@@ -177,20 +175,13 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         try:
             self.setSuppressEvent(True)
 
-            device: AdbDevice = await to_thread(adb.device, serial=self.id)
-            options: SCRCPYOptions = self._options
-            cfg: SCRCPYServerConfig = SCRCPYServerConfig(
-                androidPath=options.androidPath,
-                jarName=options.jarName,
-                maxSize=options.maxSize,
-                maxFps=options.maxFps,
-                bitrate=options.bitrate,
-                logLevel="warn",
-            )
+            device: AdbDevice = await to_thread(adb.device, serial=self.id)            
+            cfg: SCRCPYConfig = self._options
+            cfg.logLevel = "warn"
 
             try:
                 streamServer: AdbConnection = await to_thread(
-                    deployServer, device, cfg, options.serverPath, 3000,
+                    deployServer, device, cfg, cfg.serverPath, 3000,
                 )
 
             except Exception as ex:
@@ -208,14 +199,15 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
 
             try:
                 vSCKT: socket = await to_thread(
-                    getSCRCPYADBSocket, device, cfg.Scid, 3000
+                    getSCRCPYADBSocket, device, cfg.scid, 3000
                 )
+
                 self._vSocket = VideoSocket(
                     vSCKT, loop=asyncLoop, packetType=TensorPacket
                 )
 
                 cSCKT: socket = await to_thread(
-                    getSCRCPYADBSocket, device, cfg.Scid, 3000
+                    getSCRCPYADBSocket, device, cfg.scid, 3000
                 )
                 self._cSocket = ControlSocket(cSCKT, loop=asyncLoop)
 

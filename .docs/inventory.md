@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-13 01:47:35 UTC*
+*Auto-generated on: 2026-11-13 02:49:37 UTC*
 
 ## Current Directory Structure
 
@@ -187,16 +187,18 @@ eNuts/
 │   │   │           ├── __injectKeyPress.py
 │   │   │           └── __injectKeyRelease.py
 │   │   ├── configurations/
-│   │   │   └── frameRing/
-│   │   │       ├── __decodeCapacity.py
-│   │   │       └── __frameRing.py
+│   │   │   ├── frameRing/
+│   │   │   │   ├── __decodeCapacity.py
+│   │   │   │   └── __frameRing.py
+│   │   │   └── scrcpy/
+│   │   │       ├── __SCRCPYOptions.py
+│   │   │       └── __scrcpyConfig.py
 │   │   ├── device/
 │   │   │   └── __device.py
 │   │   ├── devices/
 │   │   │   └── __scrcpy.py
 │   │   ├── emitters/
 │   │   │   ├── __SCRCPYEmitter.py
-│   │   │   ├── __SCRCPYOptions.py
 │   │   │   ├── __clientWorker.py
 │   │   │   ├── __helper.py
 │   │   │   └── __outProcessEmitter.py
@@ -282,9 +284,10 @@ eNuts/
 │   │       ├── __frame.py
 │   │       ├── __socket.py
 │   │       ├── __torch.py
+│   │       ├── pyav/
+│   │       │   └── __pyAV.py
 │   │       └── scrcpy/
-│   │           ├── __scrcpy.py
-│   │           └── __scrcpyConfig.py
+│   │           └── __scrcpy.py
 │   ├── jAGFx/
 │   │   ├── .fff
 │   │   ├── IPC/
@@ -521,6 +524,7 @@ eNuts/
 .test/fixtures/emitters:
 	echoWorker.py - 
 		FUNCTION(S):
+			_setupTraceOutput -> : _setuptraceoutput
 			echoWorker -> : echoworker
 	probe.py - 
 		CLASSE(S):
@@ -544,9 +548,11 @@ eNuts/
 .test/smoke/emitters:
 	test_opemitter_message_path.py - 
 		FUNCTION(S):
+			_setupTraceOutput -> : _setuptraceoutput
 			_check -> : _check
 			_hop -> : _hop
 			_wait -> : _wait
+			_checkNoLoop -> : _checknoloop
 			run -> : run
 			test_all -> : test_all
 		CONSTANTS(S)/GLOBAL(S)
@@ -944,6 +950,21 @@ src/fluxCore/configurations/frameRing:
 		CLASSE(S):
 			FrameRingConfiguration -> : frameringconfiguration
 
+src/fluxCore/configurations/scrcpy:
+	__SCRCPYOptions.py - 
+		CLASSE(S):
+			SCRCPYConfig -> : scrcpyconfig
+		CONSTANTS(S)/GLOBAL(S)
+			JAR_NAME -> : jar_name
+			SERVER_PATH -> : server_path
+			ANDROID_PATH -> : android_path
+			MAX_SIZE -> : max_size
+			MAX_FPS -> : max_fps
+			BITRATE -> : bitrate
+	__scrcpyConfig.py - 
+		CLASSE(S):
+			SCRCPYServerConfig -> : scrcpyserverconfig
+
 src/fluxCore/device:
 	__device.py - 
 		CLASSE(S):
@@ -958,16 +979,6 @@ src/fluxCore/emitters:
 	__SCRCPYEmitter.py - 
 		CLASSE(S):
 			SCRCPYEmitter -> : scrcpyemitter
-	__SCRCPYOptions.py - 
-		CLASSE(S):
-			SCRCPYOptions -> : scrcpyoptions
-		CONSTANTS(S)/GLOBAL(S)
-			JAR_NAME -> : jar_name
-			SERVER_PATH -> : server_path
-			ANDROID_PATH -> : android_path
-			MAX_SIZE -> : max_size
-			MAX_FPS -> : max_fps
-			BITRATE -> : bitrate
 	__clientWorker.py - 
 		FUNCTION(S):
 			_clientWorker -> : _clientworker
@@ -1267,6 +1278,11 @@ src/fluxCore/utilities:
 			G_FRAME_SIZE -> : g_frame_size
 			G_PARAM_DIM -> : g_param_dim
 
+src/fluxCore/utilities/pyav:
+	__pyAV.py - 
+		FUNCTION(S):
+			createCodecContext -> : createcodeccontext
+
 src/fluxCore/utilities/scrcpy:
 	__scrcpy.py - 
 		FUNCTION(S):
@@ -1274,17 +1290,13 @@ src/fluxCore/utilities/scrcpy:
 			pushSCRCPYServer -> : pushscrcpyserver
 			deployServer -> : deployserver
 			getSCRCPYADBSocket -> : getscrcpyadbsocket
-			createCodecContext -> : createcodeccontext
 		CONSTANTS(S)/GLOBAL(S)
-			JAR_NAME -> : jar_name
-			SERVER_PATH -> : server_path
-			ANDROID_PATH -> : android_path
-			MAX_SIZE -> : max_size
-			MAX_FPS -> : max_fps
-			BITRATE -> : bitrate
-	__scrcpyConfig.py - 
-		CLASSE(S):
-			SCRCPYServerConfig -> : scrcpyserverconfig
+			G_SCRCPY_JAR_NAME -> : g_scrcpy_jar_name
+			G_SCRCPY_SERVER_PATH -> : g_scrcpy_server_path
+			G_SCRCPY_ANDROID_PATH -> : g_scrcpy_android_path
+			G_SCRCPY_MAX_SIZE -> : g_scrcpy_max_size
+			G_SCRCPY_MAX_FPS -> : g_scrcpy_max_fps
+			G_BITRATEMAP -> : g_bitratemap
 
 src/jAGFx/collections:
 	__tsDictionary.py - 
@@ -1985,44 +1997,46 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-6f949ae:
-	test: document that trace is the logging builtin
-		.test/smoke/emitters/test_opemitter_message_path.py
+42d28b9:
+	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
 
-ee020c8:
-	test: child uses builtin trace for each hop
-		.test/fixtures/emitters/echoWorker.py
-
-dfb2a8f:
-	docs: acceptance script uses builtin trace
-		.docs/fluxCore/emitters/implementation.md
-
-daa8cbf:
-	test: trace each parent receive
-		.test/fixtures/emitters/probe.py
-
-992b21f:
-	test: one script for all checks, with flow trace
-		.test/smoke/emitters/test_opemitter_message_path.py
-
-ed2e08e:
-	test: echo worker closes only its dedicated inbound
-		.test/fixtures/emitters/echoWorker.py
-
-57f30ba:
-	fix: worker closes only its dedicated inbound
+bf59334:
+	refactor: consolidate function parameters in _clientWorker definition and update docstring
 		src/fluxCore/emitters/__clientWorker.py
 
-21413de:
-	docs: record the implemented phases
+de53ece:
+	docs: contract matches landed worker close and worker injection
+		.docs/fluxCore/emitters/outOfProcessEmitter.md
+
+6f52eef:
+	docs: requirements match the landed worker and queue split
+		.docs/fluxCore/emitters/requirement.md
+
+3ddba79:
+	docs: implementation matches the landed code
 		.docs/fluxCore/emitters/implementation.md
 
-8e61c6b:
-	test: acceptance checks for outOfProcessEmitter
+efc5aba:
+	refactor: streamline parameter handling in outOfProcessEmitter methods
+		src/fluxCore/emitters/__outProcessEmitter.py
+
+3fd506c:
+	docs: enhance README with details on TRACE output configuration and file changes
+		.test/fixtures/emitters/echoWorker.py
+		.test/smoke/emitters/test_opemitter_message_path.py
+		README.md
+
+0f98f46:
+	docs: update README to reflect changes in echoWorker and clarify queue handling
+		.test/fixtures/emitters/echoWorker.py
+		README.md
+
+1b20181:
+	test: no-loop check runs outside asyncio.run
 		.test/smoke/emitters/test_opemitter_message_path.py
 
-e6ce368:
-	test: probe records the single parent inbound
-		.test/fixtures/emitters/probe.py
+04fe153:
+	docs: update asset inventory with new directory structure and file additions
+		.docs/inventory.md
 
 ```
