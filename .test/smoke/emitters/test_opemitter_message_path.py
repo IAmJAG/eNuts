@@ -1,9 +1,8 @@
 # ==================================================================================
 """One run. Every acceptance check. Message path is recorded via trace.
 
-trace is the logging builtin installed by src/__monkeyPatch.py
-(setattr(builtins, "trace", trace) from jAGFx.logging) and declared in
-typings/__builtins__.pyi. It is not print.
+trace is installed by src/__monkeyPatch.py. The project trace helper logs via
+Python's root logger, so this test explicitly enables root-level TRACE output.
 
     parent put(client) -> that client's inbound -> echo -> shared inbound -> parent
 """
@@ -13,6 +12,7 @@ from __future__ import annotations
 # ==================================================================================
 import asyncio
 import inspect
+import logging
 from pathlib import Path
 import sys
 
@@ -33,6 +33,15 @@ from fluxCore.emitters.__clientWorker import _clientWorker  # noqa: E402
 # ==================================================================================
 _FLOW: list[str] = []
 _FAILED: list[str] = []
+
+
+def _setupTraceOutput() -> None:
+    """Make TRACE (level 5) visible in this test process."""
+    logging.basicConfig(
+        level=5,
+        format="%(asctime)s [%(levelname)-8s] %(message)s",
+        force=True,
+    )
 
 
 def _check(name: str, ok: bool, detail: str = "") -> None:
@@ -74,7 +83,6 @@ def _checkNoLoop() -> None:
 async def run() -> None:
     trace("---- outOfProcessEmitter acceptance ----")
 
-    # 1. Worker is module-level, in its own module.
     _check(
         "worker module-level",
         inspect.iscoroutinefunction(_clientWorker)
@@ -88,9 +96,6 @@ async def run() -> None:
         echoWorker.__module__,
     )
 
-    # 2. Start with no loop creates nothing. Done before this coroutine.
-
-    # 3–8. One live emitter. Message path is recorded as it happens.
     emitter = ProbeEmitter(serial="probe")
     stopped: list[str] = []
     emitter.subscribe("ON_STOPPING", lambda: stopped.append("ON_STOPPING"))
@@ -119,7 +124,8 @@ async def run() -> None:
     _hop(f"after only-a  received={emitter.received}")
     _check(
         "addressed: only a replies",
-        got and emitter.received == before + ["a:only-a"] and not any(m.startswith("b:") for m in emitter.received),
+        got and emitter.received == before + ["a:only-a"]
+        and not any(m.startswith("b:") for m in emitter.received),
         str(emitter.received),
     )
 
@@ -127,7 +133,11 @@ async def run() -> None:
     _hop("parent put(b, only-b) -> out[b] only")
     got = await _wait(emitter, 3)
     _hop(f"after only-b  received={emitter.received}")
-    _check("addressed: b replies on same inbound", got and emitter.received[-1] == "b:only-b", str(emitter.received))
+    _check(
+        "addressed: b replies on same inbound",
+        got and emitter.received[-1] == "b:only-b",
+        str(emitter.received),
+    )
 
     try:
         emitter.start("a")
@@ -136,7 +146,6 @@ async def run() -> None:
         duplicate = True
     _check("duplicate client rejected", duplicate and emitter.running("a"))
 
-    # Coalesce: second stop while the first is in flight does nothing extra.
     emitter.stop()
     emitter.stop()
     _hop("stop + stop  -> one retained task")
@@ -157,12 +166,14 @@ async def run() -> None:
 
 
 def test_all() -> None:
+    _setupTraceOutput()
     setupLogging("outOfProcessEmitter")
     _checkNoLoop()
     asyncio.run(run())
 
 
 if __name__ == "__main__":
+    _setupTraceOutput()
     setupLogging("outOfProcessEmitter")
     _checkNoLoop()
     asyncio.run(run())
