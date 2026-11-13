@@ -29,8 +29,8 @@ class ProbeEmitter(outOfProcessEmitter):
                 except Empty:
                     continue
 
-                print(f"PARENT got {msg!r}", flush=True)
                 self.received.append(msg)
+                trace(f"FLOW  parent inbound got {msg!r}  n={len(self.received)}")
 
         finally:
             return
