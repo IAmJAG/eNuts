@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-09 13:24:25 UTC*
+*Auto-generated on: 2026-11-13 01:47:35 UTC*
 
 ## Current Directory Structure
 
@@ -31,12 +31,17 @@ eNuts/
 │   ├── README.md
 │   ├── conftest.py
 │   ├── fixtures/
+│   │   ├── emitters/
+│   │   │   ├── echoWorker.py
+│   │   │   └── probe.py
 │   │   ├── ipc/
 │   │   │   └── payloads.py
 │   │   └── policy/
 │   │       ├── builders.py
 │   │       └── seeds.py
 │   └── smoke/
+│       ├── emitters/
+│       │   └── test_opemitter_message_path.py
 │       ├── ipc/
 │       │   ├── test_endpoint_bridge.py
 │       │   └── test_message_roundtrip.py
@@ -88,6 +93,10 @@ eNuts/
 │           ├── main.css
 │           ├── page.css
 │           └── sideBar.css
+├── recordings/
+│   └── 0382edca91e34d36965727e141a0ce91/
+│       ├── session.json
+│       └── video.h264
 ├── src/
 │   ├── __monkeyPatch.py
 │   ├── eNuts/
@@ -187,7 +196,10 @@ eNuts/
 │   │   │   └── __scrcpy.py
 │   │   ├── emitters/
 │   │   │   ├── __SCRCPYEmitter.py
-│   │   │   └── __SCRCPYOptions.py
+│   │   │   ├── __SCRCPYOptions.py
+│   │   │   ├── __clientWorker.py
+│   │   │   ├── __helper.py
+│   │   │   └── __outProcessEmitter.py
 │   │   ├── geometry/
 │   │   │   ├── __circle.py
 │   │   │   ├── __point.py
@@ -214,6 +226,7 @@ eNuts/
 │   │   │   ├── __frameDecoder.py
 │   │   │   ├── __ipcDeviceStream.py
 │   │   │   ├── __presenter.py
+│   │   │   ├── __streamDevice.py
 │   │   │   ├── __streamHelpers.py
 │   │   │   ├── frameBuffer/
 │   │   │   │   ├── __bufferSlot.py
@@ -505,6 +518,14 @@ eNuts/
 			_REPO_ROOT -> : _repo_root
 			_SRC -> : _src
 
+.test/fixtures/emitters:
+	echoWorker.py - 
+		FUNCTION(S):
+			echoWorker -> : echoworker
+	probe.py - 
+		CLASSE(S):
+			ProbeEmitter -> : probeemitter
+
 .test/fixtures/ipc:
 	payloads.py - 
 		CLASSE(S):
@@ -519,6 +540,20 @@ eNuts/
 			SEED_ACTIONS -> : seed_actions
 			SEED_ARGUMENT_KINDS -> : seed_argument_kinds
 			SEED_INTENTS -> : seed_intents
+
+.test/smoke/emitters:
+	test_opemitter_message_path.py - 
+		FUNCTION(S):
+			_check -> : _check
+			_hop -> : _hop
+			_wait -> : _wait
+			run -> : run
+			test_all -> : test_all
+		CONSTANTS(S)/GLOBAL(S)
+			_TEST_ROOT -> : _test_root
+			_REPO_SRC -> : _repo_src
+			_FLOW -> : _flow
+			_FAILED -> : _failed
 
 .test/smoke/ipc:
 	test_endpoint_bridge.py - 
@@ -933,6 +968,18 @@ src/fluxCore/emitters:
 			MAX_SIZE -> : max_size
 			MAX_FPS -> : max_fps
 			BITRATE -> : bitrate
+	__clientWorker.py - 
+		FUNCTION(S):
+			_clientWorker -> : _clientworker
+	__helper.py - 
+		FUNCTION(S):
+			drainQueue -> : drainqueue
+			asyncDrainQueue -> : asyncdrainqueue
+			closeQueue -> : closequeue
+			asyncCloseQueue -> : asyncclosequeue
+	__outProcessEmitter.py - 
+		CLASSE(S):
+			outOfProcessEmitter -> : outofprocessemitter
 
 src/fluxCore/geometry:
 	__circle.py - 
@@ -1030,6 +1077,21 @@ src/fluxCore/stream:
 			Presenter -> : presenter
 		CONSTANTS(S)/GLOBAL(S)
 			C_DEFAULT_DISPLAY_FPS -> : c_default_display_fps
+	__streamDevice.py - 
+		CLASSE(S):
+			LocalDeviceStream -> : localdevicestream
+		CONSTANTS(S)/GLOBAL(S)
+			C_ON_FRAME -> : c_on_frame
+			C_ON_METADATA_UPDATE -> : c_on_metadata_update
+			C_ON_ERROR -> : c_on_error
+			C_ON_INITIALIZED -> : c_on_initialized
+			C_ON_STARTING -> : c_on_starting
+			C_ON_STARTED -> : c_on_started
+			C_ON_STOPPING -> : c_on_stopping
+			C_ON_STOPPED -> : c_on_stopped
+			C_ON_PAUSED -> : c_on_paused
+			C_ON_RESUMED -> : c_on_resumed
+			C_LIFECYCLE_EVENTS -> : c_lifecycle_events
 	__streamHelpers.py - 
 		FUNCTION(S):
 			validateRingSize -> : validateringsize
@@ -1409,6 +1471,10 @@ src/jAGFx/services:
 	__asyncProcess.py - 
 		CLASSE(S):
 			AsyncProcess -> : asyncprocess
+		FUNCTION(S):
+			processEntry -> : processentry
+		CONSTANTS(S)/GLOBAL(S)
+			C_DEFAULT_STOP_TIMEOUT -> : c_default_stop_timeout
 	__asyncService.py - 
 		CLASSE(S):
 			AsyncService -> : asyncservice
@@ -1862,6 +1928,7 @@ src/utilities:
 			getRunningLoop -> : getrunningloop
 			getEventLoop -> : geteventloop
 			_getCoroutine -> : _getcoroutine
+			logTaskException -> : logtaskexception
 			createTask -> : createtask
 	__cacheClean.py - 
 		FUNCTION(S):
@@ -1918,77 +1985,44 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-a21a365:
-	feat: Introduce FrameBufferConfiguration and refactor FrameBuffer for improved management refactor: Enhance BufferSlot and LocalDeviceStream for better performance and readability chore: Clean up imports and remove unused RingSlotConfiguration
-		src/fluxCore/stream/__deviceStream.py
-		src/fluxCore/stream/frameBuffer/__bufferSlot.py
-		src/fluxCore/stream/frameBuffer/__frameBuffer.py
-		src/fluxCore/stream/frameBuffer/__ringSlotConfiguration.py -> src/fluxCore/stream/frameBuffer/__frameBufferConfiguration.py
-		src/jAGFx/services/__asyncProcess.py
-		src/utilities/__asyncio.py
+6f949ae:
+	test: document that trace is the logging builtin
+		.test/smoke/emitters/test_opemitter_message_path.py
 
-3aac624:
-	Implement code changes to enhance functionality and improve performance
-		.docs/inventory.md
+ee020c8:
+	test: child uses builtin trace for each hop
+		.test/fixtures/emitters/echoWorker.py
 
-2c2c3af:
-	refactor: Improve _canGrow and _grow methods for consistency and readability
-		src/fluxCore/stream/frameBuffer/__frameBuffer.py
+dfb2a8f:
+	docs: acceptance script uses builtin trace
+		.docs/fluxCore/emitters/implementation.md
 
-d52db46:
-	refactor: Simplify FrameBuffer initialization and improve eviction logic
-		src/fluxCore/stream/frameBuffer/__frameBuffer.py
+daa8cbf:
+	test: trace each parent receive
+		.test/fixtures/emitters/probe.py
 
-0218852:
-	feat: Refactor FrameBuffer and related configuration for enhanced section management and size handling
-		src/fluxCore/stream/frameBuffer/__bufferSlot.py
-		src/fluxCore/stream/frameBuffer/__frameBuffer.py
-		src/fluxCore/stream/frameBuffer/__ringSlotConfiguration.py
+992b21f:
+	test: one script for all checks, with flow trace
+		.test/smoke/emitters/test_opemitter_message_path.py
 
-60c1148:
-	Add FrameBuffer with BufferSlot and RingSlotConfiguration
-		.docs/fluxCore/stream/frameBuffer/frameBuffer.md
-		.docs/fluxCore/stream/frameBuffer/implementation.md
-		.docs/fluxCore/stream/frameBuffer/requirement.md
-		.docs/inventory.md
-		src/fluxCore/stream/frameBuffer/__bufferSlot.py
-		src/fluxCore/stream/frameBuffer/__frameBuffer.py
-		src/fluxCore/stream/frameBuffer/__ringSlotConfiguration.py
-		src/fluxCore/types/interface/stream/frameBuffer/__bufferSlot.py
-		src/fluxCore/types/interface/stream/frameBuffer/__frameBuffer.py
+ed2e08e:
+	test: echo worker closes only its dedicated inbound
+		.test/fixtures/emitters/echoWorker.py
 
-272d3ce:
-	Refactor FrameRing and related components for improved timestamp handling and eviction logic
-		.docs/fluxCore/stream/frameRing/frameRing.md
-		.docs/fluxCore/stream/frameRing/implementation.md
-		.test/smoke/scrcpy/test_frame_ring_eviction.py
-		.test/smoke/scrcpy/test_frame_ring_slot_lease.py
-		src/fluxCore/configurations/frameRing/__decodeCapacity.py
-		src/fluxCore/configurations/frameRing/__frameRing.py
-		src/fluxCore/packets/__packet.py
-		src/fluxCore/stream/frameRing/__frameRing.py
-		src/fluxCore/stream/frameRing/slot/__ringSlot.py
-		src/fluxCore/types/interface/packets/__packet.py
-		src/fluxCore/types/interface/stream/frameRing/__frameRing.py
-		src/fluxCore/types/interface/stream/frameRing/slot/__ringSlot.py
+57f30ba:
+	fix: worker closes only its dedicated inbound
+		src/fluxCore/emitters/__clientWorker.py
 
-49ca052:
-	feat: Add current property setter to DecodeCapacity and implement setCapacity method in FrameRingConfiguration
-		.docs/inventory.md
-		src/fluxCore/configurations/frameRing/__decodeCapacity.py
-		src/fluxCore/configurations/frameRing/__frameRing.py
-		src/fluxCore/stream/frameRing/__frameRing.py
+21413de:
+	docs: record the implemented phases
+		.docs/fluxCore/emitters/implementation.md
 
-af0f157:
-	feat: Enhance Configuration class with section management methods and input validation
-		src/jAGFx/configuration/__configuration.py
+8e61c6b:
+	test: acceptance checks for outOfProcessEmitter
+		.test/smoke/emitters/test_opemitter_message_path.py
 
-9901b55:
-	feat: Refactor FrameRing and Configuration classes to enhance section management and add new methods
-		src/fluxCore/configurations/frameRing/__frameRing.py
-		src/fluxCore/stream/frameRing/__frameRing.py
-		src/fluxCore/stream/frameRing/slot/__ringSlot.py
-		src/jAGFx/configuration/__configuration.py
-		src/jAGFx/types/interface/configuration/__configuration.py
+e6ce368:
+	test: probe records the single parent inbound
+		.test/fixtures/emitters/probe.py
 
 ```
