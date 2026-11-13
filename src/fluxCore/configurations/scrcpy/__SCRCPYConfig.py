@@ -76,7 +76,8 @@ class SCRCPYConfig(Serializable):
             "/",
             "com.genymobile.scrcpy.Server",
             self._version,
-            f"log_level={self._logLevel}"            
+            f"log_level={self._logLevel}",
+            f"scid={self._scid}",
         ]
 
         if self._maxSize > 0: cmds.append(f"max_size={self._maxSize}")
@@ -90,7 +91,7 @@ class SCRCPYConfig(Serializable):
         if self._showTouches: cmds.append(f"show_touches={str(self._showTouches).lower()}")
         if self._stayAwake: cmds.append(f"stay_awake={str(self._stayAwake).lower()}")
         if self._powerOffOnClose: cmds.append(f"power_off_on_close={str(self._powerOffOnClose).lower()}")
-        if self._clipboardAutosync: cmds.append(f"clipboard_autosync={str(self._clipboardAutosync).lower()}")
+        if self._clipboardAutosync: cmds.append(f"clipboard_autosync={str(self._clipboardAutosync).lower()}")        
         if self._displayId > 0: cmds.append(f"display_id={self._displayId}")
         if self._cleanup: cmds.append(f"cleanup={str(self._cleanup).lower()}")        
         
