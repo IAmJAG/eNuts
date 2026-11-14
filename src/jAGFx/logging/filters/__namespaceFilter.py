@@ -2,7 +2,7 @@
 import logging
 
 # ==================================================================================
-from typing import Dict, List
+from typing import Dict
 
 # ==================================================================================
 from jAGFx.singleton import SingletonC

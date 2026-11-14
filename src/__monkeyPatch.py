@@ -40,7 +40,6 @@ from utilities import (
 # ==================================================================================================
 setattr(builtins, "Color", Color)
 
-
 # ==================================================================================================
 # GLOBAL default value
 # ==================================================================================================
@@ -86,6 +85,7 @@ setattr(builtins, "setupLogging", setupLogging)
 setattr(builtins, "addFileHandler", addFileHandler)
 setattr(builtins, "removeFileHandler", removeFileHandler)
 
+# ==================================================================================================
 setattr(builtins, "verbose", verbose)
 setattr(builtins, "trace", trace)
 setattr(builtins, "debug", debug)

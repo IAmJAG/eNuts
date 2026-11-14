@@ -11,11 +11,10 @@ from typing import Any, Awaitable, Callable, Dict, Optional
 from jAGFx.services import C_DEFAULT_STOP_TIMEOUT, AsyncProcess, processEntry
 from utilities import createTask
 
-from ..configurations.scrcpy import SCRCPYConfig
-
 # ==================================================================================
+from ..configurations.scrcpy import SCRCPYConfig
 from ..devices import SCRCPY
-from .__clientWorker import _clientWorker
+from .__emitterWorkers import SCRCPYWorker
 from .__helper import closeQueue
 
 
@@ -26,7 +25,7 @@ class outOfProcessEmitter(AsyncProcess, SCRCPY):
         worker: Callable[..., Awaitable] | None = None,
     ) -> None:
         SCRCPY.__init__(self, serial=serial, name=name)
-        AsyncProcess.__init__(self, work=worker or _clientWorker, name=name)
+        AsyncProcess.__init__(self, work=worker or SCRCPYWorker, name=name)
 
         # Parent -> one client. That client's inbound.
         self._outQueues: Dict[str, Queue] = {}
@@ -38,22 +37,42 @@ class outOfProcessEmitter(AsyncProcess, SCRCPY):
         self._stopTask: Optional[Task] = None
         self._options: Optional[SCRCPYConfig] = options
         self._processes: Dict[str, Process] = {}
-        self._worker: Callable[..., Awaitable] = worker or _clientWorker
 
     async def _receiver(self, shutdownEvent: syncEvent, queue: Queue) -> None:
         try:
-            while not shutdownEvent.is_set():
+            def isShuttingdown() -> bool: ...
+            isShuttingdown = shutdownEvent.is_set
+
+            while not isShuttingdown():
                 try:
-                    lMsg = await to_thread(queue.get, True, 0.1)
+                    msg = await to_thread(queue.get, True, 0.1)
 
                 except Empty:
                     continue
 
-                print(lMsg)
+                print(msg)
 
         finally:
             return
 
+    async def stopAsync( self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
+        if not self._processes and self._receiverTask is None:
+            return
+
+        self.raiseEvent("ON_STOPPING")
+
+        try:
+            if self._shutdownEvent is not None:
+                self._shutdownEvent.set()
+
+            await self._finishReceiver()
+            await to_thread(self._stopProcesses, timeout, forced)
+
+        finally:
+            self._closeQueues()
+            self._shutdownEvent = None
+            self.raiseEvent("ON_STOPPED")
+    
     def _startProcess(
         self, clientId: str, shutdownEvent: syncEvent,
         clientQueue: Queue, sharedQueue: Queue,
@@ -119,25 +138,7 @@ class outOfProcessEmitter(AsyncProcess, SCRCPY):
                 self._shutdownEvent = None
 
             raise
-
-    async def stopAsync( self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
-        if not self._processes and self._receiverTask is None:
-            return
-
-        self.raiseEvent("ON_STOPPING")
-
-        try:
-            if self._shutdownEvent is not None:
-                self._shutdownEvent.set()
-
-            await self._finishReceiver()
-            await to_thread(self._stopProcesses, timeout, forced)
-
-        finally:
-            self._closeQueues()
-            self._shutdownEvent = None
-            self.raiseEvent("ON_STOPPED")
-
+    
     def stop(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
         if self._stopTask is not None and not self._stopTask.done():
             return
@@ -172,11 +173,11 @@ class outOfProcessEmitter(AsyncProcess, SCRCPY):
             self.raiseEvent("ON_STOPPED")
 
     async def _finishReceiver(self) -> None:
-        lTask = self._receiverTask
-        if lTask is None: return
+        task = self._receiverTask
+        if task is None: return
 
         try:
-            await lTask
+            await task
 
         except (CancelledError, Exception):
             pass

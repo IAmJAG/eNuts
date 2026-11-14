@@ -2,30 +2,22 @@
 from importlib import import_module
 from logging import DEBUG, ERROR, INFO, WARNING, getLogger
 from sys import argv
-from typing import List
 
 # ==================================================================================================
 import __monkeyPatch
 
 # ==================================================================================================
-from jAGFx.logging import TRACE, VERBOSE, suppressedLogger
-from utilities import launchModule
+from jAGFx.logging import TRACE, suppressedLogger
+from utilities import (
+    THIRD_PARTY_LOG_LEVEL,
+    THIRD_PARTY_LOGGERS,
+    launchModule,
+)
 
 # ==================================================================================================
-LOG_LEVEL: int = TRACE
-THIRD_PARTY_LOG_LEVEL: int = WARNING
-THIRD_PARTY_LOGGERS: List[str] = [
-    "asyncio",
-    "adbutils.sync",
-    "qasync._QEventLoop",
-    "asyncio.windows_events",
-    "qasync._windows._EventPoller",
-    "qasync._windows._EventWorker",
-    "qasync._windows._IocpProactor",
-    "qasync.QThreadExecutor",
-    "qasync._QThreadWorker",
-]
+LOG_LEVEL = TRACE
 # ==================================================================================================
+
 
 # ==================================================================================================
 def _program(module: str, app: str, clean: bool = False, *args, **kwargs):
@@ -49,7 +41,7 @@ def _program(module: str, app: str, clean: bool = False, *args, **kwargs):
 # ==================================================================================================
 def program(args: list = argv):
     setupLogging("", LOG_LEVEL)
-    suppressedLogger(THIRD_PARTY_LOGGERS, THIRD_PARTY_LOG_LEVEL)    
+    suppressedLogger(THIRD_PARTY_LOGGERS, THIRD_PARTY_LOG_LEVEL)
     args, kwargs = ProcessArguments(args)
     return _program(*args, **kwargs)
 

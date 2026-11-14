@@ -9,11 +9,15 @@ from asyncio import (
     AbstractEventLoop,
     CancelledError,
     Task,
-    TimeoutError as AsyncTimeoutError,
     get_running_loop,
-    sleep as asyncSleep,
     to_thread,
     wait_for,
+)
+from asyncio import (
+    TimeoutError as AsyncTimeoutError,
+)
+from asyncio import (
+    sleep as asyncSleep,
 )
 from socket import socket
 from threading import Event as ThreadEvent
@@ -40,7 +44,6 @@ from ..types.interface.packets import iImagePacket
 from ..types.interface.sockets import iControlSocket, iVideoSocket
 from ..utilities.pyav import createCodecContext
 from ..utilities.scrcpy import deployServer, getSCRCPYADBSocket
-
 
 # ==================================================================================
 C_METADATA_TIMEOUT_S: float = 15.0
@@ -293,8 +296,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
             cfg.control = False
             cfg.cleanup = False
             cfg.audio = False
-            if not cfg.maxSize:
-                cfg.maxSize = 1024
+            if not cfg.maxSize:cfg.maxSize = 1024
             tunnelForward = bool(cfg.tunnelForward)
             wantControl = bool(cfg.control)
             trace(
