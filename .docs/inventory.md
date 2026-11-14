@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-13 04:04:06 UTC*
+*Auto-generated on: 2026-11-14 11:16:07 UTC*
 
 ## Current Directory Structure
 
@@ -29,32 +29,12 @@ eNuts/
 │   └── updateInventory.py
 ├── .test/
 │   ├── README.md
-│   ├── conftest.py
-│   ├── fixtures/
-│   │   ├── emitters/
-│   │   │   ├── echoWorker.py
-│   │   │   └── probe.py
-│   │   ├── ipc/
-│   │   │   └── payloads.py
-│   │   └── policy/
-│   │       ├── builders.py
-│   │       └── seeds.py
-│   └── smoke/
-│       ├── emitters/
-│       │   └── test_opemitter_message_path.py
+│   └── fixtures/
 │       ├── ipc/
-│       │   ├── test_endpoint_bridge.py
-│       │   └── test_message_roundtrip.py
-│       ├── policy/
-│       │   ├── test_policy_forward_predict.py
-│       │   ├── test_policy_options_roundtrip.py
-│       │   └── test_policy_persist.py
-│       └── scrcpy/
-│           ├── test_frame_ring.py
-│           ├── test_frame_ring_eviction.py
-│           ├── test_frame_ring_slot_lease.py
-│           ├── test_frame_slot.py
-│           └── test_scrcpy_bridge.py
+│       │   └── payloads.py
+│       └── policy/
+│           ├── builders.py
+│           └── seeds.py
 ├── README.md
 ├── assets/
 │   ├── gameInfo.json
@@ -93,11 +73,11 @@ eNuts/
 │           ├── main.css
 │           ├── page.css
 │           └── sideBar.css
-├── recordings/
-│   └── 0382edca91e34d36965727e141a0ce91/
-│       ├── session.json
-│       └── video.h264
 ├── src/
+│   ├── TEST/
+│   │   └── smoke/
+│   │       └── emitters/
+│   │           └── outOfProcessEmitter.py
 │   ├── __monkeyPatch.py
 │   ├── eNuts/
 │   │   ├── .ff
@@ -198,7 +178,7 @@ eNuts/
 │   │   │   └── __scrcpy.py
 │   │   ├── emitters/
 │   │   │   ├── __SCRCPYEmitter.py
-│   │   │   ├── __clientWorker.py
+│   │   │   ├── __emitterWorkers.py
 │   │   │   ├── __helper.py
 │   │   │   └── __outProcessEmitter.py
 │   │   ├── geometry/
@@ -514,21 +494,6 @@ eNuts/
 			C_EXCLUDED_FILES -> : c_excluded_files
 			C_EXCLUDED_VARIABLES -> : c_excluded_variables
 
-.test:
-	conftest.py - 
-		CONSTANTS(S)/GLOBAL(S)
-			_REPO_ROOT -> : _repo_root
-			_SRC -> : _src
-
-.test/fixtures/emitters:
-	echoWorker.py - 
-		FUNCTION(S):
-			_setupTraceOutput -> : _setuptraceoutput
-			echoWorker -> : echoworker
-	probe.py - 
-		CLASSE(S):
-			ProbeEmitter -> : probeemitter
-
 .test/fixtures/ipc:
 	payloads.py - 
 		CLASSE(S):
@@ -544,127 +509,6 @@ eNuts/
 			SEED_ARGUMENT_KINDS -> : seed_argument_kinds
 			SEED_INTENTS -> : seed_intents
 
-.test/smoke/emitters:
-	test_opemitter_message_path.py - 
-		FUNCTION(S):
-			_setupTraceOutput -> : _setuptraceoutput
-			_check -> : _check
-			_hop -> : _hop
-			_wait -> : _wait
-			_checkNoLoop -> : _checknoloop
-			run -> : run
-			test_all -> : test_all
-		CONSTANTS(S)/GLOBAL(S)
-			_TEST_ROOT -> : _test_root
-			_REPO_SRC -> : _repo_src
-			_FLOW -> : _flow
-			_FAILED -> : _failed
-
-.test/smoke/ipc:
-	test_endpoint_bridge.py - 
-		CLASSE(S):
-			PingMessage -> : pingmessage
-			RecordingBridge -> : recordingbridge
-		FUNCTION(S):
-			_withEndpoints -> : _withendpoints
-			_waitFor -> : _waitfor
-			test_default_bridge_receives_ownerless_message -> : test_default_bridge_receives_ownerless_message
-			test_owner_id_routes_to_specific_bridge -> : test_owner_id_routes_to_specific_bridge
-			test_unknown_owner_is_dropped -> : test_unknown_owner_is_dropped
-			test_terminal_clears_correlation_on_bridge -> : test_terminal_clears_correlation_on_bridge
-			test_mro_handler_receives_subclass -> : test_mro_handler_receives_subclass
-			test_register_bridge_rejects_duplicate_id -> : test_register_bridge_rejects_duplicate_id
-			test_hello_marks_peer_alive -> : test_hello_marks_peer_alive
-			test_overload_policy_default_unbounded -> : test_overload_policy_default_unbounded
-		CONSTANTS(S)/GLOBAL(S)
-			_TEST_ROOT -> : _test_root
-	test_message_roundtrip.py - 
-		FUNCTION(S):
-			test_message_roundtrip -> : test_message_roundtrip
-			test_message_with_owner_roundtrip -> : test_message_with_owner_roundtrip
-			test_message_terminal_roundtrip -> : test_message_terminal_roundtrip
-			test_ioqueue_send_receive -> : test_ioqueue_send_receive
-		CONSTANTS(S)/GLOBAL(S)
-			_TEST_ROOT -> : _test_root
-
-.test/smoke/policy:
-	test_policy_forward_predict.py - 
-		FUNCTION(S):
-			_buildPolicy -> : _buildpolicy
-			test_carousel_initialized_to_stack_size -> : test_carousel_initialized_to_stack_size
-			test_forward_shapes_full_context -> : test_forward_shapes_full_context
-			test_predict_contract -> : test_predict_contract
-			test_predict_with_prior_action_and_params -> : test_predict_with_prior_action_and_params
-			test_stride_skips_push_when_too_soon -> : test_stride_skips_push_when_too_soon
-			test_missing_vocabularies_raise_via_options -> : test_missing_vocabularies_raise_via_options
-			test_build_options_uses_typed_vocabularies -> : test_build_options_uses_typed_vocabularies
-		CONSTANTS(S)/GLOBAL(S)
-			_TEST_ROOT -> : _test_root
-	test_policy_options_roundtrip.py - 
-		FUNCTION(S):
-			test_action_vocabulary_roundtrip -> : test_action_vocabulary_roundtrip
-			test_intent_vocabulary_roundtrip -> : test_intent_vocabulary_roundtrip
-			test_argument_kind_vocabulary_roundtrip -> : test_argument_kind_vocabulary_roundtrip
-			test_policy_options_roundtrip -> : test_policy_options_roundtrip
-			test_policy_from_restored_options_predicts -> : test_policy_from_restored_options_predicts
-		CONSTANTS(S)/GLOBAL(S)
-			_TEST_ROOT -> : _test_root
-	test_policy_persist.py - 
-		FUNCTION(S):
-			test_save_load_weights_with_separate_options -> : test_save_load_weights_with_separate_options
-			test_load_rejects_bad_version -> : test_load_rejects_bad_version
-		CONSTANTS(S)/GLOBAL(S)
-			_TEST_ROOT -> : _test_root
-
-.test/smoke/scrcpy:
-	test_frame_ring.py - 
-		FUNCTION(S):
-			test_publish_advances_seq -> : test_publish_advances_seq
-			test_write_avoids_display_slot -> : test_write_avoids_display_slot
-		CONSTANTS(S)/GLOBAL(S)
-			_REPO_SRC -> : _repo_src
-	test_frame_ring_eviction.py - 
-		CLASSE(S):
-			_TimestampPacket -> : _timestamppacket
-		FUNCTION(S):
-			_publish -> : _publish
-			test_ring_evicts_oldest_twenty_percent_without_growing -> : test_ring_evicts_oldest_twenty_percent_without_growing
-			test_eviction_does_not_reuse_a_leased_slot -> : test_eviction_does_not_reuse_a_leased_slot
-			test_ring_waits_for_a_leased_slot_instead_of_dropping -> : test_ring_waits_for_a_leased_slot_instead_of_dropping
-			test_explicit_consumer_cursors_advance_independently -> : test_explicit_consumer_cursors_advance_independently
-			test_default_cursor_advances_only_for_default_next_calls -> : test_default_cursor_advances_only_for_default_next_calls
-			test_consumer_cursor_skips_evicted_timestamps -> : test_consumer_cursor_skips_evicted_timestamps
-			test_next_waits_for_a_future_publication -> : test_next_waits_for_a_future_publication
-			test_concurrent_default_next_calls_advance_serially -> : test_concurrent_default_next_calls_advance_serially
-			test_non_increasing_packet_timestamps_are_warned_and_skipped -> : test_non_increasing_packet_timestamps_are_warned_and_skipped
-	test_frame_ring_slot_lease.py - 
-		FUNCTION(S):
-			test_ring_slot_cannot_be_reused_while_leased -> : test_ring_slot_cannot_be_reused_while_leased
-			test_ring_slot_becomes_writable_after_free -> : test_ring_slot_becomes_writable_after_free
-	test_frame_slot.py - 
-		FUNCTION(S):
-			test_header_size_is_40 -> : test_header_size_is_40
-			test_pack_unpack_roundtrip -> : test_pack_unpack_roundtrip
-			test_bad_magic_raises -> : test_bad_magic_raises
-			test_ring_size_clamp -> : test_ring_size_clamp
-			test_pick_write_avoids_display -> : test_pick_write_avoids_display
-			test_next_ring_index -> : test_next_ring_index
-			test_should_skip_present -> : test_should_skip_present
-		CONSTANTS(S)/GLOBAL(S)
-			_REPO_SRC -> : _repo_src
-	test_scrcpy_bridge.py - 
-		CLASSE(S):
-			StubEmitter -> : stubemitter
-			FailingEmitter -> : failingemitter
-		FUNCTION(S):
-			_withEndpoints -> : _withendpoints
-			test_initialize_success_delivers_metadata -> : test_initialize_success_delivers_metadata
-			test_initialize_failure_delivers_error -> : test_initialize_failure_delivers_error
-			test_start_stop_reach_emitter -> : test_start_stop_reach_emitter
-			test_real_can_push_metadata_without_initialize -> : test_real_can_push_metadata_without_initialize
-		CONSTANTS(S)/GLOBAL(S)
-			_REPO_SRC -> : _repo_src
-
 config/emitter:
 	sizeBitrateMap.py - 
 
@@ -676,8 +520,6 @@ src:
 			program -> : program
 		CONSTANTS(S)/GLOBAL(S)
 			LOG_LEVEL -> : log_level
-			THIRD_PARTY_LOG_LEVEL -> : third_party_log_level
-			THIRD_PARTY_LOGGERS -> : third_party_loggers
 
 src/eNuts/application:
 	__applicationInformation.py - 
@@ -975,9 +817,13 @@ src/fluxCore/emitters:
 	__SCRCPYEmitter.py - 
 		CLASSE(S):
 			SCRCPYEmitter -> : scrcpyemitter
-	__clientWorker.py - 
+		CONSTANTS(S)/GLOBAL(S)
+			C_METADATA_TIMEOUT_S -> : c_metadata_timeout_s
+	__emitterWorkers.py - 
 		FUNCTION(S):
+			SCRCPYWorker -> : scrcpyworker
 			_clientWorker -> : _clientworker
+			echoWorker -> : echoworker
 	__helper.py - 
 		FUNCTION(S):
 			drainQueue -> : drainqueue
@@ -1923,6 +1769,15 @@ src/jAGQt/window/windowBase:
 		CLASSE(S):
 			WindowBase -> : windowbase
 
+src/TEST/smoke/emitters:
+	outOfProcessEmitter.py - 
+		FUNCTION(S):
+			_check -> : _check
+			program -> : program
+		CONSTANTS(S)/GLOBAL(S)
+			_FLOW -> : _flow
+			_FAILED -> : _failed
+
 src/utilities:
 	__asyncio.py - 
 		FUNCTION(S):
@@ -1950,6 +1805,8 @@ src/utilities:
 			StripAnsi -> : stripansi
 		CONSTANTS(S)/GLOBAL(S)
 			ANSI_RE -> : ansi_re
+			THIRD_PARTY_LOG_LEVEL -> : third_party_log_level
+			THIRD_PARTY_LOGGERS -> : third_party_loggers
 	__module.py - 
 		CLASSE(S):
 			launchModule -> : launchmodule
@@ -1986,53 +1843,71 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-c483129:
-	docs: update asset inventory with new timestamp and SCRCPY configuration changes
-		.docs/inventory.md
-
-57674bd:
-	refactor: restructure SCRCPY configuration and options handling
-		.docs/inventory.md
-		src/fluxCore/configurations/scrcpy/__SCRCPYConfig.py
-		src/fluxCore/emitters/__SCRCPYEmitter.py
-		src/fluxCore/emitters/__SCRCPYOptions.py
+6efcace:
+	refactor: remove obsolete test files and improve device initialization
+		src/.test/__configureTest.py
+		src/.test/smoke/emitters/test_opemitter_message_path.py -> src/TEST/smoke/emitters/outOfProcessEmitter.py
+		src/fluxCore/device/__device.py
+		src/fluxCore/emitters/__emitterWorkers.py
 		src/fluxCore/emitters/__outProcessEmitter.py
-		src/fluxCore/utilities/pyav/__pyAV.py
-		src/fluxCore/utilities/scrcpy/__scrcpy.py
-		src/fluxCore/utilities/scrcpy/__scrcpyConfig.py
+		src/main.py
 
-42d28b9:
-	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
-
-bf59334:
-	refactor: consolidate function parameters in _clientWorker definition and update docstring
-		src/fluxCore/emitters/__clientWorker.py
-
-de53ece:
-	docs: contract matches landed worker close and worker injection
-		.docs/fluxCore/emitters/outOfProcessEmitter.md
-
-6f52eef:
-	docs: requirements match the landed worker and queue split
-		.docs/fluxCore/emitters/requirement.md
-
-3ddba79:
-	docs: implementation matches the landed code
-		.docs/fluxCore/emitters/implementation.md
-
-efc5aba:
-	refactor: streamline parameter handling in outOfProcessEmitter methods
-		src/fluxCore/emitters/__outProcessEmitter.py
-
-3fd506c:
-	docs: enhance README with details on TRACE output configuration and file changes
+9edd774:
+	Refactor and remove obsolete tests; introduce SCRCPYWorker for out-of-process emission
+		.test/conftest.py
 		.test/fixtures/emitters/echoWorker.py
+		.test/fixtures/emitters/probe.py
 		.test/smoke/emitters/test_opemitter_message_path.py
-		README.md
+		.test/smoke/ipc/test_endpoint_bridge.py
+		.test/smoke/ipc/test_message_roundtrip.py
+		.test/smoke/policy/test_policy_forward_predict.py
+		.test/smoke/policy/test_policy_options_roundtrip.py
+		.test/smoke/policy/test_policy_persist.py
+		.test/smoke/scrcpy/test_frame_ring.py
+		.test/smoke/scrcpy/test_frame_ring_eviction.py
+		.test/smoke/scrcpy/test_frame_ring_slot_lease.py
+		.test/smoke/scrcpy/test_frame_slot.py
+		.test/smoke/scrcpy/test_scrcpy_bridge.py
+		src/.test/__configureTest.py
+		src/.test/smoke/emitters/test_opemitter_message_path.py
+		src/__monkeyPatch.py
+		src/fluxCore/emitters/__SCRCPYEmitter.py
+		src/fluxCore/emitters/__clientWorker.py -> src/fluxCore/emitters/__emitterWorkers.py
+		src/fluxCore/emitters/__outProcessEmitter.py
+		src/jAGFx/logging/filters/__namespaceFilter.py
+		src/main.py
+		src/utilities/__helpers.py
 
-0f98f46:
-	docs: update README to reflect changes in echoWorker and clarify queue handling
-		.test/fixtures/emitters/echoWorker.py
-		README.md
+f4cb500:
+	diag(scrcpy): cleanup=false max_size=1024; lengthen metadata timeout
+		src/fluxCore/emitters/__SCRCPYEmitter.py
+
+1b21161:
+	fix(scrcpy): always emit cleanup= and audio= in buildCommands
+		src/fluxCore/configurations/scrcpy/__SCRCPYConfig.py
+
+a3a6209:
+	diag(scrcpy): broader logcat + ps on metadata timeout
+		src/fluxCore/emitters/__SCRCPYEmitter.py
+
+e559005:
+	diag(scrcpy): dump logcat on metadata timeout; probe partial header bytes
+		src/fluxCore/emitters/__SCRCPYEmitter.py
+
+2bc96d8:
+	fix(scrcpy): always emit control=true|false in buildCommands
+		src/fluxCore/configurations/scrcpy/__SCRCPYConfig.py
+
+504b385:
+	fix(scrcpy): official videoâ†’controlâ†’header order; always pass control= flag
+		src/fluxCore/emitters/__SCRCPYEmitter.py
+
+a4090e2:
+	fix(scrcpy): open control after full metadata; control optional on meta path
+		src/fluxCore/emitters/__SCRCPYEmitter.py
+
+76d3d57:
+	docs(scrcpy): tunnel_forward dummy-before-control order
+		.docs/fluxCore/emitters/scrcpy/implementation.md
 
 ```
