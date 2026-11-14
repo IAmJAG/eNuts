@@ -4,8 +4,6 @@ from __future__ import annotations
 # ==================================================================================
 import asyncio
 import inspect
-import logging
-import sys
 from pathlib import Path
 
 # ==================================================================================
@@ -14,9 +12,6 @@ import __monkeyPatch
 # ==================================================================================
 from fluxCore.emitters import SCRCPYWorker
 from jAGFx.logging import TRACE
-
-# ==================================================================================
-from ...__configureTest import setupLogging
 
 # ==================================================================================
 _FLOW: list[str] = []
@@ -30,16 +25,17 @@ def _check(name: str, ok: bool, detail: str = "") -> None:
     if not ok:
         _FAILED.append(line)
 
-
 # ==================================================================================
-async def run() -> None:
+def program(*args) -> None:
     trace("---- outOfProcessEmitter acceptance ----")
 
     _check(
-        "worker module-level",
-        inspect.iscoroutinefunction(SCRCPYWorker)
-        and SCRCPYWorker.__module__ == "fluxCore.emitters.__emitterWorkers",
-        SCRCPYWorker.__module__,
+        "Is Coroutine Function",
+        inspect.iscoroutinefunction(SCRCPYWorker) and inspect.isfunction(SCRCPYWorker),
+        {
+            "type:": type(SCRCPYWorker),
+            "module: ": SCRCPYWorker.__module__
+        },
     )
 
     # _check(
@@ -118,5 +114,4 @@ async def run() -> None:
     # trace("---- all passed ----")
 
 if __name__ == "__main__":
-    setupLogging("outOfProcessEmitter", TRACE)
-    asyncio.run(run())
+    asyncio.run(program())

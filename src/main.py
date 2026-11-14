@@ -24,9 +24,9 @@ def _program(module: str, app: str, clean: bool = False, *args, **kwargs):
     try:
         moduleNS: str = f"{module}.{app}"
         addFileHandler(moduleNS, LOG_LEVEL)
-        
+
         lModule: launchModule = import_module(moduleNS)
-        lArguments: list[str] = RebuildArguments(argv[0], *args, **kwargs)
+        lArguments: list[str] = RebuildArguments(argv[0], *args, **kwargs)        
         lExitCode = lModule.program(lArguments)
         return lExitCode
 

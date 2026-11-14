@@ -72,8 +72,6 @@ async def echoWorker( clientId: str, shutdownEvent: syncEvent, inQueue: Queue, o
             except Empty:
                 continue
             
-            trace(f"FLOW  client {clientId} inbound got {msg!r}")
-
             reply = f"FROM {clientId}:{msg}"
 
             await to_thread(outQueue.put, reply)

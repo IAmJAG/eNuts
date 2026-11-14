@@ -13,18 +13,19 @@ from utilities import createTask
 
 # ==================================================================================
 from ..configurations.scrcpy import SCRCPYConfig
-from ..devices import SCRCPY
+from ..device import Device
 from .__emitterWorkers import SCRCPYWorker
 from .__helper import closeQueue
 
 
 # ==================================================================================
-class outOfProcessEmitter(AsyncProcess, SCRCPY):
+class outOfProcessEmitter(AsyncProcess, Device):
     def __init__(
-        self, serial: str, name: str | None = None, options: SCRCPYConfig | None = None,
-        worker: Callable[..., Awaitable] | None = None,
+        self, serial: str, 
+        name: Optional[str] = None, options: Optional[SCRCPYConfig] = None,
+        worker: Callable[..., Awaitable] = SCRCPYWorker,
     ) -> None:
-        SCRCPY.__init__(self, serial=serial, name=name)
+        Device.__init__(self, serial=serial, name=name)
         AsyncProcess.__init__(self, work=worker or SCRCPYWorker, name=name)
 
         # Parent -> one client. That client's inbound.
@@ -77,12 +78,15 @@ class outOfProcessEmitter(AsyncProcess, SCRCPY):
         self, clientId: str, shutdownEvent: syncEvent,
         clientQueue: Queue, sharedQueue: Queue,
     ) -> Process:
+
+        async def worker(clientId: str, shutdownEvent: syncEvent, clientQueue: Queue, sharedQueue: Queue) -> None:...
+        worker: Callable[..., Awaitable] = self._worker
+            
+        
         lProcess = Process(
             target=processEntry,
             args=(
-                self._worker,
-                (clientId, shutdownEvent, clientQueue, sharedQueue),
-                {},
+                worker, (clientId, shutdownEvent, clientQueue, sharedQueue), {},
             ),
             daemon=True,
             name=f"PROC_{clientId}",
@@ -92,8 +96,6 @@ class outOfProcessEmitter(AsyncProcess, SCRCPY):
         return lProcess
 
     def start(self, clientId: str) -> None:
-        get_running_loop()
-
         if clientId in self._processes:
             raise RuntimeError(f"Client '{clientId}' has already been started.")
 
