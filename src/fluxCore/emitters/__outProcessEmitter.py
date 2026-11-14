@@ -25,7 +25,7 @@ class outOfProcessEmitter(AsyncProcess, Device):
         name: Optional[str] = None, options: Optional[SCRCPYConfig] = None,
         worker: Callable[..., Awaitable] = SCRCPYWorker,
     ) -> None:
-        Device.__init__(self, serial=serial, name=name)
+        Device.__init__(self, ident=serial, name=name)
         AsyncProcess.__init__(self, work=worker or SCRCPYWorker, name=name)
 
         # Parent -> one client. That client's inbound.
@@ -80,7 +80,7 @@ class outOfProcessEmitter(AsyncProcess, Device):
     ) -> Process:
 
         async def worker(clientId: str, shutdownEvent: syncEvent, clientQueue: Queue, sharedQueue: Queue) -> None:...
-        worker: Callable[..., Awaitable] = self._worker
+        worker: Callable[..., Awaitable] = self._work
             
         
         lProcess = Process(
