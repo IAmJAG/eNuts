@@ -1,19 +1,17 @@
 # ==================================================================================
 """outOfProcessEmitter acceptance — message path via module-level echoWorker.
 
-Layout (src/TEST):
+Entry (same pattern as eNuts apps):
 
-    src/TEST/smoke/emitters/outOfProcessEmitter.py   ← this file
+    py .\src\main.py --module TEST --app smoke.emitters.outOfProcessEmitter
+
+main.py does import_module("TEST.smoke.emitters.outOfProcessEmitter") then
+calls program(args). Logging is already configured by main.
 
 Data flow (parent owns every queue):
 
     parent._outQueues[clientId]  →  that client's inbound  →  echoWorker
     echoWorker                   →  parent._inQueue (shared)  →  parent receiver
-
-Run from repo root:
-
-    set PYTHONPATH=src
-    python src/TEST/smoke/emitters/outOfProcessEmitter.py
 """
 # ==================================================================================
 from __future__ import annotations
@@ -21,19 +19,8 @@ from __future__ import annotations
 # ==================================================================================
 import asyncio
 import inspect
-import sys
-from pathlib import Path
 from queue import Empty
-from typing import Any, List, Optional
-
-# ==================================================================================
-# Allow `python src/TEST/smoke/emitters/outOfProcessEmitter.py` from repo root.
-_SRC = Path(__file__).resolve().parents[3]  # .../src
-if str(_SRC) not in sys.path:
-    sys.path.insert(0, str(_SRC))
-
-# ==================================================================================
-import __monkeyPatch  # noqa: E402, F401 — builtins.trace, setupLogging, createTask
+from typing import Any, List
 
 # ==================================================================================
 from asyncio import to_thread
@@ -43,7 +30,6 @@ from multiprocessing.synchronize import Event as syncEvent
 # ==================================================================================
 from fluxCore.emitters.__emitterWorkers import echoWorker
 from fluxCore.emitters.__outProcessEmitter import outOfProcessEmitter
-from jAGFx.logging import TRACE
 
 # ==================================================================================
 _FLOW: List[str] = []
@@ -111,7 +97,7 @@ def _checkNoLoop() -> None:
 
 
 # ==================================================================================
-async def program(*args) -> None:
+async def _run() -> None:
     trace("---- outOfProcessEmitter acceptance (echoWorker) ----")
 
     _check(
@@ -220,8 +206,20 @@ async def program(*args) -> None:
 
 
 # ==================================================================================
-if __name__ == "__main__":
-    # No-loop check must run before asyncio.run (a loop already exists inside).
-    setupLogging("outOfProcessEmitter", TRACE)
+def program(*args):
+    """Entry for main.py: --module TEST --app smoke.emitters.outOfProcessEmitter.
+
+    main already called setupLogging. No-loop check must run before asyncio.run.
+    """
     _checkNoLoop()
-    asyncio.run(program())
+    try:
+        asyncio.run(_run())
+        return 0
+    except AssertionError:
+        return 1
+
+
+# ==================================================================================
+if __name__ == "__main__":
+    # Direct script run still works when PYTHONPATH includes src.
+    raise SystemExit(program())
