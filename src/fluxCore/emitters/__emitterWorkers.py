@@ -16,7 +16,7 @@ from .__helper import asyncCloseQueue
 
 # ==================================================================================
 async def SCRCPYWorker(
-    clientId: str, shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queue,):    
+    clientId: str, shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queue,):
 
     device: AdbDevice = await to_thread(adb.device, serial=clientId)
     
@@ -83,4 +83,4 @@ async def echoWorker( clientId: str, shutdownEvent: syncEvent, inQueue: Queue, o
 
 
 # ==================================================================================
-__all__ = ["_clientWorker", "SCRCPYWorker"]
+__all__ = ["_clientWorker", "SCRCPYWorker", "echoWorker"]
