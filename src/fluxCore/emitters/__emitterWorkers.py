@@ -46,7 +46,9 @@ async def _clientWorker(
     Only the dedicated inbound is closed here. The parent closes the shared queue.
     """
     try:
-        while not shutdownEvent.is_set():
+        def isShuttingdown() -> bool: ...
+        isShuttingdown = shutdownEvent.is_set
+        while not isShuttingdown():
             try:
                 lMsg = await to_thread(inQueue.get, True, 0.1)
 

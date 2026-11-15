@@ -59,7 +59,7 @@ def logTaskException(done: Task) -> None:
 def createTask(func: Callable[..., Any], *args, **kwargs) -> Task:
     try:        
         loop: AbstractEventLoop = getRunningLoop()        
-        if loop is None: raise Exception("No running loop")
+        if loop is None: raise RuntimeError("No running loop")
 
         # for stub intellisense
         def runner(*args, **kwargs) -> Awaitable: ...

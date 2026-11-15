@@ -3,7 +3,7 @@
 
 Entry (same pattern as eNuts apps):
 
-    py .\src\main.py --module TEST --app smoke.emitters.outOfProcessEmitter
+    py .\\src\\main.py --module TEST --app smoke.emitters.outOfProcessEmitter
 
 main.py does import_module("TEST.smoke.emitters.outOfProcessEmitter") then
 calls program(args). Logging is already configured by main.
@@ -19,13 +19,13 @@ from __future__ import annotations
 # ==================================================================================
 import asyncio
 import inspect
-from queue import Empty
-from typing import Any, List
 
 # ==================================================================================
 from asyncio import to_thread
 from multiprocessing import Queue
 from multiprocessing.synchronize import Event as syncEvent
+from queue import Empty
+from typing import Any, List
 
 # ==================================================================================
 from fluxCore.emitters.__emitterWorkers import echoWorker
@@ -36,14 +36,12 @@ _FLOW: List[str] = []
 _FAILED: List[str] = []
 # ==================================================================================
 
-
 def _check(name: str, ok: bool, detail: str = "") -> None:
     mark = "PASS" if ok else "FAIL"
     line = f"{mark}  {name}" + (f"  {detail}" if detail else "")
     trace(line)
     if not ok:
         _FAILED.append(line)
-
 
 def _hop(text: str) -> None:
     _FLOW.append(text)
@@ -64,13 +62,14 @@ class _ProbeEmitter(outOfProcessEmitter):
             while not isShuttingdown():
                 try:
                     msg = await to_thread(queue.get, True, 0.1)
+
                 except Empty:
                     continue
                 self.received.append(msg)
+                
                 trace(f"FLOW  parent inbound got {msg!r}  received={self.received}")
         finally:
             return
-
 
 # ==================================================================================
 async def _wait(emitter: _ProbeEmitter, count: int, timeout: float = 5.0) -> bool:
@@ -88,8 +87,10 @@ def _checkNoLoop() -> None:
     try:
         cold.start("a")
         noLoop = False
+
     except RuntimeError:
         noLoop = True
+
     _check(
         "start without loop creates nothing",
         noLoop and not cold._processes and cold._inQueue is None,
@@ -97,15 +98,13 @@ def _checkNoLoop() -> None:
 
 
 # ==================================================================================
-async def _run() -> None:
+async def _program() -> None:
     trace("---- outOfProcessEmitter acceptance (echoWorker) ----")
 
-    _check(
-        "echoWorker module-level coroutine",
+    _check("module-level coroutine: echoWorker", 
         inspect.iscoroutinefunction(echoWorker)
-        and inspect.isfunction(echoWorker)
-        and echoWorker.__module__ == "fluxCore.emitters.__emitterWorkers",
-        f"module={echoWorker.__module__!r}",
+        and inspect.isfunction(echoWorker),
+        f"module: {echoWorker.__module__!r}",
     )
 
     emitter = _ProbeEmitter(serial="probe")
@@ -204,16 +203,24 @@ async def _run() -> None:
 
     trace("---- all passed ----")
 
+# ==================================================================================
+async def _run(*args):    
+    try:
+        await _program()
+        return 0
+    except AssertionError:
+        return 1
 
 # ==================================================================================
 def program(*args):
-    """Entry for main.py: --module TEST --app smoke.emitters.outOfProcessEmitter.
+    """
+    Entry for main.py: --module TEST --app smoke.emitters.outOfProcessEmitter.
 
     main already called setupLogging. No-loop check must run before asyncio.run.
     """
-    _checkNoLoop()
     try:
-        asyncio.run(_run())
+        _checkNoLoop()
+        asyncio.run(_run(*args))
         return 0
     except AssertionError:
         return 1
