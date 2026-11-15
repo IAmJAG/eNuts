@@ -28,8 +28,8 @@ from queue import Empty
 from typing import Any, List
 
 # ==================================================================================
-from fluxCore.emitters.__emitterWorkers import echoWorker
-from fluxCore.emitters.__outProcessEmitter import outOfProcessEmitter
+from jAGFx.IPC.__emitterWorkers import echoWorker
+from jAGFx.IPC.__outProcessEmitter import outOfProcessEmitter
 
 # ==================================================================================
 _FLOW: List[str] = []

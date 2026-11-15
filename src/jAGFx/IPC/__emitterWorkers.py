@@ -16,7 +16,10 @@ from .__helper import asyncCloseQueue
 
 # ==================================================================================
 async def SCRCPYWorker(
-    clientId: str, shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queue,):
+    clientId: str,
+    shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queue, 
+    *args, **kwargs
+):
 
     device: AdbDevice = await to_thread(adb.device, serial=clientId)
     
@@ -35,8 +38,10 @@ async def SCRCPYWorker(
 
 # ==================================================================================
 async def _clientWorker(
-    clientId: str, shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queue,
-) -> None:
+    clientId: str,
+    shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queue, 
+    *args, **kwargs
+):
     """
     DEFAULT/DUMMY client worker. Must implement worker the do the real work.
     Read this client's inbound queue. Write the shared outbound queue.
@@ -61,7 +66,11 @@ async def _clientWorker(
         await asyncCloseQueue(inQueue)
 
 # ==================================================================================
-async def echoWorker( clientId: str, shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queue,) -> None:
+async def echoWorker(
+    clientId: str,
+    shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queue, 
+    *args, **kwargs
+):
     trace(f"FLOW  client {clientId} worker started")
     try:
         def isShuttingdown() -> bool: ...

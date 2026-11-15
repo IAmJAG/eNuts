@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-14 11:16:07 UTC*
+*Auto-generated on: 2026-11-15 02:59:24 UTC*
 
 ## Current Directory Structure
 
@@ -177,10 +177,7 @@ eNuts/
 │   │   ├── devices/
 │   │   │   └── __scrcpy.py
 │   │   ├── emitters/
-│   │   │   ├── __SCRCPYEmitter.py
-│   │   │   ├── __emitterWorkers.py
-│   │   │   ├── __helper.py
-│   │   │   └── __outProcessEmitter.py
+│   │   │   └── __SCRCPYEmitter.py
 │   │   ├── geometry/
 │   │   │   ├── __circle.py
 │   │   │   ├── __point.py
@@ -272,8 +269,11 @@ eNuts/
 │   │   ├── IPC/
 │   │   │   ├── __IOQueue.py
 │   │   │   ├── __bridge.py
+│   │   │   ├── __emitterWorkers.py
 │   │   │   ├── __endpoint.py
+│   │   │   ├── __helper.py
 │   │   │   ├── __message.py
+│   │   │   ├── __outProcessEmitter.py
 │   │   │   ├── __overload.py
 │   │   │   └── control/
 │   │   │       ├── __bridge.py
@@ -819,20 +819,6 @@ src/fluxCore/emitters:
 			SCRCPYEmitter -> : scrcpyemitter
 		CONSTANTS(S)/GLOBAL(S)
 			C_METADATA_TIMEOUT_S -> : c_metadata_timeout_s
-	__emitterWorkers.py - 
-		FUNCTION(S):
-			SCRCPYWorker -> : scrcpyworker
-			_clientWorker -> : _clientworker
-			echoWorker -> : echoworker
-	__helper.py - 
-		FUNCTION(S):
-			drainQueue -> : drainqueue
-			asyncDrainQueue -> : asyncdrainqueue
-			closeQueue -> : closequeue
-			asyncCloseQueue -> : asyncclosequeue
-	__outProcessEmitter.py - 
-		CLASSE(S):
-			outOfProcessEmitter -> : outofprocessemitter
 
 src/fluxCore/geometry:
 	__circle.py - 
@@ -1195,12 +1181,26 @@ src/jAGFx/IPC:
 			Bridge -> : bridge
 		CONSTANTS(S)/GLOBAL(S)
 			MessageProcessor -> : messageprocessor
+	__emitterWorkers.py - 
+		FUNCTION(S):
+			SCRCPYWorker -> : scrcpyworker
+			_clientWorker -> : _clientworker
+			echoWorker -> : echoworker
 	__endpoint.py - 
 		CLASSE(S):
 			Endpoint -> : endpoint
+	__helper.py - 
+		FUNCTION(S):
+			drainQueue -> : drainqueue
+			asyncDrainQueue -> : asyncdrainqueue
+			closeQueue -> : closequeue
+			asyncCloseQueue -> : asyncclosequeue
 	__message.py - 
 		CLASSE(S):
 			Message -> : message
+	__outProcessEmitter.py - 
+		CLASSE(S):
+			outOfProcessEmitter -> : outofprocessemitter
 	__overload.py - 
 		CLASSE(S):
 			OverloadPolicy -> : overloadpolicy
@@ -1771,8 +1771,15 @@ src/jAGQt/window/windowBase:
 
 src/TEST/smoke/emitters:
 	outOfProcessEmitter.py - 
+		CLASSE(S):
+			_ProbeEmitter -> : _probeemitter
 		FUNCTION(S):
 			_check -> : _check
+			_hop -> : _hop
+			_wait -> : _wait
+			_checkNoLoop -> : _checknoloop
+			_program -> : _program
+			_run -> : _run
 			program -> : program
 		CONSTANTS(S)/GLOBAL(S)
 			_FLOW -> : _flow
@@ -1843,6 +1850,41 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+fe1d707:
+	fix: improve shutdown handling in _clientWorker and enhance error reporting in createTask
+		src/TEST/smoke/emitters/outOfProcessEmitter.py
+		src/fluxCore/emitters/__emitterWorkers.py
+		src/utilities/__asyncio.py
+
+ff5e887:
+	fix(outOfProcessEmitter): update Device initialization parameters and correct worker reference
+		src/fluxCore/emitters/__outProcessEmitter.py
+
+1780015:
+	test(emitters): align outOfProcessEmitter with main.py program entry
+		src/TEST/smoke/emitters/outOfProcessEmitter.py
+
+58451c1:
+	test: package marker for TEST.smoke.emitters
+
+3abc8b7:
+	test: package marker for TEST.smoke
+
+b917c4d:
+	test: package marker for TEST module entry via main.py
+
+f6394cb:
+	chore(emitters): export echoWorker from __emitterWorkers
+		src/fluxCore/emitters/__emitterWorkers.py
+
+833c856:
+	test(emitters): outOfProcessEmitter acceptance with echoWorker data-flow trace
+		src/TEST/smoke/emitters/outOfProcessEmitter.py
+
+bab1360:
+	docs: update asset inventory with new timestamp and restructure test directory
+		.docs/inventory.md
+
 6efcace:
 	refactor: remove obsolete test files and improve device initialization
 		src/.test/__configureTest.py
@@ -1851,63 +1893,5 @@ src/utilities/io:
 		src/fluxCore/emitters/__emitterWorkers.py
 		src/fluxCore/emitters/__outProcessEmitter.py
 		src/main.py
-
-9edd774:
-	Refactor and remove obsolete tests; introduce SCRCPYWorker for out-of-process emission
-		.test/conftest.py
-		.test/fixtures/emitters/echoWorker.py
-		.test/fixtures/emitters/probe.py
-		.test/smoke/emitters/test_opemitter_message_path.py
-		.test/smoke/ipc/test_endpoint_bridge.py
-		.test/smoke/ipc/test_message_roundtrip.py
-		.test/smoke/policy/test_policy_forward_predict.py
-		.test/smoke/policy/test_policy_options_roundtrip.py
-		.test/smoke/policy/test_policy_persist.py
-		.test/smoke/scrcpy/test_frame_ring.py
-		.test/smoke/scrcpy/test_frame_ring_eviction.py
-		.test/smoke/scrcpy/test_frame_ring_slot_lease.py
-		.test/smoke/scrcpy/test_frame_slot.py
-		.test/smoke/scrcpy/test_scrcpy_bridge.py
-		src/.test/__configureTest.py
-		src/.test/smoke/emitters/test_opemitter_message_path.py
-		src/__monkeyPatch.py
-		src/fluxCore/emitters/__SCRCPYEmitter.py
-		src/fluxCore/emitters/__clientWorker.py -> src/fluxCore/emitters/__emitterWorkers.py
-		src/fluxCore/emitters/__outProcessEmitter.py
-		src/jAGFx/logging/filters/__namespaceFilter.py
-		src/main.py
-		src/utilities/__helpers.py
-
-f4cb500:
-	diag(scrcpy): cleanup=false max_size=1024; lengthen metadata timeout
-		src/fluxCore/emitters/__SCRCPYEmitter.py
-
-1b21161:
-	fix(scrcpy): always emit cleanup= and audio= in buildCommands
-		src/fluxCore/configurations/scrcpy/__SCRCPYConfig.py
-
-a3a6209:
-	diag(scrcpy): broader logcat + ps on metadata timeout
-		src/fluxCore/emitters/__SCRCPYEmitter.py
-
-e559005:
-	diag(scrcpy): dump logcat on metadata timeout; probe partial header bytes
-		src/fluxCore/emitters/__SCRCPYEmitter.py
-
-2bc96d8:
-	fix(scrcpy): always emit control=true|false in buildCommands
-		src/fluxCore/configurations/scrcpy/__SCRCPYConfig.py
-
-504b385:
-	fix(scrcpy): official videoâ†’controlâ†’header order; always pass control= flag
-		src/fluxCore/emitters/__SCRCPYEmitter.py
-
-a4090e2:
-	fix(scrcpy): open control after full metadata; control optional on meta path
-		src/fluxCore/emitters/__SCRCPYEmitter.py
-
-76d3d57:
-	docs(scrcpy): tunnel_forward dummy-before-control order
-		.docs/fluxCore/emitters/scrcpy/implementation.md
 
 ```

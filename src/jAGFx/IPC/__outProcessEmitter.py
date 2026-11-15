@@ -12,8 +12,8 @@ from jAGFx.services import C_DEFAULT_STOP_TIMEOUT, AsyncProcess, processEntry
 from utilities import createTask
 
 # ==================================================================================
-from ..configurations.scrcpy import SCRCPYConfig
-from ..device import Device
+from ...fluxCore.configurations.scrcpy import SCRCPYConfig
+from ...fluxCore.device import Device
 from .__emitterWorkers import SCRCPYWorker
 from .__helper import closeQueue
 
@@ -80,8 +80,7 @@ class outOfProcessEmitter(AsyncProcess, Device):
     ) -> Process:
 
         async def worker(clientId: str, shutdownEvent: syncEvent, clientQueue: Queue, sharedQueue: Queue) -> None:...
-        worker: Callable[..., Awaitable] = self._work
-            
+        worker: Callable[..., Awaitable] = self._work            
         
         lProcess = Process(
             target=processEntry,
