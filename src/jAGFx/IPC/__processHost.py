@@ -101,6 +101,14 @@ class ProcessHost(AsyncProcess):
         shutdownEvent: Optional[syncEvent] = self._shutdownEvent
         sharedQueue: Optional[Queue] = self._inQueue
 
+        if shutdownEvent is None:
+            shutdownEvent = Event()
+            self._shutdownEvent = shutdownEvent
+
+        if sharedQueue is None:
+            sharedQueue = Queue()
+            self._inQueue = sharedQueue
+
         try:
             if self._receiverTask is None:
                 self._receiverTask = createTask(
@@ -122,14 +130,6 @@ class ProcessHost(AsyncProcess):
             self._inQueue = None
             self._shutdownEvent = None
             raise
-
-        if shutdownEvent is None:
-            shutdownEvent = Event()
-            self._shutdownEvent = shutdownEvent
-
-        if sharedQueue is None:
-            sharedQueue = Queue()
-            self._inQueue = sharedQueue
 
         clientQueue = Queue()
 
