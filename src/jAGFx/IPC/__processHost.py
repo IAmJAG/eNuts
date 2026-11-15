@@ -12,26 +12,22 @@ from jAGFx.services import C_DEFAULT_STOP_TIMEOUT, AsyncProcess, processEntry
 from utilities import createTask
 
 # ==================================================================================
-from .__helper import closeQueue
-from .__workers import _clientWorker
+from .__helper import asyncDrainQueue, closeQueue, drainQueue
+from .__workers import clientWorker
 
 
 # ==================================================================================
 class ProcessHost(AsyncProcess):
     """
     Parent-side host for named out-of-process workers.
-
-    Owns one dedicated outbound queue per client, one shared inbound queue,
-    a receiver task, and the child processes. Domain-specific work is supplied
-    as a module-level coroutine via `worker=`.
+        Owns one dedicated outbound queue per client, one shared inbound queue,
+        a receiver task, and the child processes. Domain-specific work is supplied
+        as a module-level coroutine via `worker=`.
     """
-
     def __init__(
-        self,
-        name: Optional[str] = None,
-        worker: Callable[..., Awaitable] = _clientWorker,
+        self, name: Optional[str] = None, worker: Optional[Callable[..., Awaitable]] = None,
     ) -> None:
-        AsyncProcess.__init__(self, work=worker or _clientWorker, name=name)
+        AsyncProcess.__init__(self, work=worker or clientWorker, name=name)
 
         # Parent -> one client. That client's inbound.
         self._outQueues: Dict[str, Queue] = {}
@@ -81,23 +77,18 @@ class ProcessHost(AsyncProcess):
             self.raiseEvent("ON_STOPPED")
 
     def _startProcess(
-        self,
-        clientId: str,
-        shutdownEvent: syncEvent,
-        clientQueue: Queue,
-        sharedQueue: Queue,
+        self, clientId: str, shutdownEvent: syncEvent,
+        clientQueue: Queue, sharedQueue: Queue,
     ) -> Process:
         worker: Callable[..., Awaitable] = self._work
 
         lProcess = Process(
             target=processEntry,
             args=(
-                worker,
-                (clientId, shutdownEvent, clientQueue, sharedQueue),
+                worker, (clientId, shutdownEvent, clientQueue, sharedQueue),
                 {},
             ),
-            daemon=True,
-            name=f"PROC_{clientId}",
+            daemon=True, name=f"PROC_{clientId}",
         )
         lProcess.start()
         self._processes[clientId] = lProcess
@@ -109,6 +100,28 @@ class ProcessHost(AsyncProcess):
 
         shutdownEvent: Optional[syncEvent] = self._shutdownEvent
         sharedQueue: Optional[Queue] = self._inQueue
+
+        try:
+            if self._receiverTask is None:
+                self._receiverTask = createTask(
+                    self._receiver, shutdownEvent, sharedQueue
+                )
+
+        except Exception:
+            if self._receiverTask is not None and not self._receiverTask.done():
+                self._receiverTask.cancel()
+
+            self._receiverTask = None
+
+            drainQueue(sharedQueue)
+            closeQueue(sharedQueue)
+
+            if self._shutdownEvent is not None and not self._shutdownEvent.is_set():
+                self._shutdownEvent.set()
+
+            self._inQueue = None
+            self._shutdownEvent = None
+            raise
 
         if shutdownEvent is None:
             shutdownEvent = Event()
@@ -123,12 +136,7 @@ class ProcessHost(AsyncProcess):
         try:
             self._startProcess(clientId, shutdownEvent, clientQueue, sharedQueue)
             self._outQueues[clientId] = clientQueue
-
-            if self._receiverTask is None:
-                self._receiverTask = createTask(
-                    self._receiver, shutdownEvent, sharedQueue
-                )
-
+            
         except Exception:
             closeQueue(clientQueue)
 
@@ -143,19 +151,12 @@ class ProcessHost(AsyncProcess):
                 if self._receiverTask is not None and not self._receiverTask.done():
                     self._receiverTask.cancel()
 
-                self._receiverTask = None
-
-                closeQueue(sharedQueue)
-                self._inQueue = None
-                self._shutdownEvent = None
-
             raise
 
     def stop(
         self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False
     ) -> None:
-        if self._stopTask is not None and not self._stopTask.done():
-            return
+        if self._stopTask is not None and not self._stopTask.done(): return
 
         try:
             lLoop = get_running_loop()
@@ -232,8 +233,7 @@ class ProcessHost(AsyncProcess):
             task.get_loop().call_exception_handler(
                 {
                     "message": f"ProcessHost '{self.name}' stopAsync failed",
-                    "exception": ex,
-                    "task": task,
+                    "exception": ex, "task": task,
                 }
             )
 
@@ -280,7 +280,6 @@ class ProcessHost(AsyncProcess):
         lQueue = self._outQueues.get(clientId)
         if lQueue is not None:
             await to_thread(lQueue.put, msg)
-
 
 # ==================================================================================
 __all__ = ["ProcessHost"]

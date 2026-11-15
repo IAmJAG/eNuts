@@ -20,7 +20,6 @@ DEVICE_INITIALIZED_EVENT: str = "deviceManager.deviceInitialized"
 POLL_INTERVAL: float = 2.0
 # ==================================================================================
 
-
 # ==================================================================================
 class DeviceManager(iDeviceManager, AsyncSubscription):
     def __init__(self, shutdownEvent: Event, *args, **kwargs) -> None:
@@ -131,6 +130,7 @@ class DeviceManager(iDeviceManager, AsyncSubscription):
         return None
 
     async def _discovery(self) -> None:
+        def isShuttingDown() -> bool: ...
         isShuttingDown = self._shutdownEvent.is_set
 
         async def _getDevices() -> Dict[str, iDevice]:
@@ -154,7 +154,7 @@ class DeviceManager(iDeviceManager, AsyncSubscription):
         verbose(f"INITIALIZED stored={len(self._devices)} ids={list(self._devices.keys())}")
 
         while not isShuttingDown():
-            devices: Dict[iDevice] = await _getDevices()            
+            devices: Dict[iDevice] = await _getDevices()
 
             curIds = set(devices.keys())
             oldIds = set(self._devices.keys())

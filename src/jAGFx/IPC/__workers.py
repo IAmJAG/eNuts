@@ -40,13 +40,10 @@ async def SCRCPYWorker(
 
 
 # ==================================================================================
-async def _clientWorker(
-    clientId: str,
-    shutdownEvent: syncEvent,
-    inQueue: Queue,
-    outQueue: Queue,
-    *args,
-    **kwargs,
+async def clientWorker(
+    clientId: str, shutdownEvent: syncEvent, 
+    inQueue: Queue, outQueue: Queue,
+    *args, **kwargs,
 ):
     """
     DEFAULT/DUMMY client worker. Replace with a real module-level worker.

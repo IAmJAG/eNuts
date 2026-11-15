@@ -33,20 +33,19 @@ async def main(app: eNutsApplication, *args, **kwargs):
         await app.asyncSetStyeSheet(cfg.theme)
 
         shutdownEvent: asyncEvent = asyncEvent()
-        verbose("[main] creating ENUTSWindow")
+        verbose("creating ENUTSWindow")
         win: ENUTSWindow = ENUTSWindow(shutdownEvent, cfg)
-        verbose("[main] ENUTSWindow created; showing")
+        verbose("ENUTSWindow created; showing")
         win.show()
 
-        await shutdownEvent.wait()
+        try:
+            await shutdownEvent.wait()
 
-    except CancelledError:
-        verbose("[main] CancelledError; shutting down")
+        except CancelledError:
+            verbose("Shutdown initiated.")
 
     except Exception as ex:
-        error(f"[{__name__}] Error occur {str(ex)}", ex)
-        error(f"[{__name__}] traceback:\n{format_exc()}")
-        raise
+        error("Error occur", ex)
 
     finally:
         app.quit()

@@ -7,7 +7,7 @@ from sys import argv
 import __monkeyPatch
 
 # ==================================================================================================
-from jAGFx.logging import TRACE, suppressedLogger
+from jAGFx.logging import TRACE, VERBOSE, suppressedLogger
 from utilities import (
     THIRD_PARTY_LOG_LEVEL,
     THIRD_PARTY_LOGGERS,
@@ -15,7 +15,7 @@ from utilities import (
 )
 
 # ==================================================================================================
-LOG_LEVEL = TRACE
+LOG_LEVEL = VERBOSE
 # ==================================================================================================
 
 

@@ -22,7 +22,7 @@ async def asyncDrainQueue(queue: Queue) -> None:
 def closeQueue(queue: Optional[Queue]) -> None:
     if queue is None: return
 
-    try:
+    try:        
         queue.close()
         queue.cancel_join_thread()
 
