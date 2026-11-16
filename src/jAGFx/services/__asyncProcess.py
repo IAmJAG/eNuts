@@ -14,7 +14,7 @@ from jAGFx.names import getRandomName
 
 # ==================================================================================
 from ..types.interface.services import iService
-from .__subscription import AsyncSubscription
+from .__subscription import Subscription
 
 # ==================================================================================
 C_DEFAULT_STOP_TIMEOUT: float = 3.0
@@ -32,7 +32,7 @@ def processEntry(func: Callable[..., Awaitable], args, kwargs) -> None:
     asyncioRun(_runner())
 
 # ==================================================================================
-class AsyncProcess(AsyncSubscription, iService):
+class AsyncProcess(Subscription, iService):
     def __init__(self, work: Callable[..., Awaitable], name: str | None = None) -> None:
         super().__init__()
         if work is None or not iscoroutinefunction(work):
