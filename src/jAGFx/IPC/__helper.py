@@ -15,8 +15,8 @@ def drainQueue(queue: Queue) -> None:
             break
 
 # ==================================================================================
-async def asyncDrainQueue(queue: Queue) -> None:
-    await to_thread(drainQueue, queue)
+async def asyncDrainQueue(queue: Queue) -> None:    
+    createTask(drainQueue, queue)
 
 # ==================================================================================
 def closeQueue(queue: Optional[Queue]) -> None:
@@ -31,4 +31,4 @@ def closeQueue(queue: Optional[Queue]) -> None:
 
 # ==================================================================================
 async def asyncCloseQueue(queue: Optional[Queue]) -> None:
-    await to_thread(closeQueue, queue)
+    await createTask(closeQueue, queue)

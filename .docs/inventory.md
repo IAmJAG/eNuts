@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-15 02:59:24 UTC*
+*Auto-generated on: 2026-11-16 02:25:30 UTC*
 
 ## Current Directory Structure
 
@@ -76,8 +76,9 @@ eNuts/
 ├── src/
 │   ├── TEST/
 │   │   └── smoke/
-│   │       └── emitters/
-│   │           └── outOfProcessEmitter.py
+│   │       ├── emitters/
+│   │       └── ipc/
+│   │           └── processHost.py
 │   ├── __monkeyPatch.py
 │   ├── eNuts/
 │   │   ├── .ff
@@ -119,7 +120,8 @@ eNuts/
 │   │   │   └── __information.py
 │   │   ├── services/
 │   │   │   ├── device/
-│   │   │   │   └── __deviceManager.py
+│   │   │   │   ├── __deviceManager.py
+│   │   │   │   └── __deviceMngr.py
 │   │   │   └── recorder/
 │   │   │       └── __kgRecorderService.py
 │   │   ├── types/
@@ -269,12 +271,12 @@ eNuts/
 │   │   ├── IPC/
 │   │   │   ├── __IOQueue.py
 │   │   │   ├── __bridge.py
-│   │   │   ├── __emitterWorkers.py
 │   │   │   ├── __endpoint.py
 │   │   │   ├── __helper.py
 │   │   │   ├── __message.py
-│   │   │   ├── __outProcessEmitter.py
 │   │   │   ├── __overload.py
+│   │   │   ├── __processHost.py
+│   │   │   ├── __workers.py
 │   │   │   └── control/
 │   │   │       ├── __bridge.py
 │   │   │       └── __messages.py
@@ -584,6 +586,9 @@ src/eNuts/services/device:
 			DEVICE_REMOVED_EVENT -> : device_removed_event
 			DEVICE_INITIALIZED_EVENT -> : device_initialized_event
 			POLL_INTERVAL -> : poll_interval
+	__deviceMngr.py - 
+		FUNCTION(S):
+			DeviceWatcher -> : devicewatcher
 
 src/eNuts/services/recorder:
 	__kgRecorderService.py - 
@@ -1181,11 +1186,6 @@ src/jAGFx/IPC:
 			Bridge -> : bridge
 		CONSTANTS(S)/GLOBAL(S)
 			MessageProcessor -> : messageprocessor
-	__emitterWorkers.py - 
-		FUNCTION(S):
-			SCRCPYWorker -> : scrcpyworker
-			_clientWorker -> : _clientworker
-			echoWorker -> : echoworker
 	__endpoint.py - 
 		CLASSE(S):
 			Endpoint -> : endpoint
@@ -1198,12 +1198,17 @@ src/jAGFx/IPC:
 	__message.py - 
 		CLASSE(S):
 			Message -> : message
-	__outProcessEmitter.py - 
-		CLASSE(S):
-			outOfProcessEmitter -> : outofprocessemitter
 	__overload.py - 
 		CLASSE(S):
 			OverloadPolicy -> : overloadpolicy
+	__processHost.py - 
+		CLASSE(S):
+			ProcessHost -> : processhost
+	__workers.py - 
+		FUNCTION(S):
+			SCRCPYWorker -> : scrcpyworker
+			clientWorker -> : clientworker
+			echoWorker -> : echoworker
 
 src/jAGFx/IPC/control:
 	__bridge.py - 
@@ -1328,7 +1333,6 @@ src/jAGFx/services:
 	__subscription.py - 
 		CLASSE(S):
 			Subscription -> : subscription
-			AsyncSubscription -> : asyncsubscription
 
 src/jAGFx/singleton:
 	__singleton.py - 
@@ -1769,10 +1773,10 @@ src/jAGQt/window/windowBase:
 		CLASSE(S):
 			WindowBase -> : windowbase
 
-src/TEST/smoke/emitters:
-	outOfProcessEmitter.py - 
+src/TEST/smoke/ipc:
+	processHost.py - 
 		CLASSE(S):
-			_ProbeEmitter -> : _probeemitter
+			_ProbeHost -> : _probehost
 		FUNCTION(S):
 			_check -> : _check
 			_hop -> : _hop
@@ -1850,48 +1854,50 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-fe1d707:
-	fix: improve shutdown handling in _clientWorker and enhance error reporting in createTask
-		src/TEST/smoke/emitters/outOfProcessEmitter.py
-		src/fluxCore/emitters/__emitterWorkers.py
-		src/utilities/__asyncio.py
+3894386:
+	feat: add RevolvingRubikSpinner class for 3D Rubik's Cube animation; initialize constants and rendering logic
+		src/jAGFx/IPC/__processHost.py
 
-ff5e887:
-	fix(outOfProcessEmitter): update Device initialization parameters and correct worker reference
-		src/fluxCore/emitters/__outProcessEmitter.py
+1a56522:
+	docs: refresh ProcessHost mental model to match current ProcessHost
+		.docs/jAGFx/IPC/processHost.md
 
-1780015:
-	test(emitters): align outOfProcessEmitter with main.py program entry
-		src/TEST/smoke/emitters/outOfProcessEmitter.py
-
-58451c1:
-	test: package marker for TEST.smoke.emitters
-
-3abc8b7:
-	test: package marker for TEST.smoke
-
-b917c4d:
-	test: package marker for TEST module entry via main.py
-
-f6394cb:
-	chore(emitters): export echoWorker from __emitterWorkers
-		src/fluxCore/emitters/__emitterWorkers.py
-
-833c856:
-	test(emitters): outOfProcessEmitter acceptance with echoWorker data-flow trace
-		src/TEST/smoke/emitters/outOfProcessEmitter.py
-
-bab1360:
-	docs: update asset inventory with new timestamp and restructure test directory
-		.docs/inventory.md
-
-6efcace:
-	refactor: remove obsolete test files and improve device initialization
-		src/.test/__configureTest.py
-		src/.test/smoke/emitters/test_opemitter_message_path.py -> src/TEST/smoke/emitters/outOfProcessEmitter.py
-		src/fluxCore/device/__device.py
-		src/fluxCore/emitters/__emitterWorkers.py
-		src/fluxCore/emitters/__outProcessEmitter.py
+65de4f9:
+	refactor: improve logging and error handling in main application flow; update worker function names for consistency feat: add DeviceWatcher for managing device communication
+		src/eNuts/apps/main.py
+		src/eNuts/services/device/__deviceManager.py
+		src/eNuts/services/device/__deviceMngr.py
+		src/jAGFx/IPC/__helper.py
+		src/jAGFx/IPC/__message.py
+		src/jAGFx/IPC/__processHost.py
+		src/jAGFx/IPC/__workers.py
 		src/main.py
+
+af6eaa2:
+	docs: point outOfProcessEmitter to jAGFx.IPC.ProcessHost
+		.docs/fluxCore/emitters/outOfProcessEmitter.md
+
+469751f:
+	docs: ProcessHost contract (moved from fluxCore.emitters.outOfProcessEmitter)
+		.docs/jAGFx/IPC/processHost.md
+
+7fa7df7:
+	TEST: remove empty smoke.emitters package
+
+01fc8db:
+	jAGFx.IPC: remove __emitterWorkers (replaced by __workers)
+		src/jAGFx/IPC/__emitterWorkers.py
+
+5983ab8:
+	TEST: remove smoke.emitters.outOfProcessEmitter (moved to smoke.ipc.processHost)
+		src/TEST/smoke/emitters/outOfProcessEmitter.py
+
+1b86141:
+	jAGFx.IPC: remove __outProcessEmitter (replaced by ProcessHost)
+		src/jAGFx/IPC/__outProcessEmitter.py
+
+6acdb4c:
+	TEST.smoke.ipc: ProcessHost acceptance (moved from smoke.emitters)
+		src/TEST/smoke/ipc/processHost.py
 
 ```

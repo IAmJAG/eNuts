@@ -1,6 +1,7 @@
 # ==================================================================================
+from asyncio import to_thread
 from inspect import iscoroutinefunction
-from typing import Awaitable, Callable, Dict, List
+from typing import Callable, Dict, List
 
 # ==================================================================================
 from ..types.interface.services import iSubscription
@@ -26,59 +27,31 @@ class Subscription(iSubscription):
         if event in self._callbacks:
             if callback in self._callbacks[event]:
                 self._callbacks[event].remove(callback)
+
             if not self._callbacks[event]:
                 del self._callbacks[event]
 
-    def raiseEvent(self, event: str, *args, **kwargs) -> None:
+    def raiseEvent(self, event: str, nonBlocking: bool = False, *args, **kwargs) -> None: 
+        if event not in self._callbacks: return
         if self._suppressEvent: return
+
+        async def _asyncRunner(_callback: Callable, *_args, **_kwargs) -> None:
+            if nonBlocking:
+                return await to_thread(_callback, *_args, **_kwargs)
+
+            if iscoroutinefunction(callback):
+                # createTask is available globally via __monkeyPatch
+                return createTask(callback, *args, **kwargs)
+
+            else:
+                callback(*args, **kwargs)
+
         if event in self._callbacks:
             for callback in self._callbacks[event]:
-                callback(*args, **kwargs)
+                createTask(_asyncRunner, callback, *args, **kwargs)
 
     def setSuppressEvent(self, value: bool = True) -> None:
         self._suppressEvent = value
 
-
 # ==================================================================================
-class AsyncSubscription(Subscription):
-    def __init__(self) -> None:
-        super().__init__()        
-
-    def subscribe(self, event: str, callback: Callable[..., Awaitable]) -> None:
-        super().subscribe(event, callback)
-
-    def unsubscribe(self, event: str, callback: Callable[..., Awaitable]) -> None:
-        super().unsubscribe(event, callback)
-
-    def raiseEvent(self, event: str, *args, **kwargs) -> None:
-        if event not in self._callbacks: return        
-        if self._suppressEvent: return
-
-        for callback in self._callbacks[event]:
-            if not callable(callback):
-                raise TypeError(f"Callback for event '{event}' is not callable.")
-
-            if iscoroutinefunction(callback):
-                # createTask is available globally via __monkeyPatch
-                createTask(callback, *args, **kwargs)
-
-            else:
-                callback(*args, **kwargs)
-
-    async def asyncRaiseEvent(self, event: str, *args, **kwargs) -> None:
-        if event not in self._callbacks: return
-        if self._suppressEvent: return
-
-        for callback in self._callbacks[event]:
-            if not callable(callback):
-                raise TypeError(f"Callback for event '{event}' is not callable.")
-
-            if iscoroutinefunction(callback):
-                await callback(*args, **kwargs)
-
-            else:
-                createTask(callback, *args, **kwargs)
-
-
-# ==================================================================================
-__all__ = ["Subscription", "AsyncSubscription"]
+__all__ = ["Subscription"]
