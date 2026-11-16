@@ -12,11 +12,11 @@ from jAGFx.names import getRandomName
 
 # ==================================================================================
 from ..types.interface.services import iService
-from .__subscription import AsyncSubscription
+from .__subscription import Subscription
 
 
 # ==================================================================================
-class AsyncService(AsyncSubscription, iService):
+class AsyncService(Subscription, iService):
     """
     Async work loop with optional throttle and interruptible wait.
 
