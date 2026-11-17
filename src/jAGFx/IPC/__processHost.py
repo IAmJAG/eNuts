@@ -50,7 +50,7 @@ class ProcessHost(AsyncProcess):
             while not isShuttingdown():
                 try:                    
                     msg: iMessage = await to_thread(queue.get, True, 0.1)
-                    verbose(f"Message received [{type(msg).__name__}]")
+                    trace(f"Message received [{type(msg).__name__}]")
 
                 except Empty:
                     continue
