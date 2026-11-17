@@ -1,7 +1,7 @@
 # ==================================================================================
 from asyncio import Event
 from asyncio import sleep as asyncSleep
-from typing import Dict, Iterable, Iterator, List, Optional, Union
+from typing import Dict, Iterable, Iterator, Optional, Union
 
 # ==================================================================================
 from fluxCore.emitters import SCRCPYEmitter

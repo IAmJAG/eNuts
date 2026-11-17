@@ -97,6 +97,7 @@ class ProcessHost(AsyncProcess):
             daemon=True, name="PROC",
         )
         process.start()
+
         clientId: Union[UUID, str] = uuid4()
         self._processes[clientId] = process
         return clientId
@@ -146,7 +147,7 @@ class ProcessHost(AsyncProcess):
                     self._inQueue = None                
                     self._shutdownEvent = None
                     self._receiverTask = None
-                    trace(f"cleaned up: {cleanUpTask}")
+                    trace(f"Cleaned up: {cleanUpTask}")
 
                 raise
             return 

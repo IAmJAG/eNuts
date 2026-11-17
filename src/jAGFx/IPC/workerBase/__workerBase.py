@@ -12,6 +12,7 @@ from uuid import UUID
 # ==================================================================================
 from ...types.interface.communication import iMessage
 from ..__helper import asyncCloseQueue
+from ..message import Handshake
 
 
 # ==================================================================================
@@ -23,6 +24,8 @@ async def clientWorker(
         def isShuttingdown() -> bool: ...
         isShuttingdown = shutdownEvent.is_set
 
+        outQueue.put(Handshake(clientId))
+
         while not isShuttingdown():
             try:
                 msg: iMessage = await to_thread(inQueue.get, True, 0.1)
@@ -30,7 +33,7 @@ async def clientWorker(
             except Empty:
                 continue
 
-            print(f"[{clientId}] {msg}")
+            trace(f"[{clientId}] {msg}")
 
     finally:
         await asyncCloseQueue(inQueue)

@@ -104,18 +104,18 @@ def getSCRCPYADBSocket(device: AdbDevice, scid: str, timeout: int = 3000) -> soc
         scid = int(scid)
         name = f"scrcpy_{scid:08x}"
 
-    trace(f"getSCRCPYADBSocket scid={scid!r} name={name!r} timeout={timeout}")
+    trace(f"scid={scid!r} name={name!r} timeout={timeout}")
 
     # retry every 100ms
     for i in range(timeout // 100):
         try:
             sSocket: socket = device.create_connection(Network.LOCAL_ABSTRACT, name)
-            trace(f"getSCRCPYADBSocket connected name={name!r} attempt={i}")
+            trace(f"connected name={name!r} attempt={i}")
             break
 
         except AdbError as ex:
             if i == 0 or i == (timeout // 100) - 1:
-                trace(f"getSCRCPYADBSocket miss name={name!r} attempt={i} err={ex!r}")
+                trace(f"miss name={name!r} attempt={i} err={ex!r}")                
             sleep(0.01)
 
     else:
