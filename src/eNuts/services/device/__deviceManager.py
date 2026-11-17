@@ -7,7 +7,7 @@ from typing import Dict, Iterable, Iterator, List, Optional, Union
 from fluxCore.emitters import SCRCPYEmitter
 from fluxCore.types.interface.device import iDevice
 from fluxCore.types.interface.emitters import iEmitter
-from jAGFx.services import AsyncSubscription
+from jAGFx.services import Subscription
 
 # ==================================================================================
 from ...types.interface.services.device import iDeviceManager
@@ -21,7 +21,7 @@ POLL_INTERVAL: float = 2.0
 # ==================================================================================
 
 # ==================================================================================
-class DeviceManager(iDeviceManager, AsyncSubscription):
+class DeviceManager(iDeviceManager, Subscription):
     def __init__(self, shutdownEvent: Event, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._shutdownEvent = shutdownEvent

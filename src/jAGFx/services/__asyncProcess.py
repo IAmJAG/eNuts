@@ -31,12 +31,14 @@ def processEntry(func: Callable[..., Awaitable], args, kwargs) -> None:
 
     asyncioRun(_runner())
 
+async def _noop(*args, **kwargs): ...
+
 # ==================================================================================
 class AsyncProcess(Subscription, iService):
     def __init__(self, work: Callable[..., Awaitable], name: str | None = None) -> None:
         super().__init__()
-        if work is None or not iscoroutinefunction(work):
-            raise TypeError("AsyncProcess requires an awaitable (coroutine function) work argument")
+        if work is None or not iscoroutinefunction(work):            
+            work: Callable[..., Awaitable] = _noop     
 
         self._work: Callable[..., Awaitable] = work
         

@@ -8,7 +8,7 @@ from asyncio import Event
 from jAGFx.IPC import Bridge
 
 # ==================================================================================
-from .__messages import HeartbeatMessage, HelloAckMessage, HelloMessage
+
 
 
 # ==================================================================================
@@ -26,9 +26,6 @@ class ControlBridge(Bridge):
     def __init__(self) -> None:
         super().__init__()
         self._helloAcked: Event = Event()
-        self._messageHandlers[HelloMessage] = self._onHello
-        self._messageHandlers[HelloAckMessage] = self._onHelloAck
-        self._messageHandlers[HeartbeatMessage] = self._onHeartbeat
         self._invalidateHandlerCache()
 
     @property

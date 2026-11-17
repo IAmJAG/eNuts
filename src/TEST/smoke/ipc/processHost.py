@@ -58,20 +58,17 @@ class _ProbeHost(ProcessHost):
         self.received: List[Any] = []
 
     async def _receiver(self, shutdownEvent: syncEvent, queue: Queue) -> None:
-        isShuttingdown = shutdownEvent.is_set
-        try:
-            while not isShuttingdown():
-                try:
-                    msg = await to_thread(queue.get, True, 0.1)
+        isShuttingdown = shutdownEvent.is_set        
+        while not isShuttingdown():
+            try:
+                msg = await to_thread(queue.get, True, 0.1)
 
-                except Empty:
-                    continue
-                self.received.append(msg)
+            except Empty:
+                continue
+            self.received.append(msg)
 
-                trace(f"FLOW  parent inbound got {msg!r}  received={self.received}")
-        finally:
-            return
-
+            trace(f"FLOW  parent inbound got {msg!r}  received={self.received}")
+        
 
 # ==================================================================================
 async def _wait(host: _ProbeHost, count: int, timeout: float = 5.0) -> bool:

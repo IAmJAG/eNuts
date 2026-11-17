@@ -7,7 +7,7 @@ from jAGFx.serializer import Serializable
 from jAGFx.types.interface.serializer import iSerializable
 
 # ==================================================================================
-from ..types.interface.communication import iMessage
+from ...types.interface.communication import iMessage
 
 
 # ==================================================================================

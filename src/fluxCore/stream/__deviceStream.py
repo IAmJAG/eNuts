@@ -13,7 +13,7 @@ from av import VideoCodecContext
 from fluxCore.types.interface.device import iDevice
 from fluxCore.types.interface.emitters import iEmitter
 from fluxCore.types.interface.packets import iImagePacket
-from jAGFx.services import AsyncSubscription
+from jAGFx.services import Subscription
 
 # ==================================================================================
 from ..types.interface.stream.__frameConsumer import iFrameConsumer
@@ -47,7 +47,7 @@ C_LIFECYCLE_EVENTS: List[str] = [
 
 
 # ==================================================================================
-class LocalDeviceStream(AsyncSubscription):
+class LocalDeviceStream(Subscription):
     """
     In-process stream with serial packet decoding and latest-frame presentation.
     """
@@ -185,6 +185,7 @@ class LocalDeviceStream(AsyncSubscription):
                 for callback in callbacks:
                     try:
                         emitter.unsubscribe(event, callback)
+                        
                     except Exception:
                         pass
             self._emitter = None

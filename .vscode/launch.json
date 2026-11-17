@@ -8,6 +8,14 @@
             "program": ".\\src\\main.py",
             "args": ["--clean", "--module", "eNuts", "--app", "apps.main"],
             "console": "integratedTerminal",
+        },
+        {
+            "name": "TEST",
+            "type": "debugpy",
+            "request": "launch",
+            "program": ".\\src\\main.py",
+            "args": ["--clean", "--module", "TEST", "--app", "smoke.ipc.processHost"],
+            "console": "integratedTerminal",
         }
     ]
 }

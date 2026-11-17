@@ -10,6 +10,8 @@ from PySide6.QtCore import QByteArray, QRect, QSettings, Qt
 from PySide6.QtWidgets import QMainWindow
 
 # ==================================================================================
+from jAGFx.IPC import ProcessHost
+from jAGFx.IPC.workerBase import clientWorker
 from jAGQt.types.interface.window import iMainWindowBase
 
 # ==================================================================================
@@ -22,14 +24,19 @@ from .workspace import WorkSpace
 
 # ==================================================================================
 class Shell(iShell, ApplicationInformation):
+    def _tempRunServices(self): 
+        ph: ProcessHost = ProcessHost("ProcessHost")
+        ph.start(clientWorker)
+        
     def _wInitializeUI(self: iMainWindowBase | QMainWindow) -> None:
         verbose("ENTER")
         try:
             mgr: iDeviceManager = DeviceManager(self._shutdownEvent)
-            self._deviceManager = mgr
+            self._deviceManager = mgr            
 
             central: WorkSpace = WorkSpace(title=self.title, parent=self)
             self.setCentralWidget(central)
+            self._tempRunServices()
 
             mgr.runDiscovery()
 

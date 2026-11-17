@@ -6,6 +6,8 @@ from asyncio import to_thread
 from multiprocessing import Queue
 from multiprocessing.synchronize import Event as syncEvent
 from queue import Empty
+from typing import Union
+from uuid import UUID
 
 # ==================================================================================
 from adbutils import AdbDevice, adb
@@ -41,7 +43,8 @@ async def SCRCPYWorker(
 
 # ==================================================================================
 async def clientWorker(
-    clientId: str, shutdownEvent: syncEvent, 
+    clientId: Union[UUID, str],
+    shutdownEvent: syncEvent, 
     inQueue: Queue, outQueue: Queue,
     *args, **kwargs,
 ):
@@ -55,6 +58,8 @@ async def clientWorker(
     try:
         def isShuttingdown() -> bool: ...
         isShuttingdown = shutdownEvent.is_set
+
+        
         while not isShuttingdown():
             try:
                 lMsg = await to_thread(inQueue.get, True, 0.1)

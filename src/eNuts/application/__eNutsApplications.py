@@ -6,7 +6,6 @@ from typing import Dict, Optional
 from PySide6.QtWidgets import QApplication
 
 # ==================================================================================
-from utilities import createTask
 from utilities.io import getConfigPath
 
 # ==================================================================================

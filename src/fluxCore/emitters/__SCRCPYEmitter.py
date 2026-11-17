@@ -32,7 +32,6 @@ from av import InvalidDataError, VideoCodecContext
 
 # ==================================================================================
 from jAGFx.services import AsyncService
-from jAGFx.services.__subscription import AsyncSubscription
 
 # ==================================================================================
 from ..configurations.scrcpy import SCRCPYConfig
@@ -58,7 +57,6 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
 
         AsyncService.__init__(self, work=self.work, name=name)
         SCRCPY.__init__(self, serial=serial, name=name)
-        AsyncSubscription.__init__(self)
 
         self._options: SCRCPYConfig = options or SCRCPYConfig()
 
@@ -91,7 +89,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         return self._cSocket
 
     async def _raiseError(self, phase: str, message: str) -> None:
-        await self.asyncRaiseEvent(
+        self.raiseEvent(
             "ON_ERROR",
             RuntimeError(f"[SCRCPY] {phase}: {message}"),
         )
@@ -281,7 +279,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
         )
 
         me: SCRCPY = self.toSCRCPY(self)
-        await self.asyncRaiseEvent("ON_METADATA_UPDATE", me)
+        self.raiseEvent("ON_METADATA_UPDATE", me)
 
     async def initialize(self, GPUID: int = 0, GPUReady: bool = True) -> None:
         try:
@@ -299,6 +297,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
             if not cfg.maxSize:cfg.maxSize = 1024
             tunnelForward = bool(cfg.tunnelForward)
             wantControl = bool(cfg.control)
+            
             trace(
                 f"initialize id={self.id!r} field_scid={cfg._scid!r} "
                 f"before deploy control={wantControl} cleanup={cfg.cleanup} "
@@ -365,7 +364,7 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
                 self.setSuppressEvent(False)
 
                 self._streamServer = streamServer
-                await self.asyncRaiseEvent("ON_INITIALIZED", self._codecContext)
+                self.raiseEvent("ON_INITIALIZED", self._codecContext)
 
             except Exception as ex:
                 await self._raiseError("initialize.codec", str(ex))
