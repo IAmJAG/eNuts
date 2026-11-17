@@ -55,7 +55,7 @@ class ProcessHost(AsyncProcess):
                 except Empty:
                     continue
 
-                self.raiseEvent("MESSAGE_RECEIVED", msg)
+                self.raiseEvent("MESSAGE_RECEIVED", msg=msg)
 
         except Exception:
             await self.stopAsync(forced=True)

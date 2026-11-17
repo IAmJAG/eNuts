@@ -29,7 +29,7 @@ async def clientWorker(
         while not isShuttingdown():
             try:
                 msg: iMessage = await to_thread(inQueue.get, True, 0.1)
-
+                
             except Empty:
                 continue
 
