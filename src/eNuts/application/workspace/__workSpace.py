@@ -40,11 +40,11 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
     OBJECT_NAME = "W_WORKSPACE"
     def __init__(self,title: str = "eNuts", *args, **kwargs) -> None:        
         trace("ENTER")
-        super().__init__(*args, **kwargs)        
+        super().__init__(*args, **kwargs)
         self._sideBar: Optional[SideBar] = None
         self._stack: Optional[QStackedWidget] = None
         self._pages: Dict[str, Page] = {}
-        self._pageIndex: Dict[str, int] = {}        
+        self._pageIndex: Dict[str, int] = {}
         self._settings: Optional[QSettings] = None
 
         self._title: str = title
@@ -52,9 +52,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
 
     @property
     def settings(self) -> QSettings:
-        if self._settings is None:
-            warning("Settings not yet initialized")
-
+        if self._settings is None: warning("Settings not yet initialized")
         return self._settings
 
     def _buildSideBar(self) -> SideBar:

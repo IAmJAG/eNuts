@@ -9,9 +9,10 @@ from .__message import Message
 # ==================================================================================
 class Handshake(Message):
     def __init__(
-        self, payload: Optional[str], 
-        correlationId: Optional[UUID], messageId: Optional[UUID], ownerId: Optional[UUID], 
-        isTerminal: Optional[bool], timestamp: Optional[float],
+        self, payload: Optional[str] = None, 
+        correlationId: Optional[UUID] = None, messageId: Optional[UUID] = None,
+        ownerId: Optional[UUID]  = None, 
+        isTerminal: Optional[bool] = False, timestamp: Optional[float] = 0.01,
     ) -> None:
         super().__init__(payload, correlationId, messageId, ownerId, isTerminal, timestamp)
 

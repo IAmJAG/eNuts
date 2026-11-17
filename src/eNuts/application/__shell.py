@@ -63,8 +63,10 @@ class Shell(iShell, ApplicationInformation):
             geo = self.settings.value("geometry")
             if isinstance(geo, QByteArray) and not geo.isEmpty():
                 self.restoreGeometry(geo)
+
             elif isinstance(geo, (bytes, bytearray)) and len(geo) > 0:
                 self.restoreGeometry(QByteArray(geo))
+                
             elif isinstance(geo, QRect) and geo.isValid():
                 self.setGeometry(geo)
 

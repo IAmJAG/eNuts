@@ -91,14 +91,14 @@ class ProcessHost(AsyncProcess):
         async def worker(self, shutdownEvent, *args, **kwargs): ...
         worker: Callable[..., Awaitable] = self._work
 
+        clientId: Union[UUID, str] = uuid4()
+
         process = Process(
             target=processEntry,
-            args=(worker, (shutdownEvent, clientQueue, sharedQueue), {}),
-            daemon=True, name="PROC",
+            args=(worker, (clientId, shutdownEvent, clientQueue, sharedQueue), {}),
+            daemon=True, name=f"PROC_{clientId}",
         )
         process.start()
-
-        clientId: Union[UUID, str] = uuid4()
         self._processes[clientId] = process
         return clientId
 

@@ -22,14 +22,14 @@ C_DEFAULT_STOP_TIMEOUT: float = 3.0
 
 # ==================================================================================
 def processEntry(func: Callable[..., Awaitable], args, kwargs) -> None:
-    async def _runner() -> None:
+    async def _runner(*_args, **_kwargs) -> None:
         # Intentionally left as a stub for IntelliSense / type-checker signature
-        def work(*args, **kwargs):...
+        def work(*a, **k):...
         work: Callable[..., Awaitable] = func
 
-        await work(*args, **kwargs)
+        await work(*_args, **_kwargs)
 
-    asyncioRun(_runner())
+    asyncioRun(_runner(*args, **kwargs))
 
 async def _noop(*args, **kwargs): ...
 

@@ -59,7 +59,6 @@ async def clientWorker(
         def isShuttingdown() -> bool: ...
         isShuttingdown = shutdownEvent.is_set
 
-        
         while not isShuttingdown():
             try:
                 lMsg = await to_thread(inQueue.get, True, 0.1)
