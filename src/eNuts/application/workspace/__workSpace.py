@@ -167,16 +167,16 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
                 menu.itemClicked.connect(self._onNavItemClicked)
 
             except Exception as ex:
-                error("menu.itemClicked connect failed", ex)
+                error("connect failed", ex)
 
             if footer is not None:
                 try:
                     footer.selectionRequested.connect(self._onNavItemClicked)
 
                 except Exception as ex:
-                    warning("footer.selectionRequested connect failed", ex)
+                    warning("connect failed", ex)
 
-            debug("attached content+footer")
+            verbose("attached content+footer")
 
         except Exception as ex:
             error("FAIL", ex)

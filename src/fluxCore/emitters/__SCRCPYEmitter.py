@@ -385,12 +385,12 @@ class SCRCPYEmitter(AsyncService, SCRCPY):
             try:
                 t.result()
             except Exception as ex:
-                warning(f"[SCRCPYEmitter] initialize failed id={self.id!r}: {ex}")
+                warning(f"initialize failed id={self.id!r}: {ex}")
                 return
             try:
                 super(SCRCPYEmitter, self).start(*args, **kwargs)
             except Exception as ex:
-                warning(f"[SCRCPYEmitter] start after init failed id={self.id!r}: {ex}")
+                warning(f"start after init failed id={self.id!r}: {ex}")
 
         task.add_done_callback(_onInitDone)
 
