@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-16 02:25:30 UTC*
+*Auto-generated on: 2026-11-17 06:54:52 UTC*
 
 ## Current Directory Structure
 
@@ -273,13 +273,16 @@ eNuts/
 │   │   │   ├── __bridge.py
 │   │   │   ├── __endpoint.py
 │   │   │   ├── __helper.py
-│   │   │   ├── __message.py
 │   │   │   ├── __overload.py
 │   │   │   ├── __processHost.py
 │   │   │   ├── __workers.py
-│   │   │   └── control/
-│   │   │       ├── __bridge.py
-│   │   │       └── __messages.py
+│   │   │   ├── control/
+│   │   │   │   └── __bridge.py
+│   │   │   ├── message/
+│   │   │   │   ├── __handshake.py
+│   │   │   │   └── __message.py
+│   │   │   └── workerBase/
+│   │   │       └── __workerBase.py
 │   │   ├── collections/
 │   │   │   ├── __tsDictionary.py
 │   │   │   └── __tsList.py
@@ -1195,9 +1198,6 @@ src/jAGFx/IPC:
 			asyncDrainQueue -> : asyncdrainqueue
 			closeQueue -> : closequeue
 			asyncCloseQueue -> : asyncclosequeue
-	__message.py - 
-		CLASSE(S):
-			Message -> : message
 	__overload.py - 
 		CLASSE(S):
 			OverloadPolicy -> : overloadpolicy
@@ -1214,11 +1214,19 @@ src/jAGFx/IPC/control:
 	__bridge.py - 
 		CLASSE(S):
 			ControlBridge -> : controlbridge
-	__messages.py - 
+
+src/jAGFx/IPC/message:
+	__handshake.py - 
 		CLASSE(S):
-			HelloMessage -> : hellomessage
-			HelloAckMessage -> : helloackmessage
-			HeartbeatMessage -> : heartbeatmessage
+			Handshake -> : handshake
+	__message.py - 
+		CLASSE(S):
+			Message -> : message
+
+src/jAGFx/IPC/workerBase:
+	__workerBase.py - 
+		FUNCTION(S):
+			clientWorker -> : clientworker
 
 src/jAGFx/logging:
 	__log.py - 
@@ -1325,6 +1333,7 @@ src/jAGFx/services:
 			AsyncProcess -> : asyncprocess
 		FUNCTION(S):
 			processEntry -> : processentry
+			_noop -> : _noop
 		CONSTANTS(S)/GLOBAL(S)
 			C_DEFAULT_STOP_TIMEOUT -> : c_default_stop_timeout
 	__asyncService.py - 
@@ -1854,50 +1863,75 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-3894386:
-	feat: add RevolvingRubikSpinner class for 3D Rubik's Cube animation; initialize constants and rendering logic
+23bdaa4:
+	refactor: update logging method in ProcessHost to use trace for message reception
 		src/jAGFx/IPC/__processHost.py
 
-1a56522:
-	docs: refresh ProcessHost mental model to match current ProcessHost
-		.docs/jAGFx/IPC/processHost.md
+34c879a:
+	refactor: update message handling in ProcessHost and clientWorker for improved clarity
+		src/jAGFx/IPC/__processHost.py
+		src/jAGFx/IPC/workerBase/__workerBase.py
 
-65de4f9:
-	refactor: improve logging and error handling in main application flow; update worker function names for consistency feat: add DeviceWatcher for managing device communication
-		src/eNuts/apps/main.py
-		src/eNuts/services/device/__deviceManager.py
-		src/eNuts/services/device/__deviceMngr.py
-		src/jAGFx/IPC/__helper.py
-		src/jAGFx/IPC/__message.py
+e2ed358:
+	refactor: improve geometry restoration logic in Shell class and clean up initialization in WorkSpace class
+		src/eNuts/application/__shell.py
+		src/eNuts/application/workspace/__workSpace.py
 		src/jAGFx/IPC/__processHost.py
 		src/jAGFx/IPC/__workers.py
+		src/jAGFx/IPC/message/__handshake.py
+		src/jAGFx/services/__asyncProcess.py
+
+d0277dd:
+	refactor: streamline sidebar construction and update logging method in WorkSpace and ProcessHost classes
+		src/eNuts/application/workspace/__workSpace.py
+		src/jAGFx/IPC/__processHost.py
+
+e40e21c:
+	refactor: enhance message handling by adding Handshake class and updating related logic
+		src/eNuts/services/device/__deviceManager.py
+		src/fluxCore/utilities/scrcpy/__scrcpy.py
+		src/jAGFx/IPC/__processHost.py
+		src/jAGFx/IPC/message/__handshake.py
+		src/jAGFx/IPC/message/__message.py
+		src/jAGFx/IPC/workerBase/__workerBase.py
+
+81c1d44:
+	refactor: simplify warning messages in SCRCPYEmitter and WorkSpace classes
+		src/eNuts/application/workspace/__workSpace.py
+		src/fluxCore/emitters/__SCRCPYEmitter.py
+
+2d68670:
+	refactor: replace AsyncSubscription with Subscription across multiple services; enhance ProcessHost and worker logic
+		.vscode/launch.json
+		src/TEST/smoke/ipc/processHost.py
+		src/eNuts/application/__eNutsApplications.py
+		src/eNuts/application/__shell.py
+		src/eNuts/services/device/__deviceManager.py
+		src/fluxCore/emitters/__SCRCPYEmitter.py
+		src/fluxCore/stream/__deviceStream.py
+		src/jAGFx/IPC/__processHost.py
+		src/jAGFx/IPC/__workers.py
+		src/jAGFx/IPC/control/__bridge.py
+		src/jAGFx/IPC/control/__messages.py
+		src/jAGFx/IPC/__message.py -> src/jAGFx/IPC/message/__message.py
+		src/jAGFx/IPC/workerBase/__workerBase.py
+		src/jAGFx/services/__asyncProcess.py
 		src/main.py
 
-af6eaa2:
-	docs: point outOfProcessEmitter to jAGFx.IPC.ProcessHost
-		.docs/fluxCore/emitters/outOfProcessEmitter.md
+17ed289:
+	refactor: replace AsyncSubscription with Subscription in AsyncService and update exports in __init__.py
+		src/jAGFx/services/__asyncService.py
 
-469751f:
-	docs: ProcessHost contract (moved from fluxCore.emitters.outOfProcessEmitter)
-		.docs/jAGFx/IPC/processHost.md
+e28cfe4:
+	refactor: replace AsyncSubscription with Subscription in AsyncProcess class
+		src/jAGFx/services/__asyncProcess.py
 
-7fa7df7:
-	TEST: remove empty smoke.emitters package
-
-01fc8db:
-	jAGFx.IPC: remove __emitterWorkers (replaced by __workers)
-		src/jAGFx/IPC/__emitterWorkers.py
-
-5983ab8:
-	TEST: remove smoke.emitters.outOfProcessEmitter (moved to smoke.ipc.processHost)
-		src/TEST/smoke/emitters/outOfProcessEmitter.py
-
-1b86141:
-	jAGFx.IPC: remove __outProcessEmitter (replaced by ProcessHost)
-		src/jAGFx/IPC/__outProcessEmitter.py
-
-6acdb4c:
-	TEST.smoke.ipc: ProcessHost acceptance (moved from smoke.emitters)
-		src/TEST/smoke/ipc/processHost.py
+4c45cd2:
+	refactor: update inventory and restructure IPC and services; enhance async handling in ProcessHost and Subscription
+		.docs/inventory.md
+		src/jAGFx/IPC/__helper.py
+		src/jAGFx/IPC/__processHost.py
+		src/jAGFx/services/__subscription.py
+		src/jAGFx/types/interface/services/__subscription.py
 
 ```
