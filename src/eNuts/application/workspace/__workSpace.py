@@ -57,7 +57,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
 
         return self._settings
 
-    def _buildSideBar(self) -> SideBar:                
+    def _buildSideBar(self) -> SideBar:
         try:
             trace("ENTER")
             settings: QSettings = self.settings
@@ -66,20 +66,15 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
             collapsePath: str = getICONPath("collapse.png")
 
             sideBarOptions = SideBarOptions(animation = C_SIDEBAR_ANIMATION_TYPE)
-            animationOptions = AnimationOptions(
-                name = "RubberBand", durationMs = C_SIDEBAR_ANIMATION_MS
-            )
+            animationOptions = AnimationOptions(name="RubberBand", durationMs=C_SIDEBAR_ANIMATION_MS)
 
             state: eSideBarState = settings.value("sideBarState", eSideBarState.Expanded)
             return SideBar(
                 icons={
                     eSideBarState.Expanded: collapsePath,
                     eSideBarState.Collapsed: expandPath,
-                },
-                title = self._title,
-                initialState = state,
-                options = sideBarOptions,
-                animationOptions = animationOptions,
+                }, title=self._title, initialState=state,
+                options=sideBarOptions, animationOptions=animationOptions,
             )
 
         except Exception as ex: 
@@ -206,7 +201,7 @@ class WorkSpace(ComponentBase, ObjectName, QWidget):
         page = self._pages.get(key, None)
         
         title = page.Title if page is not None else key
-        debug(f"key={key!r} title={title!r} index={index}")
+        trace(f"key={key!r} title={title!r} index={index}")
         return True
 
     @property

@@ -181,6 +181,7 @@ class ProcessHost(AsyncProcess):
         trace("Created client queue")
 
         try:
+            self._work = worker
             clientId: Union[UUID, str] = self._startProcess(shutdownEvent, clientQueue, sharedQueue)
             self._outQueues[clientId] = clientQueue
             
