@@ -45,17 +45,17 @@ def log(
     if frame is None:
         raise ValueError("Could not determine caller's frame.")
 
-    lFrameInfo = getFrameInfo(frame)
-    lCallerInfo: BaseSourceInformation = CallerInformation(**lFrameInfo)    
+    frameInfo = getFrameInfo(frame)
+    callerInfo: BaseSourceInformation = CallerInformation(**frameInfo)    
 
     lExtra: Dict[str, str] = dict[str, str](
         {
-            "caller": lCallerInfo,
-            "sns": lCallerInfo.sns,
-            "domain": lCallerInfo.Module if not lCallerInfo.Class else lCallerInfo.Class,
-            "member": lCallerInfo.Member,
-            "file": lCallerInfo.File,
-            "package": lCallerInfo.Package,            
+            "caller": callerInfo,
+            "sns": callerInfo.sns,
+            "domain": callerInfo.Module if not callerInfo.Class else callerInfo.Class,
+            "member": callerInfo.Member,
+            "file": callerInfo.File,
+            "package": callerInfo.Package,            
         }        
     )
 
@@ -72,7 +72,7 @@ def log(
         messages = list(messages)
 
     if err is not None:
-        lTraceLines = formatTrace(err)
-        if lTraceLines: messages.extend(lTraceLines)
+        traceLine = formatTrace(err)
+        if traceLine: messages.extend(traceLine)
 
     _log(messages, level, lExtra)

@@ -98,14 +98,14 @@ def formatTrace(err) -> List[str]:
     """
     try:
         if hasattr(err, "getTrace"):
-            lTrace: Dict[str, Any] = err.getTrace()
+            trace: Dict[str, Any] = err.getTrace()
 
             traceStr: List[str] = []
-            traceStr.append(f"{TAB}{lTrace['Message']}:")
-            traceStr.append(f"{TAB}Process: {lTrace['Origin']['Process']}")
-            traceStr.append(f"{TAB}Thread: {lTrace['Origin']['ThreadId']} -> {lTrace['Origin']['ThreadName']}")
+            traceStr.append(f"{TAB}{trace['Message']}:")
+            traceStr.append(f"{TAB}Process: {trace['Origin']['Process']}")
+            traceStr.append(f"{TAB}Thread: {trace['Origin']['ThreadId']} -> {trace['Origin']['ThreadName']}")
             traceStr.append(f"{LF}{TAB}Sources:")
-            for origins in lTrace["Sources"]:
+            for origins in trace["Sources"]:
                 if origins["File"].endswith("__init__.py") or origins["Package"].endswith(IGNORE_MODULES):
                     continue
                 traceStr.append(f"{TAB * 2}{origins['File']}:{origins['LineNo']}")
@@ -113,9 +113,10 @@ def formatTrace(err) -> List[str]:
             return traceStr
 
         # Standard Exception path — always emit a usable traceback
-        lLines: List[str] = format_exception(type(err), err, err.__traceback__)
+        lines: List[str] = format_exception(type(err), err, err.__traceback__)
+
         # strip trailing newlines so the formatter can re-join cleanly
-        return [line.rstrip("\n") for line in lLines if line.strip()]
+        return [line.rstrip("\n") for line in lines if line.strip()]
 
     except Exception as ex:
         raise ex
