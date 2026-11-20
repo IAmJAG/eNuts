@@ -38,9 +38,7 @@ def _log(messages: List[str] | str, level: int, extra: Dict):
 # ==================================================================================
 def log(
     messages: str | List[str] | Tuple[str] | Dict[str, str] | Set[str],
-    level: int,
-    err: Exception = None,
-    frame: FrameType = None,
+    level: int, err: Exception = None, frame: FrameType = None,
 ) -> None:
     if frame is None: frame = getCallersFrame()
 
@@ -63,7 +61,7 @@ def log(
 
     if isinstance(messages, str):
         messages = [messages]
-        
+
     if isinstance(messages, Tuple):
         messages = list(messages)
 
