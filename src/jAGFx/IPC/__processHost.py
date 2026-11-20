@@ -35,15 +35,14 @@ class ProcessHost(AsyncProcess):
 
         self._stopTask: Optional[Task] = None
 
-        self._plock: RLock = RLock()
+        self._lock: RLock = RLock()
         self._processes: Dict[int, ProcessSnapshot] = dict[int, Process]()
-        self._pendingProcesses: List[ProcessSnapshot] = list[ProcessSnapshot]()
 
         self._loop: Optional[AbstractEventLoop] = None
 
     @property
     def processes(self) -> Dict[int, Process]: 
-        with self._plock:  # This is OK, no race for the processes
+        with self._lock:  # This is OK, no race for the processes
             return self._processes
 
     async def _receiver(self, shutdownEvent: syncEvent, queue: Queue) -> None:
