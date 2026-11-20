@@ -28,7 +28,7 @@ class ProcessSnapshot(Serializable, Subscription):
         self._expiryTask: Optional[Task] = None    
 
     def beat(self, expiry: float = 0.1) -> None:
-        durationNs: float = int(expiry * 1e9)
+        durationNs: int = int(expiry * 1e9)
         now: int = monotonic_ns()
 
         self._expiry = now + durationNs
@@ -36,13 +36,13 @@ class ProcessSnapshot(Serializable, Subscription):
         if self._expiryTask is not None:
             self._expiryTask.cancel()
 
-        async def _expire():  
-            if self._expiryTask is current_task():
-                self._clientState = eClientState.DORMANT                
+        def _expire(task: Task) -> None:
+            if self._expiryTask is task:
+                self._clientState = eClientState.DORMANT
 
         self._clientState = eClientState.ACTIVE
 
-        expiryTask: Task = createTask(asyncSleep, durationNs)
+        expiryTask: Task = createTask(asyncSleep, expiry)
         expiryTask.add_done_callback(_expire)
         self._expiryTask = expiryTask
         
