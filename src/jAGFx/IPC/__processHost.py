@@ -249,8 +249,8 @@ class ProcessHost(AsyncProcess):
 
             self._stopProcesses(timeout, forced)
 
-        finally:
-            self._closeQueues()
+        finally:            
+            self._closeQueues()            
             self._shutdownEvent = None
             self.raiseEvent("ON_STOPPED")
 
