@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 # ==================================================================================
-from asyncio import CancelledError, Task
+from asyncio import Task
 from asyncio import sleep as asyncSleep
 from multiprocessing import Process
 from time import monotonic_ns
@@ -45,8 +45,6 @@ class ProcessSnapshot(Serializable, Subscription):
         expiryTask.add_done_callback(_expire)                
         self._expiryTask = expiryTask
         self._clientState = eClientState.ACTIVE
-        
-        
 
     @property
     def process(self) -> Process:
