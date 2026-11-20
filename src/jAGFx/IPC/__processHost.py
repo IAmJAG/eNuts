@@ -172,9 +172,9 @@ class ProcessHost(AsyncProcess):
         try:
             self._work = worker
             process: Process = self._startProcess(shutdownEvent, clientQueue, sharedQueue)
-            with self._plock:
+            with self._lock:
                 procSS = ProcessSnapshot(process)
-                self._pendingProcesses.append(procSS)
+                
             
         except Exception as ex:
             self._resourceCleanup(procSS.identity, sharedQueue, clientQueue)
