@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 # ==================================================================================
-from asyncio import Task, current_task
+from asyncio import CancelledError, Task
 from asyncio import sleep as asyncSleep
 from multiprocessing import Process
 from time import monotonic_ns
@@ -34,9 +34,12 @@ class ProcessSnapshot(Serializable, Subscription):
         self._expiry = now + durationNs
 
         if self._expiryTask is not None:
-            self._expiryTask.cancel()
+            self._expiryTask.cancel("REPLACING")
 
         def _expire(task: Task) -> None:
+            if self._expiryTask is not task:
+                return
+
             if self._expiryTask is task:
                 self._clientState = eClientState.DORMANT
 
