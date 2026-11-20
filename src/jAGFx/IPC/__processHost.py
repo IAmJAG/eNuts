@@ -235,11 +235,8 @@ class ProcessHost(AsyncProcess):
         )
         self._stopTask.add_done_callback(self._onStopTaskDone)
 
-    def _stopSync(
-        self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False
-    ) -> None:
-        if not self._processes and self._receiverTask is None:
-            return
+    def _stopSync(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
+        if not self._processes and self._receiverTask is None: return
 
         self.raiseEvent("ON_STOPPING")
 
