@@ -3,7 +3,7 @@ from __future__ import annotations
 
 # ==================================================================================
 from asyncio import to_thread
-from multiprocessing import Queue
+from multiprocessing import Queue, current_process
 from multiprocessing.synchronize import Event as syncEvent
 from queue import Empty
 from typing import Union
@@ -14,6 +14,27 @@ from ...types.interface.communication import iMessage
 from ..__helper import asyncCloseQueue
 from ..message import Handshake
 
+
+# ==================================================================================
+async def defaultMessageHandler(msg: iMessage):
+    processId = current_process().ident
+    trace(
+        f"[{processId}] Message received from {msg.ownerId}: [{type(msg).__name__}] [{msg.payload}]"
+    )
+
+# ==================================================================================
+async def handshakeHandler(msg: iMessage):
+    processId = current_process().ident
+    trace(
+        f"[{processId}] Handshake message received from {msg.ownerId}: [{type(msg).__name__}] [{msg.payload}]"
+    )
+
+# ==================================================================================
+async def handshakeConfirmHandler(msg: iMessage):
+    processId = current_process().ident
+    trace(
+        f"[{processId}] Handshake confirmation message received from {msg.ownerId}: [{type(msg).__name__}] [{msg.payload}]"
+    )
 
 # ==================================================================================
 async def clientWorker(

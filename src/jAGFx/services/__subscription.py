@@ -36,7 +36,7 @@ class Subscription(iSubscription):
         if self._suppressEvent: return
 
         async def _asyncRunner(_callback: Callable, *_args, **_kwargs) -> None:
-            if nonBlocking:
+            if nonBlocking:                
                 return await to_thread(_callback, *_args, **_kwargs)
 
             if iscoroutinefunction(callback):

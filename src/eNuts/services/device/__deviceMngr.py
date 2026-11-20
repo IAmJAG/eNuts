@@ -1,32 +1,46 @@
 # ==================================================================================
 from __future__ import annotations
 
-from asyncio import sleep as asyncSleep
-
 # ==================================================================================
-from multiprocessing import Queue
+from multiprocessing import Queue, current_process
 from multiprocessing.synchronize import Event as syncEvent
-from queue import Empty
+from typing import Awaitable, Callable, Dict, Type
+from uuid import uuid4
 
 # ==================================================================================
-from adbutils import AdbDevice, adb
+from jAGFx.IPC.message import Handshake
+from jAGFx.types.interface.communication.messages import iMessage
 
 
 # ==================================================================================
-async def DeviceWatcher(
-    clientId: str, shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queue,
-    *args, **kwargs,
-):
-    outQueue.put("SCRCPY")
+async def dispatch(outQueue: Queue, msg: iMessage):
+    try:
+        identity: int = current_process().ident
+        msg.messageId = uuid4()
+        msg.ownerId = identity
 
-    def isShuttingdown() -> bool: ...
-    isShuttingdown = shutdownEvent.is_set
-    while not isShuttingdown():
-        try:
-            msg = inQueue.get_nowait()
+        outQueue.put(msg)
 
-        except Empty:
-            await asyncSleep(0.01)
-            continue
+    except Exception as ex:
+        raise
 
-        print(f"[{clientId}] {msg}")
+async def defaultMessageHandler(msg: iMessage):     
+    processId = current_process().ident
+    trace(f"[{processId}] Message received from {msg.ownerId}: [{type(msg).__name__}] [{msg.payload}]")
+
+async def handshakeHandler(msg: iMessage):
+    processId = current_process().ident
+    trace(f"[{processId}] Handshake message received from {msg.ownerId}: [{type(msg).__name__}] [{msg.payload}]")
+
+async def handshakeConfirmHandler(msg: iMessage): 
+    processId = current_process().ident
+    trace(f"[{processId}] Handshake confirmation message received from {msg.ownerId}: [{type(msg).__name__}] [{msg.payload}]")
+
+# ==================================================================================
+async def deviceWatcher(shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queue):
+    handlers: Dict[Type, Callable[[iMessage], Awaitable]] = {
+        Handshake: handshakeHandler,
+    }
+
+    handShake: Handshake = Handshake(correlationId=uuid4(), messageId=uuid4())
+    await dispatch(outQueue, handShake)

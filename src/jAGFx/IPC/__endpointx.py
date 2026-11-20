@@ -25,7 +25,7 @@ from .__overload import OverloadPolicy
 
 
 # ==================================================================================
-class Endpoint(iEndpoint):
+class EndpointX(iEndpoint):
     """Process-local IPC endpoint.
 
     Owns the IOQueue adapter and routes inbound messages to Bridges by

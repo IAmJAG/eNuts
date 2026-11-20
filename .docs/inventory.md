@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-17 06:54:52 UTC*
+*Auto-generated on: 2026-11-20 00:18:49 UTC*
 
 ## Current Directory Structure
 
@@ -271,7 +271,7 @@ eNuts/
 │   │   ├── IPC/
 │   │   │   ├── __IOQueue.py
 │   │   │   ├── __bridge.py
-│   │   │   ├── __endpoint.py
+│   │   │   ├── __endpointx.py
 │   │   │   ├── __helper.py
 │   │   │   ├── __overload.py
 │   │   │   ├── __processHost.py
@@ -280,9 +280,15 @@ eNuts/
 │   │   │   │   └── __bridge.py
 │   │   │   ├── message/
 │   │   │   │   ├── __handshake.py
+│   │   │   │   ├── __handshakeConfirmation.py
 │   │   │   │   └── __message.py
+│   │   │   ├── process/
+│   │   │   │   ├── __eClientState.py
+│   │   │   │   └── __processSnapshot.py
 │   │   │   └── workerBase/
-│   │   │       └── __workerBase.py
+│   │   │       ├── __deviceMngr.py
+│   │   │       ├── __endpoint.py
+│   │   │       └── __workerbase.py
 │   │   ├── collections/
 │   │   │   ├── __tsDictionary.py
 │   │   │   └── __tsList.py
@@ -337,7 +343,10 @@ eNuts/
 │   │   │       │   ├── __IOQueue.py
 │   │   │       │   ├── __bridge.py
 │   │   │       │   ├── __endpoint.py
-│   │   │       │   └── __message.py
+│   │   │       │   └── messages/
+│   │   │       │       ├── __handshake.py
+│   │   │       │       ├── __handshakeConfirmation.py
+│   │   │       │       └── __message.py
 │   │   │       ├── configuration/
 │   │   │       │   ├── __applicationConfiguration.py
 │   │   │       │   └── __configuration.py
@@ -591,7 +600,11 @@ src/eNuts/services/device:
 			POLL_INTERVAL -> : poll_interval
 	__deviceMngr.py - 
 		FUNCTION(S):
-			DeviceWatcher -> : devicewatcher
+			dispatch -> : dispatch
+			defaultMessageHandler -> : defaultmessagehandler
+			handshakeHandler -> : handshakehandler
+			handshakeConfirmHandler -> : handshakeconfirmhandler
+			deviceWatcher -> : devicewatcher
 
 src/eNuts/services/recorder:
 	__kgRecorderService.py - 
@@ -1189,9 +1202,9 @@ src/jAGFx/IPC:
 			Bridge -> : bridge
 		CONSTANTS(S)/GLOBAL(S)
 			MessageProcessor -> : messageprocessor
-	__endpoint.py - 
+	__endpointx.py - 
 		CLASSE(S):
-			Endpoint -> : endpoint
+			EndpointX -> : endpointx
 	__helper.py - 
 		FUNCTION(S):
 			drainQueue -> : drainqueue
@@ -1219,13 +1232,36 @@ src/jAGFx/IPC/message:
 	__handshake.py - 
 		CLASSE(S):
 			Handshake -> : handshake
+	__handshakeConfirmation.py - 
+		CLASSE(S):
+			HandshakeConfirmation -> : handshakeconfirmation
 	__message.py - 
 		CLASSE(S):
 			Message -> : message
+		CONSTANTS(S)/GLOBAL(S)
+			G_DEFAULT_MSG_TIMEOUT -> : g_default_msg_timeout
+
+src/jAGFx/IPC/process:
+	__eClientState.py - 
+		CLASSE(S):
+			eClientState -> : eclientstate
+	__processSnapshot.py - 
+		CLASSE(S):
+			ProcessSnapshot -> : processsnapshot
 
 src/jAGFx/IPC/workerBase:
-	__workerBase.py - 
+	__deviceMngr.py - 
 		FUNCTION(S):
+			dispatch -> : dispatch
+			deviceWatcher -> : devicewatcher
+	__endpoint.py - 
+		CLASSE(S):
+			Endpoint -> : endpoint
+	__workerbase.py - 
+		FUNCTION(S):
+			defaultMessageHandler -> : defaultmessagehandler
+			handshakeHandler -> : handshakehandler
+			handshakeConfirmHandler -> : handshakeconfirmhandler
 			clientWorker -> : clientworker
 
 src/jAGFx/logging:
@@ -1382,6 +1418,14 @@ src/jAGFx/types/interface/communication:
 	__endpoint.py - 
 		CLASSE(S):
 			iEndpoint -> : iendpoint
+
+src/jAGFx/types/interface/communication/messages:
+	__handshake.py - 
+		CLASSE(S):
+			iHandshake -> : ihandshake
+	__handshakeConfirmation.py - 
+		CLASSE(S):
+			iHandshakeConfirmation -> : ihandshakeconfirmation
 	__message.py - 
 		CLASSE(S):
 			iMessage -> : imessage
@@ -1863,6 +1907,10 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+9f19e7a:
+	refactor: update inventory and restructure IPC and services; enhance async handling in ProcessHost and Subscription
+		.docs/inventory.md
+
 23bdaa4:
 	refactor: update logging method in ProcessHost to use trace for message reception
 		src/jAGFx/IPC/__processHost.py
@@ -1925,13 +1973,5 @@ e40e21c:
 e28cfe4:
 	refactor: replace AsyncSubscription with Subscription in AsyncProcess class
 		src/jAGFx/services/__asyncProcess.py
-
-4c45cd2:
-	refactor: update inventory and restructure IPC and services; enhance async handling in ProcessHost and Subscription
-		.docs/inventory.md
-		src/jAGFx/IPC/__helper.py
-		src/jAGFx/IPC/__processHost.py
-		src/jAGFx/services/__subscription.py
-		src/jAGFx/types/interface/services/__subscription.py
 
 ```

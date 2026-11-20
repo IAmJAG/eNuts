@@ -1,6 +1,5 @@
 # ==================================================================================
 from .__bridge import Bridge
-from .__endpoint import Endpoint
 from .__IOQueue import IOQueue
 from .__overload import OverloadPolicy
 from .__processHost import ProcessHost

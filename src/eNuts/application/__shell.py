@@ -11,11 +11,10 @@ from PySide6.QtWidgets import QMainWindow
 
 # ==================================================================================
 from jAGFx.IPC import ProcessHost
-from jAGFx.IPC.workerBase import clientWorker
 from jAGQt.types.interface.window import iMainWindowBase
 
 # ==================================================================================
-from ..services.device import DeviceManager
+from ..services.device import DeviceManager, deviceWatcher
 from ..types.interface.application import iShell
 from ..types.interface.services.device import iDeviceManager
 from .__applicationInformation import ApplicationInformation
@@ -26,7 +25,7 @@ from .workspace import WorkSpace
 class Shell(iShell, ApplicationInformation):
     def _tempRunServices(self): 
         ph: ProcessHost = ProcessHost("ProcessHost")
-        ph.start(clientWorker)
+        ph.start(deviceWatcher)
         
     def _wInitializeUI(self: iMainWindowBase | QMainWindow) -> None:
         verbose("ENTER")

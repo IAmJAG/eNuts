@@ -3,7 +3,7 @@ from typing import Protocol, runtime_checkable
 from uuid import UUID
 
 # ==================================================================================
-from ..serializer import iSerializable
+from ...serializer import iSerializable
 
 
 # ==================================================================================
