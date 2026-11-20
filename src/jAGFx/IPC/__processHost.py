@@ -45,6 +45,32 @@ class ProcessHost(AsyncProcess):
         with self._lock:  # This is OK, no race for the processes
             return self._processes
 
+    async def waitStopped(self) -> None:
+        task = self._stopTask
+        if task is not None:
+            await task
+
+    async def stopAsync(
+        self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False
+    ) -> None:
+        if not self._processes and self._receiverTask is None:
+            return
+
+        self.raiseEvent("ON_STOPPING")
+        shutdownEvent: Optional[syncEvent] = self._shutdownEvent
+
+        try:
+            if shutdownEvent is not None and not shutdownEvent.is_set():
+                shutdownEvent.set()
+
+            await self._finishReceiver()
+            await to_thread(self._stopProcesses, timeout, forced)
+
+        finally:
+            self._closeQueues()
+            self._shutdownEvent = None
+            self.raiseEvent("ON_STOPPED")
+
     async def _receiver(self, shutdownEvent: syncEvent, queue: Queue) -> None:
         try:
             def isShuttingdown() -> bool: ...
@@ -69,9 +95,130 @@ class ProcessHost(AsyncProcess):
             await asyncDrainQueue(queue)
             await asyncCloseQueue(queue)
 
+    async def _finishReceiver(self) -> None:
+        task = self._receiverTask
+        if task is None: return
+
+        try:
+            await task
+
+        except (CancelledError, Exception):
+            pass
+
+        self._receiverTask = None
+
+    async def _dispatch(self, clientId: str, msg: Any) -> None:
+        lQueue = self._outQueues.get(clientId)
+        if lQueue is not None:
+            await to_thread(lQueue.put, msg)
+    
+    def start(self, worker: Callable[..., Awaitable]) -> None:
+        if not iscoroutinefunction(worker): 
+            raise ValueError("worker must be a coroutine")
+        
+        shutdownEvent: Optional[syncEvent] = self._shutdownEvent
+        sharedQueue: Optional[Queue] = self._inQueue
+
+        if shutdownEvent is None:            
+            shutdownEvent = Event()
+            self._shutdownEvent = shutdownEvent
+            trace("Created shutdown event")
+
+        if sharedQueue is None:
+            sharedQueue = Queue()
+            self._inQueue = sharedQueue
+            trace("Created shared queue")
+
+        try:
+            # creates main receiver task, returns immedieately if already started
+            self._startReceiver(shutdownEvent, sharedQueue)
+
+        except Exception:            
+            raise
+
+        clientQueue = Queue()
+        trace("Created client queue")
+
+        procSS: Optional[ProcessSnapshot] = None
+        try:
+            self._work = worker
+            process: Process = self._startProcess(shutdownEvent, clientQueue, sharedQueue)
+            with self._lock:
+                procSS = ProcessSnapshot(process)                
+
+        except Exception as ex:
+            self._resourceCleanup(procSS.identity, sharedQueue, clientQueue)
+            raise
+
+    def running(self, clientId: str | None = None) -> bool:
+        if clientId is not None:
+            process = self._processes.get(clientId)
+            return process is not None and process.is_alive()
+
+        return (
+            self._shutdownEvent is not None
+            and not self._shutdownEvent.is_set()
+            and len(self._processes) > 0
+        )
+
+    def stop(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
+        if self._stopTask is not None and not self._stopTask.done(): return
+
+        try:
+            loop = get_running_loop()
+
+        except RuntimeError:
+            self._stopSync(timeout=timeout, forced=forced)
+            return
+
+        self._stopTask = loop.create_task(
+            self.stopAsync(timeout=timeout, forced=forced)
+        )
+        self._stopTask.add_done_callback(self._onStopTaskDone)
+
+    def _resourceCleanup(self, clientId: str, sharedQueue: Queue, clientQueue: Queue) -> None:
+        try:
+            drainQueue(clientQueue)
+        
+        except Exception:
+            pass
+
+        try:            
+            closeQueue(clientQueue)
+
+        except Exception:
+            pass
+
+        procSS: ProcessSnapshot = self._processes.pop(clientId, None)        
+        if procSS is not None:
+            process: Process = procSS.process
+            if process.is_alive():
+                process.terminate()
+                process.join()
+            process.close()
+
+        if not self._processes:
+            if self._shutdownEvent is not None and not self._shutdownEvent.is_set():
+                self._shutdownEvent.set()
+
+            task = self._receiverTask
+            self._receiverTask = None
+
+            if task is not None and not task.done():
+                task.cancel()
+
+            try:
+                drainQueue(sharedQueue)
+
+            finally:
+                closeQueue(sharedQueue)
+
+            self._inQueue = None
+            self._shutdownEvent = None
+
     def _handleMessage(self, message: iMessage) -> None:
         if isinstance(message, iHandshake):
-            print("Received handshake processID:", message.processId)
+            trace("Received handshake processID:", message.processId)
 
         trace(f"Message received [{type(message).__name__}] [{message.payload}]")
 
@@ -141,100 +288,6 @@ class ProcessHost(AsyncProcess):
 
         trace("Receiver task already started")
 
-    def start(self, worker: Callable[..., Awaitable]) -> None:
-        if not iscoroutinefunction(worker):
-            raise ValueError("worker must be a coroutine")
-        
-        shutdownEvent: Optional[syncEvent] = self._shutdownEvent
-        sharedQueue: Optional[Queue] = self._inQueue
-
-        if shutdownEvent is None:            
-            shutdownEvent = Event()
-            self._shutdownEvent = shutdownEvent
-            trace("Created shutdown event")
-
-        if sharedQueue is None:
-            sharedQueue = Queue()
-            self._inQueue = sharedQueue
-            trace("Created shared queue")
-
-        try:
-            # creates main receiver task, returns immedieately if already started
-            self._startReceiver(shutdownEvent, sharedQueue)
-
-        except Exception:            
-            raise
-
-        clientQueue = Queue()
-        trace("Created client queue")
-
-        procSS: Optional[ProcessSnapshot] = None
-        try:
-            self._work = worker
-            process: Process = self._startProcess(shutdownEvent, clientQueue, sharedQueue)
-            with self._lock:
-                procSS = ProcessSnapshot(process)
-                
-            
-        except Exception as ex:
-            self._resourceCleanup(procSS.identity, sharedQueue, clientQueue)
-            raise
-
-    def _resourceCleanup(self, clientId: str, sharedQueue: Queue, clientQueue: Queue) -> None:
-        try:
-            drainQueue(clientQueue)
-        
-        except Exception:
-            pass
-
-        try:            
-            closeQueue(clientQueue)
-
-        except Exception:
-            pass
-
-        procSS: ProcessSnapshot = self._processes.pop(clientId, None)        
-        if procSS is not None:
-            process: Process = procSS.process
-            if process.is_alive():
-                process.terminate()
-                process.join()
-            process.close()
-
-        if not self._processes:
-            if self._shutdownEvent is not None and not self._shutdownEvent.is_set():
-                self._shutdownEvent.set()
-
-            task = self._receiverTask
-            self._receiverTask = None
-
-            if task is not None and not task.done():
-                task.cancel()
-
-            try:
-                drainQueue(sharedQueue)
-
-            finally:
-                closeQueue(sharedQueue)
-
-            self._inQueue = None
-            self._shutdownEvent = None
-
-    def stop(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
-        if self._stopTask is not None and not self._stopTask.done(): return
-
-        try:
-            loop = get_running_loop()
-
-        except RuntimeError:
-            self._stopSync(timeout=timeout, forced=forced)
-            return
-
-        self._stopTask = loop.create_task(
-            self.stopAsync(timeout=timeout, forced=forced)
-        )
-        self._stopTask.add_done_callback(self._onStopTaskDone)
-
     def _stopSync(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
         if not self._processes and self._receiverTask is None: return
 
@@ -253,36 +306,6 @@ class ProcessHost(AsyncProcess):
             self._closeQueues()            
             self._shutdownEvent = None
             self.raiseEvent("ON_STOPPED")
-
-    async def stopAsync(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
-        if not self._processes and self._receiverTask is None: return
-
-        self.raiseEvent("ON_STOPPING")
-        shutdownEvent: Optional[syncEvent] = self._shutdownEvent
-
-        try:
-            if shutdownEvent is not None and not shutdownEvent.is_set():
-                shutdownEvent.set()
-
-            await self._finishReceiver()
-            await to_thread(self._stopProcesses, timeout, forced)
-
-        finally:
-            self._closeQueues()
-            self._shutdownEvent = None
-            self.raiseEvent("ON_STOPPED")
-    
-    async def _finishReceiver(self) -> None:
-        task = self._receiverTask
-        if task is None: return
-
-        try:
-            await task
-
-        except (CancelledError, Exception):
-            pass
-
-        self._receiverTask = None
 
     def _stopProcesses(self, timeout: float, forced: bool) -> None:
         process: Process
@@ -319,12 +342,7 @@ class ProcessHost(AsyncProcess):
         finally:
             if self._stopTask is task:
                 self._stopTask = None
-
-    async def waitStopped(self) -> None:
-        task = self._stopTask
-        if task is not None:
-            await task
-
+    
     def _closeQueues(self) -> None:
         queues: List[Queue] = list(self._outQueues.values())
         for lQueue in queues:
@@ -344,22 +362,6 @@ class ProcessHost(AsyncProcess):
 
         self._inQueue = None
         self._receiverTask = None
-
-    def running(self, clientId: str | None = None) -> bool:
-        if clientId is not None:
-            process = self._processes.get(clientId)
-            return process is not None and process.is_alive()
-
-        return (
-            self._shutdownEvent is not None
-            and not self._shutdownEvent.is_set()
-            and len(self._processes) > 0
-        )
-
-    async def _dispatch(self, clientId: str, msg: Any) -> None:
-        lQueue = self._outQueues.get(clientId)
-        if lQueue is not None:
-            await to_thread(lQueue.put, msg)
 
 # ==================================================================================
 __all__ = ["ProcessHost"]

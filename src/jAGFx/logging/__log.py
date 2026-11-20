@@ -63,15 +63,18 @@ def log(
 
     if isinstance(messages, str):
         messages = [messages]
+        
     if isinstance(messages, Tuple):
         messages = list(messages)
+
     if isinstance(messages, Dict):
         messages = [f"{key}: {value}" for key, value in messages.items()]
+
     if isinstance(messages, Set):
         messages = list(messages)
+
     if err is not None:
         lTraceLines = formatTrace(err)
-        if lTraceLines:
-            messages.extend(lTraceLines)
+        if lTraceLines: messages.extend(lTraceLines)
 
     _log(messages, level, lExtra)
