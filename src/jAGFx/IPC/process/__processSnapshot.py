@@ -33,19 +33,16 @@ class ProcessSnapshot(Serializable, Subscription):
 
         self._expiry = now + durationNs
 
-        if self._expiryTask is not None:
-            self._expiryTask.cancel("REPLACING")
+        expiryTask: Optional[Task] = self._expiryTask
+        if expiryTask is not None and not expiryTask.done():
+            expiryTask.cancel()
 
         def _expire(task: Task) -> None:
-            if self._expiryTask is not task:
-                return
-
             if self._expiryTask is task:
                 self._clientState = eClientState.DORMANT
 
-        self._clientState = eClientState.ACTIVE
-
-        expiryTask: Task = createTask(asyncSleep, expiry)
+        self._clientState = eClientState.ACTIVE        
+        expiryTask = createTask(asyncSleep, expiry)
         expiryTask.add_done_callback(_expire)
         self._expiryTask = expiryTask
         
