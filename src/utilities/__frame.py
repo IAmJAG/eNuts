@@ -91,7 +91,8 @@ def getCallableFromFrame(frame: FrameType):
 
 # ==================================================================================================
 def formatTrace(err) -> List[str]:
-    """Return stack-trace lines for any exception.
+    """
+    Return stack-trace lines for any exception.
 
     Prefer a custom getTrace() when present; otherwise use stdlib traceback.
     Always returns a list (never None) so callers can safely extend.
@@ -112,7 +113,7 @@ def formatTrace(err) -> List[str]:
 
             return traceStr
 
-        # Standard Exception path — always emit a usable traceback
+        # Standard Exception path — always emit a usable traceback        
         lines: List[str] = format_exception(type(err), err, err.__traceback__)
 
         # strip trailing newlines so the formatter can re-join cleanly

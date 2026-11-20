@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 # ==================================================================================
-from traceback import format_exc
+from multiprocessing.synchronize import Event as syncEvent
 from typing import Optional
 
 # ==================================================================================
@@ -23,8 +23,8 @@ from .workspace import WorkSpace
 
 # ==================================================================================
 class Shell(iShell, ApplicationInformation):
-    def _tempRunServices(self): 
-        ph: ProcessHost = ProcessHost("ProcessHost")
+    def _tempRunServices(self):
+        ph: ProcessHost = ProcessHost(name="ProcessHost")
         ph.start(deviceWatcher)
         
     def _wInitializeUI(self: iMainWindowBase | QMainWindow) -> None:

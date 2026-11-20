@@ -36,7 +36,7 @@ class ProcessHost(AsyncProcess):
         self._stopTask: Optional[Task] = None
 
         self._lock: RLock = RLock()
-        self._processes: Dict[int, ProcessSnapshot] = dict[int, Process]()
+        self._processes: Dict[int, ProcessSnapshot] = dict[int, ProcessSnapshot]()
 
         self._loop: Optional[AbstractEventLoop] = None
 
@@ -143,8 +143,8 @@ class ProcessHost(AsyncProcess):
         try:
             self._work = worker
             process: Process = self._startProcess(shutdownEvent, clientQueue, sharedQueue)
-            with self._lock:
-                procSS = ProcessSnapshot(process)                
+            procSS: ProcessSnapshot = ProcessSnapshot(process)
+            self.processes[process.ident] = procSS
 
         except Exception as ex:
             self._resourceCleanup(procSS.identity, sharedQueue, clientQueue)
@@ -218,9 +218,8 @@ class ProcessHost(AsyncProcess):
 
     def _handleMessage(self, message: iMessage) -> None:
         if isinstance(message, iHandshake):
-            trace("Received handshake processID:", message.processId)
-
-        trace(f"Message received [{type(message).__name__}] [{message.payload}]")
+            trace(f"Received handshake processID: [{message.processId}]")            
+            self.processes[message.processId].beat(0.5)            
 
     def _startProcess(self, shutdownEvent: syncEvent, clientQueue: Queue, sharedQueue: Queue) -> Process:
         async def worker(self, shutdownEvent, *args, **kwargs): ...
@@ -230,9 +229,9 @@ class ProcessHost(AsyncProcess):
             target=processEntry,
             args=(worker, (shutdownEvent, clientQueue, sharedQueue), {}),
             daemon=True, name=f"PROC_{uuid4().hex}",
-        )        
+        )
         process.start()        
-        return process
+        return process     
 
     def _startReceiver(self, shutdownEvent: syncEvent, queue: Queue) -> None:
         receiverTask: Task = self._receiverTask

@@ -34,6 +34,7 @@ async def main(app: eNutsApplication, *args, **kwargs):
 
         shutdownEvent: asyncEvent = asyncEvent()
         verbose("creating ENUTSWindow")
+        
         win: ENUTSWindow = ENUTSWindow(shutdownEvent, cfg)
         verbose("ENUTSWindow created; showing")
         win.show()
