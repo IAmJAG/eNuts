@@ -40,11 +40,12 @@ class ProcessSnapshot(Serializable, Subscription):
         def _expire(task: Task) -> None:
             if self._expiryTask is task:
                 self._clientState = eClientState.DORMANT
-
-        self._clientState = eClientState.ACTIVE        
+        
         expiryTask = createTask(asyncSleep, expiry)
-        expiryTask.add_done_callback(_expire)
+        expiryTask.add_done_callback(_expire)                
         self._expiryTask = expiryTask
+        self._clientState = eClientState.ACTIVE
+        
         
 
     @property

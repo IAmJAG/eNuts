@@ -1,5 +1,11 @@
 # ==================================================================================================
-from asyncio import AbstractEventLoop, Task, get_event_loop, get_running_loop
+from asyncio import (
+    AbstractEventLoop,
+    CancelledError,
+    Task,
+    get_event_loop,
+    get_running_loop,
+)
 from inspect import iscoroutinefunction
 from typing import Any, Awaitable, Callable
 
@@ -42,12 +48,9 @@ def _getCoroutine(func: Callable) -> Callable[..., Any]:
     return _task
 
 def logTaskException(done: Task) -> None:
-    try:
-        exc = done.exception()
+    if done.cancelled(): return
 
-    except Exception:
-        raise
-    
+    exc = done.exception()
     if exc is not None:
         try:
             error(f"asyncio task unhandled exception name={done.get_name()!r}", exc)

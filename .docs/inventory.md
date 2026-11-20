@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-20 00:18:49 UTC*
+*Auto-generated on: 2026-11-20 01:18:49 UTC*
 
 ## Current Directory Structure
 
@@ -1907,6 +1907,46 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+d5d7ffd:
+	refactor: streamline expiry task management in ProcessSnapshot for improved state handling
+		src/jAGFx/IPC/process/__processSnapshot.py
+
+6bd6260:
+	refactor: enhance expiry task handling in ProcessSnapshot to ensure proper state management
+		src/jAGFx/IPC/process/__processSnapshot.py
+
+0470d05:
+	refactor: correct type for duration in beat method and improve expiry task handling
+		src/jAGFx/IPC/process/__processSnapshot.py
+
+3271220:
+	refactor: improve expiry calculation and task handling in ProcessSnapshot
+		src/jAGFx/IPC/process/__processSnapshot.py
+
+79a9aa1:
+	refactor: enhance beat method in ProcessSnapshot for improved state management and task handling
+		src/jAGFx/IPC/process/__processSnapshot.py
+
+5d6f748:
+	Refactor IPC module and enhance message handling
+		.docs/inventory.md
+		src/eNuts/application/__shell.py
+		src/eNuts/services/device/__deviceMngr.py
+		src/jAGFx/IPC/__endpoint.py -> src/jAGFx/IPC/__endpointx.py
+		src/jAGFx/IPC/__processHost.py
+		src/jAGFx/IPC/message/__handshake.py
+		src/jAGFx/IPC/message/__handshakeConfirmation.py
+		src/jAGFx/IPC/message/__message.py
+		src/jAGFx/IPC/process/__eClientState.py
+		src/jAGFx/IPC/process/__processSnapshot.py
+		src/jAGFx/IPC/workerBase/__deviceMngr.py
+		src/jAGFx/IPC/workerBase/__endpoint.py
+		src/jAGFx/IPC/workerBase/__workerBase.py
+		src/jAGFx/services/__subscription.py
+		src/jAGFx/types/interface/communication/messages/__handshake.py
+		src/jAGFx/types/interface/communication/messages/__handshakeConfirmation.py
+		src/jAGFx/types/interface/communication/__message.py -> src/jAGFx/types/interface/communication/messages/__message.py
+
 9f19e7a:
 	refactor: update inventory and restructure IPC and services; enhance async handling in ProcessHost and Subscription
 		.docs/inventory.md
@@ -1927,51 +1967,6 @@ e2ed358:
 		src/jAGFx/IPC/__processHost.py
 		src/jAGFx/IPC/__workers.py
 		src/jAGFx/IPC/message/__handshake.py
-		src/jAGFx/services/__asyncProcess.py
-
-d0277dd:
-	refactor: streamline sidebar construction and update logging method in WorkSpace and ProcessHost classes
-		src/eNuts/application/workspace/__workSpace.py
-		src/jAGFx/IPC/__processHost.py
-
-e40e21c:
-	refactor: enhance message handling by adding Handshake class and updating related logic
-		src/eNuts/services/device/__deviceManager.py
-		src/fluxCore/utilities/scrcpy/__scrcpy.py
-		src/jAGFx/IPC/__processHost.py
-		src/jAGFx/IPC/message/__handshake.py
-		src/jAGFx/IPC/message/__message.py
-		src/jAGFx/IPC/workerBase/__workerBase.py
-
-81c1d44:
-	refactor: simplify warning messages in SCRCPYEmitter and WorkSpace classes
-		src/eNuts/application/workspace/__workSpace.py
-		src/fluxCore/emitters/__SCRCPYEmitter.py
-
-2d68670:
-	refactor: replace AsyncSubscription with Subscription across multiple services; enhance ProcessHost and worker logic
-		.vscode/launch.json
-		src/TEST/smoke/ipc/processHost.py
-		src/eNuts/application/__eNutsApplications.py
-		src/eNuts/application/__shell.py
-		src/eNuts/services/device/__deviceManager.py
-		src/fluxCore/emitters/__SCRCPYEmitter.py
-		src/fluxCore/stream/__deviceStream.py
-		src/jAGFx/IPC/__processHost.py
-		src/jAGFx/IPC/__workers.py
-		src/jAGFx/IPC/control/__bridge.py
-		src/jAGFx/IPC/control/__messages.py
-		src/jAGFx/IPC/__message.py -> src/jAGFx/IPC/message/__message.py
-		src/jAGFx/IPC/workerBase/__workerBase.py
-		src/jAGFx/services/__asyncProcess.py
-		src/main.py
-
-17ed289:
-	refactor: replace AsyncSubscription with Subscription in AsyncService and update exports in __init__.py
-		src/jAGFx/services/__asyncService.py
-
-e28cfe4:
-	refactor: replace AsyncSubscription with Subscription in AsyncProcess class
 		src/jAGFx/services/__asyncProcess.py
 
 ```
