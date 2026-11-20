@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 # ==================================================================================
-from asyncio import Task
+from asyncio import Task, current_task
 from asyncio import sleep as asyncSleep
 from multiprocessing import Process
 from time import monotonic_ns
@@ -17,7 +17,8 @@ from .__eClientState import eClientState
 # ==================================================================================
 class ProcessSnapshot(Serializable, Subscription):    
     def __init__(self, process: Process, expiry: float = 0.1):         
-        super().__init__()
+        Serializable.__init__(self)
+        Subscription.__init__(self)
         self._expiry: int = int(expiry * 1e9) # converts expiry into nanoseconds
         self._process: Process = process
         self._identity: int = process.ident
@@ -26,20 +27,21 @@ class ProcessSnapshot(Serializable, Subscription):
         self._clientState: eClientState = eClientState.PENDING
         self._expiryTask: Optional[Task] = None    
 
-    def beat(self, expiry: float = 0.1):
-        self._expiry = int(expiry * 1e9) + monotonic_ns()
+    def beat(self, expiry: float = 0.1) -> None:
+        self._expiry = monotonic_ns() + int(expiry * 1e9)
 
-        if self._expiryTask is not None and not self._expiryTask.done():
+        if self._expiryTask is not None:
             self._expiryTask.cancel()
-            self._expiryTask = None
+
+        async def _expire():            
+            if self._expiryTask is current_task():
+                await asyncSleep(expiry)
+                self._clientState = eClientState.DORMANT                
 
         self._clientState = eClientState.ACTIVE
-
-        async def _onExpiry():
-            self._clientState = eClientState.DORMANT
-        
         expiryTask: Task = createTask(asyncSleep, float(self._expiry / 1e9))
-        expiryTask.add_done_callback(_onExpiry)
+        expiryTask.add_done_callback(_expire)
+        self._expiryTask = expiryTask
         
 
     @property
