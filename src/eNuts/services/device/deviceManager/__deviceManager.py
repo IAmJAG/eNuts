@@ -31,14 +31,17 @@ async def dispatch(outQueue: Queue, msg: iMessage):
 
 # ==================================================================================
 async def _watcher(shutdownEvent: syncEvent, queue: Queue):
+    """
+    queue is a multiprocessing.Queue (parent -> this client).
+    get(block=True, timeout=None) is the correct signature.
+    """
     def isShuttingdown() -> bool: ...
     isShuttingdown = shutdownEvent.is_set
 
-    trace(f"FLOW  _watcher started")
+    trace(f"FLOW  _watcher started type={type(queue).__name__}")
     try:
         while not isShuttingdown():
             try:
-                # Queue.get(block=True, timeout=None) — timeout is valid
                 msg: iMessage = await to_thread(queue.get, True, 0.1)
                 trace(
                     f"FLOW  _watcher received {type(msg).__name__} "
@@ -61,13 +64,23 @@ async def _watcher(shutdownEvent: syncEvent, queue: Queue):
 
 # ==================================================================================
 async def deviceWatcher(shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queue):
-    # Child process does not inherit parent logging setup
+    """
+    Must stay alive; processEntry ends when this coroutine returns.
+    inQueue / outQueue are multiprocessing.Queue instances.
+    """
     setupLogging("deviceWatcher", TRACE)
 
-    trace(f"FLOW  deviceWatcher starting pid={current_process().ident}")
-    task = createTask(_watcher, shutdownEvent, inQueue)
-    task.add_done_callback(logTaskException)
+    trace(
+        f"FLOW  deviceWatcher starting pid={current_process().ident} "
+        f"in={type(inQueue).__name__} out={type(outQueue).__name__}"
+    )
+
+    watcher = createTask(_watcher, shutdownEvent, inQueue)
+    watcher.add_done_callback(logTaskException)
 
     handShake: Handshake = Handshake(correlationId=uuid4(), messageId=uuid4())
     await dispatch(outQueue, handShake)
     trace("FLOW  deviceWatcher handshake dispatched")
+
+    # Keep the process alive until shutdown so _watcher can receive
+    await watcher
