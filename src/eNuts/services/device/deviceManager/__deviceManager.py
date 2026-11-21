@@ -22,6 +22,7 @@ async def dispatch(outQueue: Queue, msg: iMessage):
         msg.ownerId = identity
 
         outQueue.put(msg)
+        trace(f"FLOW  dispatch put {type(msg).__name__} owner={identity} queue={id(outQueue)}")
 
     except Exception as ex:
         raise
@@ -31,27 +32,31 @@ async def _watcher(shutdownEvent: syncEvent, queue: Queue):
     def isShuttingdown() -> bool: ...
     isShuttingdown = shutdownEvent.is_set
 
-    try:    
-        while not isShuttingdown():            
-            try:                    
-                msg: iMessage = queue.get_nowait(0.1)
-                print(f"Watchign payload: {msg.payload}")
+    trace(f"FLOW  _watcher started on queue={id(queue)}")
+    try:
+        while not isShuttingdown():
+            try:
+                msg: iMessage = await to_thread(queue.get, True, 0.1)
+                trace(f"FLOW  _watcher received {type(msg).__name__} payload={msg.payload!r} owner={msg.ownerId}")
 
             except Empty:
-                
                 continue
 
-    except Exception:
+    except Exception as ex:
+        trace(f"FLOW  _watcher error: {ex!r}")
         raise
 
     finally:
-        # Ensure shutdown event is set/triggered
-        if not isShuttingdown(): shutdownEvent.set()
+        trace("FLOW  _watcher exiting")
+        if not isShuttingdown():
+            shutdownEvent.set()
         await asyncDrainQueue(queue)
         await asyncCloseQueue(queue)
 
 # ==================================================================================
 async def deviceWatcher(shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queue):
+    trace(f"FLOW  deviceWatcher starting inQueue={id(inQueue)} outQueue={id(outQueue)}")
     createTask(_watcher, shutdownEvent, inQueue)
     handShake: Handshake = Handshake(correlationId=uuid4(), messageId=uuid4())
     await dispatch(outQueue, handShake)
+    trace("FLOW  deviceWatcher handshake dispatched")
