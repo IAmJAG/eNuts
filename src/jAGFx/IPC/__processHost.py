@@ -50,9 +50,7 @@ class ProcessHost(AsyncProcess):
         if task is not None:
             await task
 
-    async def stopAsync(
-        self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False
-    ) -> None:
+    async def stopAsync(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
         if not self._processes and self._receiverTask is None:
             return
 
@@ -80,10 +78,9 @@ class ProcessHost(AsyncProcess):
                 try:                    
                     msg: iMessage = await to_thread(queue.get, True, 0.1)
 
-                except Empty:
-                    continue
+                except Empty: continue
 
-                self.raiseEvent("MESSAGE_RECEIVED", message=msg, nonBlocking=True)
+                self.raiseEvent("MESSAGE_RECEIVED", message=msg)
 
         except Exception:
             await self.stopAsync(forced=True)
@@ -107,10 +104,13 @@ class ProcessHost(AsyncProcess):
 
         self._receiverTask = None
 
-    async def _dispatch(self, clientId: str, msg: Any) -> None:
-        lQueue = self._outQueues.get(clientId)
-        if lQueue is not None:
-            await to_thread(lQueue.put, msg)
+    def _dispatch(self, clientId: str, msg: Any) -> None:
+        queue = self._outQueues.get(clientId)
+        if queue is None:
+            warning("Client queues not found")
+            return 
+        
+        queue.put(msg)
     
     def start(self, worker: Callable[..., Awaitable]) -> None:
         if not iscoroutinefunction(worker): 
@@ -140,9 +140,8 @@ class ProcessHost(AsyncProcess):
         trace("Created client queue")
 
         procSS: Optional[ProcessSnapshot] = None
-        try:
-            self._work = worker
-            process: Process = self._startProcess(shutdownEvent, clientQueue, sharedQueue)
+        try:            
+            process: Process = self._startProcess(worker, shutdownEvent, clientQueue, sharedQueue)
             procSS: ProcessSnapshot = ProcessSnapshot(process)
             self.processes[process.ident] = procSS
 
@@ -218,19 +217,26 @@ class ProcessHost(AsyncProcess):
 
     def _handleMessage(self, message: iMessage) -> None:
         if isinstance(message, iHandshake):
-            trace(f"Received handshake processID: [{message.processId}]")            
-            self.processes[message.processId].beat(0.5)            
+            trace(f"Received handshake processID: [{message.processId}]")
+            procSS: ProcessSnapshot = self.processes[message.processId]
+            procSS.beat(0.5)
+            clientId: int = message.processId
+            self._dispatch(clientId, message)
 
-    def _startProcess(self, shutdownEvent: syncEvent, clientQueue: Queue, sharedQueue: Queue) -> Process:
+    def _startProcess(
+        self, _worker: Callable[..., Awaitable], shutdownEvent: syncEvent,
+        clientQueue: Queue, sharedQueue: Queue,
+    ) -> Process:
         async def worker(self, shutdownEvent, *args, **kwargs): ...
-        worker: Callable[..., Awaitable] = self._work
+        worker: Callable[..., Awaitable] = _worker
         
         process = Process(
             target=processEntry,
             args=(worker, (shutdownEvent, clientQueue, sharedQueue), {}),
             daemon=True, name=f"PROC_{uuid4().hex}",
         )
-        process.start()        
+        process.start()
+        self._outQueues[process.ident] = clientQueue
         return process     
 
     def _startReceiver(self, shutdownEvent: syncEvent, queue: Queue) -> None:

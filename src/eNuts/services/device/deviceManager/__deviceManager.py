@@ -6,7 +6,6 @@ from asyncio import to_thread
 from multiprocessing import Queue, current_process
 from multiprocessing.synchronize import Event as syncEvent
 from queue import Empty
-from typing import Awaitable, Callable, Dict, Type
 from uuid import uuid4
 
 # ==================================================================================
@@ -33,12 +32,13 @@ async def _watcher(shutdownEvent: syncEvent, queue: Queue):
     isShuttingdown = shutdownEvent.is_set
 
     try:    
-        while not isShuttingdown():
+        while not isShuttingdown():            
             try:                    
-                msg: iMessage = await to_thread(queue.get, True, 0.1)
-                print(msg.payload)
+                msg: iMessage = queue.get_nowait(0.1)
+                print(f"Watchign payload: {msg.payload}")
 
             except Empty:
+                
                 continue
 
     except Exception:
@@ -51,7 +51,7 @@ async def _watcher(shutdownEvent: syncEvent, queue: Queue):
         await asyncCloseQueue(queue)
 
 # ==================================================================================
-async def deviceWatcher(shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queue):    
-    createTask(_watcher, shutdownEvent, inQueue)    
+async def deviceWatcher(shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queue):
+    createTask(_watcher, shutdownEvent, inQueue)
     handShake: Handshake = Handshake(correlationId=uuid4(), messageId=uuid4())
     await dispatch(outQueue, handShake)

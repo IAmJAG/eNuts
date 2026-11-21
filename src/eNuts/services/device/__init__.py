@@ -10,6 +10,7 @@ from .deviceManager import deviceWatcher
 # ==================================================================================
 __all__ = [
     "DeviceManager",
+    "deviceWatcher",
     "DEVICE_ADDED_EVENT",
     "DEVICE_REMOVED_EVENT",
     "DEVICE_INITIALIZED_EVENT",

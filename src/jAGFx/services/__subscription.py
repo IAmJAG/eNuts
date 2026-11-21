@@ -31,20 +31,17 @@ class Subscription(iSubscription):
             if not self._callbacks[event]:
                 del self._callbacks[event]
 
-    def raiseEvent(self, event: str, nonBlocking: bool = False, *args, **kwargs) -> None: 
+    def raiseEvent(self, event: str, *args, **kwargs) -> None: 
         if event not in self._callbacks: return
         if self._suppressEvent: return
 
         async def _asyncRunner(_callback: Callable, *_args, **_kwargs) -> None:
-            if nonBlocking:                
-                return await to_thread(_callback, *_args, **_kwargs)
-
-            if iscoroutinefunction(callback):
+            if iscoroutinefunction(_callback):
                 # createTask is available globally via __monkeyPatch
                 return createTask(callback, *args, **kwargs)
 
             else:
-                callback(*args, **kwargs)
+                _callback(*args, **kwargs)
 
         if event in self._callbacks:
             for callback in self._callbacks[event]:

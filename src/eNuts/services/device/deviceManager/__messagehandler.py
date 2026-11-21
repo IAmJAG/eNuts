@@ -17,14 +17,14 @@ async def defaultMessageHandler(msg: iMessage):
         f"[{processId}] Message received from {msg.ownerId}: [{type(msg).__name__}] [{msg.payload}]"
     )
 
-
+# ==================================================================================
 async def handshakeHandler(msg: iMessage):
     processId = current_process().ident
     trace(
         f"[{processId}] Handshake message received from {msg.ownerId}: [{type(msg).__name__}] [{msg.payload}]"
     )
 
-
+# ==================================================================================
 async def handshakeConfirmHandler(msg: iMessage):
     processId = current_process().ident
     trace(
