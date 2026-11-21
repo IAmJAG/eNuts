@@ -2,10 +2,12 @@
 from __future__ import annotations
 
 # ==================================================================================
+from asyncio import sleep as asyncSleep
 from asyncio import to_thread
 from multiprocessing import Queue, current_process
 from multiprocessing.synchronize import Event as syncEvent
 from queue import Empty
+from time import time
 from uuid import uuid4
 
 # ==================================================================================
@@ -34,14 +36,13 @@ async def _watcher(shutdownEvent: syncEvent, queue: Queue):
     try:    
         while not isShuttingdown():            
             try:                    
-                msg: iMessage = queue.get_nowait(0.1)
+                msg: iMessage = await to_thread(queue.get_nowait(0.1))
                 print(f"Watchign payload: {msg.payload}")
 
             except Empty:
-                
                 continue
 
-    except Exception:
+    except Exception as ex:
         raise
 
     finally:

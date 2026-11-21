@@ -3,6 +3,7 @@ from __future__ import annotations
 
 # ==================================================================================
 from asyncio import AbstractEventLoop, CancelledError, Task, get_running_loop, to_thread
+from asyncio import sleep as asyncSleep
 from inspect import iscoroutinefunction
 from multiprocessing import Event, Process, Queue
 from multiprocessing.synchronize import Event as syncEvent
@@ -104,7 +105,7 @@ class ProcessHost(AsyncProcess):
 
         self._receiverTask = None
 
-    def _dispatch(self, clientId: str, msg: Any) -> None:
+    async def _dispatch(self, clientId: str, msg: Any) -> None:
         queue = self._outQueues.get(clientId)
         if queue is None:
             warning("Client queues not found")
@@ -215,13 +216,15 @@ class ProcessHost(AsyncProcess):
             self._inQueue = None
             self._shutdownEvent = None
 
-    def _handleMessage(self, message: iMessage) -> None:
+    async def _handleMessage(self, message: iMessage) -> None:
+
         if isinstance(message, iHandshake):
-            trace(f"Received handshake processID: [{message.processId}]")
-            procSS: ProcessSnapshot = self.processes[message.processId]
-            procSS.beat(0.5)
             clientId: int = message.processId
-            self._dispatch(clientId, message)
+
+            trace(f"Received handshake processID: [{clientId}]")
+            procSS: ProcessSnapshot = self.processes[clientId]
+            procSS.beat(0.5)
+            await self._dispatch(clientId, message)
 
     def _startProcess(
         self, _worker: Callable[..., Awaitable], shutdownEvent: syncEvent,
