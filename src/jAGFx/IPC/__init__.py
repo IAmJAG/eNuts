@@ -3,6 +3,7 @@ from .__bridge import Bridge
 from .__helper import asyncCloseQueue, asyncDrainQueue, closeQueue, drainQueue
 from .__IOQueue import IOQueue
 from .__processHost import ProcessHost
+from .__proxy import Proxy
 from .__workers import SCRCPYWorker, clientWorker, echoWorker
 from .message.__message import Message
 
@@ -20,4 +21,6 @@ __all__ = [
     "asyncDrainQueue",
     "closeQueue",
     "drainQueue",
+    "clientWorker",
+    "Proxy",
 ]

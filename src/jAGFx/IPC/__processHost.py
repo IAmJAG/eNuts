@@ -9,7 +9,7 @@ from multiprocessing import Event, Process, Queue
 from multiprocessing.synchronize import Event as syncEvent
 from queue import Empty
 from threading import RLock
-from typing import Any, Awaitable, Callable, Dict, List, Optional
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Type
 from uuid import uuid4
 
 # ==================================================================================
@@ -17,13 +17,14 @@ from jAGFx.services import C_DEFAULT_STOP_TIMEOUT, AsyncProcess, processEntry
 from utilities import createTask
 
 # ==================================================================================
+from ..types.interface.communication import iProcessHost, iProxy
 from ..types.interface.communication.messages import iHandshake, iMessage
 from .__helper import asyncCloseQueue, asyncDrainQueue, closeQueue, drainQueue
 from .process import ProcessSnapshot
 
 
 # ==================================================================================
-class ProcessHost(AsyncProcess):
+class ProcessHost(AsyncProcess, iProcessHost):
     def __init__(self, name: Optional[str] = None) -> None:
         AsyncProcess.__init__(self, work=None, name=name)
 
@@ -113,14 +114,14 @@ class ProcessHost(AsyncProcess):
         
         queue.put(msg)
     
-    def start(self, worker: Callable[..., Awaitable]) -> None:
+    def start(self, worker: Callable[..., Awaitable], proxy: Type[iProxy], *args, **kwargs) -> iProxy:
         if not iscoroutinefunction(worker): 
             raise ValueError("worker must be a coroutine")
         
         shutdownEvent: Optional[syncEvent] = self._shutdownEvent
         sharedQueue: Optional[Queue] = self._inQueue
 
-        if shutdownEvent is None:            
+        if shutdownEvent is None:
             shutdownEvent = Event()
             self._shutdownEvent = shutdownEvent
             trace("Created shutdown event")
@@ -134,7 +135,7 @@ class ProcessHost(AsyncProcess):
             # creates main receiver task, returns immedieately if already started
             self._startReceiver(shutdownEvent, sharedQueue)
 
-        except Exception:            
+        except Exception:    
             raise
 
         clientQueue = Queue()
@@ -145,6 +146,7 @@ class ProcessHost(AsyncProcess):
             process: Process = self._startProcess(worker, shutdownEvent, clientQueue, sharedQueue)
             procSS: ProcessSnapshot = ProcessSnapshot(process)
             self.processes[process.ident] = procSS
+            return proxy(self, *args, **kwargs)
 
         except Exception as ex:
             self._resourceCleanup(procSS.identity, sharedQueue, clientQueue)

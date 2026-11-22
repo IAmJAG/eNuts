@@ -9,8 +9,11 @@ from multiprocessing import Event, Process
 from multiprocessing.synchronize import Event as SyncEvent
 from typing import Any, Awaitable, Callable
 
+from jAGFx.logging import TRACE, VERBOSE, suppressedLogger
+
 # ==================================================================================
 from jAGFx.names import getRandomName
+from utilities import THIRD_PARTY_LOG_LEVEL, THIRD_PARTY_LOGGERS
 
 # ==================================================================================
 from ..types.interface.services import iService
@@ -18,6 +21,7 @@ from .__subscription import Subscription
 
 # ==================================================================================
 C_DEFAULT_STOP_TIMEOUT: float = 3.0
+LOG_LEVEL = TRACE
 # ==================================================================================
 
 # ==================================================================================
@@ -27,6 +31,9 @@ def processEntry(func: Callable[..., Awaitable], args, kwargs) -> None:
         def work(*a, **k):...
         work: Callable[..., Awaitable] = func
 
+        # Configure logging
+        setupLogging("", LOG_LEVEL)
+        suppressedLogger(THIRD_PARTY_LOGGERS, THIRD_PARTY_LOG_LEVEL)
         await work(*_args, **_kwargs)
 
     asyncioRun(_runner(*args, **kwargs))

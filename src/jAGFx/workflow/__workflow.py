@@ -80,6 +80,7 @@ def _run_workflow(instance: object) -> None:
         else:
             try:
                 method()
+                
             except Exception:
                 raise
 
