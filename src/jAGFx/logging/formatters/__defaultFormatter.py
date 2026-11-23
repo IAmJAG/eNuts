@@ -57,7 +57,8 @@ class DefaultFormatter(Formatter):
             coloredFormatter: colorlog.ColoredFormatter = self._coloredFormatter
             caller: CallerInformation = getattr(record, "caller", None)
             if caller is None:
-                caller = CallerInformation("", "", "NOT", "MINE", "", -1)
+                # Produce exact FQN "NOT.MINE" so NamespaceFilter can match it
+                caller = CallerInformation("", "NOT.MINE", None, None, None, -1)
                 setattr(record, "caller", caller)
 
             lOMsg = record.msg
@@ -100,12 +101,13 @@ class FileFormatter(Formatter):
         try:
             caller: CallerInformation = getattr(record, "caller", None)
             if caller is None:
-                caller = CallerInformation("", "", "NOT", "MINE", "", -1)
+                # Produce exact FQN "NOT.MINE" so NamespaceFilter can match it
+                caller = CallerInformation("", "NOT.MINE", None, None, None, -1)
                 setattr(record, "caller", caller)
 
             # Ensure domain / member exist for the format string
             if not hasattr(record, "domain"):
-                setattr(record, "domain", getattr(caller, "klass", None) or getattr(caller, "module", ""))
+                setattr(record, "domain", getattr(caller, "klass", None) or getattr(caller, "module", "") or "NOT.MINE")
             if not hasattr(record, "member"):
                 setattr(record, "member", getattr(caller, "member", ""))
 
