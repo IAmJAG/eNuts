@@ -1,6 +1,7 @@
 # ==================================================================================================
 from importlib import import_module
 from logging import DEBUG, ERROR, INFO, WARNING, getLogger
+from os import environ
 from sys import argv
 
 # ==================================================================================================
@@ -23,6 +24,8 @@ LOG_LEVEL = TRACE
 def _program(module: str, app: str, clean: bool = False, *args, **kwargs):
     try:
         moduleNS: str = f"{module}.{app}"
+        # Share the log file name with child processes (processEntry)
+        environ["ENUTS_LOG_NAME"] = moduleNS
         addFileHandler(moduleNS, LOG_LEVEL)
 
         lModule: launchModule = import_module(moduleNS)
