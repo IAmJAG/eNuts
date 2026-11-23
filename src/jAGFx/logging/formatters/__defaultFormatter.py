@@ -53,17 +53,10 @@ class DefaultFormatter(Formatter):
     def format(self, record):
         try:
             coloredFormatter: colorlog.ColoredFormatter = self._coloredFormatter
-            lCaller = getattr(record, "caller", None)
-            if lCaller is None:
-                lCaller = CallerInformation("", "", "NOT", "MINE", "", 0)
-                setattr(record, "caller", lCaller)                
-
-            if not hasattr(record, "domain") or record.domain is None:
-                setattr(record, "domain", (lCaller.Class or lCaller.Module or "NOT"))
-
-            if not hasattr(record, "member") or record.member is None:
-                setattr(record, "member", (lCaller.Member or "MINE"))
-
+            caller: CallerInformation = getattr(record, "caller", None)
+            if caller is None:
+                caller = CallerInformation("", "", "NOT", "MINE", "", -1)
+                setattr(record, "caller", caller)            
 
             lOMsg = record.msg
             lLines = str(lOMsg).splitlines()

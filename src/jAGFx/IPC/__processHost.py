@@ -3,7 +3,6 @@ from __future__ import annotations
 
 # ==================================================================================
 from asyncio import AbstractEventLoop, CancelledError, Task, get_running_loop, to_thread
-from asyncio import sleep as asyncSleep
 from inspect import iscoroutinefunction
 from multiprocessing import Event, Process, Queue
 from multiprocessing.synchronize import Event as syncEvent
@@ -18,8 +17,9 @@ from utilities import createTask
 
 # ==================================================================================
 from ..types.interface.communication import iProcessHost, iProxy
-from ..types.interface.communication.messages import iHandshake, iMessage
+from ..types.interface.communication.messages import iMessage
 from .__helper import asyncCloseQueue, asyncDrainQueue, closeQueue, drainQueue
+from .message import Handshake, Terminated
 from .process import ProcessSnapshot
 
 
@@ -144,9 +144,11 @@ class ProcessHost(AsyncProcess, iProcessHost):
         procSS: Optional[ProcessSnapshot] = None
         try:            
             process: Process = self._startProcess(worker, shutdownEvent, clientQueue, sharedQueue)
-            procSS: ProcessSnapshot = ProcessSnapshot(process)
-            self.processes[process.ident] = procSS
-            return proxy(self, *args, **kwargs)
+            identity: int = process.ident
+
+            procSS: ProcessSnapshot = ProcessSnapshot(identity)
+            self.processes[identity] = procSS
+            return proxy(identity=identity, host=self, *args, **kwargs)
 
         except Exception as ex:
             self._resourceCleanup(procSS.identity, sharedQueue, clientQueue)
@@ -219,13 +221,15 @@ class ProcessHost(AsyncProcess, iProcessHost):
             self._shutdownEvent = None
 
     async def _handleMessage(self, message: iMessage) -> None:
-
-        if isinstance(message, iHandshake):
-            clientId: int = message.processId
-
+        if isinstance(message, Handshake):
+            clientId: int = message.ownerId
+            if clientId not in self.processes.keys():
+                raise Exception(f"Client [{clientId}] not found!")
+            
             trace(f"Received handshake processID: [{clientId}]")
             procSS: ProcessSnapshot = self.processes[clientId]
             procSS.beat(0.5)
+
             await self._dispatch(clientId, message)
 
     def _startProcess(

@@ -12,7 +12,7 @@ from .__processHost import ProcessHost
 
 # ==================================================================================
 class Proxy(iProxy):
-    def __init__(self, host: ProcessHost, *args, **kwargs):
+    def __init__(self, identity: int, host: ProcessHost, *args, **kwargs):
         super().__init__(*args, *kwargs)
         if not self._isCalledFromAllowedFactory():
             raise RuntimeError(
@@ -20,6 +20,12 @@ class Proxy(iProxy):
             )
 
         self._host: ProcessHost = host
+        self._identity: int = identity
+
+
+    @property
+    def identity(self) -> int:
+        return self._identity
 
     @staticmethod
     def _isCalledFromAllowedFactory():

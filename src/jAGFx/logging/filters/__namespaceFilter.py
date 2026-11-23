@@ -36,7 +36,7 @@ class NamespaceFilter(logging.Filter):
                 if lCaller:
                     ns: str
                     for ns, lvl in self.NAMESPACE_LEVELS.items():
-                        if lCaller.FullyQualifiedName.startswith(ns):                            
+                        if lCaller.fullyQualifiedName.startswith(ns):                            
                             lLogLevel = lvl
                             break
 

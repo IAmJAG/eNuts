@@ -34,6 +34,7 @@ def processEntry(func: Callable[..., Awaitable], args, kwargs) -> None:
         # Configure logging
         setupLogging("", LOG_LEVEL)
         suppressedLogger(THIRD_PARTY_LOGGERS, THIRD_PARTY_LOG_LEVEL)
+        
         await work(*_args, **_kwargs)
 
     asyncioRun(_runner(*args, **kwargs))

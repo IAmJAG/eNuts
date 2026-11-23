@@ -5,16 +5,15 @@ from ...types.interface.logger import iSourceInformation
 # ==================================================================================
 class BaseSourceInformation(iSourceInformation):
     __slots__ = ["_module", "_class", "_member", "_package", "_file"]
-    def __init__(self, File: str, Package: str, Module: str = None, Class: str = None, Member: str = None):
-        self._module: str = Module
-        self._class: str = Class
-        self._member: str = Member
-        self._package: str = Package
-        self._file: str = File
-        ##self.Properties.extend(["Module", "Class", "Member", "File", "Package"])
+    def __init__(self, file: str, package: str, module: str = None, klass: str = None, member: str = None):
+        self._module: str = module
+        self._class: str = klass
+        self._member: str = member
+        self._package: str = package
+        self._file: str = file
             
     @property
-    def FullyQualifiedName(self) -> str:
+    def fullyQualifiedName(self) -> str:
         if self._class is None or self._class == '':
             fqn = f"{'' if self._package is None else self._package}"
             if self._module is not None: fqn = f"{fqn}.{self._module}"
@@ -29,36 +28,36 @@ class BaseSourceInformation(iSourceInformation):
 
     @property
     def sns(self) -> str:        
-        return f"{self.Package if not self.Class else self.Class}.{self.Member}"
+        return f"{self.package if not self.klass else self.klass}.{self.member}"
 
     @property
-    def File(self) -> str:
+    def file(self) -> str:
         return self._file
     
     @property
-    def Package(self) -> str:
+    def package(self) -> str:
         return self._package    
     
     @property
-    def Module(self) -> str:
+    def module(self) -> str:
         return self._module.strip() if self._module else ""
 
     @property
-    def Class(self) -> str:
+    def klass(self) -> str:
         return self._class.strip() if self._class else ""
 
     @property
-    def Member(self) -> str:
+    def member(self) -> str:
         return self._member.strip() if self._member else ""
 
     @property
     def __repr__(self):
         return f"CallerInformation:" \
-                f"{LF}{TAB}File: {self.File}" \
-                f"{LF}{TAB}Package: {self.Package}" \
-                f"{LF}{TAB}Module: {self.Module}" \
-                f"{LF}{TAB}Class: {self.Class}" \
-                f"{LF}{TAB}Member: {self.Member}"
+                f"{LF}{TAB}File: {self.file}" \
+                f"{LF}{TAB}Package: {self.package}" \
+                f"{LF}{TAB}Module: {self.module}" \
+                f"{LF}{TAB}Class: {self.klass}" \
+                f"{LF}{TAB}Member: {self.member}"
 
     def __str__(self):
-        return self.FullyQualifiedName
+        return self.fullyQualifiedName

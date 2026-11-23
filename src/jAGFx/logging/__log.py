@@ -52,10 +52,10 @@ def log(
         {
             "caller": callerInfo,
             "sns": callerInfo.sns,
-            "domain": callerInfo.Module if not callerInfo.Class else callerInfo.Class,
-            "member": callerInfo.Member,
-            "file": callerInfo.File,
-            "package": callerInfo.Package,            
+            "domain": callerInfo.module if not callerInfo.klass else callerInfo.klass,
+            "member": callerInfo.member,
+            "file": callerInfo.file,
+            "package": callerInfo.package,            
         }        
     )
 

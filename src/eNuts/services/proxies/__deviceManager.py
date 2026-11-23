@@ -6,6 +6,7 @@ from asyncio import Task, to_thread
 from multiprocessing import Queue, current_process
 from multiprocessing.synchronize import Event as syncEvent
 from queue import Empty
+from typing import Optional
 from uuid import uuid4
 
 # ==================================================================================
@@ -27,25 +28,30 @@ async def dispatch(outQueue: Queue, msg: iMessage):
         raise
 
 # ==================================================================================
-async def _watcher(shutdownEvent: syncEvent, queue: Queue):
+async def _watcher(shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queue):
     def isShuttingdown() -> bool: ...
     isShuttingdown = shutdownEvent.is_set
+
+    err: Optional[Exception] = None
 
     try:
         while not isShuttingdown():
             try:
-                msg: iMessage = await to_thread(queue.get, True, 0.1)
+                msg: iMessage = await to_thread(inQueue.get, True, 0.1)
+                if isinstance(msg, Handshake):
+                    trace(f"Acknowleged {msg.processId}")
 
             except Empty:
-                continue
+                continue        
 
-    except Exception as ex:
+    except BaseException as ex:
+        err = ex
         raise
 
     finally:
-        if not isShuttingdown(): shutdownEvent.set()
-        await asyncDrainQueue(queue)
-        await asyncCloseQueue(queue)
+        if not isShuttingdown(): shutdownEvent.set()        
+        await asyncDrainQueue(inQueue)
+        await asyncCloseQueue(inQueue)
 
 # ==================================================================================
 async def deviceWatcher(shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queue):

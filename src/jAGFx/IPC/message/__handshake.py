@@ -1,29 +1,24 @@
 # ==================================================================================
 from multiprocessing import current_process
-from typing import Any, Optional
+from typing import Optional
 from uuid import UUID
 
 # ==================================================================================
-from jAGFx.types.interface.communication.messages import iHandshake
-
-# ==================================================================================
-from .__message import G_DEFAULT_MSG_TIMEOUT, Message
+from .__message import Message
 
 
 # ==================================================================================
-class Handshake(iHandshake, Message):
+class Handshake(Message):    
     def __init__(
         self,
-        correlationId: Optional[UUID | Any] = None, messageId: Optional[UUID] = None,
-        ownerId: Optional[UUID]  = None, timestamp: Optional[float] = G_DEFAULT_MSG_TIMEOUT,
+        correlationId: Optional[UUID], messageId: UUID,
+        isTerminal: Optional[bool],
     ) -> None:
         processId = current_process().ident
-        super().__init__(processId, correlationId, messageId, ownerId, True, timestamp)
-
-    @property
-    def processId(self) -> int:
-        return self.payload
-
+        super().__init__(
+            ownerId=processId, payload=None, correlationId=correlationId,
+            messageId=messageId, isTerminal=isTerminal
+        )
 
 # ==================================================================================
 __all__ = ["Handshake"]
