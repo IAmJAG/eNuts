@@ -15,7 +15,7 @@ from jAGQt.types.interface.window import iMainWindowBase
 
 # ==================================================================================
 from ..services.device import DeviceManager
-from ..services.proxies import deviceWatcher
+from ..services.proxies.deviceManager import deviceWatcher
 from ..types.interface.application import iShell
 from ..types.interface.services.device import iDeviceManager
 from .__applicationInformation import ApplicationInformation

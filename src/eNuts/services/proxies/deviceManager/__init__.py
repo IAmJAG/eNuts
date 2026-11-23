@@ -2,6 +2,4 @@
 from .__deviceManager import deviceWatcher
 
 # ==================================================================================
-__all__ = [
-    "deviceWatcher",
-]
+__all__ = ["deviceWatcher",]

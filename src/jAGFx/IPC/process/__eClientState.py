@@ -10,3 +10,4 @@ class eClientState(Enum):
     PENDING = 0
     ACTIVE = 1
     DORMANT = 2
+    TERMINATED = 3

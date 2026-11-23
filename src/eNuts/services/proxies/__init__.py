@@ -1,5 +1,5 @@
 # ==================================================================================
-from .__deviceManager import deviceWatcher, dispatch
+from .__manager import dispatch, own, ownDispatch, watcher
 
 # ==================================================================================
-__all__ = ["deviceWatcher", "dispatch"]
+__all__ = ["watcher", "dispatch", "ownDispatch", "own"]

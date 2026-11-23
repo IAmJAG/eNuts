@@ -20,7 +20,7 @@ from ..types.interface.communication import iProcessHost, iProxy
 from ..types.interface.communication.messages import iMessage
 from .__helper import asyncCloseQueue, asyncDrainQueue, closeQueue, drainQueue
 from .message import Handshake, Terminated
-from .process import ProcessSnapshot
+from .process import ProcessSnapshot, eClientState
 
 
 # ==================================================================================
@@ -221,16 +221,21 @@ class ProcessHost(AsyncProcess, iProcessHost):
             self._shutdownEvent = None
 
     async def _handleMessage(self, message: iMessage) -> None:
-        if isinstance(message, Handshake):
-            clientId: int = message.ownerId
-            if clientId not in self.processes.keys():
-                raise Exception(f"Client [{clientId}] not found!")
-            
-            trace(f"Received handshake processID: [{clientId}]")
-            procSS: ProcessSnapshot = self.processes[clientId]
-            procSS.beat(0.5)
+        clientId: int = message.ownerId
+        if clientId not in self.processes.keys():
+            raise Exception(f"Client [{clientId}] not found!")
 
+        procSS: ProcessSnapshot = self.processes[clientId]
+
+        if isinstance(message, Handshake):
+            trace(f"Received handshake processID: [{clientId}]")            
+            procSS.beat(0.5)
+            message.payload = "ACKNOWLEDGED"
             await self._dispatch(clientId, message)
+
+        if isinstance(message, Terminated):
+            trace(f"process [{clientId}] terminated")
+            procSS.clientState = eClientState.TERMINATED
 
     def _startProcess(
         self, _worker: Callable[..., Awaitable], shutdownEvent: syncEvent,

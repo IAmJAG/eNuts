@@ -10,13 +10,14 @@ from .__message import Message
 # ==================================================================================
 class Terminated(Message):    
     def __init__(
-        self,
+        self,        
         correlationId: Optional[UUID], messageId: UUID,
         isTerminal: Optional[bool],
+        error: Optional[BaseException] = None,
     ) -> None:
         processId = current_process().ident
         super().__init__(
-            ownerId=processId, payload=None, correlationId=correlationId,
+            ownerId=processId, payload=error, correlationId=correlationId,
             messageId=messageId, isTerminal=isTerminal
         )
         
