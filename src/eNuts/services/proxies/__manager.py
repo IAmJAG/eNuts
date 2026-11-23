@@ -39,7 +39,7 @@ async def ownDispatch(outQueue: Queue, msg: iMessage):
 async def watcher(
     shutdownEvent: syncEvent,
     messageHandler: Callable[[iMessage, ...], Awaitable],
-    inQueue: Queue, outQueue: Queue
+    inQueue: Queue
 ):
     def isShuttingdown() -> bool: ...
     isShuttingdown = shutdownEvent.is_set
