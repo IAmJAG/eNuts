@@ -34,9 +34,14 @@ class NamespaceFilter(logging.Filter):
             if record:
                 lCaller: BaseSourceInformation = getattr(record, "caller", None)
                 if lCaller:
+                    fqn = lCaller.fullyQualifiedName or ""
+                    # Hard drop for the explicit NOT.MINE tag (fallback / unowned)
+                    if fqn == "NOT.MINE" or fqn.startswith("NOT.MINE."):
+                        return False
+
                     ns: str
                     for ns, lvl in self.NAMESPACE_LEVELS.items():
-                        if lCaller.fullyQualifiedName.startswith(ns):                            
+                        if fqn.startswith(ns):
                             lLogLevel = lvl
                             break
 
@@ -55,4 +60,4 @@ class NamespaceFilter(logging.Filter):
 
     @classmethod
     def removeNameFilter(cls, name: str, lvl: int = logging.NOTSET):
-        cls.LOG_NAMES.remove(name)
+        cls.LOG_NAMES.pop(name, None)
