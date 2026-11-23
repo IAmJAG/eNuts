@@ -22,7 +22,7 @@ import colorlog
 
 # ==================================================================================
 from .filters import NamespaceFilter
-from .formatters import DefaultFormatter
+from .formatters import DefaultFormatter, FileFormatter
 from .handlers import DateRotatingFileHandler
 
 # region
@@ -43,11 +43,11 @@ DEF_FILE_HANDLER = {
 
 DEF_FILE_FORMATTER: Dict[str, Any] = (
     {
-        "class": DefaultFormatter,
+        "class": FileFormatter,
         "kwargs": {
             "style": "{",
-            "fmt": "[{asctime}][{levelname:<8}] {message}",
-            "datefmt": "%Y%m%d",
+            "fmt": "[{asctime}][{levelname:<8}] [{domain}] [{member}] {message}",
+            "datefmt": "%Y%m%d %H%M%S",
         },
     },
 )
