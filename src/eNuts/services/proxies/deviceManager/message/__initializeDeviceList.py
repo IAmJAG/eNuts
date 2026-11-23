@@ -16,9 +16,9 @@ from jAGFx.types.interface.serializer import iSerializable
 # ==================================================================================
 class InitializeDeviceList(Message):
     def __init__(
-        self, ownerId: Optional[Union[UUID, str]],
-        deviceList: Dict[str, iDevice], correlationId: Optional[UUID],
-        messageId: UUID, isTerminal: Optional[bool] = True,
+        self, ownerId: Optional[Union[UUID, str]] = None,
+        deviceList: Dict[str, iDevice] = None, correlationId: Optional[UUID] = None,
+        messageId: UUID = None, isTerminal: Optional[bool] = True,
     ) -> None:
         super().__init__(
             ownerId=ownerId, payload=deviceList,
