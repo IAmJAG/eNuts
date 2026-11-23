@@ -108,7 +108,8 @@ def _getConsoleLogger(name: str) -> colorlog.StreamHandler:
     lConsoleHandler.set_name(name)
     lFormatter: DefaultFormatter = DefaultFormatter()
     filter: NamespaceFilter = NamespaceFilter()
-    NamespaceFilter.setNSLogLevel("NOT.MINE", G_DEFAULT_LEVEL)
+    # Suppress unowned / fallback records tagged NOT.MINE
+    NamespaceFilter.setNSLogLevel("NOT.MINE", CRITICAL + 1)
     lConsoleHandler.setFormatter(lFormatter)
     lConsoleHandler.addFilter(filter)
     lConsoleHandler.propagate = True
@@ -171,8 +172,10 @@ def addFileHandler(
     lHandler.setFormatter(formatter)
     lHandler.propagate = True
 
-    if filter is not None:
-        lHandler.addFilter(filter)
+    # Always attach NamespaceFilter so NOT.MINE and per-namespace levels apply to files too
+    if filter is None:
+        filter = NamespaceFilter()
+    lHandler.addFilter(filter)
 
     G_ACTIVE_HANDLERS.append(lHandler)
     _refreshQueueListener()
