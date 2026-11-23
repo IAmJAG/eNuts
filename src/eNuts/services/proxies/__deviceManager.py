@@ -39,7 +39,7 @@ async def _watcher(shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queue):
             try:
                 msg: iMessage = await to_thread(inQueue.get, True, 0.1)
                 if isinstance(msg, Handshake):
-                    trace(f"Acknowleged {msg.processId}")
+                    trace(f"Acknowleged {msg.ownerId}")
 
             except Empty:
                 continue        
@@ -55,7 +55,7 @@ async def _watcher(shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queue):
 
 # ==================================================================================
 async def deviceWatcher(shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queue):
-    watcher: Task = createTask(_watcher, shutdownEvent, inQueue)
+    watcher: Task = createTask(_watcher, shutdownEvent, inQueue, outQueue)
     watcher.add_done_callback(logTaskException)
 
     handShake: Handshake = Handshake(correlationId=uuid4(), messageId=uuid4())

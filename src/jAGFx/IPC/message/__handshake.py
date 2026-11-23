@@ -11,13 +11,12 @@ from .__message import Message
 class Handshake(Message):    
     def __init__(
         self,
-        correlationId: Optional[UUID], messageId: UUID,
-        isTerminal: Optional[bool],
+        correlationId: Optional[UUID], messageId: UUID
     ) -> None:
         processId = current_process().ident
         super().__init__(
             ownerId=processId, payload=None, correlationId=correlationId,
-            messageId=messageId, isTerminal=isTerminal
+            messageId=messageId, isTerminal=True
         )
 
 # ==================================================================================

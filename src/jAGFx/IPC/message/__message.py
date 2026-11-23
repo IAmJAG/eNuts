@@ -61,9 +61,17 @@ class Message(iMessage, Serializable):
     def messageId(self) -> UUID: 
         return self._messageId
 
+    @messageId.setter
+    def messageId(self, value: UUID):
+        self._messageId = value
+
     @property
     def ownerId(self) -> Union[UUID, str]: 
         return self._ownerId
+
+    @ownerId.setter
+    def ownerId(self, value: Union[UUID, str]):
+        self._ownerId = value
 
     @property
     def timestamp(self) -> int: 
