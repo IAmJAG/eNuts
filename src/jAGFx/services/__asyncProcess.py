@@ -7,6 +7,7 @@ from asyncio import run as asyncioRun
 from inspect import iscoroutinefunction
 from multiprocessing import Event, Process
 from multiprocessing.synchronize import Event as SyncEvent
+from os import environ
 from typing import Any, Awaitable, Callable
 
 from jAGFx.logging import TRACE, VERBOSE, suppressedLogger
@@ -31,10 +32,18 @@ def processEntry(func: Callable[..., Awaitable], args, kwargs) -> None:
         def work(*a, **k):...
         work: Callable[..., Awaitable] = func
 
-        # Configure logging
+        # Configure logging (console + shared file if parent exported the name)
         setupLogging("", LOG_LEVEL)
         suppressedLogger(THIRD_PARTY_LOGGERS, THIRD_PARTY_LOG_LEVEL)
-        
+
+        logName = environ.get("ENUTS_LOG_NAME")
+        if logName:
+            try:
+                addFileHandler(logName, LOG_LEVEL)
+            except Exception:
+                # Do not fail the child if the file handler cannot be attached
+                pass
+
         await work(*_args, **_kwargs)
 
     asyncioRun(_runner(*args, **kwargs))
