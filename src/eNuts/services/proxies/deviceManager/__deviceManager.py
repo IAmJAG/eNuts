@@ -28,7 +28,7 @@ async def deviceWatcher(shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queu
 
     try:
         watcherTask: Task = createTask(
-            watcher, shutdownEvent, _messageHandler, inQueue, outQueue
+            watcher, shutdownEvent, _messageHandler, inQueue
         )
         discoveryTask: Task = createTask(
             _discovery, shutdownEvent, outQueue
