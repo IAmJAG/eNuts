@@ -36,7 +36,7 @@ async def deviceWatcher(shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queu
 
         handShake: Handshake = Handshake(correlationId=uuid4(), messageId=uuid4())
         await ownDispatch(outQueue, handShake)
-        await discoveryTask
+        await watcherTask
 
     except Exception as ex:
         err = ex
