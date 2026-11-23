@@ -369,7 +369,19 @@ class DateRotatingFileHandler(logging.FileHandler):
             if self._shouldRotate():
                 self._rotate()
 
-            super().emit(record)
+            # Skip records that produce empty / whitespace-only output
+            msg = self.format(record)
+            if not msg or not str(msg).strip():
+                return
+
+            # Write manually so we control the terminator and avoid blank lines
+            stream = self.stream
+            if stream is None:
+                stream = self._open()
+                self.stream = stream
+
+            stream.write(msg + self.terminator)
+            self.flush()
 
         except ValueError:
             pass
