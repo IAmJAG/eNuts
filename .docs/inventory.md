@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-20 01:18:49 UTC*
+*Auto-generated on: 2026-11-23 02:05:12 UTC*
 
 ## Current Directory Structure
 
@@ -73,6 +73,9 @@ eNuts/
 │           ├── main.css
 │           ├── page.css
 │           └── sideBar.css
+├── recordings/
+│   └── 556f9d38756d44449a22a235d60949ac/
+│       └── video.h264
 ├── src/
 │   ├── TEST/
 │   │   └── smoke/
@@ -120,8 +123,13 @@ eNuts/
 │   │   │   └── __information.py
 │   │   ├── services/
 │   │   │   ├── device/
+│   │   │   │   └── __deviceManager.py
+│   │   │   ├── proxies/
+│   │   │   │   ├── .fff
 │   │   │   │   ├── __deviceManager.py
-│   │   │   │   └── __deviceMngr.py
+│   │   │   │   └── deviceManager/
+│   │   │   │       ├── __deviceManager.py
+│   │   │   │       └── __messagehandler.py
 │   │   │   └── recorder/
 │   │   │       └── __kgRecorderService.py
 │   │   ├── types/
@@ -273,15 +281,15 @@ eNuts/
 │   │   │   ├── __bridge.py
 │   │   │   ├── __endpointx.py
 │   │   │   ├── __helper.py
-│   │   │   ├── __overload.py
 │   │   │   ├── __processHost.py
+│   │   │   ├── __proxy.py
 │   │   │   ├── __workers.py
 │   │   │   ├── control/
 │   │   │   │   └── __bridge.py
 │   │   │   ├── message/
 │   │   │   │   ├── __handshake.py
-│   │   │   │   ├── __handshakeConfirmation.py
-│   │   │   │   └── __message.py
+│   │   │   │   ├── __message.py
+│   │   │   │   └── __terminated.py
 │   │   │   ├── process/
 │   │   │   │   ├── __eClientState.py
 │   │   │   │   └── __processSnapshot.py
@@ -343,9 +351,9 @@ eNuts/
 │   │   │       │   ├── __IOQueue.py
 │   │   │       │   ├── __bridge.py
 │   │   │       │   ├── __endpoint.py
+│   │   │       │   ├── __processHost.py
+│   │   │       │   ├── __proxy.py
 │   │   │       │   └── messages/
-│   │   │       │       ├── __handshake.py
-│   │   │       │       ├── __handshakeConfirmation.py
 │   │   │       │       └── __message.py
 │   │   │       ├── configuration/
 │   │   │       │   ├── __applicationConfiguration.py
@@ -598,13 +606,27 @@ src/eNuts/services/device:
 			DEVICE_REMOVED_EVENT -> : device_removed_event
 			DEVICE_INITIALIZED_EVENT -> : device_initialized_event
 			POLL_INTERVAL -> : poll_interval
-	__deviceMngr.py - 
+
+src/eNuts/services/proxies:
+	__deviceManager.py - 
 		FUNCTION(S):
 			dispatch -> : dispatch
+			_watcher -> : _watcher
+			deviceWatcher -> : devicewatcher
+
+src/eNuts/services/proxies/deviceManager:
+	__deviceManager.py - 
+		FUNCTION(S):
+			dispatch -> : dispatch
+			_watcher -> : _watcher
+			deviceWatcher -> : devicewatcher
+	__messagehandler.py - 
+		FUNCTION(S):
 			defaultMessageHandler -> : defaultmessagehandler
 			handshakeHandler -> : handshakehandler
 			handshakeConfirmHandler -> : handshakeconfirmhandler
-			deviceWatcher -> : devicewatcher
+		CONSTANTS(S)/GLOBAL(S)
+			handlers -> : handlers
 
 src/eNuts/services/recorder:
 	__kgRecorderService.py - 
@@ -1211,12 +1233,12 @@ src/jAGFx/IPC:
 			asyncDrainQueue -> : asyncdrainqueue
 			closeQueue -> : closequeue
 			asyncCloseQueue -> : asyncclosequeue
-	__overload.py - 
-		CLASSE(S):
-			OverloadPolicy -> : overloadpolicy
 	__processHost.py - 
 		CLASSE(S):
 			ProcessHost -> : processhost
+	__proxy.py - 
+		CLASSE(S):
+			Proxy -> : proxy
 	__workers.py - 
 		FUNCTION(S):
 			SCRCPYWorker -> : scrcpyworker
@@ -1232,14 +1254,14 @@ src/jAGFx/IPC/message:
 	__handshake.py - 
 		CLASSE(S):
 			Handshake -> : handshake
-	__handshakeConfirmation.py - 
-		CLASSE(S):
-			HandshakeConfirmation -> : handshakeconfirmation
 	__message.py - 
 		CLASSE(S):
 			Message -> : message
 		CONSTANTS(S)/GLOBAL(S)
 			G_DEFAULT_MSG_TIMEOUT -> : g_default_msg_timeout
+	__terminated.py - 
+		CLASSE(S):
+			Terminated -> : terminated
 
 src/jAGFx/IPC/process:
 	__eClientState.py - 
@@ -1372,6 +1394,7 @@ src/jAGFx/services:
 			_noop -> : _noop
 		CONSTANTS(S)/GLOBAL(S)
 			C_DEFAULT_STOP_TIMEOUT -> : c_default_stop_timeout
+			LOG_LEVEL -> : log_level
 	__asyncService.py - 
 		CLASSE(S):
 			AsyncService -> : asyncservice
@@ -1418,14 +1441,14 @@ src/jAGFx/types/interface/communication:
 	__endpoint.py - 
 		CLASSE(S):
 			iEndpoint -> : iendpoint
+	__processHost.py - 
+		CLASSE(S):
+			iProcessHost -> : iprocesshost
+	__proxy.py - 
+		CLASSE(S):
+			iProxy -> : iproxy
 
 src/jAGFx/types/interface/communication/messages:
-	__handshake.py - 
-		CLASSE(S):
-			iHandshake -> : ihandshake
-	__handshakeConfirmation.py - 
-		CLASSE(S):
-			iHandshakeConfirmation -> : ihandshakeconfirmation
 	__message.py - 
 		CLASSE(S):
 			iMessage -> : imessage
@@ -1907,66 +1930,77 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-d5d7ffd:
-	refactor: streamline expiry task management in ProcessSnapshot for improved state handling
-		src/jAGFx/IPC/process/__processSnapshot.py
+742771a:
+	refactor: update Handshake class to set isTerminal by default and enhance message handling
+		src/eNuts/services/proxies/__deviceManager.py
+		src/jAGFx/IPC/message/__handshake.py
+		src/jAGFx/IPC/message/__message.py
 
-6bd6260:
-	refactor: enhance expiry task handling in ProcessSnapshot to ensure proper state management
-		src/jAGFx/IPC/process/__processSnapshot.py
-
-0470d05:
-	refactor: correct type for duration in beat method and improve expiry task handling
-		src/jAGFx/IPC/process/__processSnapshot.py
-
-3271220:
-	refactor: improve expiry calculation and task handling in ProcessSnapshot
-		src/jAGFx/IPC/process/__processSnapshot.py
-
-79a9aa1:
-	refactor: enhance beat method in ProcessSnapshot for improved state management and task handling
-		src/jAGFx/IPC/process/__processSnapshot.py
-
-5d6f748:
-	Refactor IPC module and enhance message handling
-		.docs/inventory.md
-		src/eNuts/application/__shell.py
-		src/eNuts/services/device/__deviceMngr.py
-		src/jAGFx/IPC/__endpoint.py -> src/jAGFx/IPC/__endpointx.py
+65939df:
+	refactor: enhance IPC message handling and introduce Terminated message class
+		src/eNuts/services/proxies/__deviceManager.py
 		src/jAGFx/IPC/__processHost.py
+		src/jAGFx/IPC/__proxy.py
 		src/jAGFx/IPC/message/__handshake.py
 		src/jAGFx/IPC/message/__handshakeConfirmation.py
 		src/jAGFx/IPC/message/__message.py
-		src/jAGFx/IPC/process/__eClientState.py
+		src/jAGFx/IPC/message/__terminated.py
 		src/jAGFx/IPC/process/__processSnapshot.py
-		src/jAGFx/IPC/workerBase/__deviceMngr.py
-		src/jAGFx/IPC/workerBase/__endpoint.py
-		src/jAGFx/IPC/workerBase/__workerBase.py
-		src/jAGFx/services/__subscription.py
+		src/jAGFx/logging/__log.py
+		src/jAGFx/logging/data/__baseSourceInformation.py
+		src/jAGFx/logging/filters/__namespaceFilter.py
+		src/jAGFx/logging/formatters/__defaultFormatter.py
+		src/jAGFx/services/__asyncProcess.py
+		src/jAGFx/types/interface/communication/__proxy.py
 		src/jAGFx/types/interface/communication/messages/__handshake.py
 		src/jAGFx/types/interface/communication/messages/__handshakeConfirmation.py
-		src/jAGFx/types/interface/communication/__message.py -> src/jAGFx/types/interface/communication/messages/__message.py
+		src/jAGFx/types/interface/communication/messages/__message.py
+		src/jAGFx/types/interface/logger/__sourceInformation.py
 
-9f19e7a:
-	refactor: update inventory and restructure IPC and services; enhance async handling in ProcessHost and Subscription
-		.docs/inventory.md
-
-23bdaa4:
-	refactor: update logging method in ProcessHost to use trace for message reception
-		src/jAGFx/IPC/__processHost.py
-
-34c879a:
-	refactor: update message handling in ProcessHost and clientWorker for improved clarity
-		src/jAGFx/IPC/__processHost.py
-		src/jAGFx/IPC/workerBase/__workerBase.py
-
-e2ed358:
-	refactor: improve geometry restoration logic in Shell class and clean up initialization in WorkSpace class
+aa1ee8d:
+	refactor: reorganize device management and introduce proxy for improved IPC handling
 		src/eNuts/application/__shell.py
-		src/eNuts/application/workspace/__workSpace.py
+		src/eNuts/services/device/deviceManager/__deviceManager.py -> src/eNuts/services/proxies/__deviceManager.py
+		src/eNuts/services/proxies/deviceManager/__deviceManager.py
+		src/eNuts/services/device/deviceManager/__messagehandler.py -> src/eNuts/services/proxies/deviceManager/__messagehandler.py
 		src/jAGFx/IPC/__processHost.py
-		src/jAGFx/IPC/__workers.py
-		src/jAGFx/IPC/message/__handshake.py
+		src/jAGFx/IPC/__proxy.py
+		src/jAGFx/logging/__utilities.py
 		src/jAGFx/services/__asyncProcess.py
+		src/jAGFx/types/interface/communication/__processHost.py
+		src/jAGFx/types/interface/communication/__proxy.py
+		src/jAGFx/workflow/__workflow.py
+
+714e80f:
+	Force-visible stderr prints in deviceWatcher/_watcher; keep process alive
+		src/eNuts/services/device/deviceManager/__deviceManager.py
+
+c618dc2:
+	Keep deviceWatcher alive so _watcher can receive on multiprocessing.Queue; use correct get(timeout)
+		src/eNuts/services/device/deviceManager/__deviceManager.py
+
+7ccf8e9:
+	Fix _watcher receive; set up logging in child so traces appear; surface task exceptions
+		src/eNuts/services/device/deviceManager/__deviceManager.py
+
+3434d07:
+	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
+
+1c64693:
+	refactor: update async handling in deviceManager and processHost for improved performance
+		src/eNuts/services/device/deviceManager/__deviceManager.py
+		src/jAGFx/IPC/__processHost.py
+
+065f7ca:
+	Fix _watcher queue receive so handshake reply is seen; use trace
+		src/eNuts/services/device/deviceManager/__deviceManager.py
+
+0af3f9b:
+	refactor: update deviceWatcher and message handling for improved clarity and performance
+		src/eNuts/services/device/deviceManager/__deviceManager.py
+		src/eNuts/services/device/deviceManager/__messagehandler.py
+		src/jAGFx/IPC/__processHost.py
+		src/jAGFx/services/__subscription.py
+		src/jAGFx/types/interface/services/__subscription.py
 
 ```
