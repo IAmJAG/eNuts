@@ -61,6 +61,13 @@ class DefaultFormatter(Formatter):
                 caller = CallerInformation("", "NOT.MINE", None, None, None, -1)
                 setattr(record, "caller", caller)
 
+            # Ensure domain / member exist for the format string
+            # (project log() injects them; standard / third-party records do not)
+            if not hasattr(record, "domain"):
+                setattr(record, "domain", getattr(caller, "klass", None) or getattr(caller, "module", "") or "NOT.MINE")
+            if not hasattr(record, "member"):
+                setattr(record, "member", getattr(caller, "member", ""))
+
             lOMsg = record.msg
             lLines = [ln for ln in str(lOMsg).splitlines() if ln.strip()]
 
