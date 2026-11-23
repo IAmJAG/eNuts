@@ -2,11 +2,11 @@
 from __future__ import annotations
 
 # ==================================================================================
-from asyncio import Task, to_thread
+from asyncio import to_thread
 from multiprocessing import Queue, current_process
 from multiprocessing.synchronize import Event as syncEvent
 from queue import Empty
-from typing import Optional
+from typing import Awaitable, Callable, Optional
 from uuid import uuid4
 
 # ==================================================================================
@@ -36,33 +36,29 @@ async def ownDispatch(outQueue: Queue, msg: iMessage):
     await dispatch(outQueue, msg)
 
 # ==================================================================================
-async def watcher(shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queue):
+async def watcher(
+    shutdownEvent: syncEvent,
+    messageHandler: Callable[[iMessage, ...], Awaitable],
+    inQueue: Queue, outQueue: Queue
+):
     def isShuttingdown() -> bool: ...
     isShuttingdown = shutdownEvent.is_set
-
-    err: Optional[Exception] = None
 
     try:
         while not isShuttingdown():
             try:
                 msg: iMessage = await to_thread(inQueue.get, True, 0.1)
-                if isinstance(msg, Handshake):
-                    trace(f"Acknowleged {msg.ownerId}")
+                await messageHandler(msg)
 
             except Empty:
                 continue        
 
     except BaseException as ex:
-        err = ex
-        raise
+        raise ex
 
     finally:
         await asyncDrainQueue(inQueue)
         await asyncCloseQueue(inQueue)
-
-        terminated: Terminated = Terminated(error=err)
-        ownDispatch(outQueue, terminated)
-
 
 # ==================================================================================
 __all__ = ["own", "ownDispatch", "dispatch", "watcher"]

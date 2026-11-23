@@ -34,14 +34,9 @@ class Message(iMessage, Serializable):
 
         self.Properties.extend(
             [
-                "ownerId",
-                "payload",  
-
-                "correlationId",
-                "messageId",
-                
-                "isTerminal",
-                "timestamp",
+                "ownerId",          "payload",
+                "correlationId",    "messageId",                
+                "isTerminal",       "timestamp",
             ]
         )
 

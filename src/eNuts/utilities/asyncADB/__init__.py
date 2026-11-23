@@ -1,9 +1,5 @@
 # ==================================================================================================
-from .__asyncADB import ADBDevices, ADBShell, SCRCPYDevices
+from .__asyncADB import ADBDevices, ADBShell, Devices, SCRCPYDevices
 
 # ==================================================================================================
-__all__ = [
-    "ADBDevices",
-    "ADBShell",
-    "SCRCPYDevices",
-]
+__all__ = ["ADBDevices", "ADBShell", "SCRCPYDevices", "Devices"]

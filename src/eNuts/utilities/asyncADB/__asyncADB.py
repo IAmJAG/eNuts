@@ -7,6 +7,7 @@ from adbutils import AdbDevice, adb
 from adbutils.errors import AdbError
 
 # ==================================================================================================
+from fluxCore.device import Device
 from fluxCore.emitters import SCRCPYEmitter
 from fluxCore.types.interface.device import iDevice
 from fluxCore.types.interface.emitters import iSCRCPYEmitter
@@ -29,6 +30,28 @@ async def ADBShell(device: AdbDevice, cmd: str) -> str:
             return None
         
         raise ex
+
+async def Devices()-> Dict[str, iDevice]:
+    adbDevices: Dict[str, AdbDevice] = await ADBDevices()
+    devices: Dict[str, iDevice] = {}
+    for serial, device in adbDevices.items():
+        serial: str = device.serial
+        try:
+            model: str = await ADBShell(device, "getprop ro.product.model")
+            manufacturer: str = await ADBShell(
+                device, "getprop ro.product.manufacturer"
+            )
+
+            width, height = device.window_size()
+
+            name: str = f"{manufacturer}:{model}"
+            _device: iDevice = Device(serial, name, width, height)
+            devices[serial] = _device
+
+        except AdbError:
+            raise
+
+    return devices
 
 async def SCRCPYDevices() -> Dict[str, iSCRCPYEmitter]:
     """

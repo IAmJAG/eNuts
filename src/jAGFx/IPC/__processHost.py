@@ -226,6 +226,7 @@ class ProcessHost(AsyncProcess, iProcessHost):
             raise Exception(f"Client [{clientId}] not found!")
 
         procSS: ProcessSnapshot = self.processes[clientId]
+        trace(f"Message Type [{type(message).__name__}]")
 
         if isinstance(message, Handshake):
             trace(f"Received handshake processID: [{clientId}]")            

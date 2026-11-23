@@ -11,8 +11,8 @@ from .__message import Message
 class Terminated(Message):    
     def __init__(
         self,        
-        correlationId: Optional[UUID], messageId: UUID,
-        isTerminal: Optional[bool],
+        correlationId: Optional[UUID] = None, messageId: UUID = None,
+        isTerminal: Optional[bool] = False,
         error: Optional[BaseException] = None,
     ) -> None:
         processId = current_process().ident
