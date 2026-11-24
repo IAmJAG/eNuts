@@ -19,6 +19,7 @@ THIRD_PARTY_LOGGERS: List[str] = [
     "qasync._windows._IocpProactor",
     "qasync.QThreadExecutor",
     "qasync._QThreadWorker",
+    "not.mine",
 ]
 # ==================================================================================================
 
