@@ -19,7 +19,7 @@ from PySide6.QtWidgets import (
 )
 
 # ==================================================================================
-from fluxCore.action.android.enums import eKeyCode, eKeyState
+from fluxCore.action.android.enums import eKeyState
 from fluxCore.action.android.gesture import Touch
 from fluxCore.action.android.injectKey import InjectKeyPress, InjectKeyRelease
 from fluxCore.geometry import Point
@@ -531,55 +531,34 @@ class KGRecorder(PlaybackBase):
         btnStop = CommandBarButton("Stop")
         btnClear = CommandBarButton("Clear")
         btnSave = CommandBarButton("Save")
-
-        btnRecord.clicked.connect(self.start)
-        btnStop.clicked.connect(self.stop)
-        btnClear.clicked.connect(self.clear)
-        btnSave.clicked.connect(self._onSaveClicked)
-
-        self.addCommandGroup("Session")
-        self.addCommand(btnRecord, "Session")
-        self.addCommand(btnStop, "Session")
-        self.addCommand(btnClear, "Session")
-        self.addCommand(btnSave, "Session")
-
         self._btnRecord = btnRecord
         self._btnStop = btnStop
         self._btnClear = btnClear
         self._btnSave = btnSave
+        self.commandBar.addButton(btnRecord)
+        self.commandBar.addButton(btnStop)
+        self.commandBar.addButton(btnClear)
+        self.commandBar.addButton(btnSave)
+        btnRecord.clicked.connect(self.start)
+        btnStop.clicked.connect(self.stop)
+        btnClear.clicked.connect(self.clear)
+        btnSave.clicked.connect(lambda: self.save())
         self._syncCommandBar()
-
-    def _onSaveClicked(self) -> None:
-        self.save(None)
 
     def _syncCommandBar(self) -> None:
         recording = self._state is eKGRecorderState.Recording
-        hasResult = self._lastSessionResult is not None
-
         if self._btnRecord is not None:
             self._btnRecord.setEnabled(not recording)
         if self._btnStop is not None:
             self._btnStop.setEnabled(recording)
         if self._btnClear is not None:
-            self._btnClear.setEnabled(recording or hasResult)
+            self._btnClear.setEnabled(not recording and len(self._recorder.events) > 0)
         if self._btnSave is not None:
-            self._btnSave.setEnabled(recording or hasResult)
+            self._btnSave.setEnabled(not recording and self._lastSessionResult is not None)
 
     @property
     def shell(self) -> iShell:
-        parent = self.parent()
-        while parent is not None:
-            if getattr(parent, "deviceManager", None) is not None:
-                return parent  # type: ignore[return-value]
-            parent = parent.parent()
-
-        win = self.window()
-        if win is not None and getattr(win, "deviceManager", None) is not None:
-            return win  # type: ignore[return-value]
-
-        raise RuntimeError(
-            "cannot resolve Shell (deviceManager) from parent chain"
-        )
+        return self._shell
 
     @property
     def settings(self) -> QSettings:
