@@ -1,10 +1,4 @@
 # ==================================================================================
-from .device import (
-    DEVICE_ADDED_EVENT,
-    DEVICE_INITIALIZED_EVENT,
-    DEVICE_REMOVED_EVENT,
-    DeviceManager,
-)
 from .recorder import (
     C_MANIFEST_NAME,
     C_ON_ERROR,
@@ -16,10 +10,6 @@ from .recorder import (
 
 # ==================================================================================
 __all__ = [
-    "DeviceManager",
-    "DEVICE_ADDED_EVENT",
-    "DEVICE_REMOVED_EVENT",
-    "DEVICE_INITIALIZED_EVENT",
     "KGRecorderService",
     "C_ON_SESSION_STARTED",
     "C_ON_SESSION_STOPPED",
