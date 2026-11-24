@@ -1,16 +1,6 @@
 # ==================================================================================
-
-from .__deviceManager import (
-    DEVICE_ADDED_EVENT,
-    DEVICE_INITIALIZED_EVENT,
-    DEVICE_REMOVED_EVENT,
-    DeviceManager,
-)
-
+# Old in-process DeviceManager is disconnected.
+# The module file is kept for reference but is no longer imported or exported.
 # ==================================================================================
-__all__ = [
-    "DeviceManager",
-    "DEVICE_ADDED_EVENT",
-    "DEVICE_REMOVED_EVENT",
-    "DEVICE_INITIALIZED_EVENT",
-]
+
+__all__ = []
