@@ -39,7 +39,7 @@ async def ownDispatch(outQueue: Queue, msg: iMessage):
 async def watcher(
     shutdownEvent: syncEvent,
     messageHandler: Callable[[iMessage, ...], Awaitable],
-    inQueue: Queue
+    inQueue: Queue, outQueue: Queue
 ):
     def isShuttingdown() -> bool: ...
     isShuttingdown = shutdownEvent.is_set
@@ -48,7 +48,7 @@ async def watcher(
         while not isShuttingdown():
             try:
                 msg: iMessage = await to_thread(inQueue.get, True, 0.1)
-                await messageHandler(msg)
+                await messageHandler(msg, shutdownEvent, inQueue, outQueue)
 
             except Empty:
                 continue        

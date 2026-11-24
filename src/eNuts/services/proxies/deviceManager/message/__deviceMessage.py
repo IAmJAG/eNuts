@@ -11,14 +11,14 @@ from jAGFx.IPC.message import Message
 
 
 # ==================================================================================
-class OnDevice(Message):
+class _deviceUpdate(Message):
     def __init__(
         self, ownerId: Optional[Union[UUID, str]] = None,
-        devices: Optional[iDevice] = None, correlationId: Optional[UUID] = None,
+        device: Optional[iDevice] = None, correlationId: Optional[UUID] = None,
         messageId: UUID = None, isTerminal: Optional[bool] = True,
     ) -> None:
         super().__init__(
-            ownerId=ownerId, payload=devices,
+            ownerId=ownerId, payload=device,
             correlationId=correlationId, messageId=messageId,
             isTerminal=isTerminal
         )
@@ -26,3 +26,9 @@ class OnDevice(Message):
     @property
     def devices(self) -> Union[Dict[str, iDevice], iDevice]: 
         return self.payload
+
+# ==================================================================================
+class DeviceAdded(_deviceUpdate): ...
+
+# ==================================================================================
+class DeviceRemoved(_deviceUpdate): ...

@@ -17,7 +17,13 @@ from jAGFx.types.interface.communication import iMessage
 # ==================================================================================
 from ....utilities.asyncADB import Devices
 from ..__manager import ownDispatch, watcher
-from .message import OnDevice
+from .message import (
+    DeviceAdded,
+    DeviceDiscoveryEnded,
+    DeviceDiscoveryStarted,
+    DeviceRemoved,
+    InitializeDeviceList,
+)
 
 # ==================================================================================
 POLL_INTERVAL: float = 2.0
@@ -28,14 +34,11 @@ async def deviceWatcher(shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queu
     err: Optional[Union[Exception, BaseException]] = None
 
     try:
-        createTask(watcher, shutdownEvent, _messageHandler, inQueue)
-        discoveryTask: Task = createTask(
-            _discovery, shutdownEvent, outQueue
-        )        
+        watcherTask: Task = createTask(watcher, shutdownEvent, _messageHandler, inQueue, outQueue)        
 
-        handShake: Handshake = Handshake(correlationId=uuid4(), messageId=uuid4())
+        handShake: Handshake = Handshake()
         await ownDispatch(outQueue, handShake)
-        await discoveryTask
+        await watcherTask
 
     except Exception as ex:
         err = ex
@@ -50,9 +53,10 @@ async def deviceWatcher(shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queu
         await ownDispatch(outQueue, terminated)
 
 # ==================================================================================
-async def _messageHandler(msg: iMessage):
+async def _messageHandler(msg: iMessage, shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queue):
     if isinstance(msg, Handshake):
         trace(f"Acknowleged {msg.ownerId}")
+        createTask(_discovery, shutdownEvent, outQueue)        
 
 async def _discovery(shutdownEvent: syncEvent, queue: Queue) -> None:
     def isShuttingDown() -> bool: ...
@@ -63,38 +67,41 @@ async def _discovery(shutdownEvent: syncEvent, queue: Queue) -> None:
         found.update(await Devices())
         return found
 
-    connDevices: Dict[str, iDevice] = await _getDevices()
-    verbose(f"initial discovery count={len(connDevices)} ids={list(connDevices.keys())}")
+    try:
+        msgStarted: DeviceDiscoveryStarted = DeviceDiscoveryStarted()
+        ownDispatch(msgStarted)
 
-    msgIDL: OnDevice = OnDevice(deviceList=connDevices)
-    await ownDispatch(queue, msgIDL)
-
-    devices: Dict[str, iDevice] = connDevices
-
-    while not isShuttingDown():
         connDevices: Dict[str, iDevice] = await _getDevices()
-        curIds = set(connDevices.keys())
-        oldIds = set(devices.keys())
+        verbose(f"initial discovery count={len(connDevices)} ids={list(connDevices.keys())}")
 
-        for deviceId in curIds - oldIds:
-            device = connDevices.get(deviceId, None)
-            if device is not None: 
-                devices[deviceId] = device                
+        msgIDL: InitializeDeviceList = InitializeDeviceList(deviceList=connDevices)
+        await ownDispatch(queue, msgIDL)
 
-        for deviceId in oldIds - curIds:
-            devices.pop(deviceId)
+        devices: Dict[str, iDevice] = connDevices
 
-        if not isShuttingDown():
-            await asyncSleep(POLL_INTERVAL)
+        while not isShuttingDown():
+            connDevices: Dict[str, iDevice] = await _getDevices()
+            curIds = set(connDevices.keys())
+            oldIds = set(devices.keys())
 
+            for deviceId in curIds - oldIds:
+                device: iDevice = connDevices.get(deviceId, None)
+                if device is not None: 
+                    devices[deviceId] = device
+                    deviceAdded: DeviceAdded = DeviceAdded(device=device)
+                    ownDispatch(deviceAdded)
 
-def runDiscovery(self) -> None:
-    async def _discoveryRunner() -> None:
-        try:
-            await self._discovery()
+            for deviceId in oldIds - curIds:
+                device: iDevice = devices.pop(deviceId)
+                deviceAdded: DeviceRemoved = DeviceRemoved(device=device)
+                ownDispatch(deviceAdded)
 
-        except Exception as ex:
-            error("discovery FAIL", ex)
+            if not isShuttingDown():
+                await asyncSleep(POLL_INTERVAL)
 
-    createTask(_discoveryRunner)
-    verbose("runDiscovery scheduled")
+    except BaseException:
+        raise 
+
+    finally: 
+        msgEnded: DeviceDiscoveryEnded = DeviceDiscoveryEnded()
+        ownDispatch(msgEnded)

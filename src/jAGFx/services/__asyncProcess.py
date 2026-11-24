@@ -40,8 +40,8 @@ def processEntry(func: Callable[..., Awaitable], args, kwargs) -> None:
         if logName:
             try:
                 addFileHandler(logName, LOG_LEVEL)
+                
             except Exception:
-                # Do not fail the child if the file handler cannot be attached
                 pass
 
         await work(*_args, **_kwargs)
