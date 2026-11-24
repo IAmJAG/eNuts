@@ -542,10 +542,11 @@ class KGRecorder(PlaybackBase):
         self._btnClear = btnClear
         self._btnSave = btnSave
 
-        self.commandBar.addWidget(btnRecord)
-        self.commandBar.addWidget(btnStop)
-        self.commandBar.addWidget(btnClear)
-        self.commandBar.addWidget(btnSave)
+        # Page exposes addCommand (uses internal _commandBar)
+        self.addCommand(btnRecord)
+        self.addCommand(btnStop)
+        self.addCommand(btnClear)
+        self.addCommand(btnSave)
 
         self._syncCommandBar()
 
