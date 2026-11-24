@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-24 03:49:41 UTC*
+*Auto-generated on: 2026-11-24 07:02:27 UTC*
 
 ## Current Directory Structure
 
@@ -73,9 +73,6 @@ eNuts/
 │           ├── main.css
 │           ├── page.css
 │           └── sideBar.css
-├── recordings/
-│   └── 556f9d38756d44449a22a235d60949ac/
-│       └── video.h264
 ├── src/
 │   ├── TEST/
 │   │   └── smoke/
@@ -287,8 +284,9 @@ eNuts/
 │   │   │   ├── __endpointx.py
 │   │   │   ├── __helper.py
 │   │   │   ├── __processHost.py
-│   │   │   ├── __proxy.py
 │   │   │   ├── __workers.py
+│   │   │   ├── client/
+│   │   │   │   └── __client.py
 │   │   │   ├── control/
 │   │   │   │   └── __bridge.py
 │   │   │   ├── message/
@@ -296,9 +294,6 @@ eNuts/
 │   │   │   │   ├── __information.py
 │   │   │   │   ├── __message.py
 │   │   │   │   └── __terminated.py
-│   │   │   ├── process/
-│   │   │   │   ├── __eClientState.py
-│   │   │   │   └── __processSnapshot.py
 │   │   │   └── workerBase/
 │   │   │       ├── __deviceMngr.py
 │   │   │       ├── __endpoint.py
@@ -350,6 +345,7 @@ eNuts/
 │   │   ├── types/
 │   │   │   ├── __ANSIColors.py
 │   │   │   ├── __color.py
+│   │   │   ├── __eClientState.py
 │   │   │   ├── __typeChecks.py
 │   │   │   └── interface/
 │   │   │       ├── .fff
@@ -358,7 +354,8 @@ eNuts/
 │   │   │       │   ├── __bridge.py
 │   │   │       │   ├── __endpoint.py
 │   │   │       │   ├── __processHost.py
-│   │   │       │   ├── __proxy.py
+│   │   │       │   ├── client/
+│   │   │       │   │   └── __client.py
 │   │   │       │   └── messages/
 │   │   │       │       └── __message.py
 │   │   │       ├── configuration/
@@ -1262,14 +1259,16 @@ src/jAGFx/IPC:
 	__processHost.py - 
 		CLASSE(S):
 			ProcessHost -> : processhost
-	__proxy.py - 
-		CLASSE(S):
-			Proxy -> : proxy
 	__workers.py - 
 		FUNCTION(S):
 			SCRCPYWorker -> : scrcpyworker
 			clientWorker -> : clientworker
 			echoWorker -> : echoworker
+
+src/jAGFx/IPC/client:
+	__client.py - 
+		CLASSE(S):
+			Client -> : client
 
 src/jAGFx/IPC/control:
 	__bridge.py - 
@@ -1291,14 +1290,6 @@ src/jAGFx/IPC/message:
 	__terminated.py - 
 		CLASSE(S):
 			Terminated -> : terminated
-
-src/jAGFx/IPC/process:
-	__eClientState.py - 
-		CLASSE(S):
-			eClientState -> : eclientstate
-	__processSnapshot.py - 
-		CLASSE(S):
-			ProcessSnapshot -> : processsnapshot
 
 src/jAGFx/IPC/workerBase:
 	__deviceMngr.py - 
@@ -1450,6 +1441,9 @@ src/jAGFx/types:
 	__color.py - 
 		CLASSE(S):
 			Color -> : color
+	__eClientState.py - 
+		CLASSE(S):
+			eClientState -> : eclientstate
 	__typeChecks.py - 
 		FUNCTION(S):
 			isNoOpMethod -> : isnoopmethod
@@ -1474,9 +1468,11 @@ src/jAGFx/types/interface/communication:
 	__processHost.py - 
 		CLASSE(S):
 			iProcessHost -> : iprocesshost
-	__proxy.py - 
+
+src/jAGFx/types/interface/communication/client:
+	__client.py - 
 		CLASSE(S):
-			iProxy -> : iproxy
+			iClient -> : iclient
 
 src/jAGFx/types/interface/communication/messages:
 	__message.py - 
@@ -1960,52 +1956,56 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-f93fa8f:
+b29863a:
+	refactor(IPC): remove Proxy and eClientState, introduce Client class for process communication
+		src/eNuts/UI/pages/__annotator.py
+		src/eNuts/application/__shell.py
+		src/jAGFx/IPC/__processHost.py
+		src/jAGFx/IPC/__proxy.py
+		src/jAGFx/IPC/process/__processSnapshot.py -> src/jAGFx/IPC/client/__client.py
+		src/jAGFx/serializer/__serializable.py
+		src/jAGFx/services/__subscription.py
+		src/jAGFx/types/__ANSIColors.py
+		src/jAGFx/types/__color.py
+		src/jAGFx/IPC/process/__eClientState.py -> src/jAGFx/types/__eClientState.py
+		src/jAGFx/types/__typeChecks.py
+		src/jAGFx/types/interface/communication/__processHost.py
+		src/jAGFx/types/interface/communication/__proxy.py
+		src/jAGFx/types/interface/communication/client/__client.py
+
+5f40a6e:
 	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
 
-e6a9f40:
-	feat(device): enhance deviceWatcher and message handling with new device discovery messages
-		src/eNuts/services/proxies/__manager.py
+47a9b94:
+	fix(logging): improve trace messages for message reception and process termination
+		src/jAGFx/IPC/__processHost.py
+
+21f2af6:
+	refactor(logging): honor optional traceColor in console formatter
+		src/jAGFx/logging/formatters/__defaultFormatter.py
+
+c45ac0d:
+	refactor(logging): accept and forward optional color for trace
+		src/jAGFx/logging/__log.py
+
+3d4ee72:
+	refactor(logging): add optional color argument to trace (default green)
+		src/jAGFx/logging/__logging.py
+
+3031515:
+	fix(logging): suppress unowned records (no caller) in NamespaceFilter â€” NOT.MINE was only applied after format
+		src/jAGFx/logging/filters/__namespaceFilter.py
+
+13530a9:
+	fix: add "not.mine" to THIRD_PARTY_LOGGERS list
+		src/utilities/__helpers.py
+
+c1480cf:
+	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
+
+bcae95f:
+	fix: update device discovery message dispatch to use queue; modify Handshake constructor for optional parameters
 		src/eNuts/services/proxies/deviceManager/__deviceManager.py
-		src/eNuts/services/proxies/deviceManager/message/__deviceDiscoveryEnded.py
-		src/eNuts/services/proxies/deviceManager/message/__deviceDiscoveryStarted.py
-		src/eNuts/services/proxies/deviceManager/message/__deviceMessage.py
-		src/jAGFx/IPC/message/__information.py
-		src/jAGFx/services/__asyncProcess.py
-
-d0a85a4:
-	chore: restore full KGRecorder after partial upload; keep eKeyCode removal
-		src/eNuts/UI/pages/__kgRecorder.py
-
-13eff93:
-	chore: remove unused import eKeyCode from KGRecorder page
-		src/eNuts/UI/pages/__kgRecorder.py
-
-dea816e:
-	feat(device): implement OnDevice message class and update deviceWatcher logic
-		.docs/inventory.md
-		src/eNuts/services/proxies/deviceManager/__deviceManager.py
-		src/eNuts/services/proxies/deviceManager/message/__deviceMessage.py
-		src/eNuts/services/proxies/deviceManager/message/__initializeDeviceList.py
-
-29c6718:
-	refactor(device): replace discoveryTask with watcherTask in deviceWatcher function
-		src/eNuts/services/proxies/deviceManager/__deviceManager.py
-
-bbe937e:
-	refactor(device): remove outQueue parameter from deviceWatcher function
-		src/eNuts/services/proxies/deviceManager/__deviceManager.py
-
-2c5a781:
-	refactor(watcher): remove unused outQueue parameter from watcher function
-		src/eNuts/services/proxies/__manager.py
-
-6389b28:
-	fix(device): make parameters optional in InitializeDeviceList constructor
-		src/eNuts/services/proxies/deviceManager/message/__initializeDeviceList.py
-
-8417fb0:
-	docs(logging): add formatters implementation notes
-		.docs/jAGFx/logging/formatters/implementation.md
+		src/jAGFx/IPC/message/__handshake.py
 
 ```
