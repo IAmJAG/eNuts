@@ -69,7 +69,7 @@ async def _discovery(shutdownEvent: syncEvent, queue: Queue) -> None:
 
     try:
         msgStarted: DeviceDiscoveryStarted = DeviceDiscoveryStarted()
-        ownDispatch(msgStarted)
+        await ownDispatch(queue, msgStarted)
 
         connDevices: Dict[str, iDevice] = await _getDevices()
         verbose(f"initial discovery count={len(connDevices)} ids={list(connDevices.keys())}")
@@ -89,12 +89,12 @@ async def _discovery(shutdownEvent: syncEvent, queue: Queue) -> None:
                 if device is not None: 
                     devices[deviceId] = device
                     deviceAdded: DeviceAdded = DeviceAdded(device=device)
-                    ownDispatch(deviceAdded)
+                    await ownDispatch(queue, deviceAdded)
 
             for deviceId in oldIds - curIds:
                 device: iDevice = devices.pop(deviceId)
                 deviceAdded: DeviceRemoved = DeviceRemoved(device=device)
-                ownDispatch(deviceAdded)
+                await ownDispatch(queue, deviceAdded)
 
             if not isShuttingDown():
                 await asyncSleep(POLL_INTERVAL)
@@ -104,4 +104,4 @@ async def _discovery(shutdownEvent: syncEvent, queue: Queue) -> None:
 
     finally: 
         msgEnded: DeviceDiscoveryEnded = DeviceDiscoveryEnded()
-        ownDispatch(msgEnded)
+        await ownDispatch(queue, msgEnded)

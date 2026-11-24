@@ -11,7 +11,7 @@ from .__message import Message
 class Handshake(Message):    
     def __init__(
         self,
-        correlationId: Optional[UUID], messageId: UUID
+        correlationId: Optional[UUID] = None, messageId: UUID = None
     ) -> None:
         processId = current_process().ident
         super().__init__(
