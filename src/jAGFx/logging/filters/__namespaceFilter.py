@@ -22,6 +22,7 @@ class NamespaceFilter(logging.Filter):
         self._defaultLogLevel: int = defaultLogLevel
 
     def filter(self, record: logging.LogRecord) -> bool:
+        # Name-based allow list (THIRD_PARTY_LOGGERS via suppressedLogger)
         if record.name in self.LOG_NAMES.keys():
             logLevel = self.LOG_NAMES[record.name]
             if isinstance(logLevel, str):
@@ -31,19 +32,23 @@ class NamespaceFilter(logging.Filter):
 
         lLogLevel: int = self._defaultLogLevel
         try:
-            if record:
-                lCaller: BaseSourceInformation = getattr(record, "caller", None)
-                if lCaller:
-                    fqn = lCaller.fullyQualifiedName or ""
-                    # Hard drop for the explicit NOT.MINE tag (fallback / unowned)
-                    if fqn == "NOT.MINE" or fqn.startswith("NOT.MINE."):
-                        return False
+            lCaller: BaseSourceInformation = getattr(record, "caller", None)
 
-                    ns: str
-                    for ns, lvl in self.NAMESPACE_LEVELS.items():
-                        if fqn.startswith(ns):
-                            lLogLevel = lvl
-                            break
+            # Unowned / third-party records have no project-injected caller.
+            # Formatter would later tag them NOT.MINE for display; drop them here
+            # so they never reach the handler (filter runs before format).
+            if lCaller is None:
+                return False
+
+            fqn = lCaller.fullyQualifiedName or ""
+            # Explicit NOT.MINE tag (fallback / unowned)
+            if fqn == "NOT.MINE" or fqn.startswith("NOT.MINE."):
+                return False
+
+            for ns, lvl in self.NAMESPACE_LEVELS.items():
+                if fqn.startswith(ns):
+                    lLogLevel = lvl
+                    break
 
             return record.levelno >= lLogLevel
 
