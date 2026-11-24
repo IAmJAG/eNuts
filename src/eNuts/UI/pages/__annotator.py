@@ -13,7 +13,8 @@ from .__playbackBase import PlaybackBase
 
 # ==================================================================================
 class Annotator(PlaybackBase):
-    """Video / image annotator page (view only).
+    """
+    Video / image annotator page (view only).
 
     Inherits playback layout (Page chrome + GLImage). Annotation tools and
     stream attach are deferred.

@@ -13,11 +13,9 @@ from typing import (
 )
 
 # ==================================================================================
-from jAGFx.services import C_DEFAULT_STOP_TIMEOUT
-from jAGFx.types.interface.services import iService
-
-# ==================================================================================
-from .__proxy import iProxy
+from ....services import C_DEFAULT_STOP_TIMEOUT
+from ....types.interface.services import iService
+from .client import iClient
 
 
 # ==================================================================================
@@ -29,7 +27,7 @@ class iProcessHost(iService, Protocol):
     async def stopAsync(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None: ...
     async def waitStopped(self) -> None: ...
 
-    def start(self, worker: Callable[..., Awaitable], proxy: Type[iProxy]) -> None: ...
+    def start(self, worker: Callable[..., Awaitable], proxy: Type[iClient]) -> None: ...
     def running(self, clientId: str | None = None) -> bool: ...
     def stop(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None: ...
 

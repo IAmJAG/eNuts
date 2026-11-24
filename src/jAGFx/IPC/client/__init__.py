@@ -1,6 +1,6 @@
 # ==================================================================================
-from .__eClientState import eClientState
-from .__processSnapshot import ProcessSnapshot
+from ...types.__eClientState import eClientState
+from .__client import Client
 
 # ==================================================================================
-__all__ = ["ProcessSnapshot", "eClientState"]
+__all__ = ["Client", "eClientState"]

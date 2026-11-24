@@ -5,6 +5,7 @@ from typing import Union, overload
 # ==================================================================================
 class Color:
     CL_DEFAULT_ALPHA: float = 1.0
+
     def __init__(self, *args, **kwargs) -> None:
         self._alpha: float = 1.0
         self._red: float = 0.0
@@ -45,22 +46,13 @@ class Color:
                 self._setValues(aVal, rVal, gVal, bVal)
 
     def _setValues(
-        self,
-        alphaVal: Union[float, int],
-        redVal: Union[float, int],
-        greenVal: Union[float, int],
-        blueVal: Union[float, int],
+        self, alphaVal: Union[float, int],redVal: Union[float, int],
+        greenVal: Union[float, int], blueVal: Union[float, int],
     ) -> None:
-        self._alpha = (
-            float(alphaVal) / 255.0 if isinstance(alphaVal, int) else float(alphaVal)
-        )
+        self._alpha = float(alphaVal) / 255.0 if isinstance(alphaVal, int) else float(alphaVal)        
         self._red = float(redVal) / 255.0 if isinstance(redVal, int) else float(redVal)
-        self._green = (
-            float(greenVal) / 255.0 if isinstance(greenVal, int) else float(greenVal)
-        )
-        self._blue = (
-            float(blueVal) / 255.0 if isinstance(blueVal, int) else float(blueVal)
-        )
+        self._green = float(greenVal) / 255.0 if isinstance(greenVal, int) else float(greenVal)
+        self._blue = float(blueVal) / 255.0 if isinstance(blueVal, int) else float(blueVal)
 
     def _parseHex(self, hexStr: str) -> None:
         hexStr = hexStr.lstrip("#")
@@ -69,17 +61,20 @@ class Color:
             g = int(hexStr[1] * 2, 16)
             b = int(hexStr[2] * 2, 16)
             self._setValues(255, r, g, b)
+
         elif len(hexStr) == 6:
             r = int(hexStr[0:2], 16)
             g = int(hexStr[2:4], 16)
             b = int(hexStr[4:6], 16)
             self._setValues(255, r, g, b)
+
         elif len(hexStr) == 8:
             a = int(hexStr[0:2], 16)
             r = int(hexStr[2:4], 16)
             g = int(hexStr[4:6], 16)
             b = int(hexStr[6:8], 16)
             self._setValues(a, r, g, b)
+            
         else:
             raise ValueError(f"Invalid hex color format: {hexStr}")
 

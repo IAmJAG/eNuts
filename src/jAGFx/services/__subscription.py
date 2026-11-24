@@ -10,6 +10,7 @@ from ..types.interface.services import iSubscription
 # ==================================================================================
 class Subscription(iSubscription):
     def __init__(self) -> None:
+        super().__init__()
         self._callbacks: Dict[str, List[Callable]] = {}
         self._suppressEvent = False
 

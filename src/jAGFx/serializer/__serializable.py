@@ -15,6 +15,7 @@ from .__utilities import jsonDecode
 # ==================================================================================
 class Serializable(iSerializable):
     def __init__(self) -> None:
+        super().__init__()
         self._properties: list[str] = []
         wref(self, self.cleanUp)
 

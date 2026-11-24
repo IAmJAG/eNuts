@@ -125,4 +125,3 @@ def Is(provided: Any, expectedType: type) -> bool:
         return False
     except Exception:
         return False
-    

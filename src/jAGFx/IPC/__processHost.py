@@ -16,11 +16,12 @@ from jAGFx.services import C_DEFAULT_STOP_TIMEOUT, AsyncProcess, processEntry
 from utilities import createTask
 
 # ==================================================================================
-from ..types.interface.communication import iProcessHost, iProxy
+from ..types.interface.communication import iProcessHost
+from ..types.interface.communication.client import iClient
 from ..types.interface.communication.messages import iMessage
 from .__helper import asyncCloseQueue, asyncDrainQueue, closeQueue, drainQueue
+from .client import Client, eClientState
 from .message import Handshake, Terminated
-from .process import ProcessSnapshot, eClientState
 
 
 # ==================================================================================
@@ -38,14 +39,14 @@ class ProcessHost(AsyncProcess, iProcessHost):
         self._stopTask: Optional[Task] = None
 
         self._lock: RLock = RLock()
-        self._processes: Dict[int, ProcessSnapshot] = dict[int, ProcessSnapshot]()
+        self._clients: Dict[int, iClient] = dict[int, Client]()
 
         self._loop: Optional[AbstractEventLoop] = None
 
     @property
-    def processes(self) -> Dict[int, Process]: 
-        with self._lock:  # This is OK, no race for the processes
-            return self._processes
+    def clients(self) -> Dict[int, Process]: 
+        with self._lock:
+            return self._clients
 
     async def waitStopped(self) -> None:
         task = self._stopTask
@@ -114,7 +115,7 @@ class ProcessHost(AsyncProcess, iProcessHost):
         
         queue.put(msg)
     
-    def start(self, worker: Callable[..., Awaitable], proxy: Type[iProxy], *args, **kwargs) -> iProxy:
+    def start(self, worker: Callable[..., Awaitable], client: Type[iClient], *args, **kwargs) -> iClient:
         if not iscoroutinefunction(worker): 
             raise ValueError("worker must be a coroutine")
         
@@ -141,17 +142,17 @@ class ProcessHost(AsyncProcess, iProcessHost):
         clientQueue = Queue()
         trace("Created client queue")
 
-        procSS: Optional[ProcessSnapshot] = None
+        client: Optional[iClient] = None
         try:            
             process: Process = self._startProcess(worker, shutdownEvent, clientQueue, sharedQueue)
             identity: int = process.ident
 
-            procSS: ProcessSnapshot = ProcessSnapshot(identity)
-            self.processes[identity] = procSS
-            return proxy(identity=identity, host=self, *args, **kwargs)
+            client: iClient = Client(clientId=identity)
+            self.clients[identity] = client
+            return client
 
         except Exception as ex:
-            self._resourceCleanup(procSS.identity, sharedQueue, clientQueue)
+            self._resourceCleanup(client.identity, sharedQueue, clientQueue)
             raise
 
     def running(self, clientId: str | None = None) -> bool:
@@ -222,20 +223,20 @@ class ProcessHost(AsyncProcess, iProcessHost):
 
     async def _handleMessage(self, message: iMessage) -> None:
         clientId: int = message.ownerId
-        if clientId not in self.processes.keys():
+        if clientId not in self.clients.keys():
             raise Exception(f"Client [{clientId}] not found!")
 
-        procSS: ProcessSnapshot = self.processes[clientId]
+        client: iClient = self.clients[clientId]
         trace(f"Message recieved  clientId: [{clientId}]; type: [{type(message).__name__}]")
 
         if isinstance(message, Handshake):            
-            procSS.beat(0.5)
+            client.beat(0.5)
             message.payload = "ACKNOWLEDGED"
             await self._dispatch(clientId, message)
 
         if isinstance(message, Terminated):
             trace(f"process termination recieved [{clientId}]")
-            procSS.clientState = eClientState.TERMINATED
+            client.clientState = eClientState.TERMINATED
 
     def _startProcess(
         self, _worker: Callable[..., Awaitable], shutdownEvent: syncEvent,
