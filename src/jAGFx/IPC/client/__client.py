@@ -8,7 +8,7 @@ import inspect
 from asyncio import Task
 from asyncio import sleep as asyncSleep
 from time import monotonic_ns
-from typing import Optional
+from typing import Optional, Type
 
 # ==================================================================================
 from ...serializer import Serializable
@@ -86,14 +86,19 @@ class Client(iClient, Subscription):
         frame = inspect.currentframe()
         try:
             # Frame 0: _isCalledFromAllowedFactory
-            # Frame 1: ClassA.__init__
-            # Frame 2: actual caller of ClassA(...)
+            # Frame 1: Client.__init__
+            # Frame 2: actual caller of Client(...)
             callerFrame = frame.f_back.f_back if frame and frame.f_back else None
             if callerFrame is None: return False
 
             functionName = callerFrame.f_code.co_name
-            classArg = type(callerFrame.f_locals.get("self"))
-            return functionName == "start" and isinstance(classArg, iProcessHost)
+
+            me: iProcessHost = callerFrame.f_locals.get("self")
+            if me:
+                classType: Type = type(me)
+                return functionName == "start" and isinstance(classType, iProcessHost)
+
+            return False
         
         finally:
             del frame
