@@ -24,14 +24,11 @@ from fluxCore.action.android.gesture import Touch
 from fluxCore.action.android.injectKey import InjectKeyPress, InjectKeyRelease
 from fluxCore.geometry import Point
 from fluxCore.stream import LocalDeviceStream
-from fluxCore.types.interface.device import iDevice
 from jAGQt.widgets.canvas import GLCanvas
 from jAGQt.widgets.commandBar import CommandBarButton
 
 # ==================================================================================
 from ...services.recorder import KGRecorderService
-from ...types.interface.application import iShell
-from ...types.interface.services.device import iDeviceManager
 from ...types.interface.services.recorder import iKGRecorderService
 from .__helper import C_QT_TO_ANDROID
 from .__playbackBase import PlaybackBase
@@ -40,10 +37,6 @@ from .__recorderState import eKGRecorderState
 # ==================================================================================
 C_SETTINGS_DEVICE_ID: str = "RECORDER_DEVICE_ID"
 C_RECORDINGS_DIR: str = "recordings"
-# Old DeviceManager event names kept only as local constants (no import)
-DEVICE_ADDED_EVENT: str = "deviceManager.deviceAdded"
-DEVICE_REMOVED_EVENT: str = "deviceManager.deviceRemoved"
-DEVICE_INITIALIZED_EVENT: str = "deviceManager.deviceInitialized"
 # ==================================================================================
 
 
@@ -55,6 +48,9 @@ class KGRecorder(PlaybackBase):
     Session capture is delegated to ``KGRecorderService`` (every emitter frame +
     key/pointer events). This page owns Idle|Recording UI state, inject, and
     ``LocalDeviceStream`` preview via ``switchDevice``.
+
+    Note: old in-process DeviceManager has been disconnected. Device list and
+    emitter access are temporarily unavailable until the proxy path is wired.
     """
 
     def __init__(
@@ -101,37 +97,9 @@ class KGRecorder(PlaybackBase):
             warning("start blocked: no device selected")
             return
 
-        mgr = self.deviceManager
-        emitter = mgr.get(serial) if mgr is not None else None
-        if emitter is None:
-            warning(
-                f"start blocked: no emitter for serial={serial!r}"
-            )
-            return
-
-        width = int(getattr(emitter, "width", 0) or 0)
-        height = int(getattr(emitter, "height", 0) or 0)
-        codec = str(getattr(emitter, "codecId", None) or "h264")
-
-        sessionDir = self._sessionDirPath(None)
-        try:
-            self._recorder.bind(
-                emitter,
-                serial=str(serial),
-                width=width,
-                height=height,
-                codec=codec,
-            )
-            self._recorder.start(sessionDir)
-        except Exception as ex:
-            error(f"recorder start failed: {ex}")
-            return
-
-        self._state = eKGRecorderState.Recording
-        self._lastSessionResult = None
-        self._setDeviceComboEnabled(False)
-        self._syncCommandBar()
-        verbose(f"recording started serial={serial!r} dir={str(sessionDir)!r}")
+        # Old DeviceManager disconnected — emitter lookup unavailable
+        warning(f"start blocked: deviceManager disconnected (serial={serial!r})")
+        return
 
     def stop(self) -> None:
         if self._state is not eKGRecorderState.Recording:
@@ -206,59 +174,27 @@ class KGRecorder(PlaybackBase):
             pass
 
     def _refreshDeviceCombo(self, *args, **kwargs) -> None:
-        if self._state is eKGRecorderState.Recording:
+        # Old DeviceManager disconnected — no live device list
+        deviceCombo: QComboBox = getattr(self, "_deviceCombo", None)
+        if deviceCombo is None:
             return
         try:
-            deviceCombo: QComboBox = getattr(self, "_deviceCombo", None)
-            if deviceCombo is None:
-                return
-            mgr = self.deviceManager
-            if mgr is None:
-                warning("refresh device combo: deviceManager unavailable")
-                return
-            
             self.blockWidgetSignals(deviceCombo)
-
             deviceCombo.clear()
-            devices: List[iDevice] = [d for d in list(mgr.values())]
-
-            if len(devices) == 0 or not devices:
-                deviceCombo.placeholderText = "<No Device Found>"
-            else:
-                deviceCombo.placeholderText = "<Select Device>"
-                for device in devices:
-                    name: str = device.name.strip().lower()
-                    deviceCombo.addItem(name, device.id)
-
-            deviceId = self.settings.value(C_SETTINGS_DEVICE_ID, EMPTY)
-            idx = deviceCombo.findData(deviceId)
-            
-            if idx >= 0: deviceCombo.setCurrentIndex(idx)
-
-            elif deviceCombo.count() > 0:
-                deviceCombo.setCurrentIndex(0)
-                deviceId = deviceCombo.itemData(0)
-
-            self._setDevice(deviceId)
-
+            deviceCombo.placeholderText = "<No Device Manager>"
         except Exception as ex:
             warning(f"refresh device combo failed: {ex}")
-
         finally:
-            combo = getattr(self, "_deviceCombo", None)
-            if combo is not None:
-                self.restoreWidgetSignals(combo)
+            if deviceCombo is not None:
+                self.restoreWidgetSignals(deviceCombo)
 
     def _setDevice(self, deviceId: Optional[str]) -> None:
         if self._state is eKGRecorderState.Recording:
             warning("setDevice blocked while Recording")
             return
-        
         cleaned: Optional[str] = (str(deviceId).strip() if deviceId else "") or None
         self._persistDeviceId(cleaned)
-
-        verbose(f"setting deviceId={cleaned!r}")
-        createTask(self._stream.switchDevice, self.deviceManager, cleaned)
+        verbose(f"setting deviceId={cleaned!r} (deviceManager disconnected)")
 
     def _persistDeviceId(self, deviceId: Optional[str]) -> None:
         settings: QSettings = self.settings
@@ -279,13 +215,7 @@ class KGRecorder(PlaybackBase):
         super()._wBindComponents()
         cboDevices: QComboBox = self._deviceCombo
         cboDevices.currentTextChanged.connect(self._onDeviceChanged)
-
-        deviceMngr: iDeviceManager = self.deviceManager
-        if deviceMngr is not None:
-            deviceMngr.subscribe(DEVICE_INITIALIZED_EVENT, self._refreshDeviceCombo)
-            deviceMngr.subscribe(DEVICE_ADDED_EVENT, self._onDeviceAdded)
-            deviceMngr.subscribe(DEVICE_REMOVED_EVENT, self._onDeviceRemoved)
-
+        # No deviceManager subscriptions — old manager disconnected
         self._wireCaptureSignals()
 
     def _onDeviceChanged(self, device: str, *args, **kwargs) -> None:
@@ -294,29 +224,6 @@ class KGRecorder(PlaybackBase):
         cboDevices: QComboBox = self._deviceCombo
         deviceId = cboDevices.itemData(cboDevices.findText(device))
         self._setDevice(deviceId)
-
-    def _onDeviceAdded(self, device: iDevice, *args, **kwargs) -> None:
-        if self._state is eKGRecorderState.Recording:
-            return
-        cboDevices: QComboBox = self._deviceCombo
-        deviceId: str = device.id
-        newIndex: int = cboDevices.findData(deviceId)
-        if newIndex == -1:
-            deviceName: str = device.name.strip().lower()
-            cboDevices.addItem(deviceName, deviceId)
-            verbose(f"added device={deviceId!r}:{deviceName!r}")
-
-    def _onDeviceRemoved(self, device: iDevice, *args, **kwargs) -> None:
-        cboDevices: QComboBox = self._deviceCombo
-        deviceId: str = device.id
-        index: int = cboDevices.findData(deviceId)
-        if index != -1:
-            cboDevices.removeItem(index)
-            deviceName: str = device.name.strip().lower()
-            verbose(f"removed device={deviceId!r}:{deviceName!r}")
-            if self._stream._serial == deviceId:
-                if self._state is eKGRecorderState.Recording: self.stop()
-                self._setDevice(None)
 
     def _wireCaptureSignals(self) -> None:
         view = getattr(self, "_streamView", None)
@@ -341,25 +248,10 @@ class KGRecorder(PlaybackBase):
             warning("wire capture signals failed", ex)
 
     def _controlSocket(self) -> Any:
-        serial = self._stream._serial
-        if not serial: return None
-        mgr = self.deviceManager
-
-        if mgr is None: return None
-        emitter = mgr.get(serial)
-
-        if emitter is None: return None
-        return getattr(emitter, "ControlSocket", None)
+        # Old DeviceManager disconnected — no control socket available
+        return None
 
     def _deviceResolution(self) -> Point:
-        serial = self._stream._serial
-        if serial:
-            emitter = self.deviceManager.get(serial) if self.deviceManager else None
-            if emitter is not None:
-                w = int(getattr(emitter, "width", 0) or 0)
-                h = int(getattr(emitter, "height", 0) or 0)
-                if w > 0 and h > 0: return Point(w, h)
-
         view = getattr(self, "_streamView", None)
         if view is not None and hasattr(view, "contentSize"):
             cw, ch = view.contentSize()
@@ -542,7 +434,6 @@ class KGRecorder(PlaybackBase):
         self._btnClear = btnClear
         self._btnSave = btnSave
 
-        # Page exposes addCommand (uses internal _commandBar)
         self.addCommand(btnRecord)
         self.addCommand(btnStop)
         self.addCommand(btnClear)
