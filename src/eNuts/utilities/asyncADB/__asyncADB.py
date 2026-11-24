@@ -19,7 +19,6 @@ async def ADBDevices() -> Dict[str, AdbDevice]:
     devices: List[AdbDevice] = list(deviceList)
     return {d.serial: d for d in (devices or [])}
 
-
 async def ADBShell(device: AdbDevice, cmd: str) -> str:
     try:
         return await to_thread(device.shell, cmd)
@@ -38,9 +37,7 @@ async def Devices()-> Dict[str, iDevice]:
         serial: str = device.serial
         try:
             model: str = await ADBShell(device, "getprop ro.product.model")
-            manufacturer: str = await ADBShell(
-                device, "getprop ro.product.manufacturer"
-            )
+            manufacturer: str = await ADBShell(device, "getprop ro.product.manufacturer")
 
             width, height = device.window_size()
 
@@ -48,11 +45,9 @@ async def Devices()-> Dict[str, iDevice]:
             _device: iDevice = Device(serial, name, width, height)
             devices[serial] = _device
 
-        except AdbError as ae:
-            if ae.args[0] == "device offline":
-                continue
-                
-            raise Exception("Device no longer available") from ae
+        except AdbError:            
+            # raise Exception("Device no longer available") from ae
+            continue
 
         except Exception:
             raise
@@ -60,12 +55,6 @@ async def Devices()-> Dict[str, iDevice]:
     return devices
 
 async def SCRCPYDevices() -> Dict[str, iSCRCPYEmitter]:
-    """
-    Discover ADB devices and return **uninitialized** global emitters.
-
-    Construct only — do not call ``initialize()`` / ``start()`` here. Ownership
-    and lifecycle live in ``deviceManager`` (reuse on poll; stop on remove).
-    """
     adbDevices: Dict[str, AdbDevice] = await ADBDevices()
     scrcpyDevices: Dict[str, iDevice] = {}
     for d in adbDevices.values():

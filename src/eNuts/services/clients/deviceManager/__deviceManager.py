@@ -58,19 +58,21 @@ async def _messageHandler(msg: iMessage, shutdownEvent: syncEvent, inQueue: Queu
         createTask(_discovery, shutdownEvent, outQueue)
         createTask(_beat, shutdownEvent, outQueue)
 
+# ==================================================================================
 async def _beat(shutdownEvent: syncEvent, queue: Queue):
     def isShuttingDown() -> bool: ...
     isShuttingDown = shutdownEvent.is_set
     BEAT: float = 2.0  # expiry window reported to parent (seconds)
     # Fixed margin so changing BEAT does not significantly alter the interval.
     # Always leave a small constant gap for queue latency.
-    MARGIN: float = 0.1
+    MARGIN: float = 0.2
     INTERVAL: float = max(0.05, BEAT - MARGIN)
     while not isShuttingDown():
         heartbeat: Heartbeat = Heartbeat(BEAT)
         await ownDispatch(queue, heartbeat)
         await asyncSleep(INTERVAL)
 
+# ==================================================================================
 async def _discovery(shutdownEvent: syncEvent, queue: Queue) -> None:
     def isShuttingDown() -> bool: ...
     isShuttingDown = shutdownEvent.is_set
