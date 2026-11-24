@@ -7,11 +7,10 @@ from asyncio import sleep as asyncSleep
 from multiprocessing import Queue
 from multiprocessing.synchronize import Event as syncEvent
 from typing import Dict, Optional, Union
-from uuid import uuid4
 
 # ==================================================================================
 from fluxCore.types.interface.device import iDevice
-from jAGFx.IPC.message import Handshake, Terminated
+from jAGFx.IPC.message import Handshake, Heartbeat, Terminated
 from jAGFx.types.interface.communication import iMessage
 
 # ==================================================================================
@@ -55,8 +54,20 @@ async def deviceWatcher(shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queu
 # ==================================================================================
 async def _messageHandler(msg: iMessage, shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queue):
     if isinstance(msg, Handshake):
-        trace(f"Acknowleged {msg.ownerId}")
-        createTask(_discovery, shutdownEvent, outQueue)        
+        trace(f"Acknowleged [{msg.ownerId}]", color="cyan")
+        createTask(_discovery, shutdownEvent, outQueue)
+        createTask(_beat, shutdownEvent, outQueue)
+
+async def _beat(shutdownEvent: syncEvent, queue: Queue):
+    def isShuttingDown() -> bool: ...
+    isShuttingDown = shutdownEvent.is_set
+    BEAT: float = 0.5 # half a second
+    while not isShuttingDown():        
+        heartbeat: Heartbeat = Heartbeat(BEAT)
+        await ownDispatch(queue, heartbeat)
+
+        duration: float = (float(BEAT * 1e9)) - 10000  # to Nano 
+        await asyncSleep(0.4)
 
 async def _discovery(shutdownEvent: syncEvent, queue: Queue) -> None:
     def isShuttingDown() -> bool: ...

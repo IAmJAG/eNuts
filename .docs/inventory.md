@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-24 07:02:27 UTC*
+*Auto-generated on: 2026-11-24 07:11:55 UTC*
 
 ## Current Directory Structure
 
@@ -1956,6 +1956,10 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+a9dfb34:
+	refactor(inventory): update auto-generated timestamp and restructure IPC components
+		.docs/inventory.md
+
 b29863a:
 	refactor(IPC): remove Proxy and eClientState, introduce Client class for process communication
 		src/eNuts/UI/pages/__annotator.py
@@ -2002,10 +2006,5 @@ c45ac0d:
 
 c1480cf:
 	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
-
-bcae95f:
-	fix: update device discovery message dispatch to use queue; modify Handshake constructor for optional parameters
-		src/eNuts/services/proxies/deviceManager/__deviceManager.py
-		src/jAGFx/IPC/message/__handshake.py
 
 ```

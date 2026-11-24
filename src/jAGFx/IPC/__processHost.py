@@ -21,7 +21,7 @@ from ..types.interface.communication.client import iClient
 from ..types.interface.communication.messages import iMessage
 from .__helper import asyncCloseQueue, asyncDrainQueue, closeQueue, drainQueue
 from .client import Client, eClientState
-from .message import Handshake, Terminated
+from .message import Handshake, Heartbeat, Terminated
 
 
 # ==================================================================================
@@ -227,15 +227,18 @@ class ProcessHost(AsyncProcess, iProcessHost):
             raise Exception(f"Client [{clientId}] not found!")
 
         client: iClient = self.clients[clientId]
-        trace(f"Message recieved  clientId: [{clientId}]; type: [{type(message).__name__}]")
+        trace(f"Message recieved  clientId: [{clientId}]; type: [{type(message).__name__}]", color="cyan")
 
         if isinstance(message, Handshake):            
             client.beat(0.5)
             message.payload = "ACKNOWLEDGED"
             await self._dispatch(clientId, message)
 
+        if isinstance(message, Heartbeat):
+            client.beat(float(message.payload))
+
         if isinstance(message, Terminated):
-            trace(f"process termination recieved [{clientId}]")
+            trace(f"process termination recieved [{clientId}]", color="cyan")
             client.clientState = eClientState.TERMINATED
 
     def _startProcess(

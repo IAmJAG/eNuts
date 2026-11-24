@@ -44,7 +44,8 @@ class Client(iClient, Subscription):
 
         def _expire(task: Task) -> None:
             if self._expiryTask is not None:
-                self.clientState = eClientState.DORMANT
+                trace("Heartbeat expired")
+                self.clientState = eClientState.DORMANT                
         
         expiryTask = createTask(asyncSleep, expiry)
         expiryTask.add_done_callback(_expire)
@@ -61,6 +62,7 @@ class Client(iClient, Subscription):
         if self._clientState != value:
             oldValue: eClientState = self._clientState
             self._clientState = value
+            trace(f"State changed from {oldValue.name} to {value.name}")
             self.raiseEvent("STATE_CHANGED", value, oldValue)
         
     @property
