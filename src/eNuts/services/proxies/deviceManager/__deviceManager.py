@@ -25,7 +25,7 @@ from .message import (
 )
 
 # ==================================================================================
-POLL_INTERVAL: float = 2.0
+POLL_INTERVAL: float = 0.1
 # ==================================================================================
 
 # ==================================================================================
@@ -61,10 +61,12 @@ async def _messageHandler(msg: iMessage, shutdownEvent: syncEvent, inQueue: Queu
 async def _beat(shutdownEvent: syncEvent, queue: Queue):
     def isShuttingDown() -> bool: ...
     isShuttingDown = shutdownEvent.is_set
-    BEAT: float = 0.5  # expiry window reported to parent (seconds)
+
+    MARGIN: float = 0.1
+    BEAT: float = 5.0  # expiry window reported to parent (seconds)
     # Send well before the expiry so queue latency cannot cause a miss.
     # 60 % of the window leaves ~0.2 s margin on a 0.5 s beat.
-    INTERVAL: float = BEAT * 0.6
+    INTERVAL: float = max(0.05, BEAT - MARGIN)
     while not isShuttingDown():
         heartbeat: Heartbeat = Heartbeat(BEAT)
         await ownDispatch(queue, heartbeat)

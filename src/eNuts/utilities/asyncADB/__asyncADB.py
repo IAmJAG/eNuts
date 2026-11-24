@@ -48,7 +48,13 @@ async def Devices()-> Dict[str, iDevice]:
             _device: iDevice = Device(serial, name, width, height)
             devices[serial] = _device
 
-        except AdbError:
+        except AdbError as ae:
+            if ae.args[0] == "device offline":
+                continue
+                
+            raise Exception("Device no longer available") from ae
+
+        except Exception:
             raise
 
     return devices
