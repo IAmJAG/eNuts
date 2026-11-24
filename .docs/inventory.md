@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-24 02:28:11 UTC*
+*Auto-generated on: 2026-11-24 03:49:41 UTC*
 
 ## Current Directory Structure
 
@@ -131,6 +131,8 @@ eNuts/
 │   │   │   │       ├── __deviceManager.py
 │   │   │   │       ├── __messagehandler.py
 │   │   │   │       └── message/
+│   │   │   │           ├── __deviceDiscoveryEnded.py
+│   │   │   │           ├── __deviceDiscoveryStarted.py
 │   │   │   │           ├── __deviceMessage.py
 │   │   │   │           └── __initializeDeviceList.py
 │   │   │   └── recorder/
@@ -291,6 +293,7 @@ eNuts/
 │   │   │   │   └── __bridge.py
 │   │   │   ├── message/
 │   │   │   │   ├── __handshake.py
+│   │   │   │   ├── __information.py
 │   │   │   │   ├── __message.py
 │   │   │   │   └── __terminated.py
 │   │   │   ├── process/
@@ -624,7 +627,6 @@ src/eNuts/services/proxies/deviceManager:
 			deviceWatcher -> : devicewatcher
 			_messageHandler -> : _messagehandler
 			_discovery -> : _discovery
-			runDiscovery -> : rundiscovery
 		CONSTANTS(S)/GLOBAL(S)
 			POLL_INTERVAL -> : poll_interval
 	__messagehandler.py - 
@@ -636,9 +638,17 @@ src/eNuts/services/proxies/deviceManager:
 			handlers -> : handlers
 
 src/eNuts/services/proxies/deviceManager/message:
+	__deviceDiscoveryEnded.py - 
+		CLASSE(S):
+			DeviceDiscoveryEnded -> : devicediscoveryended
+	__deviceDiscoveryStarted.py - 
+		CLASSE(S):
+			DeviceDiscoveryStarted -> : devicediscoverystarted
 	__deviceMessage.py - 
 		CLASSE(S):
-			OnDevice -> : ondevice
+			_deviceUpdate -> : _deviceupdate
+			DeviceAdded -> : deviceadded
+			DeviceRemoved -> : deviceremoved
 	__initializeDeviceList.py - 
 		CLASSE(S):
 			InitializeDeviceList -> : initializedevicelist
@@ -1270,6 +1280,9 @@ src/jAGFx/IPC/message:
 	__handshake.py - 
 		CLASSE(S):
 			Handshake -> : handshake
+	__information.py - 
+		CLASSE(S):
+			Information -> : information
 	__message.py - 
 		CLASSE(S):
 			Message -> : message
@@ -1947,6 +1960,34 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+f93fa8f:
+	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
+
+e6a9f40:
+	feat(device): enhance deviceWatcher and message handling with new device discovery messages
+		src/eNuts/services/proxies/__manager.py
+		src/eNuts/services/proxies/deviceManager/__deviceManager.py
+		src/eNuts/services/proxies/deviceManager/message/__deviceDiscoveryEnded.py
+		src/eNuts/services/proxies/deviceManager/message/__deviceDiscoveryStarted.py
+		src/eNuts/services/proxies/deviceManager/message/__deviceMessage.py
+		src/jAGFx/IPC/message/__information.py
+		src/jAGFx/services/__asyncProcess.py
+
+d0a85a4:
+	chore: restore full KGRecorder after partial upload; keep eKeyCode removal
+		src/eNuts/UI/pages/__kgRecorder.py
+
+13eff93:
+	chore: remove unused import eKeyCode from KGRecorder page
+		src/eNuts/UI/pages/__kgRecorder.py
+
+dea816e:
+	feat(device): implement OnDevice message class and update deviceWatcher logic
+		.docs/inventory.md
+		src/eNuts/services/proxies/deviceManager/__deviceManager.py
+		src/eNuts/services/proxies/deviceManager/message/__deviceMessage.py
+		src/eNuts/services/proxies/deviceManager/message/__initializeDeviceList.py
+
 29c6718:
 	refactor(device): replace discoveryTask with watcherTask in deviceWatcher function
 		src/eNuts/services/proxies/deviceManager/__deviceManager.py
@@ -1966,32 +2007,5 @@ bbe937e:
 8417fb0:
 	docs(logging): add formatters implementation notes
 		.docs/jAGFx/logging/formatters/implementation.md
-
-f7cce73:
-	docs(logging): add formatters requirements
-		.docs/jAGFx/logging/formatters/requirement.md
-
-29bd73c:
-	docs(logging): add DefaultFormatter contract
-		.docs/jAGFx/logging/formatters/defaultFormatter.md
-
-a21065a:
-	fix(logging): ensure domain/member on DefaultFormatter records
-		src/jAGFx/logging/formatters/__defaultFormatter.py
-
-0ecb55e:
-	feat(device): implement device discovery and initialization message handling
-		src/eNuts/services/proxies/__manager.py
-		src/eNuts/services/proxies/deviceManager/__deviceManager.py
-		src/eNuts/services/proxies/deviceManager/message/__initializeDeviceList.py
-		src/eNuts/utilities/asyncADB/__asyncADB.py
-		src/fluxCore/device/__device.py
-		src/jAGFx/IPC/__processHost.py
-		src/jAGFx/IPC/message/__message.py
-		src/jAGFx/IPC/message/__terminated.py
-
-6894d99:
-	fix(logging): child processes also attach the shared file handler
-		src/jAGFx/services/__asyncProcess.py
 
 ```
