@@ -29,11 +29,6 @@ from jAGQt.widgets.canvas import GLCanvas
 from jAGQt.widgets.commandBar import CommandBarButton
 
 # ==================================================================================
-from ...services.device import (
-    DEVICE_ADDED_EVENT,
-    DEVICE_INITIALIZED_EVENT,
-    DEVICE_REMOVED_EVENT,
-)
 from ...services.recorder import KGRecorderService
 from ...types.interface.application import iShell
 from ...types.interface.services.device import iDeviceManager
@@ -45,6 +40,10 @@ from .__recorderState import eKGRecorderState
 # ==================================================================================
 C_SETTINGS_DEVICE_ID: str = "RECORDER_DEVICE_ID"
 C_RECORDINGS_DIR: str = "recordings"
+# Old DeviceManager event names kept only as local constants (no import)
+DEVICE_ADDED_EVENT: str = "deviceManager.deviceAdded"
+DEVICE_REMOVED_EVENT: str = "deviceManager.deviceRemoved"
+DEVICE_INITIALIZED_EVENT: str = "deviceManager.deviceInitialized"
 # ==================================================================================
 
 
@@ -282,9 +281,10 @@ class KGRecorder(PlaybackBase):
         cboDevices.currentTextChanged.connect(self._onDeviceChanged)
 
         deviceMngr: iDeviceManager = self.deviceManager
-        deviceMngr.subscribe(DEVICE_INITIALIZED_EVENT, self._refreshDeviceCombo)
-        deviceMngr.subscribe(DEVICE_ADDED_EVENT, self._onDeviceAdded)
-        deviceMngr.subscribe(DEVICE_REMOVED_EVENT, self._onDeviceRemoved)
+        if deviceMngr is not None:
+            deviceMngr.subscribe(DEVICE_INITIALIZED_EVENT, self._refreshDeviceCombo)
+            deviceMngr.subscribe(DEVICE_ADDED_EVENT, self._onDeviceAdded)
+            deviceMngr.subscribe(DEVICE_REMOVED_EVENT, self._onDeviceRemoved)
 
         self._wireCaptureSignals()
 
@@ -535,56 +535,27 @@ class KGRecorder(PlaybackBase):
         btnRecord.clicked.connect(self.start)
         btnStop.clicked.connect(self.stop)
         btnClear.clicked.connect(self.clear)
-        btnSave.clicked.connect(self._onSaveClicked)
-
-        self.addCommandGroup("Session")
-        self.addCommand(btnRecord, "Session")
-        self.addCommand(btnStop, "Session")
-        self.addCommand(btnClear, "Session")
-        self.addCommand(btnSave, "Session")
+        btnSave.clicked.connect(self.save)
 
         self._btnRecord = btnRecord
         self._btnStop = btnStop
         self._btnClear = btnClear
         self._btnSave = btnSave
-        self._syncCommandBar()
 
-    def _onSaveClicked(self) -> None:
-        self.save(None)
+        self.commandBar.addWidget(btnRecord)
+        self.commandBar.addWidget(btnStop)
+        self.commandBar.addWidget(btnClear)
+        self.commandBar.addWidget(btnSave)
+
+        self._syncCommandBar()
 
     def _syncCommandBar(self) -> None:
         recording = self._state is eKGRecorderState.Recording
-        hasResult = self._lastSessionResult is not None
-
         if self._btnRecord is not None:
             self._btnRecord.setEnabled(not recording)
         if self._btnStop is not None:
             self._btnStop.setEnabled(recording)
         if self._btnClear is not None:
-            self._btnClear.setEnabled(recording or hasResult)
+            self._btnClear.setEnabled(not recording)
         if self._btnSave is not None:
-            self._btnSave.setEnabled(recording or hasResult)
-
-    @property
-    def shell(self) -> iShell:
-        parent = self.parent()
-        while parent is not None:
-            if getattr(parent, "deviceManager", None) is not None:
-                return parent  # type: ignore[return-value]
-            parent = parent.parent()
-
-        win = self.window()
-        if win is not None and getattr(win, "deviceManager", None) is not None:
-            return win  # type: ignore[return-value]
-
-        raise RuntimeError(
-            "cannot resolve Shell (deviceManager) from parent chain"
-        )
-
-    @property
-    def settings(self) -> QSettings:
-        return self.shell.settings
-
-    @property
-    def deviceManager(self) -> iDeviceManager:
-        return self.shell.deviceManager
+            self._btnSave.setEnabled(not recording and self._lastSessionResult is not None)
