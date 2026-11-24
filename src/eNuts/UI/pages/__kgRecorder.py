@@ -528,3 +528,42 @@ class KGRecorder(PlaybackBase):
 
     def _wInitializeCommandBar(self) -> None:
         btnRecord = CommandBarButton("Record")
+        btnStop = CommandBarButton("Stop")
+        btnClear = CommandBarButton("Clear")
+        btnSave = CommandBarButton("Save")
+        self._btnRecord = btnRecord
+        self._btnStop = btnStop
+        self._btnClear = btnClear
+        self._btnSave = btnSave
+        self.commandBar.addButton(btnRecord)
+        self.commandBar.addButton(btnStop)
+        self.commandBar.addButton(btnClear)
+        self.commandBar.addButton(btnSave)
+        btnRecord.clicked.connect(self.start)
+        btnStop.clicked.connect(self.stop)
+        btnClear.clicked.connect(self.clear)
+        btnSave.clicked.connect(lambda: self.save())
+        self._syncCommandBar()
+
+    def _syncCommandBar(self) -> None:
+        recording = self._state is eKGRecorderState.Recording
+        if self._btnRecord is not None:
+            self._btnRecord.setEnabled(not recording)
+        if self._btnStop is not None:
+            self._btnStop.setEnabled(recording)
+        if self._btnClear is not None:
+            self._btnClear.setEnabled(not recording and len(self._recorder.events) > 0)
+        if self._btnSave is not None:
+            self._btnSave.setEnabled(not recording and self._lastSessionResult is not None)
+
+    @property
+    def shell(self) -> iShell:
+        return self._shell
+
+    @property
+    def settings(self) -> QSettings:
+        return self.shell.settings
+
+    @property
+    def deviceManager(self) -> iDeviceManager:
+        return self.shell.deviceManager
