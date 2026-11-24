@@ -70,23 +70,41 @@ class DefaultFormatter(Formatter):
             if not hasattr(record, "member"):
                 setattr(record, "member", getattr(caller, "member", "") or "MINE")
 
-            lOMsg = record.msg
-            lLines = [ln for ln in str(lOMsg).splitlines() if ln.strip()]
+            # Honor optional per-call color for TRACE (console only)
+            traceColor = getattr(record, "traceColor", None)
+            if traceColor and record.levelno == 5:  # TRACE
+                # Temporarily override the secondary message color for this record
+                orig = coloredFormatter.secondary_log_colors.get("message", {}).get("TRACE")
+                coloredFormatter.secondary_log_colors.setdefault("message", {})["TRACE"] = traceColor
+                try:
+                    formatted = self._do_format(coloredFormatter, record)
+                finally:
+                    if orig is not None:
+                        coloredFormatter.secondary_log_colors["message"]["TRACE"] = orig
+                    else:
+                        coloredFormatter.secondary_log_colors["message"].pop("TRACE", None)
+                return formatted
 
-            if not lLines:
-                return ""
-
-            record.msg = lLines[0]
-            lFormattedParts = [coloredFormatter.format(record)]
-            for i in range(1, len(lLines)):
-                record.msg = f"{TAB}{lLines[i]}"
-                lFormattedParts.append(coloredFormatter.format(record))
-
-            record.msg = lOMsg
-            return LF.join(lFormattedParts)
+            return self._do_format(coloredFormatter, record)
 
         except Exception:
             raise
+
+    def _do_format(self, coloredFormatter, record):
+        lOMsg = record.msg
+        lLines = [ln for ln in str(lOMsg).splitlines() if ln.strip()]
+
+        if not lLines:
+            return ""
+
+        record.msg = lLines[0]
+        lFormattedParts = [coloredFormatter.format(record)]
+        for i in range(1, len(lLines)):
+            record.msg = f"{TAB}{lLines[i]}"
+            lFormattedParts.append(coloredFormatter.format(record))
+
+        record.msg = lOMsg
+        return LF.join(lFormattedParts)
 
 
 # ==================================================================================

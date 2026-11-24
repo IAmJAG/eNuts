@@ -38,7 +38,12 @@ def _log(messages: List[str] | str, level: int, extra: Dict):
 # ==================================================================================
 def log(
     messages: str | List[str] | Tuple[str] | Dict[str, str] | Set[str],
-    level: int, err: Exception = None, frame: FrameType = None,
+    level: int,
+    err: Exception = None,
+    frame: FrameType = None,
+    color: str | None = None,
+    *args,
+    **kwargs,
 ) -> None:
     if frame is None: frame = getCallersFrame()
 
@@ -58,6 +63,10 @@ def log(
             "package": callerInfo.package,            
         }        
     )
+
+    # Optional per-call color (used by trace; ignored by file formatter)
+    if color is not None:
+        lExtra["traceColor"] = color
 
     if isinstance(messages, str):
         messages = [messages]
