@@ -15,7 +15,6 @@ from jAGFx.IPC.client import Client
 from jAGQt.types.interface.window import iMainWindowBase
 
 # ==================================================================================
-from ..services.device import DeviceManager
 from ..services.proxies.deviceManager import deviceWatcher
 from ..types.interface.application import iShell
 from ..types.interface.services.device import iDeviceManager
@@ -32,14 +31,13 @@ class Shell(iShell, ApplicationInformation):
     def _wInitializeUI(self: iMainWindowBase | QMainWindow) -> None:
         verbose("ENTER")
         try:
-            mgr: iDeviceManager = DeviceManager(self._shutdownEvent)
-            self._deviceManager = mgr            
+            # Old in-process DeviceManager disconnected — not instantiated.
+            # self._deviceManager remains None until a replacement is wired.
+            self._deviceManager = None
 
             central: WorkSpace = WorkSpace(title=self.title, parent=self)
             self.setCentralWidget(central)
             self._tempRunServices()
-
-            mgr.runDiscovery()
 
         except Exception as ex:
             error("FAIL", ex)
@@ -95,13 +93,6 @@ class Shell(iShell, ApplicationInformation):
 
     def closeEvent(self, event) -> None:
         self.saveWindowState()
-        mgr = self.deviceManager
-        if mgr is not None:
-            try:
-                mgr.stopAll()
-
-            except Exception as ex:
-                warning(f"[Shell] deviceManager.stopAll failed: {ex}")
-
+        # Old DeviceManager stopAll removed — no longer used.
         self._shutdownEvent.set()
         super().closeEvent(event)
