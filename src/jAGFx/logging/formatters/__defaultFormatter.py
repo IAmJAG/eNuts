@@ -57,16 +57,18 @@ class DefaultFormatter(Formatter):
             coloredFormatter: colorlog.ColoredFormatter = self._coloredFormatter
             caller: CallerInformation = getattr(record, "caller", None)
             if caller is None:
-                # Produce exact FQN "NOT.MINE" so NamespaceFilter can match it
+                # FQN stays "NOT.MINE" for NamespaceFilter; display as [NOT] [MINE]
                 caller = CallerInformation("", "NOT.MINE", None, None, None, -1)
                 setattr(record, "caller", caller)
+                setattr(record, "domain", "NOT")
+                setattr(record, "member", "MINE")
 
             # Ensure domain / member exist for the format string
             # (project log() injects them; standard / third-party records do not)
             if not hasattr(record, "domain"):
-                setattr(record, "domain", getattr(caller, "klass", None) or getattr(caller, "module", "") or "NOT.MINE")
+                setattr(record, "domain", getattr(caller, "klass", None) or getattr(caller, "module", "") or "NOT")
             if not hasattr(record, "member"):
-                setattr(record, "member", getattr(caller, "member", ""))
+                setattr(record, "member", getattr(caller, "member", "") or "MINE")
 
             lOMsg = record.msg
             lLines = [ln for ln in str(lOMsg).splitlines() if ln.strip()]
@@ -108,15 +110,17 @@ class FileFormatter(Formatter):
         try:
             caller: CallerInformation = getattr(record, "caller", None)
             if caller is None:
-                # Produce exact FQN "NOT.MINE" so NamespaceFilter can match it
+                # FQN stays "NOT.MINE" for NamespaceFilter; display as [NOT] [MINE]
                 caller = CallerInformation("", "NOT.MINE", None, None, None, -1)
                 setattr(record, "caller", caller)
+                setattr(record, "domain", "NOT")
+                setattr(record, "member", "MINE")
 
             # Ensure domain / member exist for the format string
             if not hasattr(record, "domain"):
-                setattr(record, "domain", getattr(caller, "klass", None) or getattr(caller, "module", "") or "NOT.MINE")
+                setattr(record, "domain", getattr(caller, "klass", None) or getattr(caller, "module", "") or "NOT")
             if not hasattr(record, "member"):
-                setattr(record, "member", getattr(caller, "member", ""))
+                setattr(record, "member", getattr(caller, "member", "") or "MINE")
 
             lOMsg = record.msg
             lLines = [ln for ln in str(lOMsg).splitlines() if ln.strip()]
