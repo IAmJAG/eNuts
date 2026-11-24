@@ -42,19 +42,22 @@ class Client(iClient, Subscription):
 
         self._expiry = now + durationNs
         
-        expiryTask: Optional[Task] = self._expiryTask
-        if expiryTask is not None and not expiryTask.done():
+        # Cancel previous expiry (its done callback must be ignored)
+        oldTask: Optional[Task] = self._expiryTask
+        if oldTask is not None and not oldTask.done():
             self._expiryTask = None
-            expiryTask.cancel()
+            oldTask.cancel()
 
         def _expire(task: Task) -> None:
-            if self._expiryTask is not None:
-                trace("Heartbeat expired")
-                self.clientState = eClientState.DORMANT                
-        
-        expiryTask = createTask(asyncSleep, safeExpiry)
-        expiryTask.add_done_callback(_expire)
-        self._expiryTask = expiryTask
+            # Ignore cancelled tasks and any task that is no longer current
+            if task.cancelled() or task is not self._expiryTask:
+                return
+            trace("Heartbeat expired")
+            self.clientState = eClientState.DORMANT
+
+        newTask: Task = createTask(asyncSleep, safeExpiry)
+        newTask.add_done_callback(_expire)
+        self._expiryTask = newTask
         self.clientState = eClientState.ACTIVE
 
     @property
