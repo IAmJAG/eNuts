@@ -32,7 +32,12 @@ class Client(iClient, Subscription):
         self._expiryTask: Optional[Task] = None        
 
     def beat(self, expiry: float = 0.1) -> None:
-        durationNs: int = int(expiry * 1e9)
+        # Add a small margin so the next heartbeat can arrive before this one expires
+        # even under modest queue / scheduling latency.
+        MARGIN: float = 0.15
+        safeExpiry: float = max(0.05, expiry + MARGIN)
+
+        durationNs: int = int(safeExpiry * 1e9)
         now: int = monotonic_ns()
 
         self._expiry = now + durationNs
@@ -47,7 +52,7 @@ class Client(iClient, Subscription):
                 trace("Heartbeat expired")
                 self.clientState = eClientState.DORMANT                
         
-        expiryTask = createTask(asyncSleep, expiry)
+        expiryTask = createTask(asyncSleep, safeExpiry)
         expiryTask.add_done_callback(_expire)
         self._expiryTask = expiryTask
         self.clientState = eClientState.ACTIVE
