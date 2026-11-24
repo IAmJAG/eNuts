@@ -33,8 +33,19 @@ def _resolveErr(err: Exception | None) -> Exception | None:
     return None
 
 # ==================================================================================
-def trace(message: str | tuple | list | dict, err: Exception = None, *args, **kwargs):
-    log(messages=message, level=TRACE, err=err, *args, **kwargs)
+def trace(
+    message: str | tuple | list | dict,
+    err: Exception = None,
+    color: str = "green",
+    *args,
+    **kwargs,
+):
+    """Log at TRACE level.
+
+    color: optional console color name (colorlog style, e.g. "green", "cyan", "yellow").
+           Default is "green". Ignored by file handlers.
+    """
+    log(messages=message, level=TRACE, err=err, color=color, *args, **kwargs)
 
 # ==================================================================================
 def verbose(message: str | tuple | list | dict, err: Exception = None, *args, **kwargs):
