@@ -62,9 +62,10 @@ async def _beat(shutdownEvent: syncEvent, queue: Queue):
     def isShuttingDown() -> bool: ...
     isShuttingDown = shutdownEvent.is_set
     BEAT: float = 0.5  # expiry window reported to parent (seconds)
-    # Send well before the expiry so queue latency cannot cause a miss.
-    # 60 % of the window leaves ~0.2 s margin on a 0.5 s beat.
-    INTERVAL: float = BEAT * 0.6
+    # Fixed margin so changing BEAT does not significantly alter the interval.
+    # Always leave a small constant gap for queue latency.
+    MARGIN: float = 0.1
+    INTERVAL: float = max(0.05, BEAT - MARGIN)
     while not isShuttingDown():
         heartbeat: Heartbeat = Heartbeat(BEAT)
         await ownDispatch(queue, heartbeat)
