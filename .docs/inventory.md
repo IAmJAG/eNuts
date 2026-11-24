@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-23 02:05:12 UTC*
+*Auto-generated on: 2026-11-24 02:28:11 UTC*
 
 ## Current Directory Structure
 
@@ -126,10 +126,13 @@ eNuts/
 │   │   │   │   └── __deviceManager.py
 │   │   │   ├── proxies/
 │   │   │   │   ├── .fff
-│   │   │   │   ├── __deviceManager.py
+│   │   │   │   ├── __manager.py
 │   │   │   │   └── deviceManager/
 │   │   │   │       ├── __deviceManager.py
-│   │   │   │       └── __messagehandler.py
+│   │   │   │       ├── __messagehandler.py
+│   │   │   │       └── message/
+│   │   │   │           ├── __deviceMessage.py
+│   │   │   │           └── __initializeDeviceList.py
 │   │   │   └── recorder/
 │   │   │       └── __kgRecorderService.py
 │   │   ├── types/
@@ -608,18 +611,22 @@ src/eNuts/services/device:
 			POLL_INTERVAL -> : poll_interval
 
 src/eNuts/services/proxies:
-	__deviceManager.py - 
+	__manager.py - 
 		FUNCTION(S):
+			own -> : own
 			dispatch -> : dispatch
-			_watcher -> : _watcher
-			deviceWatcher -> : devicewatcher
+			ownDispatch -> : owndispatch
+			watcher -> : watcher
 
 src/eNuts/services/proxies/deviceManager:
 	__deviceManager.py - 
 		FUNCTION(S):
-			dispatch -> : dispatch
-			_watcher -> : _watcher
 			deviceWatcher -> : devicewatcher
+			_messageHandler -> : _messagehandler
+			_discovery -> : _discovery
+			runDiscovery -> : rundiscovery
+		CONSTANTS(S)/GLOBAL(S)
+			POLL_INTERVAL -> : poll_interval
 	__messagehandler.py - 
 		FUNCTION(S):
 			defaultMessageHandler -> : defaultmessagehandler
@@ -627,6 +634,14 @@ src/eNuts/services/proxies/deviceManager:
 			handshakeConfirmHandler -> : handshakeconfirmhandler
 		CONSTANTS(S)/GLOBAL(S)
 			handlers -> : handlers
+
+src/eNuts/services/proxies/deviceManager/message:
+	__deviceMessage.py - 
+		CLASSE(S):
+			OnDevice -> : ondevice
+	__initializeDeviceList.py - 
+		CLASSE(S):
+			InitializeDeviceList -> : initializedevicelist
 
 src/eNuts/services/recorder:
 	__kgRecorderService.py - 
@@ -764,6 +779,7 @@ src/eNuts/utilities/asyncADB:
 		FUNCTION(S):
 			ADBDevices -> : adbdevices
 			ADBShell -> : adbshell
+			Devices -> : devices
 			SCRCPYDevices -> : scrcpydevices
 
 src/fluxCore/action:
@@ -1347,6 +1363,7 @@ src/jAGFx/logging/formatters:
 	__defaultFormatter.py - 
 		CLASSE(S):
 			DefaultFormatter -> : defaultformatter
+			FileFormatter -> : fileformatter
 		CONSTANTS(S)/GLOBAL(S)
 			G_LOG_FORMAT -> : g_log_format
 			G_LOG_FORMAT -> : g_log_format
@@ -1930,77 +1947,51 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-742771a:
-	refactor: update Handshake class to set isTerminal by default and enhance message handling
-		src/eNuts/services/proxies/__deviceManager.py
-		src/jAGFx/IPC/message/__handshake.py
-		src/jAGFx/IPC/message/__message.py
+29c6718:
+	refactor(device): replace discoveryTask with watcherTask in deviceWatcher function
+		src/eNuts/services/proxies/deviceManager/__deviceManager.py
 
-65939df:
-	refactor: enhance IPC message handling and introduce Terminated message class
-		src/eNuts/services/proxies/__deviceManager.py
+bbe937e:
+	refactor(device): remove outQueue parameter from deviceWatcher function
+		src/eNuts/services/proxies/deviceManager/__deviceManager.py
+
+2c5a781:
+	refactor(watcher): remove unused outQueue parameter from watcher function
+		src/eNuts/services/proxies/__manager.py
+
+6389b28:
+	fix(device): make parameters optional in InitializeDeviceList constructor
+		src/eNuts/services/proxies/deviceManager/message/__initializeDeviceList.py
+
+8417fb0:
+	docs(logging): add formatters implementation notes
+		.docs/jAGFx/logging/formatters/implementation.md
+
+f7cce73:
+	docs(logging): add formatters requirements
+		.docs/jAGFx/logging/formatters/requirement.md
+
+29bd73c:
+	docs(logging): add DefaultFormatter contract
+		.docs/jAGFx/logging/formatters/defaultFormatter.md
+
+a21065a:
+	fix(logging): ensure domain/member on DefaultFormatter records
+		src/jAGFx/logging/formatters/__defaultFormatter.py
+
+0ecb55e:
+	feat(device): implement device discovery and initialization message handling
+		src/eNuts/services/proxies/__manager.py
+		src/eNuts/services/proxies/deviceManager/__deviceManager.py
+		src/eNuts/services/proxies/deviceManager/message/__initializeDeviceList.py
+		src/eNuts/utilities/asyncADB/__asyncADB.py
+		src/fluxCore/device/__device.py
 		src/jAGFx/IPC/__processHost.py
-		src/jAGFx/IPC/__proxy.py
-		src/jAGFx/IPC/message/__handshake.py
-		src/jAGFx/IPC/message/__handshakeConfirmation.py
 		src/jAGFx/IPC/message/__message.py
 		src/jAGFx/IPC/message/__terminated.py
-		src/jAGFx/IPC/process/__processSnapshot.py
-		src/jAGFx/logging/__log.py
-		src/jAGFx/logging/data/__baseSourceInformation.py
-		src/jAGFx/logging/filters/__namespaceFilter.py
-		src/jAGFx/logging/formatters/__defaultFormatter.py
+
+6894d99:
+	fix(logging): child processes also attach the shared file handler
 		src/jAGFx/services/__asyncProcess.py
-		src/jAGFx/types/interface/communication/__proxy.py
-		src/jAGFx/types/interface/communication/messages/__handshake.py
-		src/jAGFx/types/interface/communication/messages/__handshakeConfirmation.py
-		src/jAGFx/types/interface/communication/messages/__message.py
-		src/jAGFx/types/interface/logger/__sourceInformation.py
-
-aa1ee8d:
-	refactor: reorganize device management and introduce proxy for improved IPC handling
-		src/eNuts/application/__shell.py
-		src/eNuts/services/device/deviceManager/__deviceManager.py -> src/eNuts/services/proxies/__deviceManager.py
-		src/eNuts/services/proxies/deviceManager/__deviceManager.py
-		src/eNuts/services/device/deviceManager/__messagehandler.py -> src/eNuts/services/proxies/deviceManager/__messagehandler.py
-		src/jAGFx/IPC/__processHost.py
-		src/jAGFx/IPC/__proxy.py
-		src/jAGFx/logging/__utilities.py
-		src/jAGFx/services/__asyncProcess.py
-		src/jAGFx/types/interface/communication/__processHost.py
-		src/jAGFx/types/interface/communication/__proxy.py
-		src/jAGFx/workflow/__workflow.py
-
-714e80f:
-	Force-visible stderr prints in deviceWatcher/_watcher; keep process alive
-		src/eNuts/services/device/deviceManager/__deviceManager.py
-
-c618dc2:
-	Keep deviceWatcher alive so _watcher can receive on multiprocessing.Queue; use correct get(timeout)
-		src/eNuts/services/device/deviceManager/__deviceManager.py
-
-7ccf8e9:
-	Fix _watcher receive; set up logging in child so traces appear; surface task exceptions
-		src/eNuts/services/device/deviceManager/__deviceManager.py
-
-3434d07:
-	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
-
-1c64693:
-	refactor: update async handling in deviceManager and processHost for improved performance
-		src/eNuts/services/device/deviceManager/__deviceManager.py
-		src/jAGFx/IPC/__processHost.py
-
-065f7ca:
-	Fix _watcher queue receive so handshake reply is seen; use trace
-		src/eNuts/services/device/deviceManager/__deviceManager.py
-
-0af3f9b:
-	refactor: update deviceWatcher and message handling for improved clarity and performance
-		src/eNuts/services/device/deviceManager/__deviceManager.py
-		src/eNuts/services/device/deviceManager/__messagehandler.py
-		src/jAGFx/IPC/__processHost.py
-		src/jAGFx/services/__subscription.py
-		src/jAGFx/types/interface/services/__subscription.py
 
 ```

@@ -9,9 +9,6 @@ from uuid import UUID
 from fluxCore.types.interface.device import iDevice
 from jAGFx.IPC.message import Message
 
-# ==================================================================================
-from jAGFx.types.interface.serializer import iSerializable
-
 
 # ==================================================================================
 class InitializeDeviceList(Message):
