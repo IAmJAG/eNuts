@@ -52,9 +52,8 @@ class Client(iClient, Subscription, metaclass=_ClientMeta):
         self._queueTask: Optional[Task] = None
 
     def beat(self, expiry: float = 0.1) -> None:
-        # Add a small margin so the next heartbeat can arrive before this one expires
-        # even under modest queue / scheduling latency.
-        MARGIN: float = 0.15
+        # Margin large enough to absorb multiprocessing queue + to_thread + asyncio scheduling latency.
+        MARGIN: float = 0.5
         safeExpiry: float = max(0.05, expiry + MARGIN)
 
         durationNs: int = int(safeExpiry * 1e9)
@@ -131,6 +130,13 @@ class Client(iClient, Subscription, metaclass=_ClientMeta):
                 pass
 
             queueTask = createTask(self._messageProc)
+            # If a transient DORMANT caused this task to exit while we are still ACTIVE,
+            # restart so later Heartbeats continue to be processed.
+            def _restart_if_active(done_task: Task) -> None:
+                if done_task.cancelled(): return
+                if self.clientState == eClientState.ACTIVE and (self._queueTask is None or self._queueTask.done()):
+                    self.clientState = eClientState.ACTIVE
+            queueTask.add_done_callback(_restart_if_active)
 
         self._queueTask = queueTask
             

@@ -73,6 +73,7 @@ async def _beat(shutdownEvent: syncEvent, queue: Queue):
     INTERVAL: float = max(0.05, BEAT - MARGIN)
     while not isShuttingDown():
         heartbeat: Heartbeat = Heartbeat(BEAT)
+        trace(f"Sending Heartbeat beat={BEAT}", color="cyan")
         await ownDispatch(queue, heartbeat)
         await asyncSleep(INTERVAL)
 
