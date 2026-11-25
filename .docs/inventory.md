@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-24 07:11:55 UTC*
+*Auto-generated on: 2026-11-25 02:48:48 UTC*
 
 ## Current Directory Structure
 
@@ -119,43 +119,38 @@ eNuts/
 │   │   │   ├── __eNutsConfiguration.py
 │   │   │   └── __information.py
 │   │   ├── services/
-│   │   │   ├── device/
-│   │   │   │   └── __deviceManager.py
-│   │   │   ├── proxies/
+│   │   │   ├── clients/
 │   │   │   │   ├── .fff
 │   │   │   │   ├── __manager.py
 │   │   │   │   └── deviceManager/
 │   │   │   │       ├── __deviceManager.py
-│   │   │   │       ├── __messagehandler.py
 │   │   │   │       └── message/
 │   │   │   │           ├── __deviceDiscoveryEnded.py
 │   │   │   │           ├── __deviceDiscoveryStarted.py
 │   │   │   │           ├── __deviceMessage.py
 │   │   │   │           └── __initializeDeviceList.py
+│   │   │   ├── device/
+│   │   │   │   └── __deviceManager.py
 │   │   │   └── recorder/
 │   │   │       └── __kgRecorderService.py
-│   │   ├── types/
-│   │   │   ├── .ff
-│   │   │   └── interface/
-│   │   │       ├── .ff
-│   │   │       ├── UI/
-│   │   │       │   └── windows/
-│   │   │       │       └── __mainWindow.py
-│   │   │       ├── application/
-│   │   │       │   ├── __applicationInformation.py
-│   │   │       │   ├── __shell.py
-│   │   │       │   └── device/
-│   │   │       ├── configuration/
-│   │   │       │   └── __eNutsConfiguration.py
-│   │   │       └── services/
-│   │   │           ├── device/
-│   │   │           │   └── __deviceManager.py
-│   │   │           └── recorder/
-│   │   │               └── __iKGRecorderService.py
-│   │   └── utilities/
-│   │       ├── .fff
-│   │       └── asyncADB/
-│   │           └── __asyncADB.py
+│   │   └── types/
+│   │       ├── .ff
+│   │       └── interface/
+│   │           ├── .ff
+│   │           ├── UI/
+│   │           │   └── windows/
+│   │           │       └── __mainWindow.py
+│   │           ├── application/
+│   │           │   ├── __applicationInformation.py
+│   │           │   ├── __shell.py
+│   │           │   └── device/
+│   │           ├── configuration/
+│   │           │   └── __eNutsConfiguration.py
+│   │           └── services/
+│   │               ├── device/
+│   │               │   └── __deviceManager.py
+│   │               └── recorder/
+│   │                   └── __iKGRecorderService.py
 │   ├── fluxCore/
 │   │   ├── .fff
 │   │   ├── action/
@@ -185,6 +180,7 @@ eNuts/
 │   │   │   └── scrcpy/
 │   │   │       └── __SCRCPYConfig.py
 │   │   ├── device/
+│   │   │   ├── __SCRCPYDevice.py
 │   │   │   └── __device.py
 │   │   ├── devices/
 │   │   │   └── __scrcpy.py
@@ -291,6 +287,7 @@ eNuts/
 │   │   │   │   └── __bridge.py
 │   │   │   ├── message/
 │   │   │   │   ├── __handshake.py
+│   │   │   │   ├── __heartBeat.py
 │   │   │   │   ├── __information.py
 │   │   │   │   ├── __message.py
 │   │   │   │   └── __terminated.py
@@ -486,6 +483,8 @@ eNuts/
 │       ├── __module.py
 │       ├── __sysArguments.py
 │       ├── __time.py
+│       ├── asyncADB/
+│       │   └── __asyncADB.py
 │       └── io/
 │           └── __io.py
 ├── typings/
@@ -600,17 +599,7 @@ src/eNuts/configuration:
 		CLASSE(S):
 			ApplicationInformation -> : applicationinformation
 
-src/eNuts/services/device:
-	__deviceManager.py - 
-		CLASSE(S):
-			DeviceManager -> : devicemanager
-		CONSTANTS(S)/GLOBAL(S)
-			DEVICE_ADDED_EVENT -> : device_added_event
-			DEVICE_REMOVED_EVENT -> : device_removed_event
-			DEVICE_INITIALIZED_EVENT -> : device_initialized_event
-			POLL_INTERVAL -> : poll_interval
-
-src/eNuts/services/proxies:
+src/eNuts/services/clients:
 	__manager.py - 
 		FUNCTION(S):
 			own -> : own
@@ -618,23 +607,17 @@ src/eNuts/services/proxies:
 			ownDispatch -> : owndispatch
 			watcher -> : watcher
 
-src/eNuts/services/proxies/deviceManager:
+src/eNuts/services/clients/deviceManager:
 	__deviceManager.py - 
 		FUNCTION(S):
 			deviceWatcher -> : devicewatcher
 			_messageHandler -> : _messagehandler
+			_beat -> : _beat
 			_discovery -> : _discovery
 		CONSTANTS(S)/GLOBAL(S)
 			POLL_INTERVAL -> : poll_interval
-	__messagehandler.py - 
-		FUNCTION(S):
-			defaultMessageHandler -> : defaultmessagehandler
-			handshakeHandler -> : handshakehandler
-			handshakeConfirmHandler -> : handshakeconfirmhandler
-		CONSTANTS(S)/GLOBAL(S)
-			handlers -> : handlers
 
-src/eNuts/services/proxies/deviceManager/message:
+src/eNuts/services/clients/deviceManager/message:
 	__deviceDiscoveryEnded.py - 
 		CLASSE(S):
 			DeviceDiscoveryEnded -> : devicediscoveryended
@@ -649,6 +632,16 @@ src/eNuts/services/proxies/deviceManager/message:
 	__initializeDeviceList.py - 
 		CLASSE(S):
 			InitializeDeviceList -> : initializedevicelist
+
+src/eNuts/services/device:
+	__deviceManager.py - 
+		CLASSE(S):
+			DeviceManager -> : devicemanager
+		CONSTANTS(S)/GLOBAL(S)
+			DEVICE_ADDED_EVENT -> : device_added_event
+			DEVICE_REMOVED_EVENT -> : device_removed_event
+			DEVICE_INITIALIZED_EVENT -> : device_initialized_event
+			POLL_INTERVAL -> : poll_interval
 
 src/eNuts/services/recorder:
 	__kgRecorderService.py - 
@@ -781,14 +774,6 @@ src/eNuts/UI/windows:
 		CLASSE(S):
 			ENUTSWindow -> : enutswindow
 
-src/eNuts/utilities/asyncADB:
-	__asyncADB.py - 
-		FUNCTION(S):
-			ADBDevices -> : adbdevices
-			ADBShell -> : adbshell
-			Devices -> : devices
-			SCRCPYDevices -> : scrcpydevices
-
 src/fluxCore/action:
 	__action.py - 
 		CLASSE(S):
@@ -870,6 +855,9 @@ src/fluxCore/configurations/scrcpy:
 			G_SCRCPY_BITRATEMAP -> : g_scrcpy_bitratemap
 
 src/fluxCore/device:
+	__SCRCPYDevice.py - 
+		CLASSE(S):
+			SCRCPYDevice -> : scrcpydevice
 	__device.py - 
 		CLASSE(S):
 			Device -> : device
@@ -1269,6 +1257,10 @@ src/jAGFx/IPC/client:
 	__client.py - 
 		CLASSE(S):
 			Client -> : client
+		CONSTANTS(S)/GLOBAL(S)
+			QUEUE_SIZE -> : queue_size
+			DEFAULT_EXPIRY -> : default_expiry
+			ENDSIGNAL -> : endsignal
 
 src/jAGFx/IPC/control:
 	__bridge.py - 
@@ -1279,6 +1271,9 @@ src/jAGFx/IPC/message:
 	__handshake.py - 
 		CLASSE(S):
 			Handshake -> : handshake
+	__heartBeat.py - 
+		CLASSE(S):
+			Heartbeat -> : heartbeat
 	__information.py - 
 		CLASSE(S):
 			Information -> : information
@@ -1931,6 +1926,14 @@ src/utilities:
 		FUNCTION(S):
 			fromNanoSeconds -> : fromnanoseconds
 
+src/utilities/asyncADB:
+	__asyncADB.py - 
+		FUNCTION(S):
+			ADBDevices -> : adbdevices
+			ADBShell -> : adbshell
+			Devices -> : devices
+			SCRCPYDevices -> : scrcpydevices
+
 src/utilities/io:
 	__io.py - 
 		FUNCTION(S):
@@ -1956,55 +1959,57 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-a9dfb34:
-	refactor(inventory): update auto-generated timestamp and restructure IPC components
-		.docs/inventory.md
-
-b29863a:
-	refactor(IPC): remove Proxy and eClientState, introduce Client class for process communication
-		src/eNuts/UI/pages/__annotator.py
-		src/eNuts/application/__shell.py
+64c1338:
+	refactor: restructure device management and introduce SCRCPYDevice support
+		src/eNuts/services/clients/deviceManager/__deviceManager.py
+		src/eNuts/services/clients/deviceManager/message/__initializeDeviceList.py
+		src/fluxCore/device/__SCRCPYDevice.py
+		src/fluxCore/device/__device.py
 		src/jAGFx/IPC/__processHost.py
-		src/jAGFx/IPC/__proxy.py
-		src/jAGFx/IPC/process/__processSnapshot.py -> src/jAGFx/IPC/client/__client.py
-		src/jAGFx/serializer/__serializable.py
-		src/jAGFx/services/__subscription.py
-		src/jAGFx/types/__ANSIColors.py
-		src/jAGFx/types/__color.py
-		src/jAGFx/IPC/process/__eClientState.py -> src/jAGFx/types/__eClientState.py
-		src/jAGFx/types/__typeChecks.py
-		src/jAGFx/types/interface/communication/__processHost.py
-		src/jAGFx/types/interface/communication/__proxy.py
+		src/jAGFx/IPC/client/__client.py
 		src/jAGFx/types/interface/communication/client/__client.py
+		src/eNuts/utilities/asyncADB/__asyncADB.py -> src/utilities/asyncADB/__asyncADB.py
 
-5f40a6e:
-	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
+fbfc210:
+	refactor(__client): enhance type handling for caller frame in _isCalledFromAllowedFactory
+		src/eNuts/services/clients/deviceManager/__messagehandler.py
+		src/jAGFx/IPC/client/__client.py
 
-47a9b94:
-	fix(logging): improve trace messages for message reception and process termination
-		src/jAGFx/IPC/__processHost.py
+8b91543:
+	refactor: remove old deviceManager and related files, introduce new client structure
+		src/eNuts/application/__shell.py
+		src/eNuts/services/proxies/__manager.py -> src/eNuts/services/clients/__manager.py
+		src/eNuts/services/proxies/deviceManager/__deviceManager.py -> src/eNuts/services/clients/deviceManager/__deviceManager.py
+		src/eNuts/services/proxies/deviceManager/__messagehandler.py -> src/eNuts/services/clients/deviceManager/__messagehandler.py
+		src/eNuts/services/proxies/deviceManager/message/__deviceDiscoveryEnded.py -> src/eNuts/services/clients/deviceManager/message/__deviceDiscoveryEnded.py
+		src/eNuts/services/proxies/deviceManager/message/__deviceDiscoveryStarted.py -> src/eNuts/services/clients/deviceManager/message/__deviceDiscoveryStarted.py
+		src/eNuts/services/proxies/deviceManager/message/__deviceMessage.py -> src/eNuts/services/clients/deviceManager/message/__deviceMessage.py
+		src/eNuts/services/proxies/deviceManager/message/__initializeDeviceList.py -> src/eNuts/services/clients/deviceManager/message/__initializeDeviceList.py
+		src/eNuts/utilities/asyncADB/__asyncADB.py
 
-21f2af6:
-	refactor(logging): honor optional traceColor in console formatter
-		src/jAGFx/logging/formatters/__defaultFormatter.py
+6ea8977:
+	refactor(kgRecorder): remove all deviceManager references so page can instantiate
+		src/eNuts/UI/pages/__kgRecorder.py
 
-c45ac0d:
-	refactor(logging): accept and forward optional color for trace
-		src/jAGFx/logging/__log.py
+b108ec4:
+	fix(kgRecorder): use Page.addCommand instead of missing commandBar attribute
+		src/eNuts/UI/pages/__kgRecorder.py
 
-3d4ee72:
-	refactor(logging): add optional color argument to trace (default green)
-		src/jAGFx/logging/__logging.py
+80ae884:
+	refactor: remove references to old DeviceManager events in KGRecorder
+		src/eNuts/UI/pages/__kgRecorder.py
 
-3031515:
-	fix(logging): suppress unowned records (no caller) in NamespaceFilter â€” NOT.MINE was only applied after format
-		src/jAGFx/logging/filters/__namespaceFilter.py
+b499764:
+	refactor: stop re-exporting old DeviceManager (file kept, not used)
 
-13530a9:
-	fix: add "not.mine" to THIRD_PARTY_LOGGERS list
-		src/utilities/__helpers.py
+3781b31:
+	refactor: stop exporting old DeviceManager from services package
 
-c1480cf:
-	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
+26033eb:
+	refactor: disconnect old DeviceManager from Shell (do not instantiate or use)
+		src/eNuts/application/__shell.py
+
+44c1bda:
+	fix(heartbeat): adjust BEAT value and margin for improved queue latency handling
 
 ```
