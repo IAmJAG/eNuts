@@ -10,8 +10,7 @@ from asyncio import Task
 from asyncio import sleep as asyncSleep
 from asyncio.queues import QueueEmpty
 from time import monotonic_ns
-from types import FrameType
-from typing import Optional, Type, Union
+from typing import Optional, Union
 
 # ==================================================================================
 from ...services import Subscription
@@ -31,6 +30,9 @@ ENDSIGNAL: object = object()
 # ==================================================================================
 class Client(iClient, Subscription):    
     def __init__(self, clientId: int):
+        if not self._isCalledFromAllowedFactory():
+            raise RuntimeError("Client can only be created inside ProcessHost.start.")
+
         super().__init__()
 
         self._expiry: int = int(DEFAULT_EXPIRY * 1e9)  + monotonic_ns() # converts expiry into nanoseconds
@@ -40,10 +42,6 @@ class Client(iClient, Subscription):
         self._expiryTask: Optional[Task] = None
         self._messageQueue: asyncQueue = asyncQueue(QUEUE_SIZE)
         self._queueTask: Optional[Task] = None
-
-    def __init_subclass__(cls):
-        if not cls._isCalledFromAllowedFactory():
-            raise RuntimeError("ProcessHost can only be created inside ProcessHost.start.")
 
     def beat(self, expiry: float = 0.1) -> None:
         # Add a small margin so the next heartbeat can arrive before this one expires
@@ -135,23 +133,22 @@ class Client(iClient, Subscription):
         return self._expiry
         
     @staticmethod
-    def _isCalledFromAllowedFactory():
+    def _isCalledFromAllowedFactory() -> bool:
         frame = inspect.currentframe()
         try:
             # Frame 0: _isCalledFromAllowedFactory
             # Frame 1: Client.__init__
             # Frame 2: actual caller of Client(...)
             callerFrame = frame.f_back.f_back if frame and frame.f_back else None
-            if callerFrame is None: return False
+            if callerFrame is None:
+                return False
 
             functionName = callerFrame.f_code.co_name
+            me = callerFrame.f_locals.get("self")
+            if me is None:
+                return False
 
-            me: iProcessHost = callerFrame.f_locals.get("self")
-            if me:
-                classType: Type = type(me)
-                return functionName == "start" and isinstance(classType, iProcessHost)
+            return functionName == "start" and isinstance(me, iProcessHost)
 
-            return False
-        
         finally:
             del frame
