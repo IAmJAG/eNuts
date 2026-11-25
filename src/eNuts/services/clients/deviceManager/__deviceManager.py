@@ -32,5 +32,6 @@ class DeviceManager(Client):
             newDevices: List[iDevice] = list(msg.payload.values())
             for device in newDevices:
                 self.addDevice(device)
+            handled = True
 
         await super().processMessage(msg, handled=handled)
