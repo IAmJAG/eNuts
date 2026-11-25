@@ -53,7 +53,7 @@ class Client(iClient, Subscription, metaclass=_ClientMeta):
 
     def beat(self, expiry: float = 0.1) -> None:
         # Margin large enough to absorb multiprocessing queue + to_thread + asyncio scheduling latency.
-        MARGIN: float = 0.5
+        MARGIN: float = 1.0
         safeExpiry: float = max(0.05, expiry + MARGIN)
 
         durationNs: int = int(safeExpiry * 1e9)
@@ -84,7 +84,9 @@ class Client(iClient, Subscription, metaclass=_ClientMeta):
         queue: asyncQueue = self._messageQueue        
         if queue.full(): await queue.get()
 
-        if self.clientState == eClientState.ACTIVE:
+        # Heartbeat and Terminated must always be delivered so a DORMANT client
+        # can recover (Heartbeat) or shut down cleanly (Terminated).
+        if self.clientState == eClientState.ACTIVE or isinstance(message, (Heartbeat, Terminated)):
             await self._messageQueue.put(message)
 
     async def processMessage(self, msg: iMessage, handled: bool = False):        
@@ -118,7 +120,9 @@ class Client(iClient, Subscription, metaclass=_ClientMeta):
             self.raiseEvent("STATE_CHANGED", value, oldValue)
 
         queueTask: Optional[Task] = self._queueTask    
-        if value != eClientState.ACTIVE:
+        # Only TERMINATED stops the processor. DORMANT must keep it alive so the
+        # next Heartbeat can be processed and call beat() to recover.
+        if value == eClientState.TERMINATED:
             if queueTask is not None and not queueTask.done():
                 createTask(self._messageQueue.put, ENDSIGNAL)
 
@@ -130,8 +134,7 @@ class Client(iClient, Subscription, metaclass=_ClientMeta):
                 pass
 
             queueTask = createTask(self._messageProc)
-            # If a transient DORMANT caused this task to exit while we are still ACTIVE,
-            # restart so later Heartbeats continue to be processed.
+            # If the processor exits while we are still ACTIVE, restart it.
             def _restart_if_active(done_task: Task) -> None:
                 if done_task.cancelled(): return
                 if self.clientState == eClientState.ACTIVE and (self._queueTask is None or self._queueTask.done()):
