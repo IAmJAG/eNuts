@@ -11,7 +11,7 @@ from jAGFx.IPC.message import Message
 
 
 # ==================================================================================
-class InitializeDeviceList(Message):
+class DeviceListInitialized(Message):
     def __init__(
         self, ownerId: Optional[Union[UUID, str]] = None,
         devices: Dict[str, iDevice] = None, correlationId: Optional[UUID] = None,

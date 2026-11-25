@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-25 02:48:48 UTC*
+*Auto-generated on: 2026-11-25 03:00:58 UTC*
 
 ## Current Directory Structure
 
@@ -123,7 +123,7 @@ eNuts/
 │   │   │   │   ├── .fff
 │   │   │   │   ├── __manager.py
 │   │   │   │   └── deviceManager/
-│   │   │   │       ├── __deviceManager.py
+│   │   │   │       ├── __deviceDiscovery.py
 │   │   │   │       └── message/
 │   │   │   │           ├── __deviceDiscoveryEnded.py
 │   │   │   │           ├── __deviceDiscoveryStarted.py
@@ -608,7 +608,7 @@ src/eNuts/services/clients:
 			watcher -> : watcher
 
 src/eNuts/services/clients/deviceManager:
-	__deviceManager.py - 
+	__deviceDiscovery.py - 
 		FUNCTION(S):
 			deviceWatcher -> : devicewatcher
 			_messageHandler -> : _messagehandler
@@ -1959,6 +1959,30 @@ src/utilities/io:
 ## Change Summary
 
 ```text
+5d813e0:
+	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
+
+56dd684:
+	refactor(processHost): improve process termination handling and utilize active_children
+		src/jAGFx/IPC/__processHost.py
+
+5df7a2e:
+	docs: add documentation for fluxCore/device (Device, SCRCPYDevice) and eNuts/services/clients/deviceManager; mark legacy deviceManager as disconnected; note Heartbeat in IPC
+		.docs/eNuts/services/clients/deviceManager/deviceManager.md
+		.docs/eNuts/services/clients/deviceManager/implementation.md
+		.docs/eNuts/services/clients/deviceManager/requirement.md
+		.docs/eNuts/services/device/deviceManager.md
+		.docs/eNuts/services/device/requirement.md
+		.docs/fluxCore/device/SCRCPYDevice.md
+		.docs/fluxCore/device/device.md
+		.docs/fluxCore/device/implementation.md
+		.docs/fluxCore/device/requirement.md
+		.docs/jAGFx/IPC/message/heartBeat.md
+
+c743d50:
+	refactor(inventory): update auto-generated timestamp and restructure device management
+		.docs/inventory.md
+
 64c1338:
 	refactor: restructure device management and introduce SCRCPYDevice support
 		src/eNuts/services/clients/deviceManager/__deviceManager.py
@@ -1998,18 +2022,5 @@ b108ec4:
 80ae884:
 	refactor: remove references to old DeviceManager events in KGRecorder
 		src/eNuts/UI/pages/__kgRecorder.py
-
-b499764:
-	refactor: stop re-exporting old DeviceManager (file kept, not used)
-
-3781b31:
-	refactor: stop exporting old DeviceManager from services package
-
-26033eb:
-	refactor: disconnect old DeviceManager from Shell (do not instantiate or use)
-		src/eNuts/application/__shell.py
-
-44c1bda:
-	fix(heartbeat): adjust BEAT value and margin for improved queue latency handling
 
 ```

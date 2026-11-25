@@ -1,6 +1,5 @@
 # ==================================================================================
-from ...types.__eClientState import eClientState
-from .__client import Client
+from .__client import ENDSIGNAL, Client
 
 # ==================================================================================
-__all__ = ["Client", "eClientState"]
+__all__ = ["Client", "ENDSIGNAL"]

@@ -115,7 +115,7 @@ class ProcessHost(AsyncProcess, iProcessHost):
         
         queue.put(msg)
     
-    def start(self, worker: Callable[..., Awaitable], client: Type[iClient], *args, **kwargs) -> iClient:
+    def start(self, worker: Callable[..., Awaitable], clientType: Type[iClient], *args, **kwargs) -> iClient:
         if not iscoroutinefunction(worker): 
             raise ValueError("worker must be a coroutine")
         
@@ -147,7 +147,7 @@ class ProcessHost(AsyncProcess, iProcessHost):
             process: Process = self._startProcess(worker, shutdownEvent, clientQueue, sharedQueue)
             identity: int = process.ident
 
-            client: iClient = Client(clientId=identity)
+            client: iClient = clientType(clientId=identity)
             self.clients[identity] = client
             return client
 
