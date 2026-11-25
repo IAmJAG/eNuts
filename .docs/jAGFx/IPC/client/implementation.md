@@ -35,6 +35,18 @@ client: iClient = clientType(clientId=identity)
 
 A check only in `__init__` can be skipped by a subclass that does not call `super().__init__`. The metaclass makes the constraint impossible to bypass.
 
+## Heartbeat expiry race resistance
+
+`beat()` records the absolute deadline in `self._expiry` (monotonic_ns) *before* cancelling the previous task or scheduling the new one.
+
+The done-callback `_expire` ignores the callback when:
+
+- the task was cancelled, or
+- the task is no longer the current `_expiryTask`, or
+- `monotonic_ns() < self._expiry` (a newer beat — including the Handshake ACK — has already extended the deadline).
+
+This makes the ACK (and every subsequent Heartbeat) the authoritative key that prevents a stale expiry from marking the client DORMANT.
+
 ## Unchanged
 
-Heartbeat timing, message queue, state setter, and `processMessage` behavior.
+Message queue, state setter, and `processMessage` behavior.

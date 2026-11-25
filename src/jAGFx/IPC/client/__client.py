@@ -71,6 +71,8 @@ class Client(iClient, Subscription, metaclass=_ClientMeta):
         def _expire(task: Task) -> None:
             # Ignore cancelled tasks and any task that is no longer current
             if task.cancelled() or task is not self._expiryTask: return
+            # A newer beat (including the Handshake ACK) has already extended the deadline
+            if monotonic_ns() < self._expiry: return
             trace("Heartbeat expired")
             self.clientState = eClientState.DORMANT
 
