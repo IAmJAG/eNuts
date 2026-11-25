@@ -39,14 +39,18 @@ A check only in `__init__` can be skipped by a subclass that does not call `supe
 
 `beat()` records the absolute deadline in `self._expiry` (monotonic_ns) *before* cancelling the previous task or scheduling the new one.
 
+Parent margin is 0.5 s. Handshake ACK calls `beat(5.0)` to give a longer initial grace; subsequent Heartbeats use the reported window (normally 2.0).
+
 The done-callback `_expire` ignores the callback when:
 
 - the task was cancelled, or
 - the task is no longer the current `_expiryTask`, or
 - `monotonic_ns() < self._expiry` (a newer beat — including the Handshake ACK — has already extended the deadline).
 
-This makes the ACK (and every subsequent Heartbeat) the authoritative key that prevents a stale expiry from marking the client DORMANT.
+## Message processor restart
+
+The `clientState` setter starts `_messageProc` when the state becomes `ACTIVE` and the previous task is done. A done-callback on that task restarts the processor if the state is still `ACTIVE` when the task exits. This prevents a transient `DORMANT` (ENDSIGNAL injected) from permanently silencing later Heartbeats.
 
 ## Unchanged
 
-Message queue, state setter, and `processMessage` behavior.
+`processMessage` behavior.
