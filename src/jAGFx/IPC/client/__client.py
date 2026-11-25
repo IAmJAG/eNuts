@@ -28,11 +28,17 @@ ENDSIGNAL: object = object()
 # ==================================================================================
 
 # ==================================================================================
-class Client(iClient, Subscription):    
-    def __init__(self, clientId: int):
-        if not self._isCalledFromAllowedFactory():
-            raise RuntimeError("Client can only be created inside ProcessHost.start.")
+class _ClientMeta(type):
+    def __call__(cls, *args, **kwargs):
+        if not Client._isCalledFromAllowedFactory():
+            raise RuntimeError(
+                "Client and all subclasses MUST be created inside ProcessHost.start."
+            )
+        return super().__call__(*args, **kwargs)
 
+
+class Client(iClient, Subscription, metaclass=_ClientMeta):
+    def __init__(self, clientId: int):
         super().__init__()
 
         self._expiry: int = int(DEFAULT_EXPIRY * 1e9)  + monotonic_ns() # converts expiry into nanoseconds
@@ -136,9 +142,10 @@ class Client(iClient, Subscription):
     def _isCalledFromAllowedFactory() -> bool:
         frame = inspect.currentframe()
         try:
+            # Walk until we find the caller of the constructor
             # Frame 0: _isCalledFromAllowedFactory
-            # Frame 1: Client.__init__
-            # Frame 2: actual caller of Client(...)
+            # Frame 1: _ClientMeta.__call__
+            # Frame 2: actual caller of Client(...) / Subclass(...)
             callerFrame = frame.f_back.f_back if frame and frame.f_back else None
             if callerFrame is None:
                 return False
