@@ -9,12 +9,16 @@ from multiprocessing.synchronize import Event as syncEvent
 from typing import Dict, Optional, Union
 
 # ==================================================================================
+from adbutils import AdbDevice
+
+# ==================================================================================
+from fluxCore.device import SCRCPYDevice
 from fluxCore.types.interface.device import iDevice
 from jAGFx.IPC.message import Handshake, Heartbeat, Terminated
 from jAGFx.types.interface.communication import iMessage
+from utilities.asyncADB import ADBDevices
 
 # ==================================================================================
-from ....utilities.asyncADB import Devices
 from ..__manager import ownDispatch, watcher
 from .message import (
     DeviceAdded,
@@ -78,38 +82,42 @@ async def _discovery(shutdownEvent: syncEvent, queue: Queue) -> None:
     isShuttingDown = shutdownEvent.is_set
 
     async def _getDevices() -> Dict[str, iDevice]:
-        found: Dict[str, iDevice] = {}
-        found.update(await Devices())
-        return found
+        found: Dict[str, AdbDevice] = await ADBDevices()
+        devices: Dict[str, iDevice] = {}
+        for serial in found.keys():
+            devices[serial] = SCRCPYDevice(ident=serial)
+
+        return devices
 
     try:
         msgStarted: DeviceDiscoveryStarted = DeviceDiscoveryStarted()
         await ownDispatch(queue, msgStarted)
 
-        connDevices: Dict[str, iDevice] = await _getDevices()
-        verbose(f"initial discovery count={len(connDevices)} ids={list(connDevices.keys())}")
+        connectedDevices: Dict[str, iDevice] = await _getDevices()
+        verbose(f"initial discovery count={len(connectedDevices)} ids={list(connectedDevices.keys())}")
 
-        msgIDL: InitializeDeviceList = InitializeDeviceList(deviceList=connDevices)
+        msgIDL: InitializeDeviceList = InitializeDeviceList(devices=connectedDevices)
         await ownDispatch(queue, msgIDL)
 
-        devices: Dict[str, iDevice] = connDevices
+        devices: Dict[str, iDevice] = connectedDevices
 
         while not isShuttingDown():
-            connDevices: Dict[str, iDevice] = await _getDevices()
-            curIds = set(connDevices.keys())
+            connectedDevices: Dict[str, iDevice] = await _getDevices()
+            curIds = set(connectedDevices.keys())
             oldIds = set(devices.keys())
 
             for deviceId in curIds - oldIds:
-                device: iDevice = connDevices.get(deviceId, None)
-                if device is not None: 
+                device: iDevice = connectedDevices.get(deviceId, None)
+                if device is not None:
                     devices[deviceId] = device
                     deviceAdded: DeviceAdded = DeviceAdded(device=device)
                     await ownDispatch(queue, deviceAdded)
 
             for deviceId in oldIds - curIds:
-                device: iDevice = devices.pop(deviceId)
-                deviceAdded: DeviceRemoved = DeviceRemoved(device=device)
-                await ownDispatch(queue, deviceAdded)
+                device: iDevice = devices.pop(deviceId, None)
+                if device is not None:
+                    deviceAdded: DeviceRemoved = DeviceRemoved(device=device)
+                    await ownDispatch(queue, deviceAdded)
 
             if not isShuttingDown():
                 await asyncSleep(POLL_INTERVAL)

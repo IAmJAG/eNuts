@@ -5,31 +5,43 @@ from __future__ import annotations
 import inspect
 
 # ==================================================================================
+from asyncio import Queue as asyncQueue
 from asyncio import Task
 from asyncio import sleep as asyncSleep
+from asyncio.queues import QueueEmpty
 from time import monotonic_ns
-from typing import Optional, Type
+from typing import Optional, Type, Union
 
 # ==================================================================================
-from ...serializer import Serializable
 from ...services import Subscription
 from ...types import eClientState
 from ...types.interface.communication import iProcessHost
 from ...types.interface.communication.client import iClient
+from ...types.interface.communication.messages import iMessage
+from ..__helper import drainQueue
+from ..message import Heartbeat, Terminated
+
+# ==================================================================================
+QUEUE_SIZE: int = 32
+DEFAULT_EXPIRY: float = 2.0
+ENDSIGNAL: object = object()
+# ==================================================================================
 
 
 # ==================================================================================
 class Client(iClient, Subscription):
-    def __init__(self, clientId: int, expiry: float = 0.1):         
+    def __init__(self, clientId: int):         
         super().__init__()
         if not self._isCalledFromAllowedFactory():
             raise RuntimeError("ProcessHost can only be created inside ProcessHost.start.")
         
-        self._expiry: int = int(expiry * 1e9)  + monotonic_ns() # converts expiry into nanoseconds
+        self._expiry: int = int(DEFAULT_EXPIRY * 1e9)  + monotonic_ns() # converts expiry into nanoseconds
         self._identity: int = clientId
         
         self._clientState: eClientState = eClientState.PENDING
-        self._expiryTask: Optional[Task] = None        
+        self._expiryTask: Optional[Task] = None
+        self._messageQueue: asyncQueue = asyncQueue(QUEUE_SIZE)
+        self._queueTask: Optional[Task] = None
 
     def beat(self, expiry: float = 0.1) -> None:
         # Add a small margin so the next heartbeat can arrive before this one expires
@@ -50,8 +62,7 @@ class Client(iClient, Subscription):
 
         def _expire(task: Task) -> None:
             # Ignore cancelled tasks and any task that is no longer current
-            if task.cancelled() or task is not self._expiryTask:
-                return
+            if task.cancelled() or task is not self._expiryTask: return
             trace("Heartbeat expired")
             self.clientState = eClientState.DORMANT
 
@@ -59,6 +70,28 @@ class Client(iClient, Subscription):
         newTask.add_done_callback(_expire)
         self._expiryTask = newTask
         self.clientState = eClientState.ACTIVE
+
+    async def push(self, message: iMessage) -> None: 
+        queue: asyncQueue = self._messageQueue        
+        if queue.full(): await queue.get()
+
+        if self.clientState == eClientState.ACTIVE:
+            await self._messageQueue.put(message)
+
+    async def _messageProc(self):
+        queue: asyncQueue = self._messageQueue
+        while True:
+            msg: Union[iMessage, object] = await queue.get()
+            if msg is ENDSIGNAL: break
+
+            trace(f"Client MESSAGE RECEIVED... {type(msg).__name__}: {msg.payload}", color="yellow")
+
+            if isinstance(msg, Heartbeat):
+                self.beat(float(msg.payload))
+
+            if isinstance(msg, Terminated):
+                trace(f"process termination recieved [{self.identity}]", color="yellow")
+                self.clientState = eClientState.TERMINATED
 
     @property
     def clientState(self) -> eClientState:
@@ -72,7 +105,23 @@ class Client(iClient, Subscription):
             self._clientState = value
             trace(f"State changed from {oldValue.name} to {value.name}")
             self.raiseEvent("STATE_CHANGED", value, oldValue)
-        
+
+        queueTask: Optional[Task] = self._queueTask    
+        if value != eClientState.ACTIVE:
+            if queueTask is not None and not queueTask.done():
+                self._messageQueue.put(ENDSIGNAL)
+
+        if queueTask is None or queueTask.done():            
+            try:
+                drainQueue(self._messageQueue)
+
+            except QueueEmpty:
+                pass
+
+            queueTask = createTask(self._messageProc)
+
+        self._queueTask = queueTask
+            
     @property
     def identity(self) -> int:
         return self._identity

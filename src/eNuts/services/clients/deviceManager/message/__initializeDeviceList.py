@@ -14,11 +14,11 @@ from jAGFx.IPC.message import Message
 class InitializeDeviceList(Message):
     def __init__(
         self, ownerId: Optional[Union[UUID, str]] = None,
-        deviceList: Dict[str, iDevice] = None, correlationId: Optional[UUID] = None,
+        devices: Dict[str, iDevice] = None, correlationId: Optional[UUID] = None,
         messageId: UUID = None, isTerminal: Optional[bool] = True,
     ) -> None:
         super().__init__(
-            ownerId=ownerId, payload=deviceList,
+            ownerId=ownerId, payload=devices,
             correlationId=correlationId, messageId=messageId,
             isTerminal=isTerminal
         )
