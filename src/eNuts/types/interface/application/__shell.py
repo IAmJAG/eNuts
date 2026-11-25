@@ -5,8 +5,8 @@ from __future__ import annotations
 from jAGQt.types.interface.window import iMainWindowBase
 
 # ==================================================================================
-from .__applicationInformation import iApplicationInformation
 from ..services.device import iDeviceManager
+from .__applicationInformation import iApplicationInformation
 
 
 # ==================================================================================

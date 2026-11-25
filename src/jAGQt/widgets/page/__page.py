@@ -86,9 +86,7 @@ class Page(QWidget, ComponentBase):
         commandBar: Optional[iCommandBar] = CommandBar() if isCommandBarOn else None
 
         mainLayout: QBoxLayout = newLayout(
-            QBoxLayout,
-            spacing=0,
-            margins=(0, 0, 0, 0),
+            QBoxLayout, spacing=0, margins=(0, 0, 0, 0),
             direction=QBoxLayout.Direction.TopToBottom,
         )
         mainLayout.setSizeConstraint(QLayout.SizeConstraint.SetNoConstraint)
@@ -117,9 +115,7 @@ class Page(QWidget, ComponentBase):
         self.Layout.addWidget(widget, stretch)
 
     def addSpacer(
-        self,
-        w: int = 0,
-        h: int = 0,
+        self, w: int = 0, h: int = 0,
         hData: QSizePolicy.Policy = QSizePolicy.Policy.Expanding,
         vData: QSizePolicy.Policy = QSizePolicy.Policy.Expanding,
     ) -> QSpacerItem:
@@ -137,13 +133,11 @@ class Page(QWidget, ComponentBase):
         self, button: str | iCommandBarButton,
         group: Optional[str | iCommandBarGroup] = None,
     ) -> None:
-        if not self._assertCommandBar():
-            return
+        if not self._assertCommandBar(): return
         self._commandBar.addButton(button, group)
 
     def addCommandStretch(self, stretch: int = 1) -> None:
-        if not self._assertCommandBar():
-            return
+        if not self._assertCommandBar(): return
         self._commandBar.addStretch(stretch)
 
     def addCommandGroup(self, name: str | iCommandBarGroup) -> None:
@@ -169,38 +163,32 @@ class Page(QWidget, ComponentBase):
 
     @property
     def Title(self) -> str:
-        if not self._assertWarnHeader():
-            return ""
+        if not self._assertWarnHeader(): return ""
         return self._header.Title
 
     @Title.setter
     def Title(self, value: str) -> None:
-        if not self._assertWarnHeader():
-            return
+        if not self._assertWarnHeader(): return
         self._header.Title = value
 
     @property
     def Description(self) -> str:
-        if not self._assertWarnHeader():
-            return ""
+        if not self._assertWarnHeader(): return ""
         return self._header.Description
 
     @Description.setter
     def Description(self, value: str) -> None:
-        if not self._assertWarnHeader():
-            return
+        if not self._assertWarnHeader(): return ""
         self._header.Description = value
 
     @property
     def Icon(self) -> Optional[Union[QIcon, QPixmap]]:
-        if not self._assertWarnHeader():
-            return None
+        if not self._assertWarnHeader(): return None
         return self._header.Icon
 
     @Icon.setter
     def Icon(self, value: Optional[Union[QIcon, QPixmap, str]]) -> None:
-        if not self._assertWarnHeader():
-            return
+        if not self._assertWarnHeader(): return
         self._header.Icon = value
 
     @property
@@ -211,8 +199,7 @@ class Page(QWidget, ComponentBase):
 
     @IconPosition.setter
     def IconPosition(self, value: HeaderIconPosition) -> None:
-        if not self._assertWarnHeader():
-            return
+        if not self._assertWarnHeader(): return
         self._header.IconPosition = value
 
     @property
@@ -224,8 +211,7 @@ class Page(QWidget, ComponentBase):
         self._setCommandBarState(value)
 
     def _setCommandBarState(self, value: bool) -> None:
-        if bool(self._commandBar) == value:
-            return
+        if bool(self._commandBar) == value: return
         if value:
             self._commandBar = CommandBar(parent=self)
         else:

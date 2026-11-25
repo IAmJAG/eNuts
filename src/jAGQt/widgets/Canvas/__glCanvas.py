@@ -44,11 +44,9 @@ class GLCanvas(QOpenGLWidget, ComponentBase, CanvasBase):
     mouseReleased: SignalInstance = Signal(object)
 
     def __init__(
-        self,
-        bg: Union[str, QColor] = BACKGROUND_COLOR,
+        self, bg: Union[str, QColor] = BACKGROUND_COLOR,
         fitMode: eCanvasFitMode = eCanvasFitMode.Scale,
-        *args,
-        **kwargs,
+        *args, **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
         self._backgroundColor = QColor(bg) if isinstance(bg, str) else bg
@@ -104,8 +102,7 @@ class GLCanvas(QOpenGLWidget, ComponentBase, CanvasBase):
     def _tensorToQImage(frame: Tensor) -> Optional[QImage]:
         try:
             t = frame.detach()
-            if t.is_cuda:
-                t = t.cpu()
+            if t.is_cuda: t = t.cpu()
             arr = t.numpy()
             if arr.ndim == 3 and arr.shape[-1] == 3:
                 h, w, _ = arr.shape

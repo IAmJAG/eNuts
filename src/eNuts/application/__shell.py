@@ -22,27 +22,33 @@ from .workspace import WorkSpace
 
 
 # ==================================================================================
-class Shell(iShell, ApplicationInformation):
-    def _tempRunServices(self):
-        ph: ProcessHost = ProcessHost(name="ProcessHost")
-        ph.start(deviceWatcher, clientType=DeviceManager)
-        
+class Shell(iShell, ApplicationInformation):        
     def _wInitializeUI(self: iMainWindowBase | QMainWindow) -> None:
         verbose("ENTER")
         try:
-            # Old in-process DeviceManager disconnected — not instantiated.
-            # self._deviceManager remains None until a replacement is wired.
-            self._deviceManager = None
+            processHost: ProcessHost = ProcessHost(name="ProcessHost")
+            self._deviceManager = processHost.start(
+                deviceWatcher, clientType=DeviceManager
+            )
 
             central: WorkSpace = WorkSpace(title=self.title, parent=self)
             self.setCentralWidget(central)
-            self._tempRunServices()
+
+            self._processHost: ProcessHost = processHost            
 
         except Exception as ex:
             error("FAIL", ex)
 
         finally:
             verbose("EXIT")
+
+    @property
+    def host(self) -> ProcessHost:
+        return self._processHost
+
+    @property
+    def deviceManager(self):
+        return self._deviceManager
 
     def _wInitializeSettings(self) -> None:
         company = self.company or "jAGQt"
@@ -92,6 +98,5 @@ class Shell(iShell, ApplicationInformation):
 
     def closeEvent(self, event) -> None:
         self.saveWindowState()
-        # Old DeviceManager stopAll removed — no longer used.
         self._shutdownEvent.set()
         super().closeEvent(event)

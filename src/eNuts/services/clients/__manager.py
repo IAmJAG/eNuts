@@ -11,7 +11,6 @@ from uuid import uuid4
 
 # ==================================================================================
 from jAGFx.IPC import asyncCloseQueue, asyncDrainQueue
-from jAGFx.IPC.message import Handshake, Terminated
 from jAGFx.types.interface.communication.messages import iMessage
 
 
@@ -37,8 +36,7 @@ async def ownDispatch(outQueue: Queue, msg: iMessage):
 
 # ==================================================================================
 async def watcher(
-    shutdownEvent: syncEvent,
-    messageHandler: Callable[[iMessage, ...], Awaitable],
+    shutdownEvent: syncEvent, messageHandler: Callable[[iMessage, ...], Awaitable],
     inQueue: Queue, outQueue: Queue
 ):
     def isShuttingdown() -> bool: ...

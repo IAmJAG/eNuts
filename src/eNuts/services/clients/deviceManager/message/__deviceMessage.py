@@ -24,7 +24,7 @@ class _deviceUpdate(Message):
         )
 
     @property
-    def devices(self) -> Union[Dict[str, iDevice], iDevice]: 
+    def device(self) -> iDevice: 
         return self.payload
 
 # ==================================================================================
