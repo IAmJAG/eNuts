@@ -18,12 +18,8 @@ from .__helper import asyncCloseQueue
 
 # ==================================================================================
 async def SCRCPYWorker(
-    clientId: str,
-    shutdownEvent: syncEvent,
-    inQueue: Queue,
-    outQueue: Queue,
-    *args,
-    **kwargs,
+    clientId: str, shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queue,
+    *args, **kwargs,
 ):
     """Domain worker for SCRCPY serial sessions. Not the ProcessHost default."""
     device: AdbDevice = await to_thread(adb.device, serial=clientId)
