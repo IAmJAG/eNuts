@@ -4,7 +4,7 @@ from __future__ import annotations
 # ==================================================================================
 from asyncio import AbstractEventLoop, CancelledError, Task, get_running_loop, to_thread
 from inspect import iscoroutinefunction
-from multiprocessing import Event, Process, Queue
+from multiprocessing import Event, Process, Queue, active_children
 from multiprocessing.synchronize import Event as syncEvent
 from queue import Empty
 from threading import RLock
@@ -194,15 +194,24 @@ class ProcessHost(AsyncProcess, iProcessHost):
         except Exception:
             pass
 
-        procSS: ProcessSnapshot = self._processes.pop(clientId, None)        
-        if procSS is not None:
-            process: Process = procSS.process
-            if process.is_alive():
-                process.terminate()
-                process.join()
-            process.close()
+        def _getProcessById(pid: int):
+            return next(
+                (process for process in active_children()
+                if process.ident == pid),
+                None
+            )
+        client: iClient = self.clients.pop(clientId, None)        
+        if client is not None:            
+            process: Process = _getProcessById(clientId)
 
-        if not self._processes:
+            if process is not None:
+                if process.is_alive():
+                    process.terminate()
+                    process.join()
+            
+                process.close()
+
+        if not self.clients:
             if self._shutdownEvent is not None and not self._shutdownEvent.is_set():
                 self._shutdownEvent.set()
 
