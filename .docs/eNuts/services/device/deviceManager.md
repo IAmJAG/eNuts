@@ -1,43 +1,21 @@
 ## Overview & Design Context
-`DeviceManager` discovers ADB/SCRCPY devices, stores `iDevice` instances (typically `SCRCPYEmitter`), and raises add/remove/initialized events for UI and recorder consumers.
+**LEGACY / DISCONNECTED.** This documents the previous in-process DeviceManager. It is no longer instantiated by Shell or exported from services. File remains for reference only.
 
-* **Design Decision / Deviation Notes:** Lives under `eNuts.services.device` (not `application`). Shell constructs one instance bound to the window shutdown event. Class name is PascalCase (`DeviceManager`) per public-class convention. Stream readiness is tracked separately so `ensureRunning` can initialize + start emitters on demand.
+Current device discovery lives in the out-of-process client at `src/eNuts/services/clients/deviceManager/` (see `.docs/eNuts/services/clients/deviceManager/`).
+
+* **Design Decision / Deviation Notes:** Deliberately disconnected 2026-11-24 (commits 26033eb, 3781b31, b499764, 80ae884, 6ea8977). Do not re-enable without explicit redesign.
 
 ---
 
 ## Classes
 
-### `DeviceManager`
-- **Purpose:** Async device registry with polling discovery and SCRCPY emitter lifecycle helpers.
-- **Methods:**
-  - `runDiscovery()` — schedule `_discovery` task.
-  - `add(device)` / `remove(device|str)` — registry mutations + events.
-  - `get(deviceId)` / `ensureRunning(deviceId)` — SCRCPY access and start.
-  - `start(device)` / `stop(device)` / `stopAll()` / `stopExcept(keepDeviceId)` — emitter lifecycle helpers.
-- **Events:** `DEVICE_ADDED_EVENT`, `DEVICE_REMOVED_EVENT`, `DEVICE_INITIALIZED_EVENT`.
-
-## Constants & Globals
-
-### `DEVICE_ADDED_EVENT` / `DEVICE_REMOVED_EVENT` / `DEVICE_INITIALIZED_EVENT`
-- **Type:** `str`
-- **Value / Description:** Event names raised on the AsyncSubscription surface.
-
-### `POLL_INTERVAL`
-- **Type:** `float`
-- **Value / Description:** Seconds between discovery polls (2.0).
+### `DeviceManager` (legacy)
+- **Purpose:** Former async in-process registry. No longer used.
+- **Status:** Disconnected. Events and ensureRunning helpers removed from call sites.
 
 ## Sample Usage
 
 ```python
-from eNuts.services.device import (
-    DeviceManager,
-    DEVICE_ADDED_EVENT,
-    DEVICE_INITIALIZED_EVENT,
-    DEVICE_REMOVED_EVENT,
-)
-
-mgr = DeviceManager(shutdownEvent)
-mgr.subscribe(DEVICE_ADDED_EVENT, onAdded)
-mgr.runDiscovery()
-emitter = await mgr.ensureRunning(serial)
+# DO NOT USE — disconnected
+# from eNuts.services.device import DeviceManager  # removed from exports
 ```
