@@ -1,18 +1,25 @@
 # Client — Implementation
 
-## Creation guard
+## Creation guard (MUST)
 
-Implemented in `Client.__init__` (not `__init_subclass__`).
+Enforced by metaclass `_ClientMeta.__call__` so every instantiation of `Client` or any subclass is intercepted before `__init__` runs.
 
 ```python
-def __init__(self, clientId: int):
-    if not self._isCalledFromAllowedFactory():
-        raise RuntimeError("Client can only be created inside ProcessHost.start.")
-    super().__init__()
-    # ... remainder unchanged ...
+class _ClientMeta(type):
+    def __call__(cls, *args, **kwargs):
+        if not Client._isCalledFromAllowedFactory():
+            raise RuntimeError(
+                "Client and all subclasses MUST be created inside ProcessHost.start."
+            )
+        return super().__call__(*args, **kwargs)
+
+class Client(..., metaclass=_ClientMeta):
+    def __init__(self, clientId: int):
+        super().__init__()
+        # ... remainder unchanged; no guard here ...
 ```
 
-`_isCalledFromAllowedFactory` walks two frames back from itself and checks:
+`_isCalledFromAllowedFactory` walks two frames back (through the metaclass) and checks:
 
 ```python
 functionName == "start" and isinstance(me, iProcessHost)
@@ -24,10 +31,9 @@ This matches the call site in `ProcessHost.start`:
 client: iClient = clientType(clientId=identity)
 ```
 
-## Removed
+## Why metaclass
 
-- `__init_subclass__` that previously raised on every subclass definition.
-- Incorrect `isinstance(classType, iProcessHost)` (class object check).
+A check only in `__init__` can be skipped by a subclass that does not call `super().__init__`. The metaclass makes the constraint impossible to bypass.
 
 ## Unchanged
 
