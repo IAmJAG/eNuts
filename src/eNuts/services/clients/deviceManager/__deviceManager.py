@@ -30,8 +30,7 @@ class DeviceManager(Client):
         if handled: return
         if isinstance(msg, DeviceListInitialized):
             newDevices: List[iDevice] = list(msg.payload.values())
-            for device in newDevices:
-                self.addDevice(device)
+            for device in newDevices: self.addDevice(device)
             handled = True
 
         await super().processMessage(msg, handled=handled)
