@@ -28,7 +28,9 @@ ENDSIGNAL: object = object()
 # ==================================================================================
 
 # ==================================================================================
-class _ClientMeta(type):
+# iClient is a runtime_checkable Protocol; its metaclass must be a base of ours
+# to avoid "metaclass conflict" when Client inherits iClient + Subscription.
+class _ClientMeta(type(iClient)):
     def __call__(cls, *args, **kwargs):
         if not Client._isCalledFromAllowedFactory():
             raise RuntimeError(
