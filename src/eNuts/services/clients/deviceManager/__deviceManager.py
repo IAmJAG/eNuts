@@ -28,23 +28,38 @@ class DeviceManager(iDeviceManager, Client):
         return self._devices.pop(device, None)
 
     async def processMessage(self, msg: iMessage, handled: bool = False):
-        if handled: return
-        
+        trace(
+            f"DeviceManager received message={type(msg).__name__} "
+            f"handled={handled} trackedDevices={len(self._devices)}"
+        )
+        if handled:
+            return
+
         if isinstance(msg, DeviceListInitialized) and not handled:
             newDevices: List[iDevice] = list(msg.payload.values())
-            for device in newDevices: self.addDevice(device)
+            trace(
+                "Processing DeviceListInitialized "
+                f"count={len(newDevices)} ids={sorted(device.id for device in newDevices)}"
+            )
+            for device in newDevices:
+                self.addDevice(device)
+            trace(f"Raising DEVICE_LIST_INITIALIZED count={len(newDevices)}")
             self.raiseEvent("DEVICE_LIST_INITIALIZED", newDevices)
             handled = True
 
         if isinstance(msg, DeviceAdded) and not handled:
             newDevice: iDevice = msg.device
+            trace(f"Processing DeviceAdded id={newDevice.id}")
             self.addDevice(newDevice)
+            trace(f"Raising DEVICE_ADDED id={newDevice.id}")
             self.raiseEvent("DEVICE_ADDED", newDevice)
             handled = True
 
         if isinstance(msg, DeviceRemoved) and not handled:
             newDevice: iDevice = msg.device
+            trace(f"Processing DeviceRemoved id={newDevice.id}")
             self.removeDevice(newDevice)
+            trace(f"Raising DEVICE_REMOVED id={newDevice.id}")
             self.raiseEvent("DEVICE_REMOVED", newDevice)
             handled = True
 
