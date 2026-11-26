@@ -43,9 +43,9 @@ class Client(iClient, Subscription, metaclass=_ClientMeta):
     def __init__(self, clientId: int):
         super().__init__()
 
-        self._expiry: int = int(DEFAULT_EXPIRY * 1e9)  + monotonic_ns() # converts expiry into nanoseconds
+        self._expiry: int = int(DEFAULT_EXPIRY * 1e9) + monotonic_ns()
         self._identity: int = clientId
-        
+
         self._clientState: eClientState = eClientState.PENDING
         self._expiryTask: Optional[Task] = None
         self._messageQueue: asyncQueue = asyncQueue(QUEUE_SIZE)
@@ -60,7 +60,7 @@ class Client(iClient, Subscription, metaclass=_ClientMeta):
         now: int = monotonic_ns()
 
         self._expiry = now + durationNs
-        
+
         # Cancel previous expiry (its done callback must be ignored)
         oldTask: Optional[Task] = self._expiryTask
         if oldTask is not None and not oldTask.done():
@@ -69,9 +69,11 @@ class Client(iClient, Subscription, metaclass=_ClientMeta):
 
         def _expire(task: Task) -> None:
             # Ignore cancelled tasks and any task that is no longer current
-            if task.cancelled() or task is not self._expiryTask: return
+            if task.cancelled() or task is not self._expiryTask:
+                return
             # A newer beat (including the Handshake ACK) has already extended the deadline
-            if monotonic_ns() < self._expiry: return
+            if monotonic_ns() < self._expiry:
+                return
             trace("Heartbeat expired")
             self.clientState = eClientState.DORMANT
 
@@ -80,17 +82,39 @@ class Client(iClient, Subscription, metaclass=_ClientMeta):
         self._expiryTask = newTask
         self.clientState = eClientState.ACTIVE
 
-    async def push(self, message: iMessage) -> None: 
-        queue: asyncQueue = self._messageQueue        
-        if queue.full(): await queue.get()
+    async def push(self, message: iMessage) -> None:
+        queue: asyncQueue = self._messageQueue
+        messageType: str = type(message).__name__
+        state: eClientState = self.clientState
 
-        # Heartbeat and Terminated must always be delivered so a DORMANT client
-        # can recover (Heartbeat) or shut down cleanly (Terminated).
-        if self.clientState == eClientState.ACTIVE or isinstance(message, (Heartbeat, Terminated)):
-            await self._messageQueue.put(message)
+        if queue.full():
+            dropped: Union[iMessage, object] = await queue.get()
+            trace(
+                f"Client queue full; discarded oldest={type(dropped).__name__} "
+                f"before enqueueing={messageType}"
+            )
 
-    async def processMessage(self, msg: iMessage, handled: bool = False):        
-        if handled: return
+        # DORMANT is recoverable: its message processor remains alive. Do not
+        # discard device/domain messages merely because the heartbeat deadline
+        # expired; the next Heartbeat will restore ACTIVE independently.
+        shouldQueue: bool = (
+            state in (eClientState.ACTIVE, eClientState.DORMANT)
+            or isinstance(message, (Heartbeat, Terminated))
+        )
+
+        if shouldQueue:
+            await queue.put(message)
+            trace(
+                f"Client queued message={messageType} state={state.name} "
+                f"queueSize={queue.qsize()}"
+            )
+            return
+
+        trace(f"Client dropped message={messageType} state={state.name}")
+
+    async def processMessage(self, msg: iMessage, handled: bool = False):
+        if handled:
+            return
         if isinstance(msg, Heartbeat):
             self.beat(float(msg.payload))
 
@@ -102,8 +126,12 @@ class Client(iClient, Subscription, metaclass=_ClientMeta):
         queue: asyncQueue = self._messageQueue
         while True:
             msg: Union[iMessage, object] = await queue.get()
-            if msg is ENDSIGNAL: break
-            trace(f"Client MESSAGE RECEIVED... {type(msg).__name__}: {msg.payload}", color="yellow")
+            if msg is ENDSIGNAL:
+                break
+            trace(
+                f"Client MESSAGE RECEIVED... {type(msg).__name__}: {msg.payload}",
+                color="yellow",
+            )
             await self.processMessage(msg, False)
 
     @property
@@ -119,14 +147,14 @@ class Client(iClient, Subscription, metaclass=_ClientMeta):
             trace(f"State changed from {oldValue.name} to {value.name}")
             self.raiseEvent("STATE_CHANGED", value, oldValue)
 
-        queueTask: Optional[Task] = self._queueTask    
+        queueTask: Optional[Task] = self._queueTask
         # Only TERMINATED stops the processor. DORMANT must keep it alive so the
         # next Heartbeat can be processed and call beat() to recover.
         if value == eClientState.TERMINATED:
             if queueTask is not None and not queueTask.done():
                 createTask(self._messageQueue.put, ENDSIGNAL)
 
-        if queueTask is None or queueTask.done():            
+        if queueTask is None or queueTask.done():
             try:
                 drainQueue(self._messageQueue)
 
@@ -134,15 +162,21 @@ class Client(iClient, Subscription, metaclass=_ClientMeta):
                 pass
 
             queueTask = createTask(self._messageProc)
+
             # If the processor exits while we are still ACTIVE, restart it.
             def _restart_if_active(done_task: Task) -> None:
-                if done_task.cancelled(): return
-                if self.clientState == eClientState.ACTIVE and (self._queueTask is None or self._queueTask.done()):
+                if done_task.cancelled():
+                    return
+                if (
+                    self.clientState == eClientState.ACTIVE
+                    and (self._queueTask is None or self._queueTask.done())
+                ):
                     self.clientState = eClientState.ACTIVE
+
             queueTask.add_done_callback(_restart_if_active)
 
         self._queueTask = queueTask
-            
+
     @property
     def identity(self) -> int:
         return self._identity
@@ -150,7 +184,7 @@ class Client(iClient, Subscription, metaclass=_ClientMeta):
     @property
     def expiry(self) -> int:
         return self._expiry
-        
+
     @staticmethod
     def _isCalledFromAllowedFactory() -> bool:
         frame = inspect.currentframe()
@@ -158,7 +192,7 @@ class Client(iClient, Subscription, metaclass=_ClientMeta):
             # Walk until we find the caller of the constructor
             # Frame 0: _isCalledFromAllowedFactory
             # Frame 1: _ClientMeta.__call__
-            # Frame 2: actual caller of Client(...) / Subclass(...)
+            # Frame 2: actual caller of Client(...) / subclass(...)
             callerFrame = frame.f_back.f_back if frame and frame.f_back else None
             if callerFrame is None:
                 return False
