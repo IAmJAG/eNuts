@@ -9,6 +9,7 @@ from asyncio import Queue as asyncQueue
 from asyncio import Task
 from asyncio import sleep as asyncSleep
 from asyncio.queues import QueueEmpty
+from threading import Lock, RLock
 from time import monotonic_ns
 from typing import Optional, Union
 
@@ -50,75 +51,73 @@ class Client(iClient, Subscription, metaclass=_ClientMeta):
         self._expiryTask: Optional[Task] = None
         self._messageQueue: asyncQueue = asyncQueue(QUEUE_SIZE)
         self._queueTask: Optional[Task] = None
+        self._beatLock: Lock = Lock()
 
     def beat(self, expiry: float = 0.1) -> None:
-        # Margin large enough to absorb multiprocessing queue + to_thread + asyncio scheduling latency.
-        MARGIN: float = 1.0
-        safeExpiry: float = max(0.05, expiry + MARGIN)
+        with self._beatLock:
+            # Margin large enough to absorb multiprocessing queue + to_thread + asyncio scheduling latency.
+            MARGIN: float = 1.0
+            safeExpiry: float = max(0.05, expiry + MARGIN)
 
-        durationNs: int = int(safeExpiry * 1e9)
-        now: int = monotonic_ns()
+            durationNs: int = int(safeExpiry * 1e9)
+            now: int = monotonic_ns()
 
-        self._expiry = now + durationNs
+            self._expiry = now + durationNs
 
-        # Cancel previous expiry (its done callback must be ignored)
-        oldTask: Optional[Task] = self._expiryTask
-        if oldTask is not None and not oldTask.done():
-            self._expiryTask = None
-            oldTask.cancel()
+            # Cancel previous expiry (its done callback must be ignored)
+            oldTask: Optional[Task] = self._expiryTask
+            if oldTask is not None and not oldTask.done():
+                self._expiryTask = None
+                oldTask.cancel()
 
-        def _expire(task: Task) -> None:
-            # Ignore cancelled tasks and any task that is no longer current
-            if task.cancelled() or task is not self._expiryTask:
-                return
-            # A newer beat (including the Handshake ACK) has already extended the deadline
-            if monotonic_ns() < self._expiry:
-                return
-            trace("Heartbeat expired")
-            self.clientState = eClientState.DORMANT
+            def _expire(task: Task) -> None:
+                # Ignore cancelled tasks and any task that is no longer current
+                if task.cancelled() or task is not self._expiryTask:
+                    return
+                # A newer beat (including the Handshake ACK) has already extended the deadline
+                if monotonic_ns() < self._expiry:
+                    return
+                trace("Heartbeat expired")
+                self.clientState = eClientState.DORMANT
 
-        newTask: Task = createTask(asyncSleep, safeExpiry)
-        newTask.add_done_callback(_expire)
-        self._expiryTask = newTask
-        self.clientState = eClientState.ACTIVE
+            newTask: Task = createTask(asyncSleep, safeExpiry)
+            newTask.add_done_callback(_expire)
+            self._expiryTask = newTask
+            self.clientState = eClientState.ACTIVE
 
     async def push(self, message: iMessage) -> None:
         queue: asyncQueue = self._messageQueue
         messageType: str = type(message).__name__
         state: eClientState = self.clientState
 
-        if queue.full():
-            dropped: Union[iMessage, object] = await queue.get()
-            trace(
-                f"Client queue full; discarded oldest={type(dropped).__name__} "
-                f"before enqueueing={messageType}"
-            )
-
         # DORMANT is recoverable: its message processor remains alive. Do not
         # discard device/domain messages merely because the heartbeat deadline
         # expired; the next Heartbeat will restore ACTIVE independently.
-        shouldQueue: bool = (
-            state in (eClientState.ACTIVE, eClientState.DORMANT)
-            or isinstance(message, (Heartbeat, Terminated))
-        )
+        shouldQueue: bool = (state is eClientState.ACTIVE or isinstance(message, (Heartbeat, Terminated)))
 
         if shouldQueue:
+            if queue.full():
+                dropped: Union[iMessage, object] = await queue.get()
+                verbose(
+                    f"Client queue full; discarded oldest={type(dropped).__name__} "
+                    f"before enqueueing={messageType}"
+                )
+        
             await queue.put(message)
-            trace(
-                f"Client queued message={messageType} state={state.name} "
+            verbose(f"Client queued message={messageType} state={state.name} "
                 f"queueSize={queue.qsize()}"
             )
             return
 
-        trace(f"Client dropped message={messageType} state={state.name}")
+        verbose(f"Client dropped message={messageType} state={state.name}")
 
-    async def processMessage(self, msg: iMessage, handled: bool = False):
-        if handled:
-            return
-        if isinstance(msg, Heartbeat):
-            self.beat(float(msg.payload))
+    async def processMessage(self, message: iMessage, handled: bool = False):        
+        if handled: return
+        if isinstance(message, Heartbeat):
+            trace(f"Heartbeat received {self.clientState.name}")
+            self.beat(float(message.payload))
 
-        if isinstance(msg, Terminated):
+        if isinstance(message, Terminated):
             trace(f"process termination recieved [{self.identity}]", color="yellow")
             self.clientState = eClientState.TERMINATED
 
@@ -126,13 +125,10 @@ class Client(iClient, Subscription, metaclass=_ClientMeta):
         queue: asyncQueue = self._messageQueue
         while True:
             msg: Union[iMessage, object] = await queue.get()
-            if msg is ENDSIGNAL:
-                break
-            trace(
-                f"Client MESSAGE RECEIVED... {type(msg).__name__}: {msg.payload}",
-                color="yellow",
-            )
+            if msg is ENDSIGNAL: break
+            trace(f"Client MESSAGE RECEIVED... {type(msg).__name__}: {msg.payload}", color="yellow")
             await self.processMessage(msg, False)
+            
 
     @property
     def clientState(self) -> eClientState:
@@ -165,8 +161,7 @@ class Client(iClient, Subscription, metaclass=_ClientMeta):
 
             # If the processor exits while we are still ACTIVE, restart it.
             def _restart_if_active(done_task: Task) -> None:
-                if done_task.cancelled():
-                    return
+                if done_task.cancelled(): return
                 if (
                     self.clientState == eClientState.ACTIVE
                     and (self._queueTask is None or self._queueTask.done())

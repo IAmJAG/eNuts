@@ -20,6 +20,10 @@ class DeviceManager(iDeviceManager, Client):
         super().__init__(clientId=clientId)
         self._devices: Dict[str, iDevice] = dict[str, iDevice]()
 
+    @property
+    def devices(self) -> List[iDevice]:
+        return list(self._devices.values())
+
     def addDevice(self, device: iDevice):
         self._devices[device.id] = device
 
@@ -27,43 +31,28 @@ class DeviceManager(iDeviceManager, Client):
         device: str = device if isinstance(device, str) else device.id
         return self._devices.pop(device, None)
 
-    async def processMessage(self, msg: iMessage, handled: bool = False):
-        verbose(
-            f"DeviceManager received message={type(msg).__name__} "
-            f"handled={handled} trackedDevices={len(self._devices)}"
-        )
-        if handled:
-            return
-
+    async def processMessage(self, msg: iMessage, handled: bool = False):        
+        if handled: return
+        
         if isinstance(msg, DeviceListInitialized) and not handled:
-            newDevices: List[iDevice] = list(msg.payload.values())
-            verbose(
-                "Processing DeviceListInitialized "
-                f"count={len(newDevices)} ids={sorted(device.id for device in newDevices)}"
-            )
-            for device in newDevices:
-                self.addDevice(device)
-            verbose(f"Raising DEVICE_LIST_INITIALIZED count={len(newDevices)}")
+            newDevices: List[iDevice] = list(msg.payload.values())            
+            for device in newDevices: self.addDevice(device)
+            verbose(f"Initial device list acquired... {self._devices.keys()}")      
             self.raiseEvent("DEVICE_LIST_INITIALIZED", newDevices)
             handled = True
 
         if isinstance(msg, DeviceAdded) and not handled:
             newDevice: iDevice = msg.device
-            verbose(f"Processing DeviceAdded id={newDevice.id}")
+            verbose(f"Device added id={newDevice.id}")
             self.addDevice(newDevice)
-            verbose(f"Raising DEVICE_ADDED id={newDevice.id}")
             self.raiseEvent("DEVICE_ADDED", newDevice)
             handled = True
 
         if isinstance(msg, DeviceRemoved) and not handled:
             newDevice: iDevice = msg.device
-            verbose(f"Processing DeviceRemoved id={newDevice.id}")
+            verbose(f"Device removed id={newDevice.id}")
             self.removeDevice(newDevice)
-            verbose(f"Raising DEVICE_REMOVED id={newDevice.id}")
             self.raiseEvent("DEVICE_REMOVED", newDevice)
             handled = True
 
-        # iDeviceManager is the first base class and declares a Protocol stub
-        # named processMessage. super() would resolve to that stub instead of
-        # Client.processMessage, preventing Heartbeat from refreshing the lease.
-        await Client.processMessage(self, msg, handled=handled)
+        await Client.processMessage(self, message=msg, handled=handled)

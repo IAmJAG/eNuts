@@ -240,9 +240,7 @@ class ProcessHost(AsyncProcess, iProcessHost):
             trace(f"Handshake message recieved from [{clientId}]; type: [{type(message).__name__}]", color="cyan")
             message.payload = "ACKNOWLEDGED"
             await self._dispatch(clientId, message)
-            # Longer initial grace so the client Heartbeat loop has time to start and take over.
-            # The ACK itself is the key that prevents immediate expiry.
-            client.beat(5.0)
+            client.beat(2.0)
 
         await client.push(message)
 
