@@ -50,11 +50,13 @@ class KGRecorder(PlaybackBase):
     def _bindDevices(self):
         main: iShell = self.mainwindow
         deviceManager: iDeviceManager = main.deviceManager
-        deviceManager.subscribe("DEVICE_LIST_INITIALIZED", self._onDevicesListInitialized)        
+        deviceManager.subscribe("DEVICE_LIST_INITIALIZED", self._onDevicesListInitialized)
+        deviceManager.subscribe("DEVICE_ADDED", self._onDeviceAdded)
+        deviceManager.subscribe("DEVICE_REMOVED", self._onDeviceRemoved)
 
     def _wBindComponents(self):
         super()._wBindComponents()
-        # self._bindDevices()        
+        self._bindDevices()        
 
     def _wInitializeUI(self) -> None:
         super()._wInitializeUI()

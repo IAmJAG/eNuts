@@ -1,5 +1,5 @@
 # eNuts Asset & Directory Inventory
-*Auto-generated on: 2026-11-25 03:00:58 UTC*
+*Auto-generated on: 2026-11-26 01:36:55 UTC*
 
 ## Current Directory Structure
 
@@ -124,11 +124,12 @@ eNuts/
 │   │   │   │   ├── __manager.py
 │   │   │   │   └── deviceManager/
 │   │   │   │       ├── __deviceDiscovery.py
+│   │   │   │       ├── __deviceManager.py
 │   │   │   │       └── message/
 │   │   │   │           ├── __deviceDiscoveryEnded.py
 │   │   │   │           ├── __deviceDiscoveryStarted.py
-│   │   │   │           ├── __deviceMessage.py
-│   │   │   │           └── __initializeDeviceList.py
+│   │   │   │           ├── __deviceListInitialized.py
+│   │   │   │           └── __deviceMessage.py
 │   │   │   ├── device/
 │   │   │   │   └── __deviceManager.py
 │   │   │   └── recorder/
@@ -616,6 +617,9 @@ src/eNuts/services/clients/deviceManager:
 			_discovery -> : _discovery
 		CONSTANTS(S)/GLOBAL(S)
 			POLL_INTERVAL -> : poll_interval
+	__deviceManager.py - 
+		CLASSE(S):
+			DeviceManager -> : devicemanager
 
 src/eNuts/services/clients/deviceManager/message:
 	__deviceDiscoveryEnded.py - 
@@ -624,14 +628,14 @@ src/eNuts/services/clients/deviceManager/message:
 	__deviceDiscoveryStarted.py - 
 		CLASSE(S):
 			DeviceDiscoveryStarted -> : devicediscoverystarted
+	__deviceListInitialized.py - 
+		CLASSE(S):
+			DeviceListInitialized -> : devicelistinitialized
 	__deviceMessage.py - 
 		CLASSE(S):
 			_deviceUpdate -> : _deviceupdate
 			DeviceAdded -> : deviceadded
 			DeviceRemoved -> : deviceremoved
-	__initializeDeviceList.py - 
-		CLASSE(S):
-			InitializeDeviceList -> : initializedevicelist
 
 src/eNuts/services/device:
 	__deviceManager.py - 
@@ -735,9 +739,6 @@ src/eNuts/UI/pages:
 	__kgRecorder.py - 
 		CLASSE(S):
 			KGRecorder -> : kgrecorder
-		CONSTANTS(S)/GLOBAL(S)
-			C_SETTINGS_DEVICE_ID -> : c_settings_device_id
-			C_RECORDINGS_DIR -> : c_recordings_dir
 	__pageKeys.py - 
 	__playbackBase.py - 
 		CLASSE(S):
@@ -1256,6 +1257,7 @@ src/jAGFx/IPC:
 src/jAGFx/IPC/client:
 	__client.py - 
 		CLASSE(S):
+			_ClientMeta -> : _clientmeta
 			Client -> : client
 		CONSTANTS(S)/GLOBAL(S)
 			QUEUE_SIZE -> : queue_size
@@ -1959,68 +1961,56 @@ src/utilities/io:
 ## Change Summary
 
 ```text
-5d813e0:
+2961825:
+	Allow Heartbeat recovery from DORMANT
+		.docs/jAGFx/IPC/client/implementation.md
+		src/jAGFx/IPC/client/__client.py
+
+2fc02e7:
 	Merge branch 'development' of https://github.com/IAmJAG/eNuts into development
 
-56dd684:
-	refactor(processHost): improve process termination handling and utilize active_children
-		src/jAGFx/IPC/__processHost.py
+de50fef:
+	refactor(SCRCPYWorker): simplify parameter list by consolidating into a single line
+		src/jAGFx/IPC/__workers.py
 
-5df7a2e:
-	docs: add documentation for fluxCore/device (Device, SCRCPYDevice) and eNuts/services/clients/deviceManager; mark legacy deviceManager as disconnected; note Heartbeat in IPC
-		.docs/eNuts/services/clients/deviceManager/deviceManager.md
-		.docs/eNuts/services/clients/deviceManager/implementation.md
-		.docs/eNuts/services/clients/deviceManager/requirement.md
-		.docs/eNuts/services/device/deviceManager.md
-		.docs/eNuts/services/device/requirement.md
-		.docs/fluxCore/device/SCRCPYDevice.md
-		.docs/fluxCore/device/device.md
-		.docs/fluxCore/device/implementation.md
-		.docs/fluxCore/device/requirement.md
-		.docs/jAGFx/IPC/message/heartBeat.md
+5ddb21e:
+	Update Client implementation notes for heartbeat margin and processor restart
+		.docs/jAGFx/IPC/client/implementation.md
 
-c743d50:
-	refactor(inventory): update auto-generated timestamp and restructure device management
-		.docs/inventory.md
-
-64c1338:
-	refactor: restructure device management and introduce SCRCPYDevice support
-		src/eNuts/services/clients/deviceManager/__deviceManager.py
-		src/eNuts/services/clients/deviceManager/message/__initializeDeviceList.py
-		src/fluxCore/device/__SCRCPYDevice.py
-		src/fluxCore/device/__device.py
+3e23c1b:
+	Harden heartbeat liveness against queue latency and processor restart race
+		src/eNuts/services/clients/deviceManager/__deviceDiscovery.py
 		src/jAGFx/IPC/__processHost.py
 		src/jAGFx/IPC/client/__client.py
-		src/jAGFx/types/interface/communication/client/__client.py
-		src/eNuts/utilities/asyncADB/__asyncADB.py -> src/utilities/asyncADB/__asyncADB.py
 
-fbfc210:
-	refactor(__client): enhance type handling for caller frame in _isCalledFromAllowedFactory
-		src/eNuts/services/clients/deviceManager/__messagehandler.py
+03b1f59:
+	Fix heartbeat expiry race: ignore stale callbacks when a newer beat has updated the deadline
+		.docs/jAGFx/IPC/client/implementation.md
 		src/jAGFx/IPC/client/__client.py
 
-8b91543:
-	refactor: remove old deviceManager and related files, introduce new client structure
+a1e2943:
+	refactor: streamline device management and UI integration in KGRecorder and related components
+		src/eNuts/UI/pages/__kgRecorder.py
+		src/eNuts/UI/pages/__playbackBase.py
 		src/eNuts/application/__shell.py
-		src/eNuts/services/proxies/__manager.py -> src/eNuts/services/clients/__manager.py
-		src/eNuts/services/proxies/deviceManager/__deviceManager.py -> src/eNuts/services/clients/deviceManager/__deviceManager.py
-		src/eNuts/services/proxies/deviceManager/__messagehandler.py -> src/eNuts/services/clients/deviceManager/__messagehandler.py
-		src/eNuts/services/proxies/deviceManager/message/__deviceDiscoveryEnded.py -> src/eNuts/services/clients/deviceManager/message/__deviceDiscoveryEnded.py
-		src/eNuts/services/proxies/deviceManager/message/__deviceDiscoveryStarted.py -> src/eNuts/services/clients/deviceManager/message/__deviceDiscoveryStarted.py
-		src/eNuts/services/proxies/deviceManager/message/__deviceMessage.py -> src/eNuts/services/clients/deviceManager/message/__deviceMessage.py
-		src/eNuts/services/proxies/deviceManager/message/__initializeDeviceList.py -> src/eNuts/services/clients/deviceManager/message/__initializeDeviceList.py
-		src/eNuts/utilities/asyncADB/__asyncADB.py
+		src/eNuts/services/clients/__manager.py
+		src/eNuts/services/clients/deviceManager/__deviceManager.py
+		src/eNuts/services/clients/deviceManager/message/__deviceMessage.py
+		src/eNuts/types/interface/application/__shell.py
+		src/eNuts/types/interface/services/device/__deviceManager.py
+		src/jAGQt/widgets/Canvas/__glCanvas.py
+		src/jAGQt/widgets/page/__page.py
 
-6ea8977:
-	refactor(kgRecorder): remove all deviceManager references so page can instantiate
-		src/eNuts/UI/pages/__kgRecorder.py
+3f94d29:
+	refactor(DeviceManager): streamline device addition in processMessage method
+		src/eNuts/services/clients/deviceManager/__deviceManager.py
 
-b108ec4:
-	fix(kgRecorder): use Page.addCommand instead of missing commandBar attribute
-		src/eNuts/UI/pages/__kgRecorder.py
+5eb0936:
+	fix(DeviceManager): ensure message handling state is updated for DeviceListInitialized
+		src/eNuts/services/clients/deviceManager/__deviceManager.py
 
-80ae884:
-	refactor: remove references to old DeviceManager events in KGRecorder
-		src/eNuts/UI/pages/__kgRecorder.py
+6548cf2:
+	fix(Client): resolve metaclass conflict by deriving _ClientMeta from Protocol metaclass
+		src/jAGFx/IPC/client/__client.py
 
 ```
