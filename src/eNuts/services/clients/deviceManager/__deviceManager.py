@@ -63,4 +63,7 @@ class DeviceManager(iDeviceManager, Client):
             self.raiseEvent("DEVICE_REMOVED", newDevice)
             handled = True
 
-        await super().processMessage(msg, handled=handled)
+        # iDeviceManager is the first base class and declares a Protocol stub
+        # named processMessage. super() would resolve to that stub instead of
+        # Client.processMessage, preventing Heartbeat from refreshing the lease.
+        await Client.processMessage(self, msg, handled=handled)
