@@ -58,7 +58,7 @@ async def deviceWatcher(shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queu
 # ==================================================================================
 async def _messageHandler(msg: iMessage, shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queue):
     if isinstance(msg, Handshake):
-        trace(f"Acknowleged [{msg.ownerId}]", color="cyan")
+        verbose(f"Acknowleged [{msg.ownerId}]")
         createTask(_discovery, shutdownEvent, outQueue)
         createTask(_beat, shutdownEvent, outQueue)
 
@@ -73,7 +73,7 @@ async def _beat(shutdownEvent: syncEvent, queue: Queue):
     INTERVAL: float = max(0.05, BEAT - MARGIN)
     while not isShuttingDown():
         heartbeat: Heartbeat = Heartbeat(BEAT)
-        trace(f"Sending Heartbeat beat={BEAT}", color="cyan")
+        verbose(f"Sending Heartbeat beat={BEAT}")
         await ownDispatch(queue, heartbeat)
         await asyncSleep(INTERVAL)
 
@@ -92,14 +92,14 @@ async def _discovery(shutdownEvent: syncEvent, queue: Queue) -> None:
 
     try:
         msgStarted: DeviceDiscoveryStarted = DeviceDiscoveryStarted()
-        trace("Device discovery started; requesting initial ADB device list")
+        verbose("Device discovery started; requesting initial ADB device list")
         await ownDispatch(queue, msgStarted)
 
         connectedDevices: Dict[str, iDevice] = await _getDevices()
         verbose(f"initial discovery count={len(connectedDevices)} ids={list(connectedDevices.keys())}")
 
         msgIDL: DeviceListInitialized = DeviceListInitialized(devices=connectedDevices)
-        trace(
+        verbose(
             "Dispatching DeviceListInitialized "
             f"count={len(connectedDevices)} ids={sorted(connectedDevices.keys())}"
         )
@@ -114,7 +114,7 @@ async def _discovery(shutdownEvent: syncEvent, queue: Queue) -> None:
             addedIds = curIds - oldIds
             removedIds = oldIds - curIds
 
-            trace(
+            verbose(
                 "Device poll: "
                 f"current={sorted(curIds)} previous={sorted(oldIds)} "
                 f"added={sorted(addedIds)} removed={sorted(removedIds)}"
@@ -125,17 +125,17 @@ async def _discovery(shutdownEvent: syncEvent, queue: Queue) -> None:
                 if device is not None:
                     devices[deviceId] = device
                     deviceAdded: DeviceAdded = DeviceAdded(device=device)
-                    trace(f"Dispatching DeviceAdded id={deviceId}")
+                    verbose(f"Dispatching DeviceAdded id={deviceId}")
                     await ownDispatch(queue, deviceAdded)
-                    trace(f"Dispatched DeviceAdded id={deviceId}")
+                    verbose(f"Dispatched DeviceAdded id={deviceId}")
 
             for deviceId in removedIds:
                 device: iDevice = devices.pop(deviceId, None)
                 if device is not None:
                     deviceRemoved: DeviceRemoved = DeviceRemoved(device=device)
-                    trace(f"Dispatching DeviceRemoved id={deviceId}")
+                    verbose(f"Dispatching DeviceRemoved id={deviceId}")
                     await ownDispatch(queue, deviceRemoved)
-                    trace(f"Dispatched DeviceRemoved id={deviceId}")
+                    verbose(f"Dispatched DeviceRemoved id={deviceId}")
 
             if not isShuttingDown():
                 await asyncSleep(POLL_INTERVAL)
@@ -145,5 +145,5 @@ async def _discovery(shutdownEvent: syncEvent, queue: Queue) -> None:
 
     finally:
         msgEnded: DeviceDiscoveryEnded = DeviceDiscoveryEnded()
-        trace("Device discovery ended; dispatching DeviceDiscoveryEnded")
+        verbose("Device discovery ended; dispatching DeviceDiscoveryEnded")
         await ownDispatch(queue, msgEnded)
