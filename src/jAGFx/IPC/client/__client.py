@@ -98,15 +98,10 @@ class Client(iClient, Subscription, metaclass=_ClientMeta):
         if shouldQueue:
             if queue.full():
                 dropped: Union[iMessage, object] = await queue.get()
-                verbose(
-                    f"Client queue full; discarded oldest={type(dropped).__name__} "
-                    f"before enqueueing={messageType}"
-                )
+                verbose(f"Client queue full; discarded oldest={type(dropped).__name__} before enqueueing={messageType}")
         
             await queue.put(message)
-            verbose(f"Client queued message={messageType} state={state.name} "
-                f"queueSize={queue.qsize()}"
-            )
+            verbose(f"Client queued message={messageType} state={state.name} queueSize={queue.qsize()}")
             return
 
         verbose(f"Client dropped message={messageType} state={state.name}")
@@ -114,11 +109,11 @@ class Client(iClient, Subscription, metaclass=_ClientMeta):
     async def processMessage(self, message: iMessage, handled: bool = False):        
         if handled: return
         if isinstance(message, Heartbeat):
-            trace(f"Heartbeat received {self.clientState.name}")
+            verbose(f"Heartbeat received {self.clientState.name}")
             self.beat(float(message.payload))
 
         if isinstance(message, Terminated):
-            trace(f"process termination recieved [{self.identity}]", color="yellow")
+            verbose(f"process termination recieved [{self.identity}]")
             self.clientState = eClientState.TERMINATED
 
     async def _messageProc(self):
