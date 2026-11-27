@@ -8,12 +8,12 @@ from .__message import Message
 
 
 # ==================================================================================
-class Terminated(Message):    
+class Terminate(Message):    
     def __init__(
         self,        
-        correlationId: Optional[UUID] = None, messageId: UUID = None,
-        isTerminal: Optional[bool] = False,
-        error: Optional[BaseException] = None,
+        correlationId: UUID | None = None, messageId: UUID | None = None,
+        isTerminal: bool | None = False,
+        error: BaseException | None = None,
     ) -> None:
         processId = current_process().ident
         super().__init__(
@@ -22,4 +22,4 @@ class Terminated(Message):
         )
         
 # ==================================================================================
-__all__ = ["Terminated"]
+__all__ = ["Terminate"]

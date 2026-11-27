@@ -11,10 +11,11 @@ from PySide6.QtWidgets import QMainWindow
 
 # ==================================================================================
 from jAGFx.IPC import ProcessHost
+from jAGFx.IPC.client import watcher
 from jAGQt.types.interface.window import iMainWindowBase
 
 # ==================================================================================
-from ..services.clients.deviceManager import DeviceManager, deviceWatcher
+from ..services.clients.deviceManager import DeviceManager, messageHandler
 from ..types.interface.application import iShell
 from ..types.interface.services.device import iDeviceManager
 from .__applicationInformation import ApplicationInformation
@@ -28,16 +29,14 @@ class Shell(iShell, ApplicationInformation):
         try:
             processHost: ProcessHost = ProcessHost(name="ProcessHost")
             self._deviceManager = processHost.start(
-                deviceWatcher, clientType=DeviceManager
+                worker=watcher, clientType=DeviceManager, 
+                handler=messageHandler
             )
 
             central: WorkSpace = WorkSpace(title=self.title, parent=self)
             self.setCentralWidget(central)
 
-            self._processHost: ProcessHost = processHost            
-
-        except Exception as ex:
-            error("FAIL", ex)
+            self._processHost: ProcessHost = processHost
 
         finally:
             verbose("EXIT")
@@ -93,7 +92,7 @@ class Shell(iShell, ApplicationInformation):
         self._qsettings = value
 
     @property
-    def deviceManager(self) -> Optional[iDeviceManager]:
+    def deviceManager(self) -> iDeviceManager | None:
         return self._deviceManager
 
     def closeEvent(self, event) -> None:

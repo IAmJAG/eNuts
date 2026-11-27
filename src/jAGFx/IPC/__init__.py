@@ -8,17 +8,17 @@ from .message.__message import Message
 
 # ==================================================================================
 __all__ = [
-    "IOQueue",
-    "Endpoint",
-    "Message",
     "Bridge",
+    "Endpoint",
+    "IOQueue",
+    "Message",
     "ProcessHost",
-    "_clientWorker",
-    "echoWorker",
     "SCRCPYWorker",
+    "_clientWorker",
     "asyncCloseQueue",
     "asyncDrainQueue",
+    "clientWorker",
     "closeQueue",
     "drainQueue",
-    "clientWorker",
+    "echoWorker",
 ]

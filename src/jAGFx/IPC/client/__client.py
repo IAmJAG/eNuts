@@ -20,7 +20,7 @@ from ...types.interface.communication import iProcessHost
 from ...types.interface.communication.client import iClient
 from ...types.interface.communication.messages import iMessage
 from ..__helper import drainQueue
-from ..message import Heartbeat, Terminated
+from ..message import Heartbeat, Terminate
 
 # ==================================================================================
 QUEUE_SIZE: int = 32
@@ -48,9 +48,9 @@ class Client(iClient, Subscription, metaclass=_ClientMeta):
         self._identity: int = clientId
 
         self._clientState: eClientState = eClientState.PENDING
-        self._expiryTask: Optional[Task] = None
+        self._expiryTask: Task | None = None
         self._messageQueue: asyncQueue = asyncQueue(QUEUE_SIZE)
-        self._queueTask: Optional[Task] = None
+        self._queueTask: Task | None = None
         self._beatLock: Lock = Lock()
 
     def beat(self, expiry: float = 0.1) -> None:
@@ -65,7 +65,7 @@ class Client(iClient, Subscription, metaclass=_ClientMeta):
             self._expiry = now + durationNs
 
             # Cancel previous expiry (its done callback must be ignored)
-            oldTask: Optional[Task] = self._expiryTask
+            oldTask: Task | None = self._expiryTask
             if oldTask is not None and not oldTask.done():
                 self._expiryTask = None
                 oldTask.cancel()
@@ -93,11 +93,11 @@ class Client(iClient, Subscription, metaclass=_ClientMeta):
         # DORMANT is recoverable: its message processor remains alive. Do not
         # discard device/domain messages merely because the heartbeat deadline
         # expired; the next Heartbeat will restore ACTIVE independently.
-        shouldQueue: bool = (state is eClientState.ACTIVE or isinstance(message, (Heartbeat, Terminated)))
+        shouldQueue: bool = (state is eClientState.ACTIVE or isinstance(message, (Heartbeat, Terminate)))
 
         if shouldQueue:
             if queue.full():
-                dropped: Union[iMessage, object] = await queue.get()
+                dropped: iMessage | object = await queue.get()
                 verbose(f"Client queue full; discarded oldest={type(dropped).__name__} before enqueueing={messageType}")
         
             await queue.put(message)
@@ -112,14 +112,14 @@ class Client(iClient, Subscription, metaclass=_ClientMeta):
             verbose(f"Heartbeat received {self.clientState.name}")
             self.beat(float(message.payload))
 
-        if isinstance(message, Terminated):
+        if isinstance(message, Terminate):
             verbose(f"process termination recieved [{self.identity}]")
             self.clientState = eClientState.TERMINATED
 
     async def _messageProc(self):
         queue: asyncQueue = self._messageQueue
         while True:
-            msg: Union[iMessage, object] = await queue.get()
+            msg: iMessage | object = await queue.get()
             if msg is ENDSIGNAL: break
             trace(f"Client MESSAGE RECEIVED... {type(msg).__name__}: {msg.payload}", color="yellow")
             await self.processMessage(msg, False)
@@ -138,15 +138,9 @@ class Client(iClient, Subscription, metaclass=_ClientMeta):
             trace(f"State changed from {oldValue.name} to {value.name}")
             self.raiseEvent("STATE_CHANGED", value, oldValue)
 
-        queueTask: Optional[Task] = self._queueTask
-        # Only TERMINATED stops the processor. DORMANT must keep it alive so the
-        # next Heartbeat can be processed and call beat() to recover.
-        if value == eClientState.TERMINATED:
-            if queueTask is not None and not queueTask.done():
-                createTask(self._messageQueue.put, ENDSIGNAL)
-
+        queueTask: Task | None = self._queueTask
         if queueTask is None or queueTask.done():
-            try:
+            try:                
                 drainQueue(self._messageQueue)
 
             except QueueEmpty:
@@ -155,15 +149,18 @@ class Client(iClient, Subscription, metaclass=_ClientMeta):
             queueTask = createTask(self._messageProc)
 
             # If the processor exits while we are still ACTIVE, restart it.
-            def _restart_if_active(done_task: Task) -> None:
-                if done_task.cancelled(): return
-                if (
-                    self.clientState == eClientState.ACTIVE
-                    and (self._queueTask is None or self._queueTask.done())
-                ):
+            def _restartIfActive(task: Task) -> None:
+                if task.cancelled(): return
+                if (self.clientState == eClientState.ACTIVE and (self._queueTask is None or self._queueTask.done())):
                     self.clientState = eClientState.ACTIVE
 
-            queueTask.add_done_callback(_restart_if_active)
+            queueTask.add_done_callback(_restartIfActive)
+
+        else:
+            # Only TERMINATED stops the processor. DORMANT must keep it alive so the
+            # next Heartbeat can be processed and call beat() to recover.        
+            if value == eClientState.TERMINATED:
+                createTask(self._messageQueue.put, ENDSIGNAL)
 
         self._queueTask = queueTask
 

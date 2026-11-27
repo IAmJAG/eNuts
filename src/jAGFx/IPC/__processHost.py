@@ -3,12 +3,13 @@ from __future__ import annotations
 
 # ==================================================================================
 from asyncio import AbstractEventLoop, CancelledError, Task, get_running_loop, to_thread
+from collections.abc import Awaitable, Callable
 from inspect import iscoroutinefunction
 from multiprocessing import Event, Process, Queue, active_children
 from multiprocessing.synchronize import Event as syncEvent
 from queue import Empty
 from threading import RLock
-from typing import Any, Awaitable, Callable, Dict, List, Optional, Type
+from typing import Any
 from uuid import uuid4
 
 # ==================================================================================
@@ -19,32 +20,33 @@ from utilities import createTask
 from ..types.interface.communication import iProcessHost
 from ..types.interface.communication.client import iClient
 from ..types.interface.communication.messages import iMessage
+from .__exceptions import ClientNotFoundException
 from .__helper import asyncCloseQueue, asyncDrainQueue, closeQueue, drainQueue
-from .client import Client
+from .client import Client, handlerType
 from .message import Handshake
 
 
 # ==================================================================================
 class ProcessHost(AsyncProcess, iProcessHost):
-    def __init__(self, name: Optional[str] = None) -> None:
+    def __init__(self, name: str | None = None) -> None:
         AsyncProcess.__init__(self, work=None, name=name)
 
         # Parent -> one client. That client's inbound.
-        self._outQueues: Dict[str, Queue] = {}
+        self._outQueues: dict[str, Queue] = {}
 
         # Clients -> parent. One shared inbound.
-        self._inQueue: Optional[Queue] = None
-        self._receiverTask: Optional[Task] = None
+        self._inQueue: Queue | None = None
+        self._receiverTask: Task | None = None
 
-        self._stopTask: Optional[Task] = None
+        self._stopTask: Task | None = None
 
         self._lock: RLock = RLock()
-        self._clients: Dict[int, iClient] = dict[int, Client]()
+        self._clients: dict[int, iClient] = dict[int, Client]()
 
-        self._loop: Optional[AbstractEventLoop] = None
+        self._loop: AbstractEventLoop | None = None
 
     @property
-    def clients(self) -> Dict[int, Process]: 
+    def clients(self) -> dict[int, Process]: 
         with self._lock:
             return self._clients
 
@@ -54,11 +56,11 @@ class ProcessHost(AsyncProcess, iProcessHost):
             await task
 
     async def stopAsync(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
-        if not self._processes and self._receiverTask is None:
+        if not self._clients and self._receiverTask is None:
             return
 
         self.raiseEvent("ON_STOPPING")
-        shutdownEvent: Optional[syncEvent] = self._shutdownEvent
+        shutdownEvent: syncEvent | None = self._shutdownEvent
 
         try:
             if shutdownEvent is not None and not shutdownEvent.is_set():
@@ -115,12 +117,16 @@ class ProcessHost(AsyncProcess, iProcessHost):
         
         queue.put(msg)
     
-    def start(self, worker: Callable[..., Awaitable], clientType: Type[iClient], *args, **kwargs) -> iClient:
+    def start(
+        self, worker: Callable[..., Awaitable],
+        clientType: iClient,
+        handler: handlerType
+    ) -> iClient:
         if not iscoroutinefunction(worker): 
             raise ValueError("worker must be a coroutine")
         
-        shutdownEvent: Optional[syncEvent] = self._shutdownEvent
-        sharedQueue: Optional[Queue] = self._inQueue
+        shutdownEvent: syncEvent | None = self._shutdownEvent
+        sharedQueue: Queue | None = self._inQueue
 
         if shutdownEvent is None:
             shutdownEvent = Event()
@@ -132,19 +138,18 @@ class ProcessHost(AsyncProcess, iProcessHost):
             self._inQueue = sharedQueue
             trace("Created shared queue")
 
-        try:
-            # creates main receiver task, returns immedieately if already started
-            self._startReceiver(shutdownEvent, sharedQueue)
-
-        except Exception:    
-            raise
+        
+        # creates main receiver task, returns immedieately if already started
+        self._startReceiver(shutdownEvent, sharedQueue)
 
         clientQueue = Queue()
         trace("Created client queue")
 
-        client: Optional[iClient] = None
+        client: iClient | None = None
         try:            
-            process: Process = self._startProcess(worker, shutdownEvent, clientQueue, sharedQueue)
+            process: Process = self._startProcess(
+                worker, shutdownEvent, clientQueue, sharedQueue, handler
+            )
             identity: int = process.ident
 
             client: iClient = clientType(clientId=identity)
@@ -157,13 +162,13 @@ class ProcessHost(AsyncProcess, iProcessHost):
 
     def running(self, clientId: str | None = None) -> bool:
         if clientId is not None:
-            process = self._processes.get(clientId)
+            process = self._clients.get(clientId)
             return process is not None and process.is_alive()
 
         return (
             self._shutdownEvent is not None
             and not self._shutdownEvent.is_set()
-            and len(self._processes) > 0
+            and len(self._clients) > 0
         )
 
     def stop(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
@@ -183,15 +188,10 @@ class ProcessHost(AsyncProcess, iProcessHost):
 
     def _resourceCleanup(self, clientId: str, sharedQueue: Queue, clientQueue: Queue) -> None:
         try:
-            drainQueue(clientQueue)
-        
-        except Exception:
-            pass
-
-        try:            
+            drainQueue(clientQueue)            
             closeQueue(clientQueue)
 
-        except Exception:
+        except Exception:  # noqa: BLE001, S110
             pass
 
         def _getProcessById(pid: int):
@@ -232,8 +232,8 @@ class ProcessHost(AsyncProcess, iProcessHost):
 
     async def _handleMessage(self, message: iMessage) -> None:
         clientId: int = message.ownerId
-        if clientId not in self.clients.keys():
-            raise Exception(f"Client [{clientId}] not found!")
+        if clientId not in self.clients:
+            raise ClientNotFoundException(clientId, f"Client not found: [{clientId}]")
 
         client: iClient = self.clients[clientId]
         if isinstance(message, Handshake):
@@ -246,15 +246,16 @@ class ProcessHost(AsyncProcess, iProcessHost):
 
     def _startProcess(
         self, _worker: Callable[..., Awaitable], shutdownEvent: syncEvent,
-        clientQueue: Queue, sharedQueue: Queue,
+        clientQueue: Queue, sharedQueue: Queue, handler: handlerType
     ) -> Process:
         async def worker(self, shutdownEvent, *args, **kwargs): ...
         worker: Callable[..., Awaitable] = _worker
         
         process = Process(
             target=processEntry,
-            args=(worker, (shutdownEvent, clientQueue, sharedQueue), {}),
-            daemon=True, name=f"PROC_{uuid4().hex}",
+            args=(worker, (shutdownEvent, clientQueue, sharedQueue, handler), {}),
+            daemon=True,
+            name=f"PROC_{uuid4().hex}",
         )
         process.start()
         self._outQueues[process.ident] = clientQueue
@@ -270,7 +271,7 @@ class ProcessHost(AsyncProcess, iProcessHost):
 
             except Exception as ex:
                 trace("Failed to start", ex)
-                cleanUpTask: Dict[str, bool] = {
+                cleanUpTask: dict[str, bool] = {
                     "receiverTask": False, "drainQueue": False,
                     "closeQueue": False, "shutdownEvent": False,
                 }
@@ -294,7 +295,7 @@ class ProcessHost(AsyncProcess, iProcessHost):
                         closeQueue(queue)
                         cleanUpTask["closeQueue"] = True
 
-                    except Exception:
+                    except Exception:  # noqa: BLE001, S110
                         pass
 
                     if shutdownEvent is not None and not shutdownEvent.is_set():
@@ -357,7 +358,7 @@ class ProcessHost(AsyncProcess, iProcessHost):
         try:
             task.result()
 
-        except Exception as ex:
+        except Exception as ex:  # noqa: BLE001
             task.get_loop().call_exception_handler(
                 {
                     "message": f"ProcessHost '{self.name}' stopAsync failed",
@@ -370,12 +371,12 @@ class ProcessHost(AsyncProcess, iProcessHost):
                 self._stopTask = None
     
     def _closeQueues(self) -> None:
-        queues: List[Queue] = list(self._outQueues.values())
+        queues: list[Queue] = list(self._outQueues.values())
         for lQueue in queues:
             try:
                 closeQueue(lQueue)
 
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
 
         self._outQueues.clear()
@@ -383,7 +384,7 @@ class ProcessHost(AsyncProcess, iProcessHost):
         try:
             closeQueue(self._inQueue)
 
-        except Exception:
+        except Exception:  # noqa: BLE001, S110
             pass
 
         self._inQueue = None

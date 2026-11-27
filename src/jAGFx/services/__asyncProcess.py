@@ -4,11 +4,12 @@ from __future__ import annotations
 # ==================================================================================
 from asyncio import AbstractEventLoop, Task, get_running_loop, to_thread
 from asyncio import run as asyncioRun
+from collections.abc import Awaitable, Callable
 from inspect import iscoroutinefunction
 from multiprocessing import Event, Process
 from multiprocessing.synchronize import Event as SyncEvent
 from os import environ
-from typing import Any, Awaitable, Callable
+from typing import Any
 
 from jAGFx.logging import TRACE, VERBOSE, suppressedLogger
 
@@ -37,13 +38,7 @@ def processEntry(func: Callable[..., Awaitable], args, kwargs) -> None:
         suppressedLogger(THIRD_PARTY_LOGGERS, THIRD_PARTY_LOG_LEVEL)
 
         logName = environ.get("ENUTS_LOG_NAME")
-        if logName:
-            try:
-                addFileHandler(logName, LOG_LEVEL)
-                
-            except Exception:
-                pass
-
+        if logName:addFileHandler(logName, LOG_LEVEL)        
         await work(*_args, **_kwargs)
 
     asyncioRun(_runner(*args, **kwargs))
@@ -194,4 +189,4 @@ class AsyncProcess(Subscription, iService):
         self._shutdownEvent = shutdownEvent
 
 # ==================================================================================
-__all__ = ["AsyncProcess", "processEntry", "C_DEFAULT_STOP_TIMEOUT"]
+__all__ = ["C_DEFAULT_STOP_TIMEOUT", "AsyncProcess", "processEntry"]
