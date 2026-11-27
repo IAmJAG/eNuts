@@ -144,7 +144,7 @@ class AsyncProcess(Subscription, iService):
 
                 process.close()
 
-        except Exception:
+        except Exception:  # noqa: TRY203
             raise
 
     def stop(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
