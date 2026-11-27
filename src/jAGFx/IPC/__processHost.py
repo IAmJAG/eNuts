@@ -46,7 +46,7 @@ class ProcessHost(AsyncProcess, iProcessHost):
         self._loop: AbstractEventLoop | None = None
 
     @property
-    def clients(self) -> dict[int, Process]: 
+    def clients(self) -> dict[int, iClient]: 
         with self._lock:
             return self._clients
 
@@ -109,7 +109,7 @@ class ProcessHost(AsyncProcess, iProcessHost):
 
         self._receiverTask = None
 
-    async def _dispatch(self, clientId: str, msg: Any) -> None:
+    async def _dispatch(self, clientId: int, msg: Any) -> None:
         queue = self._outQueues.get(clientId)
         if queue is None:
             warning("Client queues not found")
@@ -157,12 +157,12 @@ class ProcessHost(AsyncProcess, iProcessHost):
             return client
 
         except Exception as ex:
-            self._resourceCleanup(client.identity, sharedQueue, clientQueue)
+            self._resourceCleanup(client.identity if client else identity, sharedQueue, clientQueue)
             raise
 
-    def running(self, clientId: str | None = None) -> bool:
+    def running(self, clientId: int | None = None) -> bool:
         if clientId is not None:
-            process = self._clients.get(clientId)
+            process = self._getProcessById(clientId)
             return process is not None and process.is_alive()
 
         return (
@@ -186,7 +186,7 @@ class ProcessHost(AsyncProcess, iProcessHost):
         )
         self._stopTask.add_done_callback(self._onStopTaskDone)
 
-    def _resourceCleanup(self, clientId: str, sharedQueue: Queue, clientQueue: Queue) -> None:
+    def _resourceCleanup(self, clientId: int, sharedQueue: Queue, clientQueue: Queue) -> None:
         try:
             drainQueue(clientQueue)            
             closeQueue(clientQueue)
@@ -194,15 +194,9 @@ class ProcessHost(AsyncProcess, iProcessHost):
         except Exception:  # noqa: BLE001, S110
             pass
 
-        def _getProcessById(pid: int):
-            return next(
-                (process for process in active_children()
-                if process.ident == pid),
-                None
-            )
         client: iClient = self.clients.pop(clientId, None)        
         if client is not None:            
-            process: Process = _getProcessById(clientId)
+            process: Process | None = self._getProcessById(clientId)
 
             if process is not None:
                 if process.is_alive():
@@ -316,7 +310,7 @@ class ProcessHost(AsyncProcess, iProcessHost):
         trace("Receiver task already started")
 
     def _stopSync(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
-        if not self._processes and self._receiverTask is None: return
+        if not self._clients and self._receiverTask is None: return
 
         self.raiseEvent("ON_STOPPING")
 
@@ -334,11 +328,21 @@ class ProcessHost(AsyncProcess, iProcessHost):
             self._shutdownEvent = None
             self.raiseEvent("ON_STOPPED")
 
+    def _getProcessById(self, pid: int) -> Process | None:
+        return next(
+            (process for process in active_children() if process.ident == pid),
+            None
+        )
+
     def _stopProcesses(self, timeout: float, forced: bool) -> None:
-        process: Process
-        for process in self._processes.values():
+        for clientId in list(self._clients.keys()):
+            process = self._getProcessById(clientId)
+            if process is None:
+                continue
+
             if process.is_alive():
-                if forced: process.terminate()
+                if forced:
+                    process.terminate()
 
                 process.join(timeout)
 
@@ -352,7 +356,7 @@ class ProcessHost(AsyncProcess, iProcessHost):
 
             process.close()
 
-        self._processes.clear()
+        self._clients.clear()
 
     def _onStopTaskDone(self, task: Task) -> None:
         try:
