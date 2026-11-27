@@ -23,9 +23,10 @@ Move heavy work off the main process. Give the parent a way to talk to those pro
 | Fact | Rule |
 |------|------|
 | Base | `AsyncProcess` (subscription events + name) |
-| Constructor | `ProcessHost(name=None, worker=None)` |
-| Default worker | `clientWorker` when `worker` is omitted |
-| Domain workers | Passed explicitly, e.g. `worker=SCRCPYWorker` or `worker=echoWorker` |
+| Constructor | `ProcessHost(name=None)` |
+| Start | `start(worker, clientType, handler) -> iClient` |
+| Client identity | `process.ident` (int) used as clientId |
+| Clients map | `_clients: dict[int, iClient]` |
 | Worker rule | Must be a **module-level** coroutine (spawn-safe). Not a method, not nested. |
 
 ---
@@ -42,7 +43,7 @@ Move heavy work off the main process. Give the parent a way to talk to those pro
 | Client → parent | One shared inbound queue for all clients | `_inQueue` |
 | Shutdown | One shared event observed by every child and the parent receiver | `_shutdownEvent` |
 | Parent receive | One asyncio task on the shared inbound | `_receiverTask` |
-| Children | One daemon process per client, named `PROC_{clientId}` | `_processes[clientId]` |
+| Children | One daemon process per client, named `PROC_{uuid}` | looked up via `active_children()` by `process.ident` |
 
 From the **parent** view:
 
@@ -73,7 +74,7 @@ Addressed parent→client; shared client→parent. No broadcast to every client.
 ### Ownership
 
 - Parent creates and closes every queue.
-- Parent creates and joins/kills every process.
+- Parent creates and joins/kills every process (via `active_children()` lookup).
 - Worker closes **only** its dedicated inbound on exit.
 - Worker must **not** close the shared outbound (`_inQueue`); that would cut off other clients.
 - Parent receiver is one task for the whole host; first successful path that needs it starts it; stop finishes it.
@@ -81,18 +82,22 @@ Addressed parent→client; shared client→parent. No broadcast to every client.
 ### Lifecycle sketch
 
 ```text
-start(clientId)
-  reject if clientId already running
+start(worker, clientType, handler)
   ensure shared shutdown event + shared inbound exist
-  create dedicated outbound for clientId
-  spawn PROC_{clientId} with (clientId, event, clientQueue, sharedQueue)
+  create dedicated outbound
+  spawn daemon process (name PROC_{uuid}) with (shutdownEvent, clientQueue, sharedQueue, handler)
+  identity = process.ident
+  client = clientType(clientId=identity)
+  store in _clients[identity]
   ensure parent receiver task is running on shared inbound
+  return client
 
 stop / stopAsync
   ON_STOPPING
   set shared event
   finish parent receiver
-  join each child (terminate/kill if forced or still alive)
+  for each clientId: lookup process via active_children() by ident, join/kill
+  clear _clients
   close all queues, clear state
   ON_STOPPED
 ```
@@ -103,12 +108,12 @@ stop / stopAsync
 
 ### 4.1 Startup
 
-- `start(clientId)` requires a running asyncio event loop. Without one it must fail **before** creating processes or queues (via `createTask` / loop use).
-- A `clientId` that is already started is rejected (`RuntimeError`).
+- `start(worker, clientType, handler)` requires a running asyncio event loop for the receiver.
 - Shared inbound and shared shutdown event are created once and reused for later clients.
-- Each start creates one dedicated outbound queue and one daemon process `PROC_{clientId}`.
+- Each start creates one dedicated outbound queue and one daemon process named `PROC_{uuid}`.
+- Client identity is `process.ident`. The returned client is stored in `_clients[ident]`.
 - The parent has a single receiver on `_inQueue`, shared by all clients.
-- The child target is the module-level worker passed to the constructor (default `clientWorker`).
+- The child target is the module-level worker passed to `start`.
 - A failed start must not leave an orphaned process or an open queue for that client. If no clients remain, shared inbound and shutdown event are released.
 
 ### 4.2 Messaging
@@ -130,8 +135,8 @@ stop / stopAsync
 
 ### 4.4 Liveness
 
-- `running()` — true only when the shutdown event exists, is not set, and process count > 0.
-- `running(clientId)` — true only when that client’s process exists and is alive.
+- `running()` — true only when the shutdown event exists, is not set, and client count > 0.
+- `running(clientId)` — true only when that client’s process (looked up by ident) exists and is alive.
 
 Liveness is process + shutdown state, not “receiver healthy” or “queue open.”
 
@@ -155,7 +160,7 @@ Raised exactly once per stop cycle:
 Rules:
 
 - Workers are module-level coroutines in `__workers.py`.
-- Signature: `(clientId, shutdownEvent, inQueue, outQueue, *args, **kwargs)`.
+- Signature: `(shutdownEvent, inQueue, outQueue, handler, *args, **kwargs)`.
 - Spawn imports the worker by name through `processEntry`. The host imports the worker; the worker does not import the host.
 - On exit the worker closes only its dedicated inbound.
 
