@@ -1,6 +1,5 @@
 # ==================================================================================
 from asyncio import Event as asyncEvent
-from os.path import join
 
 # ==================================================================================
 from PySide6.QtGui import QIcon

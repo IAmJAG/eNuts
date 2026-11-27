@@ -1,6 +1,5 @@
 # ==================================================================================
 from asyncio import to_thread
-from typing import Dict, Optional
 
 # ==================================================================================
 from PySide6.QtWidgets import QApplication
@@ -19,8 +18,8 @@ CONFIG_DIR: str = "themes"
 class eNutsApplication(QApplication):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)        
-        self._styles: Optional[Dict[str, str]] = None 
-        self._pendingTheme: Optional[str] = None        
+        self._styles: dict[str, str] | None = None 
+        self._pendingTheme: str | None = None        
 
     async def asyncSetStyeSheet(self, themeName: str) -> None:
         themePath: str = getConfigPath(CONFIG_DIR)
@@ -29,7 +28,7 @@ class eNutsApplication(QApplication):
 
     async def _loadStylesAsync(self, themePath: str) -> None:
         self._styles = None
-        loadedStyles: Dict[str, str] = await to_thread(loadStyles, themePath)
+        loadedStyles: dict[str, str] = await to_thread(loadStyles, themePath)
         self._styles = loadedStyles
 
         if self._pendingTheme is not None:
