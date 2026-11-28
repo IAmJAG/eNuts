@@ -8,7 +8,6 @@ from collections.abc import Awaitable, Callable
 from multiprocessing import Queue, current_process
 from multiprocessing.synchronize import Event as syncEvent
 from queue import Empty
-from typing import Optional
 from uuid import uuid4
 
 # ==================================================================================
@@ -17,14 +16,11 @@ from jAGFx.IPC.message import Handshake, Heartbeat, Terminate
 from jAGFx.types.interface.communication.messages import iMessage
 
 # ==================================================================================
-Handler = Callable[[iMessage, syncEvent, Queue], Awaitable]
+Handler: type = Callable[[iMessage, syncEvent, Queue], Awaitable]
+# ==================================================================================
 
 # ==================================================================================
-async def _watcher(
-    shutdownEvent: syncEvent,    
-    inQueue: Queue, outQueue: Queue,
-    messageHandler: Handler,
-):
+async def _watcher(shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queue, messageHandler: Handler):
     def isShuttingdown() -> bool: ...
     isShuttingdown = shutdownEvent.is_set
 
@@ -43,16 +39,14 @@ async def _watcher(
 
 # ==================================================================================
 async def watcher(
-    shutdownEvent: syncEvent,
-    inQueue: Queue, outQueue: Queue,
-    messageHandler: Handler,
+    shutdownEvent: syncEvent,inQueue: Queue, outQueue: Queue, messageHandler: Handler,
+    theWatch: Callable[[...], Awaitable]| None = None,
 ):
     err: Exception | BaseException | None = None
 
     try:
-        watcherTask: Task = createTask(
-            _watcher, shutdownEvent, inQueue, outQueue, messageHandler
-        )
+        theWatch = theWatch or _watcher
+        watcherTask: Task = createTask(theWatch, shutdownEvent, inQueue, outQueue, messageHandler)
 
         handShake: Handshake = Handshake()
         await ownDispatch(outQueue, handShake)
@@ -69,8 +63,8 @@ async def watcher(
 # ==================================================================================
 async def beat(shutdownEvent: syncEvent, queue: Queue):
     def isShuttingDown() -> bool: ...
-
     isShuttingDown = shutdownEvent.is_set
+    
     BEAT: float = 2.0
     MARGIN: float = 0.2
     INTERVAL: float = max(0.05, BEAT - MARGIN)

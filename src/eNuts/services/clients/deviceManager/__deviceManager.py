@@ -14,7 +14,7 @@ from .message import DeviceAdded, DeviceListInitialized, DeviceRemoved
 # ==================================================================================
 class DeviceManager(iDeviceManager, Client):
     def __init__(self, clientId: int):
-        super().__init__(clientId=clientId)
+        Client.__init__(self, clientId=clientId)
         self._devices: dict[str, iDevice] = dict[str, iDevice]()
 
     @property

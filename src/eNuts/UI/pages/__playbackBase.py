@@ -17,8 +17,8 @@ from jAGQt.widgets.page import Page
 class PlaybackBase(Page):
     def __init__(
         self, title: str, description: str,
-        icon: Optional[Union[QIcon, QPixmap, str]] = None,
-        commandBarOn: bool = False, id: Optional[str] = None, *args, **kwargs
+        icon: QIcon | QPixmap | str | None = None,
+        commandBarOn: bool = False, id: str | None = None, *args, **kwargs
     ) -> None:
         super().__init__(
             title=title, description=description, icon=icon,
@@ -28,7 +28,7 @@ class PlaybackBase(Page):
     def className(self) -> str:
         return type(self).__name__
 
-    def _wInitializeUI(self, view: Type[CanvasBase] = GLCanvas) -> None:
+    def _wInitializeUI(self, view: type[CanvasBase] = GLCanvas) -> None:
         super()._wInitializeUI()
 
         streamView: QWidget = view(bg="##1a1a1a")

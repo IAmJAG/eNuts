@@ -1,6 +1,6 @@
 # ==================================================================================
-from .__deviceDiscovery import messageHandler
+from .__deviceDiscovery import deviceDiscovery, deviceMessageHandler
 from .__deviceManager import DeviceManager
 
 # ==================================================================================
-__all__ = ["DeviceManager", "messageHandler"]
+__all__ = ["DeviceManager", "deviceDiscovery", "deviceMessageHandler"]

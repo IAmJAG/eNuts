@@ -24,12 +24,12 @@ from .__playbackBase import PlaybackBase
 class KGRecorder(PlaybackBase):
     def __init__(
         self, title: str, description: str,
-        icon: Optional[Union[QIcon, QPixmap, str]] = None,
-        commandBarOn: bool = True, id: Optional[str] = None, *args, **kwargs,
+        icon: QIcon | QPixmap | str | None = None,
+        commandBarOn: bool = True, id: str | None = None, *args, **kwargs,
     ) -> None:
         super().__init__(
             title=title, description=description, icon=icon,
-            commandBarOn=commandBarOn, id=id, *args, **kwargs,
+            commandBarOn=commandBarOn, id=id, *args, **kwargs,  # noqa: B026
         )
 
     async def _onDevicesListInitialized(self, devices: list[iDevice]):

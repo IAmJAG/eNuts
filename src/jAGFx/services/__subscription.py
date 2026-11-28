@@ -1,7 +1,6 @@
 # ==================================================================================
-from asyncio import to_thread
+from collections.abc import Callable
 from inspect import iscoroutinefunction
-from typing import Callable, Dict, List
 
 # ==================================================================================
 from ..types.interface.services import iSubscription
@@ -11,7 +10,7 @@ from ..types.interface.services import iSubscription
 class Subscription(iSubscription):
     def __init__(self) -> None:
         super().__init__()
-        self._callbacks: Dict[str, List[Callable]] = {}
+        self._callbacks: dict[str, list[Callable]] = {}
         self._suppressEvent = False
 
     def subscribe(self, event: str, callback: Callable) -> None:

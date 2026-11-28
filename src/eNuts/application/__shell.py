@@ -15,9 +15,14 @@ from jAGFx.IPC.client import watcher
 from jAGQt.types.interface.window import iMainWindowBase
 
 # ==================================================================================
-from ..services.clients.deviceManager import DeviceManager, messageHandler
+from ..services.clients.deviceManager import (
+    DeviceManager,
+    deviceDiscovery,
+    deviceMessageHandler,
+)
+from ..services.clients.streamer import Streamer, streamerMessageHandler, streamStarter
 from ..types.interface.application import iShell
-from ..types.interface.services.device import iDeviceManager
+from ..types.interface.services import iDeviceManager
 from .__applicationInformation import ApplicationInformation
 from .workspace import WorkSpace
 
@@ -29,8 +34,16 @@ class Shell(iShell, ApplicationInformation):
         try:
             processHost: ProcessHost = ProcessHost(name="ProcessHost")
             self._deviceManager = processHost.start(
-                worker=watcher, clientType=DeviceManager, 
-                handler=messageHandler
+                worker=deviceDiscovery,
+                clientType=DeviceManager,
+                handler=deviceMessageHandler,
+            )
+
+            processHost.start(
+                worker=streamStarter,
+                clientType=Streamer,                
+                handler=streamerMessageHandler,
+                clientId="emulator-5564",
             )
 
             central: WorkSpace = WorkSpace(title=self.title, parent=self)

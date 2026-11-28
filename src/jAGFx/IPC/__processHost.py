@@ -22,9 +22,12 @@ from ..types.interface.communication.client import iClient
 from ..types.interface.communication.messages import iMessage
 from .__exceptions import ClientNotFoundException
 from .__helper import asyncCloseQueue, asyncDrainQueue, closeQueue, drainQueue
-from .client import Client, handlerType
+from .client import Client
 from .message import Handshake
 
+# ==================================================================================
+Handler: type = Callable[[iMessage, syncEvent, Queue], Awaitable]
+# ==================================================================================
 
 # ==================================================================================
 class ProcessHost(AsyncProcess, iProcessHost):
@@ -52,8 +55,7 @@ class ProcessHost(AsyncProcess, iProcessHost):
 
     async def waitStopped(self) -> None:
         task = self._stopTask
-        if task is not None:
-            await task
+        if task is not None: await task 
 
     async def stopAsync(self, timeout: float = C_DEFAULT_STOP_TIMEOUT, forced: bool = False) -> None:
         if not self._clients and self._receiverTask is None:
@@ -104,7 +106,7 @@ class ProcessHost(AsyncProcess, iProcessHost):
         try:
             await task
 
-        except (CancelledError, Exception):
+        except (CancelledError, Exception):  # noqa: BLE001, S110
             pass
 
         self._receiverTask = None
@@ -117,11 +119,7 @@ class ProcessHost(AsyncProcess, iProcessHost):
         
         queue.put(msg)
     
-    def start(
-        self, worker: Callable[..., Awaitable],
-        clientType: iClient,
-        handler: handlerType
-    ) -> iClient:
+    def start(self, worker: Callable[..., Awaitable],clientType: iClient, handler: Handler, *args, **kwargs) -> iClient:
         if not iscoroutinefunction(worker): 
             raise ValueError("worker must be a coroutine")
         
@@ -148,7 +146,7 @@ class ProcessHost(AsyncProcess, iProcessHost):
         client: iClient | None = None
         try:            
             process: Process = self._startProcess(
-                worker, shutdownEvent, clientQueue, sharedQueue, handler
+                worker, shutdownEvent, clientQueue, sharedQueue, handler, *args, **kwargs
             )
             identity: int = process.ident
 
@@ -240,14 +238,14 @@ class ProcessHost(AsyncProcess, iProcessHost):
 
     def _startProcess(
         self, _worker: Callable[..., Awaitable], shutdownEvent: syncEvent,
-        clientQueue: Queue, sharedQueue: Queue, handler: handlerType
+        clientQueue: Queue, sharedQueue: Queue, handler: Handler, *args, **kwargs
     ) -> Process:
         async def worker(self, shutdownEvent, *args, **kwargs): ...
         worker: Callable[..., Awaitable] = _worker
         
         process = Process(
             target=processEntry,
-            args=(worker, (shutdownEvent, clientQueue, sharedQueue, handler), {}),
+            args=(worker, (shutdownEvent, clientQueue, sharedQueue, handler, args, kwargs), {}),
             daemon=True,
             name=f"PROC_{uuid4().hex}",
         )

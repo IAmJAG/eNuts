@@ -1,5 +1,6 @@
 # ==================================================================================
-from .__deviceManager import iDeviceManager
+from .__streamer import Streamer
+from .__streamManager import streamerMessageHandler, streamStarter
 
 # ==================================================================================
-__all__ = ["iDeviceManager"]
+__all__ = ["Streamer", "streamStarter", "streamerMessageHandler"]

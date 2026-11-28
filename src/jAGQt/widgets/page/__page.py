@@ -34,8 +34,8 @@ class Page(QWidget, ComponentBase):
     OBJECT_NAME = "W_PAGE"
     def __init__(
         self, title: str, description: str = "",
-        icon: Optional[Union[QIcon, QPixmap, str]] = None,
-        commandBarOn: bool = False, id: Optional[str] = None,
+        icon: QIcon | QPixmap | str | None = None,
+        commandBarOn: bool = False, id: str | None = None,
         *args, **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
@@ -83,7 +83,7 @@ class Page(QWidget, ComponentBase):
         cntLayout.setSizeConstraint(QLayout.SizeConstraint.SetNoConstraint)
         content.setLayout(cntLayout)
 
-        commandBar: Optional[iCommandBar] = CommandBar() if isCommandBarOn else None
+        commandBar: iCommandBar | None = CommandBar() if isCommandBarOn else None
 
         mainLayout: QBoxLayout = newLayout(
             QBoxLayout, spacing=0, margins=(0, 0, 0, 0),
@@ -97,7 +97,7 @@ class Page(QWidget, ComponentBase):
 
         self._header: Header = pageHeader
         self._content: QWidget = content
-        self._commandBar: Optional[iCommandBar] = commandBar
+        self._commandBar: iCommandBar | None = commandBar
 
         self.setLayout(mainLayout)
         # Page.Layout (ComponentBase) targets the *content* slot, not mainLayout
@@ -131,7 +131,7 @@ class Page(QWidget, ComponentBase):
 
     def addCommand(
         self, button: str | iCommandBarButton,
-        group: Optional[str | iCommandBarGroup] = None,
+        group: str | iCommandBarGroup | None = None,
     ) -> None:
         if not self._assertCommandBar(): return
         self._commandBar.addButton(button, group)
@@ -182,12 +182,12 @@ class Page(QWidget, ComponentBase):
         self._header.Description = value
 
     @property
-    def Icon(self) -> Optional[Union[QIcon, QPixmap]]:
+    def Icon(self) -> QIcon | QPixmap | None:
         if not self._assertWarnHeader(): return None
         return self._header.Icon
 
     @Icon.setter
-    def Icon(self, value: Optional[Union[QIcon, QPixmap, str]]) -> None:
+    def Icon(self, value: QIcon | QPixmap | str | None) -> None:
         if not self._assertWarnHeader(): return
         self._header.Icon = value
 

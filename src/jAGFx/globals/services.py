@@ -1,5 +1,7 @@
 # ==================================================================================
-from .__iKGRecorderService import iKGRecorderService
+from jAGFx.logging import TRACE
 
 # ==================================================================================
-__all__ = ["iKGRecorderService"]
+C_DEFAULT_STOP_TIMEOUT: float = 3.0
+LOG_LEVEL = TRACE
+# ==================================================================================

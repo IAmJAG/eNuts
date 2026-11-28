@@ -4,7 +4,7 @@ from __future__ import annotations
 # ==================================================================================
 from json import dumps, loads
 from multiprocessing import Queue
-from typing import Any, Callable, Dict
+from typing import Any
 
 # ==================================================================================
 from ..serializer import jsonDecode as dictDecode
@@ -33,14 +33,14 @@ class IOQueue(iIOQueue):
         return Queue(), Queue()            
 
     def send(self, message: iMessage) -> None:
-        dictMsg: Dict = message.encode()
+        dictMsg: dict = message.encode()
         jsonMsg: str = dumps(dictMsg)
         self._ou.put(jsonMsg)
 
     def receive(self, timeout: float | None = None) -> Any:
         timeout = timeout if timeout is not None else 0.01
         jsonMsg: str = self._in.get(timeout=timeout)
-        dictMsg: Dict = loads(jsonMsg)
+        dictMsg: dict = loads(jsonMsg)
         return dictDecode(dictMsg)
 
     def close(self) -> None:
@@ -48,7 +48,7 @@ class IOQueue(iIOQueue):
             self._ou.close()
             self._in.close()
 
-        except Exception:
+        except Exception:  # noqa: BLE001, S110
             pass
 
     def cancelJoinThread(self) -> None:
@@ -56,7 +56,7 @@ class IOQueue(iIOQueue):
             self._in.cancel_join_thread()
             self._ou.cancel_join_thread()
 
-        except Exception:
+        except Exception:  # noqa: BLE001, S110
             pass
 
 

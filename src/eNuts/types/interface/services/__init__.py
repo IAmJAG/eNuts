@@ -1,6 +1,6 @@
 # ==================================================================================
-from .device import iDeviceManager
-from .recorder import iKGRecorderService
+from .__deviceManager import iDeviceManager
+from .__serviceManager import iServiceManager
 
 # ==================================================================================
-__all__ = ["iDeviceManager", "iKGRecorderService"]
+__all__ = ["iDeviceManager", "iServiceManager"]

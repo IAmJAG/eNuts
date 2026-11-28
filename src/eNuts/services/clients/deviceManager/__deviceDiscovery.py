@@ -13,7 +13,7 @@ from adbutils import AdbDevice
 # ==================================================================================
 from fluxCore.device import SCRCPYDevice
 from fluxCore.types.interface.device import iDevice
-from jAGFx.IPC.client import beat, ownDispatch
+from jAGFx.IPC.client import beat, ownDispatch, watcher
 from jAGFx.IPC.message import Handshake
 from jAGFx.types.interface.communication import iMessage
 from utilities.asyncADB import ADBDevices
@@ -29,7 +29,12 @@ from .message import (
 
 # ==================================================================================
 POLL_INTERVAL: float = 0.1
+Handler: type = Callable[[iMessage, syncEvent, Queue], Awaitable]
 # ==================================================================================
+
+# ==================================================================================
+async def deviceDiscovery(shutdownEvent: syncEvent,inQueue: Queue, outQueue: Queue,messageHandler: Handler): 
+    await watcher(shutdownEvent, inQueue, outQueue, messageHandler)
 
 # ==================================================================================
 async def _discovery(shutdownEvent: syncEvent, queue: Queue) -> None:
@@ -97,7 +102,7 @@ async def _discovery(shutdownEvent: syncEvent, queue: Queue) -> None:
         await ownDispatch(queue, msgEnded)
 
 # ==================================================================================
-async def messageHandler(msg: iMessage, shutdownEvent: syncEvent, outQueue: Queue):
+async def deviceMessageHandler(msg: iMessage, shutdownEvent: syncEvent, outQueue: Queue):
     if isinstance(msg, Handshake):
         verbose(f"Acknowleged [{msg.ownerId}]")
         createTask(_discovery, shutdownEvent, outQueue)

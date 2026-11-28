@@ -11,20 +11,16 @@ from multiprocessing.synchronize import Event as SyncEvent
 from os import environ
 from typing import Any
 
-from jAGFx.logging import TRACE, VERBOSE, suppressedLogger
-
 # ==================================================================================
+from jAGFx.logging import suppressedLogger
 from jAGFx.names import getRandomName
 from utilities import THIRD_PARTY_LOG_LEVEL, THIRD_PARTY_LOGGERS
 
 # ==================================================================================
+from ..globals.services import C_DEFAULT_STOP_TIMEOUT, LOG_LEVEL
 from ..types.interface.services import iService
 from .__subscription import Subscription
 
-# ==================================================================================
-C_DEFAULT_STOP_TIMEOUT: float = 3.0
-LOG_LEVEL = TRACE
-# ==================================================================================
 
 # ==================================================================================
 def processEntry(func: Callable[..., Awaitable], args, kwargs) -> None:
