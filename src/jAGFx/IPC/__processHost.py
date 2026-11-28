@@ -245,7 +245,7 @@ class ProcessHost(AsyncProcess, iProcessHost):
         
         process = Process(
             target=processEntry,
-            args=(worker, (shutdownEvent, clientQueue, sharedQueue, handler, args, kwargs), {}),
+            args=(worker, (shutdownEvent, clientQueue, sharedQueue, handler) + args, kwargs),
             daemon=True,
             name=f"PROC_{uuid4().hex}",
         )
