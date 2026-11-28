@@ -16,9 +16,9 @@ from jAGFx.types.interface.communication import iMessage
 Handler: type = Callable[[iMessage, syncEvent, Queue], Awaitable]
 # ==================================================================================
 
-
 # ==================================================================================
 async def streamStarter(shutdownEvent: syncEvent, inQueue: Queue, outQueue: Queue, messageHandler: Handler, clientId: str| None = None):
+    print(f"Starting clientId: {clientId}")
     await watcher(shutdownEvent, inQueue, outQueue, messageHandler)
 
 # ==================================================================================
